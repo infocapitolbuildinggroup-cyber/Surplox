@@ -19,7 +19,8 @@ export default function Onboarding() {
     bio: '',
     phone: '',
     city: '',
-    email: ''
+    email: '',
+    preferred_language: 'en'
   })
 
   const navigate = useNavigate()
@@ -84,7 +85,8 @@ export default function Onboarding() {
         bio: prof?.bio || '',
         phone: cp?.phone || '',
         city: cp?.city || '',
-        email: cp?.email || user.email || ''
+        email: cp?.email || user.email || '',
+        preferred_language: prof?.preferred_language || 'en'
       })
 
       setLoading(false)
@@ -114,6 +116,7 @@ export default function Onboarding() {
 
       if (!form.email.trim()) throw new Error('Email is required.')
       if (!isValidEmail(form.email)) throw new Error('Enter a valid email address.')
+      if (!['en', 'es'].includes(form.preferred_language)) throw new Error('Select a valid language.')
 
       const { error: profErr } = await supabase
         .from('profiles')
@@ -125,7 +128,8 @@ export default function Onboarding() {
           trade_id: Number(form.trade_id),
           travel_radius_miles: Number(form.travel_radius_miles),
           crew_size: Number(form.crew_size),
-          bio: form.bio
+          bio: form.bio,
+          preferred_language: form.preferred_language
         })
 
       if (profErr) throw profErr
@@ -277,6 +281,18 @@ export default function Onboarding() {
             value={form.crew_size}
             onChange={(e) => setField('crew_size', e.target.value)}
           />
+        </div>
+
+        <div>
+          <div className="muted" style={{ marginBottom: 6 }}>Preferred Language</div>
+          <select
+            className="input"
+            value={form.preferred_language}
+            onChange={(e) => setField('preferred_language', e.target.value)}
+          >
+            <option value="en">English</option>
+            <option value="es">Español</option>
+          </select>
         </div>
       </div>
 

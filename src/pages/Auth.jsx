@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { useNavigate } from 'react-router-dom'
+import { t } from '../i18n'
 
-export default function Auth() {
+export default function Auth({ lang = 'en' }) {
   const [mode, setMode] = useState('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -25,7 +26,7 @@ export default function Auth() {
 
         if (error) throw error
 
-        setMsg('Check your email for a confirmation link, then sign in to continue.')
+        setMsg(t(lang, 'auth_check_email'))
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -37,7 +38,7 @@ export default function Auth() {
         navigate('/feed', { replace: true })
       }
     } catch (err) {
-      setMsg(err.message || 'Unable to complete authentication right now.')
+      setMsg(err.message || t(lang, 'auth_error'))
     } finally {
       setLoading(false)
     }
@@ -46,40 +47,31 @@ export default function Auth() {
   return (
     <div className="card" style={{ maxWidth: 520, margin: '0 auto' }}>
       <div className="h1">
-        {mode === 'signup' ? 'Create Your Surplox Account' : 'Sign In to Surplox'}
+        {mode === 'signup' ? t(lang, 'auth_signup_title') : t(lang, 'auth_signin_title')}
       </div>
 
       <p className="muted">
-        {mode === 'signup'
-          ? 'Join the Surplox network to connect with local subcontractors and laborers across Texas.'
-          : 'Access your Surplox account to browse local trade discussions and manage your profile.'}
+        {mode === 'signup' ? t(lang, 'auth_signup_intro') : t(lang, 'auth_signin_intro')}
       </p>
 
-      <div
-        className="card"
-        style={{
-          marginBottom: 12,
-          borderColor: 'rgba(255,49,49,0.25)',
-          background: 'rgba(255,49,49,0.04)'
-        }}
-      >
-        <div style={{ fontWeight: 700, marginBottom: 6 }}>
-          Members Only
+      <div className="card card-notice" style={{ marginBottom: 12 }}>
+        <div className="card-section-title">
+          {t(lang, 'auth_members_only')}
         </div>
-        <div className="muted">
-          Surplox is built for subcontractors and laborers. No direct messaging. No public homeowner directory.
-        </div>
+        <p className="card-section-subtitle">
+          {t(lang, 'auth_members_only_body')}
+        </p>
       </div>
 
       {msg && (
-        <div className="card" style={{ marginBottom: 12, borderColor: 'rgba(255,49,49,0.25)' }}>
+        <div className="card card-message" style={{ marginBottom: 12 }}>
           {msg}
         </div>
       )}
 
       <form onSubmit={handleAuth} className="grid" style={{ gap: 10 }}>
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>Email</div>
+          <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'auth_email')}</div>
           <input
             className="input"
             type="email"
@@ -90,22 +82,22 @@ export default function Auth() {
         </div>
 
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>Password</div>
+          <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'auth_password')}</div>
           <input
             className="input"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
+            placeholder={t(lang, 'auth_password')}
           />
         </div>
 
         <button className="btn primary" disabled={loading}>
           {loading
-            ? 'Please wait…'
+            ? t(lang, 'auth_wait')
             : mode === 'signup'
-              ? 'Create Account'
-              : 'Sign In'}
+              ? t(lang, 'auth_create_account')
+              : t(lang, 'auth_sign_in')}
         </button>
       </form>
 
@@ -116,8 +108,8 @@ export default function Auth() {
         onClick={() => setMode(mode === 'signup' ? 'signin' : 'signup')}
       >
         {mode === 'signup'
-          ? 'Already have an account? Sign In'
-          : 'New to Surplox? Create an Account'}
+          ? t(lang, 'auth_switch_to_signin')
+          : t(lang, 'auth_switch_to_signup')}
       </button>
     </div>
   )

@@ -1,16 +1,33 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { Link } from 'react-router-dom'
+import { t } from '../i18n'
 
 export default function Channels() {
   const [trades, setTrades] = useState([])
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
+  const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
 
   useEffect(() => {
     async function load() {
       setLoading(true)
       setMsg('')
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      const user = sessionData.session?.user
+
+      if (user) {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('preferred_language')
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        const userLang = prof?.preferred_language || 'en'
+        setLang(userLang)
+        localStorage.setItem('surplox_lang', userLang)
+      }
 
       const { data, error } = await supabase
         .from('trades')
@@ -19,7 +36,7 @@ export default function Channels() {
 
       if (error) {
         console.error(error)
-        setMsg('Unable to load trade channels right now.')
+        setMsg(t(lang, 'channels_error'))
       } else {
         setTrades(data || [])
       }
@@ -31,13 +48,13 @@ export default function Channels() {
   }, [])
 
   if (loading) {
-    return <div className="card">Loading trade channels…</div>
+    return <div className="card">{t(lang, 'channels_loading')}</div>
   }
 
   if (msg) {
     return (
       <div className="card">
-        <div className="h1" style={{ fontSize: 18 }}>Channels Unavailable</div>
+        <div className="h1" style={{ fontSize: 18 }}>{t(lang, 'channels_unavailable')}</div>
         <div className="muted" style={{ marginTop: 8 }}>{msg}</div>
       </div>
     )
@@ -45,30 +62,29 @@ export default function Channels() {
 
   return (
     <div className="card">
-      <div className="h1">Trade Channels</div>
+      <div className="h1">{t(lang, 'channels_title')}</div>
       <p className="muted">
-        Browse local discussions by trade. Select a channel to view posts in your area.
+        {t(lang, 'channels_intro')}
       </p>
 
       <div className="list" style={{ marginTop: 12 }}>
         {trades.length === 0 ? (
-          <div className="card">
-            <div className="h1" style={{ fontSize: 18, marginTop: 0 }}>No Channels Yet</div>
-            <div className="muted">
-              Trade channels have not been created yet.
-            </div>
+          <div className="card card-soft">
+            <div className="card-section-title">{t(lang, 'channels_empty_title')}</div>
+            <p className="card-section-subtitle">
+              {t(lang, 'channels_empty_body')}
+            </p>
           </div>
         ) : (
-          trades.map((t) => (
+          trades.map((trow) => (
             <Link
-              key={t.id}
-              className="card"
-              to={`/feed?trade=${t.id}`}
-              style={{ background: '#0f1118' }}
+              key={trow.id}
+              className="card card-soft"
+              to={`/feed?trade=${trow.id}`}
             >
-              <div style={{ fontWeight: 800, fontSize: 16 }}>{t.name}</div>
+              <div style={{ fontWeight: 800, fontSize: 16 }}>{trow.name}</div>
               <div className="muted" style={{ marginTop: 4 }}>
-                View nearby posts in this trade
+                {t(lang, 'channels_view_posts')}
               </div>
             </Link>
           ))

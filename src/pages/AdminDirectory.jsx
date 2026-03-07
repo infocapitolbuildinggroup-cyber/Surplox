@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
+import { t } from '../i18n'
 
 function haversineMiles(lat1, lon1, lat2, lon2) {
   const toRad = (x) => (x * Math.PI) / 180
@@ -22,6 +23,7 @@ export default function AdminDirectory() {
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
   const [savingId, setSavingId] = useState(null)
+  const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
 
   const [trades, setTrades] = useState([])
   const [profiles, setProfiles] = useState([])
@@ -45,30 +47,45 @@ export default function AdminDirectory() {
       setMsg('')
 
       try {
-        const { data: t, error: tErr } = await supabase
+        const { data: sessionData } = await supabase.auth.getSession()
+        const uid = sessionData.session?.user?.id
+
+        if (uid) {
+          const { data: profLang } = await supabase
+            .from('profiles')
+            .select('preferred_language')
+            .eq('user_id', uid)
+            .maybeSingle()
+
+          const userLang = profLang?.preferred_language || 'en'
+          setLang(userLang)
+          localStorage.setItem('surplox_lang', userLang)
+        }
+
+        const { data: trows, error: tErr } = await supabase
           .from('trades')
           .select('id, name')
           .order('name')
         if (tErr) throw tErr
 
-        const { data: p, error: pErr } = await supabase
+        const { data: prows, error: pErr } = await supabase
           .from('profiles')
           .select('user_id, display_name, trade_id, home_zip, travel_radius_miles, crew_size, bio, created_at')
           .order('created_at', { ascending: false })
         if (pErr) throw pErr
 
-        const { data: cp, error: cpErr } = await supabase
+        const { data: cprows, error: cpErr } = await supabase
           .from('contact_private')
           .select('user_id, phone, email, city, admin_rating, admin_notes')
         if (cpErr) throw cpErr
 
         if (!alive) return
-        setTrades(t || [])
-        setProfiles(p || [])
-        setPrivateRows(cp || [])
+        setTrades(trows || [])
+        setProfiles(prows || [])
+        setPrivateRows(cprows || [])
 
         const allZips = Array.from(
-          new Set((p || []).map((x) => String(x.home_zip || '')).filter((z) => /^[0-9]{5}$/.test(z)))
+          new Set((prows || []).map((x) => String(x.home_zip || '')).filter((z) => /^[0-9]{5}$/.test(z)))
         )
 
         const jz = String(filters.job_zip || '')
@@ -90,7 +107,7 @@ export default function AdminDirectory() {
       } catch (e) {
         console.error(e)
         if (!alive) return
-        setMsg(e?.message || 'Unable to load the directory right now.')
+        setMsg(e?.message || t(lang, 'admin_save_error'))
       } finally {
         if (!alive) return
         setLoading(false)
@@ -109,7 +126,7 @@ export default function AdminDirectory() {
 
   const tradeNameById = useMemo(() => {
     const m = new Map()
-    trades.forEach((t) => m.set(String(t.id), t.name))
+    trades.forEach((tr) => m.set(String(tr.id), tr.name))
     return m
   }, [trades])
 
@@ -248,7 +265,7 @@ export default function AdminDirectory() {
       const ratingNum = admin_rating === '' ? null : Number(admin_rating)
 
       if (ratingNum !== null && (!Number.isFinite(ratingNum) || ratingNum < 1 || ratingNum > 5)) {
-        throw new Error('Rating must be between 1 and 5')
+        throw new Error(t(lang, 'admin_rating_error'))
       }
 
       const { error } = await supabase
@@ -270,7 +287,7 @@ export default function AdminDirectory() {
       )
     } catch (e) {
       console.error(e)
-      setMsg(e?.message || 'Unable to save your notes right now.')
+      setMsg(e?.message || t(lang, 'admin_save_error'))
     } finally {
       setSavingId(null)
     }
@@ -324,26 +341,26 @@ export default function AdminDirectory() {
   }
 
   if (loading) {
-    return <div className="card">Loading crew directory…</div>
+    return <div className="card">{t(lang, 'admin_loading')}</div>
   }
 
   return (
     <div className="grid" style={{ gap: 12 }}>
       <div className="card">
-        <div className="h1" style={{ fontSize: 20, marginTop: 0 }}>Crew Match Dashboard</div>
+        <div className="h1" style={{ fontSize: 20, marginTop: 0 }}>{t(lang, 'admin_title')}</div>
         <p className="muted">
-          Search, filter, and organize your Surplox network by job location, trade, and crew size.
+          {t(lang, 'admin_intro')}
         </p>
 
-        {msg ? (
+        {msg && (
           <div className="card card-message" style={{ marginTop: 12 }}>
             {msg}
           </div>
-        ) : null}
+        )}
 
         <div className="grid two" style={{ marginTop: 12 }}>
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>Job ZIP</div>
+            <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_job_zip')}</div>
             <input
               className="input"
               value={filters.job_zip}
@@ -353,7 +370,7 @@ export default function AdminDirectory() {
           </div>
 
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>Search radius (miles)</div>
+            <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_search_radius')}</div>
             <input
               className="input"
               type="number"
@@ -364,21 +381,21 @@ export default function AdminDirectory() {
           </div>
 
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>Trade</div>
+            <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_trade')}</div>
             <select
               className="input"
               value={filters.trade_id}
               onChange={(e) => setF('trade_id', e.target.value)}
             >
-              <option value="">All trades</option>
-              {trades.map((t) => (
-                <option key={t.id} value={t.id}>{t.name}</option>
+              <option value="">{t(lang, 'admin_all_trades')}</option>
+              {trades.map((tr) => (
+                <option key={tr.id} value={tr.id}>{tr.name}</option>
               ))}
             </select>
           </div>
 
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>Minimum crew size</div>
+            <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_min_crew')}</div>
             <input
               className="input"
               type="number"
@@ -389,12 +406,12 @@ export default function AdminDirectory() {
           </div>
 
           <div style={{ gridColumn: '1 / -1' }}>
-            <div className="muted" style={{ marginBottom: 6 }}>Search by name, city, ZIP, or bio</div>
+            <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_search_label')}</div>
             <input
               className="input"
               value={filters.q}
               onChange={(e) => setF('q', e.target.value)}
-              placeholder="Example: welder, Cleburne, 76031"
+              placeholder={t(lang, 'admin_search_placeholder')}
             />
           </div>
         </div>
@@ -405,25 +422,25 @@ export default function AdminDirectory() {
             onClick={exportCsv}
             disabled={filtered.length === 0}
           >
-            Export Results ({filtered.length})
+            {t(lang, 'admin_export')} ({filtered.length})
           </button>
         </div>
       </div>
 
       <div className="card">
         <div className="h1" style={{ fontSize: 18, marginTop: 0 }}>
-          Matching Results ({filtered.length})
+          {t(lang, 'admin_results')} ({filtered.length})
         </div>
         <p className="muted">
-          Results are sorted by distance when a job ZIP is entered. Otherwise they appear from newest to oldest.
+          {t(lang, 'admin_results_intro')}
         </p>
 
         <div className="list" style={{ marginTop: 12 }}>
           {filtered.length === 0 ? (
             <div className="card card-soft">
-              <div className="card-section-title">No Matches Found</div>
+              <div className="card-section-title">{t(lang, 'admin_no_matches')}</div>
               <p className="card-section-subtitle">
-                Try widening the radius or removing one of the filters.
+                {t(lang, 'admin_no_matches_body')}
               </p>
             </div>
           ) : (
@@ -444,11 +461,11 @@ export default function AdminDirectory() {
 
                     <div className="postMeta" style={{ marginTop: 6 }}>
                       {r.trade_name ? <span className="badge">{r.trade_name}</span> : null}
-                      {r.home_zip ? <span className="badge">ZIP {r.home_zip}</span> : null}
+                      {r.home_zip ? <span className="badge">{t(lang, 'admin_zip')} {r.home_zip}</span> : null}
                       {typeof r.distance_miles === 'number' ? (
-                        <span className="badge">{r.distance_miles.toFixed(1)} mi away</span>
+                        <span className="badge">{r.distance_miles.toFixed(1)} {t(lang, 'admin_away')}</span>
                       ) : null}
-                      {r.crew_size ? <span className="badge">Crew {r.crew_size}</span> : null}
+                      {r.crew_size ? <span className="badge">{t(lang, 'admin_crew')} {r.crew_size}</span> : null}
                       {r.city ? <span className="badge">{r.city}</span> : null}
                     </div>
                   </div>
@@ -459,7 +476,7 @@ export default function AdminDirectory() {
                       onClick={() => saveAdminFields(r.user_id, r.admin_rating, r.admin_notes)}
                       disabled={savingId === r.user_id}
                     >
-                      {savingId === r.user_id ? 'Saving…' : 'Save Notes'}
+                      {savingId === r.user_id ? t(lang, 'admin_saving') : t(lang, 'admin_save_notes')}
                     </button>
                   </div>
                 </div>
@@ -468,17 +485,17 @@ export default function AdminDirectory() {
 
                 <div className="grid two">
                   <div>
-                    <div className="muted" style={{ marginBottom: 6 }}>Phone</div>
+                    <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_phone')}</div>
                     <div className="kbd">{r.phone || '—'}</div>
                   </div>
 
                   <div>
-                    <div className="muted" style={{ marginBottom: 6 }}>Email</div>
+                    <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_email')}</div>
                     <div className="kbd">{r.email || '—'}</div>
                   </div>
 
                   <div>
-                    <div className="muted" style={{ marginBottom: 6 }}>Admin rating</div>
+                    <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_rating')}</div>
                     <select
                       className="input"
                       value={r.admin_rating === null ? '' : String(r.admin_rating)}
@@ -503,7 +520,7 @@ export default function AdminDirectory() {
                   </div>
 
                   <div>
-                    <div className="muted" style={{ marginBottom: 6 }}>Admin notes</div>
+                    <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_notes')}</div>
                     <textarea
                       className="input"
                       value={r.admin_notes || ''}
@@ -515,7 +532,7 @@ export default function AdminDirectory() {
                           )
                         )
                       }}
-                      placeholder="Private notes for reliability, pricing, follow-up, or job history."
+                      placeholder={t(lang, 'admin_notes_placeholder')}
                     />
                   </div>
                 </div>
@@ -523,7 +540,7 @@ export default function AdminDirectory() {
                 {r.bio ? (
                   <>
                     <hr />
-                    <div className="muted" style={{ marginBottom: 6 }}>Bio</div>
+                    <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_bio')}</div>
                     <div>{r.bio}</div>
                   </>
                 ) : null}

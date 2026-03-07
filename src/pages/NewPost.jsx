@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { useNavigate } from 'react-router-dom'
+import { t } from '../i18n'
 
 export default function NewPost() {
   const [trades, setTrades] = useState([])
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
+  const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
 
   const [form, setForm] = useState({
     trade_id: '',
@@ -19,6 +21,21 @@ export default function NewPost() {
 
   useEffect(() => {
     async function loadTrades() {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const user = sessionData.session?.user
+
+      if (user) {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('preferred_language')
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        const userLang = prof?.preferred_language || 'en'
+        setLang(userLang)
+        localStorage.setItem('surplox_lang', userLang)
+      }
+
       const { data, error } = await supabase
         .from('trades')
         .select('id,name')
@@ -44,13 +61,13 @@ export default function NewPost() {
       const user = sessionData.session?.user
 
       if (!user) throw new Error('Not signed in')
-      if (!form.title.trim()) throw new Error('Post title is required')
-      if (!form.body.trim()) throw new Error('Post details are required')
-      if (!/^[0-9]{5}$/.test(form.center_zip)) throw new Error('Enter a valid 5-digit ZIP code')
+      if (!form.title.trim()) throw new Error(t(lang, 'post_title_required'))
+      if (!form.body.trim()) throw new Error(t(lang, 'post_body_required'))
+      if (!/^[0-9]{5}$/.test(form.center_zip)) throw new Error(t(lang, 'post_zip_invalid'))
 
       const radius = Number(form.radius_miles)
       if (!radius || radius < 1 || radius > 300) {
-        throw new Error('Radius must be between 1 and 300 miles')
+        throw new Error(t(lang, 'post_radius_invalid'))
       }
 
       const { data: zipRow, error: zipErr } = await supabase
@@ -60,7 +77,7 @@ export default function NewPost() {
         .maybeSingle()
 
       if (zipErr) throw zipErr
-      if (!zipRow) throw new Error('ZIP code not found in the database')
+      if (!zipRow) throw new Error(t(lang, 'post_zip_missing'))
 
       const wktPoint = `POINT(${zipRow.lon} ${zipRow.lat})`
 
@@ -82,7 +99,7 @@ export default function NewPost() {
 
       navigate(`/p/${post.id}`, { replace: true })
     } catch (err) {
-      setMsg(err.message || 'Unable to create post')
+      setMsg(err.message || t(lang, 'post_create_error'))
     } finally {
       setSaving(false)
     }
@@ -90,37 +107,36 @@ export default function NewPost() {
 
   return (
     <div className="card" style={{ maxWidth: 860, margin: '0 auto' }}>
-      <div className="h1">Create a New Post</div>
+      <div className="h1">{t(lang, 'new_post_title')}</div>
 
       <p className="muted">
-        Start a discussion for nearby members by choosing a trade, writing your post,
-        and setting the ZIP code and radius where it should appear.
+        {t(lang, 'new_post_intro')}
       </p>
 
       <div className="card card-notice" style={{ marginBottom: 12 }}>
-        <div className="card-section-title">Post Visibility</div>
+        <div className="card-section-title">{t(lang, 'new_post_notice_title')}</div>
         <p className="card-section-subtitle">
-          Your post will only appear to members whose location falls within the ZIP and radius you choose.
+          {t(lang, 'new_post_notice_body')}
         </p>
       </div>
 
       <div className="grid two">
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>Trade Channel</div>
+          <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'new_post_trade')}</div>
           <select
             className="input"
             value={form.trade_id}
             onChange={(e) => setField('trade_id', e.target.value)}
           >
-            <option value="">General Discussion</option>
-            {trades.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
+            <option value="">{t(lang, 'new_post_general')}</option>
+            {trades.map((trow) => (
+              <option key={trow.id} value={trow.id}>{trow.name}</option>
             ))}
           </select>
         </div>
 
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>Radius (miles)</div>
+          <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'new_post_radius')}</div>
           <input
             className="input"
             type="number"
@@ -130,7 +146,7 @@ export default function NewPost() {
         </div>
 
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>ZIP Code</div>
+          <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'new_post_zip')}</div>
           <input
             className="input"
             value={form.center_zip}
@@ -140,17 +156,15 @@ export default function NewPost() {
         </div>
 
         <div className="card card-soft" style={{ borderStyle: 'dashed' }}>
-          <div className="badge">Example</div>
+          <div className="badge">{t(lang, 'new_post_example')}</div>
           <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            A post created in <span className="kbd">76031</span> with a
-            <span className="kbd"> 100 mile </span>
-            radius will be shown to nearby members inside that area.
+            {t(lang, 'new_post_example_body')}
           </p>
         </div>
       </div>
 
       <div style={{ marginTop: 10 }}>
-        <div className="muted" style={{ marginBottom: 6 }}>Post Title</div>
+        <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'new_post_title_label')}</div>
         <input
           className="input"
           value={form.title}
@@ -160,12 +174,12 @@ export default function NewPost() {
       </div>
 
       <div style={{ marginTop: 10 }}>
-        <div className="muted" style={{ marginBottom: 6 }}>Post Details</div>
+        <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'new_post_body_label')}</div>
         <textarea
           className="input"
           value={form.body}
           onChange={(e) => setField('body', e.target.value)}
-          placeholder="Describe the situation, your location, and what kind of help or feedback you need."
+          placeholder={t(lang, 'new_post_body_placeholder')}
         />
       </div>
 
@@ -177,7 +191,7 @@ export default function NewPost() {
 
       <div style={{ marginTop: 12 }}>
         <button className="btn primary" onClick={create} disabled={saving}>
-          {saving ? 'Publishing…' : 'Publish Post'}
+          {saving ? t(lang, 'new_post_publishing') : t(lang, 'new_post_publish')}
         </button>
       </div>
     </div>

@@ -1,15 +1,14 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import { t } from '../i18n'
 
-export default function Home({ session }) {
+export default function Home({ session, lang = 'en' }) {
   return (
     <div className="grid two">
       <div className="card">
-        <div className="h1">Texas Trades Network</div>
+        <div className="h1">{t(lang, 'home_title')}</div>
         <p className="muted">
-          Surplox is a members-only network for subcontractors and laborers across Texas.
-          Join local trade discussions, ask questions by ZIP and radius, and stay connected
-          to nearby crews.
+          {t(lang, 'home_intro')}
         </p>
 
         <hr />
@@ -17,44 +16,40 @@ export default function Home({ session }) {
         {!session ? (
           <>
             <p className="muted" style={{ marginTop: 0 }}>
-              Create your account to join the network.
+              {t(lang, 'home_join_prompt')}
             </p>
 
             <div className="row">
-              <Link className="btn primary" to="/auth">Join Surplox</Link>
+              <Link className="btn primary" to="/auth">{t(lang, 'home_join_button')}</Link>
             </div>
           </>
         ) : (
           <>
             <p className="muted" style={{ marginTop: 0 }}>
-              You’re signed in and ready to browse local discussions.
+              {t(lang, 'home_signed_in_prompt')}
             </p>
 
             <div className="row">
-              <Link className="btn primary" to="/feed">Go to Feed</Link>
-              <Link className="btn" to="/new">Create Post</Link>
+              <Link className="btn primary" to="/feed">{t(lang, 'home_go_feed')}</Link>
+              <Link className="btn" to="/new">{t(lang, 'home_create_post')}</Link>
             </div>
           </>
         )}
       </div>
 
       <div className="card">
-        <div className="h1">How It Works</div>
+        <div className="h1">{t(lang, 'home_how_it_works')}</div>
         <p className="muted">
-          Posts are organized by trade and location. When someone creates a post,
-          they choose a ZIP code and radius. Nearby members inside that area can
-          see and respond.
+          {t(lang, 'home_how_it_works_body')}
         </p>
 
         <hr />
 
         <div className="muted">
-          Example:
+          {t(lang, 'home_example_label')}
         </div>
         <p className="muted" style={{ marginTop: 8 }}>
-          A post created in <span className="kbd">76031</span> with a radius of
-          <span className="kbd"> 100 miles </span>
-          will appear to members whose location falls inside that area.
+          {t(lang, 'home_example_body')}
         </p>
       </div>
     </div>

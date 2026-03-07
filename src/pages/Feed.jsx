@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { t } from '../i18n'
 
 export default function Feed() {
   const location = useLocation()
@@ -9,6 +10,7 @@ export default function Feed() {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [posts, setPosts] = useState([])
+  const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
 
   const params = useMemo(() => new URLSearchParams(location.search), [location.search])
   const tradeParam = params.get('trade')
@@ -32,7 +34,7 @@ export default function Feed() {
 
         const { data: prof, error: pErr } = await supabase
           .from('profiles')
-          .select('user_id, home_zip, travel_radius_miles')
+          .select('user_id, home_zip, travel_radius_miles, preferred_language')
           .eq('user_id', user.id)
           .maybeSingle()
 
@@ -42,6 +44,10 @@ export default function Feed() {
           navigate('/onboarding', { replace: true })
           return
         }
+
+        const userLang = prof?.preferred_language || 'en'
+        setLang(userLang)
+        localStorage.setItem('surplox_lang', userLang)
 
         let q = supabase
           .from('posts')
@@ -131,17 +137,17 @@ export default function Feed() {
   }, [navigate, tradeParam])
 
   if (loading) {
-    return <div className="card">Loading your feed…</div>
+    return <div className="card">{t(lang, 'feed_loading')}</div>
   }
 
   if (err) {
     return (
       <div className="card card-message">
-        <div className="card-section-title">Feed Unavailable</div>
+        <div className="card-section-title">{t(lang, 'feed_unavailable')}</div>
         <p className="card-section-subtitle">{err}</p>
         <hr />
         <button className="btn primary" onClick={() => navigate(0)}>
-          Try Again
+          {t(lang, 'feed_try_again')}
         </button>
       </div>
     )
@@ -150,26 +156,26 @@ export default function Feed() {
   return (
     <div className="grid" style={{ gap: 12 }}>
       <div className="card">
-        <div className="h1" style={{ fontSize: 20, marginTop: 0 }}>Local Feed</div>
+        <div className="h1" style={{ fontSize: 20, marginTop: 0 }}>{t(lang, 'feed_title')}</div>
         <p className="muted">
-          Browse trade discussions happening within your area{tradeParam ? ' for this channel' : ''}.
+          {t(lang, 'feed_intro')}{tradeParam ? t(lang, 'feed_intro_channel') : '.'}
         </p>
 
         <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link className="btn primary" to="/new">Create Post</Link>
-          <Link className="btn" to="/channels">Browse Channels</Link>
+          <Link className="btn primary" to="/new">{t(lang, 'feed_create_post')}</Link>
+          <Link className="btn" to="/channels">{t(lang, 'feed_browse_channels')}</Link>
         </div>
       </div>
 
       {posts.length === 0 ? (
         <div className="card card-soft">
-          <div className="card-section-title">Nothing Nearby Yet</div>
+          <div className="card-section-title">{t(lang, 'feed_empty_title')}</div>
           <p className="card-section-subtitle">
-            There are no posts in your current area yet. Start the conversation and create the first post.
+            {t(lang, 'feed_empty_body')}
           </p>
 
           <div style={{ marginTop: 10 }}>
-            <Link className="btn primary" to="/new">Start a Post</Link>
+            <Link className="btn primary" to="/new">{t(lang, 'feed_start_post')}</Link>
           </div>
         </div>
       ) : (
@@ -179,8 +185,8 @@ export default function Feed() {
               <div className="postTitle">{p.title}</div>
 
               <div className="postMeta">
-                <span className="badge">ZIP {p.center_zip}</span>
-                <span className="badge">{p.radius_miles} mi radius</span>
+                <span className="badge">{t(lang, 'feed_zip')} {p.center_zip}</span>
+                <span className="badge">{p.radius_miles} {t(lang, 'feed_radius')}</span>
                 <span>{new Date(p.created_at).toLocaleString()}</span>
               </div>
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Routes, Route, Navigate, useNavigate, NavLink } from 'react-router-dom'
 import { supabase } from './supabaseClient'
+import { t } from './i18n'
 import Home from './pages/Home.jsx'
 import Auth from './pages/Auth.jsx'
 import Onboarding from './pages/Onboarding.jsx'
@@ -17,9 +18,9 @@ function Protected({ session, children }) {
   return children
 }
 
-function AdminOnly({ session, isAdmin, adminChecked, children }) {
+function AdminOnly({ session, isAdmin, adminChecked, children, lang }) {
   if (!session) return <Navigate to="/auth" replace />
-  if (!adminChecked) return <div className="card">Checking permissions…</div>
+  if (!adminChecked) return <div className="card">{t(lang, 'checking_permissions')}</div>
   if (!isAdmin) return <Navigate to="/feed" replace />
   return children
 }
@@ -28,6 +29,7 @@ export default function App() {
   const [session, setSession] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [adminChecked, setAdminChecked] = useState(false)
+  const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -41,6 +43,8 @@ export default function App() {
 
       if (!sess) {
         setIsAdmin(false)
+        const localLang = localStorage.getItem('surplox_lang') || 'en'
+        setLang(localLang)
       }
     })
 
@@ -53,7 +57,7 @@ export default function App() {
 
       const { data: prof, error } = await supabase
         .from('profiles')
-        .select('user_id, home_zip')
+        .select('user_id, home_zip, preferred_language')
         .eq('user_id', session.user.id)
         .maybeSingle()
 
@@ -63,6 +67,10 @@ export default function App() {
         navigate('/onboarding', { replace: true })
         return
       }
+
+      const userLang = prof?.preferred_language || 'en'
+      setLang(userLang)
+      localStorage.setItem('surplox_lang', userLang)
 
       const { data: adminFlag, error: adminErr } = await supabase.rpc('is_admin')
       if (adminErr) console.error(adminErr)
@@ -102,34 +110,34 @@ export default function App() {
             {session ? (
               <>
                 <NavLink className={navBtnClass} to="/feed">
-                  Feed
+                  {t(lang, 'nav_feed')}
                 </NavLink>
 
                 <NavLink className={navBtnClass} to="/channels">
-                  Channels
+                  {t(lang, 'nav_channels')}
                 </NavLink>
 
                 <NavLink className={navBtnClass} to="/new">
-                  New Post
+                  {t(lang, 'nav_new_post')}
                 </NavLink>
 
                 <NavLink className={navBtnClass} to="/account">
-                  My Account
+                  {t(lang, 'nav_account')}
                 </NavLink>
 
                 {isAdmin && (
                   <NavLink className={adminNavBtnClass} to="/admin">
-                    Directory
+                    {t(lang, 'nav_directory')}
                   </NavLink>
                 )}
 
                 <button className="btn small danger" onClick={signOut}>
-                  Sign Out
+                  {t(lang, 'nav_sign_out')}
                 </button>
               </>
             ) : (
               <NavLink className="btn small primary nav-link" to="/auth">
-                Sign In
+                {t(lang, 'nav_sign_in')}
               </NavLink>
             )}
           </div>
@@ -138,8 +146,8 @@ export default function App() {
 
       <div className="container">
         <Routes>
-          <Route path="/" element={<Home session={session} />} />
-          <Route path="/auth" element={<Auth />} />
+          <Route path="/" element={<Home session={session} lang={lang} />} />
+          <Route path="/auth" element={<Auth lang={lang} />} />
 
           <Route
             path="/onboarding"
@@ -202,6 +210,7 @@ export default function App() {
                 session={session}
                 isAdmin={isAdmin}
                 adminChecked={adminChecked}
+                lang={lang}
               >
                 <AdminDirectory />
               </AdminOnly>
@@ -212,7 +221,7 @@ export default function App() {
         </Routes>
 
         <div className="footerNote">
-          No direct messages by design. Discussions are visible only to members inside the network.
+          {t(lang, 'footer_note')}
         </div>
       </div>
     </>
