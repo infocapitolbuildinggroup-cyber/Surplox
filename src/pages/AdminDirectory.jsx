@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
+import { Link } from 'react-router-dom'
 import { t } from '../i18n'
 
 function haversineMiles(lat1, lon1, lat2, lon2) {
@@ -19,6 +20,61 @@ function csvEscape(v) {
   return s
 }
 
+function roleLabel(role) {
+  const map = {
+    laborer: 'Laborer',
+    subcontractor: 'Subcontractor',
+    contractor: 'Contractor',
+    supplier: 'Supplier'
+  }
+  return map[role] || role || 'Member'
+}
+
+function roleBadgeStyle(role) {
+  if (role === 'contractor') {
+    return {
+      color: '#ffde59',
+      borderColor: 'rgba(255, 117, 31, 0.55)',
+      background: 'rgba(255, 117, 31, 0.12)'
+    }
+  }
+
+  if (role === 'subcontractor') {
+    return {
+      color: '#ff751f',
+      borderColor: 'rgba(255, 222, 89, 0.55)',
+      background: 'rgba(255, 222, 89, 0.12)'
+    }
+  }
+
+  if (role === 'laborer') {
+    return {
+      color: '#ffde59',
+      borderColor: 'rgba(255, 222, 89, 0.35)',
+      background: 'rgba(255, 222, 89, 0.05)'
+    }
+  }
+
+  if (role === 'supplier') {
+    return {
+      color: '#ffd6b5',
+      borderColor: 'rgba(255, 117, 31, 0.4)',
+      background: 'rgba(255, 117, 31, 0.08)'
+    }
+  }
+
+  return {}
+}
+
+function availabilityBadgeStyle(isAvailable) {
+  if (!isAvailable) return {}
+  return {
+    color: '#ff751f',
+    borderColor: 'rgba(255, 222, 89, 0.65)',
+    background: 'rgba(255, 222, 89, 0.14)'
+  }
+}
+
 export default function AdminDirectory() {
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
@@ -28,6 +84,24 @@ export default function AdminDirectory() {
   const [trades, setTrades] = useState([])
   const [profiles, setProfiles] = useState([])
   const [privateRows, setPrivateRows] = useState([])
+  const [analytics, setAnalytics] = useState({
+    totalUsers: 0,
+    laborers: 0,
+    subcontractors: 0,
+    contractors: 0,
+    suppliers: 0,
+    availableWorkers: 0,
+    totalPosts: 0,
+    needCrewPosts: 0,
+    lookingForWorkPosts: 0,
+    discussionPosts: 0,
+    openCrewPosts: 0,
+    fullCrewPosts: 0,
+    closedCrewPosts: 0,
+    totalComments: 0,
+    totalCrewJoins: 0,
+    totalHires: 0
+  })
 
   const [filters, setFilters] = useState({
     job_zip: '',
@@ -70,7 +144,7 @@ export default function AdminDirectory() {
 
         const { data: prows, error: pErr } = await supabase
           .from('profiles')
-          .select('user_id, display_name, trade_id, home_zip, travel_radius_miles, crew_size, bio, created_at')
+          .select('user_id, display_name, role, trade_id, home_zip, travel_radius_miles, crew_size, bio, is_available, created_at')
           .order('created_at', { ascending: false })
         if (pErr) throw pErr
 
@@ -79,10 +153,71 @@ export default function AdminDirectory() {
           .select('user_id, phone, email, city, admin_rating, admin_notes')
         if (cpErr) throw cpErr
 
+        const { data: postsRows, error: postsErr } = await supabase
+          .from('posts')
+          .select('id, post_type, crew_status')
+        if (postsErr) throw postsErr
+
+        const { count: commentsCount, error: commentsErr } = await supabase
+          .from('comments')
+          .select('*', { count: 'exact', head: true })
+        if (commentsErr) throw commentsErr
+
+        const { data: crewRows, error: crewErr } = await supabase
+          .from('crew_memberships')
+          .select('status')
+        if (crewErr) throw crewErr
+
         if (!alive) return
+
         setTrades(trows || [])
         setProfiles(prows || [])
         setPrivateRows(cprows || [])
+
+        const roleCounts = {
+          laborers: 0,
+          subcontractors: 0,
+          contractors: 0,
+          suppliers: 0
+        }
+
+        ;(prows || []).forEach((p) => {
+          if (p.role === 'laborer') roleCounts.laborers += 1
+          if (p.role === 'subcontractor') roleCounts.subcontractors += 1
+          if (p.role === 'contractor') roleCounts.contractors += 1
+          if (p.role === 'supplier') roleCounts.suppliers += 1
+        })
+
+        const totalPosts = (postsRows || []).length
+        const needCrewPosts = (postsRows || []).filter((p) => p.post_type === 'need_crew').length
+        const lookingForWorkPosts = (postsRows || []).filter((p) => p.post_type === 'looking_for_work').length
+        const discussionPosts = (postsRows || []).filter((p) => p.post_type === 'discussion').length
+        const openCrewPosts = (postsRows || []).filter((p) => p.post_type === 'need_crew' && (p.crew_status || 'open') === 'open').length
+        const fullCrewPosts = (postsRows || []).filter((p) => p.post_type === 'need_crew' && p.crew_status === 'full').length
+        const closedCrewPosts = (postsRows || []).filter((p) => p.post_type === 'need_crew' && p.crew_status === 'closed').length
+
+        const totalCrewJoins = (crewRows || []).length
+        const totalHires = (crewRows || []).filter((r) => r.status === 'hired').length
+        const availableWorkers = (prows || []).filter((p) => p.is_available).length
+
+        setAnalytics({
+          totalUsers: (prows || []).length,
+          laborers: roleCounts.laborers,
+          subcontractors: roleCounts.subcontractors,
+          contractors: roleCounts.contractors,
+          suppliers: roleCounts.suppliers,
+          availableWorkers,
+          totalPosts,
+          needCrewPosts,
+          lookingForWorkPosts,
+          discussionPosts,
+          openCrewPosts,
+          fullCrewPosts,
+          closedCrewPosts,
+          totalComments: commentsCount || 0,
+          totalCrewJoins,
+          totalHires
+        })
 
         const allZips = Array.from(
           new Set((prows || []).map((x) => String(x.home_zip || '')).filter((z) => /^[0-9]{5}$/.test(z)))
@@ -207,7 +342,8 @@ export default function AdminDirectory() {
             r.city,
             r.home_zip,
             r.trade_name,
-            r.bio
+            r.bio,
+            r.role
           ].join(' ').toLowerCase()
 
           if (!hay.includes(q)) return false
@@ -282,9 +418,15 @@ export default function AdminDirectory() {
         prev.map((r) =>
           r.user_id !== userId
             ? r
-            : { ...r, admin_rating: ratingNum, admin_notes: String(admin_notes || '') }
+            : {
+                ...r,
+                admin_rating: ratingNum,
+                admin_notes: String(admin_notes || '')
+              }
         )
       )
+
+      setMsg(t(lang, 'admin_saved'))
     } catch (e) {
       console.error(e)
       setMsg(e?.message || t(lang, 'admin_save_error'))
@@ -294,12 +436,14 @@ export default function AdminDirectory() {
   }
 
   function exportCsv() {
-    const cols = [
+    const header = [
       'display_name',
+      'role',
       'trade',
       'home_zip',
-      'distance_miles',
+      'travel_radius_miles',
       'crew_size',
+      'distance_miles',
       'city',
       'phone',
       'email',
@@ -307,36 +451,31 @@ export default function AdminDirectory() {
       'admin_notes'
     ]
 
-    const lines = [cols.join(',')]
+    const rows = filtered.map((r) => [
+      r.display_name,
+      r.role,
+      r.trade_name,
+      r.home_zip,
+      r.travel_radius_miles,
+      r.crew_size,
+      typeof r.distance_miles === 'number' ? r.distance_miles.toFixed(1) : '',
+      r.city,
+      r.phone,
+      r.email,
+      r.admin_rating,
+      r.admin_notes
+    ])
 
-    filtered.forEach((r) => {
-      const row = [
-        r.display_name,
-        r.trade_name,
-        r.home_zip,
-        typeof r.distance_miles === 'number' ? r.distance_miles.toFixed(1) : '',
-        r.crew_size,
-        r.city,
-        r.phone,
-        r.email,
-        r.admin_rating,
-        r.admin_notes
-      ].map(csvEscape).join(',')
+    const csv = [header, ...rows]
+      .map((line) => line.map(csvEscape).join(','))
+      .join('\n')
 
-      lines.push(row)
-    })
-
-    const blob = new Blob([lines.join('\n')], {
-      type: 'text/csv;charset=utf-8;'
-    })
-
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `surplox_crews_${new Date().toISOString().slice(0, 10)}.csv`
-    document.body.appendChild(a)
+    a.download = 'surplox_admin_export.csv'
     a.click()
-    a.remove()
     URL.revokeObjectURL(url)
   }
 
@@ -347,207 +486,302 @@ export default function AdminDirectory() {
   return (
     <div className="grid" style={{ gap: 12 }}>
       <div className="card">
-        <div className="h1" style={{ fontSize: 20, marginTop: 0 }}>{t(lang, 'admin_title')}</div>
-        <p className="muted">
-          {t(lang, 'admin_intro')}
+        <div className="h1" style={{ marginTop: 0, fontSize: 24 }}>Admin</div>
+        <p className="card-section-subtitle">
+          Search the labor network, review private admin notes, and monitor Surplox activity.
         </p>
+      </div>
 
-        {msg && (
-          <div className="card card-message" style={{ marginTop: 12 }}>
-            {msg}
+      <div className="card">
+        <div className="card-section-title">Platform Analytics</div>
+
+        <div className="grid two" style={{ marginTop: 12 }}>
+          <div className="card card-soft">
+            <div className="card-section-title" style={{ fontSize: 15 }}>Total Users</div>
+            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{analytics.totalUsers}</div>
           </div>
-        )}
+
+          <div className="card card-soft">
+            <div className="card-section-title" style={{ fontSize: 15 }}>Available Workers</div>
+            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{analytics.availableWorkers}</div>
+          </div>
+
+          <div className="card card-soft">
+            <div className="card-section-title" style={{ fontSize: 15 }}>Laborers</div>
+            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{analytics.laborers}</div>
+          </div>
+
+          <div className="card card-soft">
+            <div className="card-section-title" style={{ fontSize: 15 }}>Subcontractors</div>
+            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{analytics.subcontractors}</div>
+          </div>
+
+          <div className="card card-soft">
+            <div className="card-section-title" style={{ fontSize: 15 }}>Contractors</div>
+            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{analytics.contractors}</div>
+          </div>
+
+          <div className="card card-soft">
+            <div className="card-section-title" style={{ fontSize: 15 }}>Suppliers</div>
+            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{analytics.suppliers}</div>
+          </div>
+
+          <div className="card card-soft">
+            <div className="card-section-title" style={{ fontSize: 15 }}>Total Posts</div>
+            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{analytics.totalPosts}</div>
+          </div>
+
+          <div className="card card-soft">
+            <div className="card-section-title" style={{ fontSize: 15 }}>Comments</div>
+            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{analytics.totalComments}</div>
+          </div>
+
+          <div className="card card-soft">
+            <div className="card-section-title" style={{ fontSize: 15 }}>Need Crew</div>
+            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{analytics.needCrewPosts}</div>
+          </div>
+
+          <div className="card card-soft">
+            <div className="card-section-title" style={{ fontSize: 15 }}>Looking for Work</div>
+            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{analytics.lookingForWorkPosts}</div>
+          </div>
+
+          <div className="card card-soft">
+            <div className="card-section-title" style={{ fontSize: 15 }}>Discussions</div>
+            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{analytics.discussionPosts}</div>
+          </div>
+
+          <div className="card card-soft">
+            <div className="card-section-title" style={{ fontSize: 15 }}>Crew Joins</div>
+            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{analytics.totalCrewJoins}</div>
+          </div>
+
+          <div className="card card-soft">
+            <div className="card-section-title" style={{ fontSize: 15 }}>Hires</div>
+            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{analytics.totalHires}</div>
+          </div>
+
+          <div className="card card-soft">
+            <div className="card-section-title" style={{ fontSize: 15 }}>Open Crew Posts</div>
+            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{analytics.openCrewPosts}</div>
+          </div>
+
+          <div className="card card-soft">
+            <div className="card-section-title" style={{ fontSize: 15 }}>Full Crew Posts</div>
+            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{analytics.fullCrewPosts}</div>
+          </div>
+
+          <div className="card card-soft">
+            <div className="card-section-title" style={{ fontSize: 15 }}>Closed Crew Posts</div>
+            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{analytics.closedCrewPosts}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-section-title">{t(lang, 'admin_title')}</div>
+        <p className="card-section-subtitle">{t(lang, 'admin_intro')}</p>
 
         <div className="grid two" style={{ marginTop: 12 }}>
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_job_zip')}</div>
-            <input
-              className="input"
-              value={filters.job_zip}
-              onChange={(e) => setF('job_zip', e.target.value)}
-              placeholder="76031"
-            />
-          </div>
-
-          <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_search_radius')}</div>
-            <input
-              className="input"
-              type="number"
-              value={filters.job_radius_miles}
-              onChange={(e) => setF('job_radius_miles', e.target.value)}
-              min="1"
-            />
-          </div>
-
-          <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_trade')}</div>
+            <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_filter_trade')}</div>
             <select
               className="input"
               value={filters.trade_id}
               onChange={(e) => setF('trade_id', e.target.value)}
             >
-              <option value="">{t(lang, 'admin_all_trades')}</option>
+              <option value="">{t(lang, 'admin_filter_all_trades')}</option>
               {trades.map((tr) => (
-                <option key={tr.id} value={tr.id}>{tr.name}</option>
+                <option key={tr.id} value={String(tr.id)}>
+                  {tr.name}
+                </option>
               ))}
             </select>
           </div>
 
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_min_crew')}</div>
+            <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_filter_min_crew')}</div>
             <input
               className="input"
               type="number"
+              min="1"
               value={filters.min_crew_size}
               onChange={(e) => setF('min_crew_size', e.target.value)}
+            />
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_filter_job_zip')}</div>
+            <input
+              className="input"
+              value={filters.job_zip}
+              onChange={(e) => setF('job_zip', e.target.value)}
+              placeholder="76001"
+            />
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_filter_radius')}</div>
+            <input
+              className="input"
+              type="number"
               min="1"
+              value={filters.job_radius_miles}
+              onChange={(e) => setF('job_radius_miles', e.target.value)}
             />
           </div>
 
           <div style={{ gridColumn: '1 / -1' }}>
-            <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_search_label')}</div>
+            <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_filter_search')}</div>
             <input
               className="input"
               value={filters.q}
               onChange={(e) => setF('q', e.target.value)}
-              placeholder={t(lang, 'admin_search_placeholder')}
+              placeholder={t(lang, 'admin_filter_search_placeholder')}
             />
           </div>
         </div>
 
-        <div style={{ marginTop: 12 }}>
-          <button
-            className="btn primary"
-            onClick={exportCsv}
-            disabled={filtered.length === 0}
-          >
-            {t(lang, 'admin_export')} ({filtered.length})
+        <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button className="btn primary" onClick={exportCsv}>
+            {t(lang, 'admin_export_csv')}
           </button>
+          <span className="badge">{filtered.length} results</span>
         </div>
       </div>
 
-      <div className="card">
-        <div className="h1" style={{ fontSize: 18, marginTop: 0 }}>
-          {t(lang, 'admin_results')} ({filtered.length})
-        </div>
-        <p className="muted">
-          {t(lang, 'admin_results_intro')}
-        </p>
+      {msg ? <div className="card card-message">{msg}</div> : null}
 
-        <div className="list" style={{ marginTop: 12 }}>
-          {filtered.length === 0 ? (
-            <div className="card card-soft">
-              <div className="card-section-title">{t(lang, 'admin_no_matches')}</div>
-              <p className="card-section-subtitle">
-                {t(lang, 'admin_no_matches_body')}
-              </p>
-            </div>
-          ) : (
-            filtered.map((r) => (
-              <div key={r.user_id} className="card">
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: 10,
-                    flexWrap: 'wrap'
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: 16 }}>
-                      {r.display_name || '(No display name)'}
-                    </div>
+      <div className="list">
+        {filtered.map((r) => (
+          <div key={r.user_id} className="card">
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: 12,
+                alignItems: 'flex-start',
+                flexWrap: 'wrap'
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 280 }}>
+                <div className="postMeta" style={{ marginBottom: 8 }}>
+                  <Link to={`/u/${r.user_id}`}>{r.display_name || 'Unknown Member'}</Link>
+                  {r.role ? (
+                    <span className="badge" style={roleBadgeStyle(r.role)}>
+                      {roleLabel(r.role)}
+                    </span>
+                  ) : null}
+                  {r.is_available ? (
+                    <span className="badge" style={availabilityBadgeStyle(true)}>
+                      Available
+                    </span>
+                  ) : null}
+                  {r.trade_name ? <span className="badge">{r.trade_name}</span> : null}
+                  {r.distance_miles != null ? (
+                    <span className="badge">{r.distance_miles.toFixed(1)} mi away</span>
+                  ) : null}
+                </div>
 
-                    <div className="postMeta" style={{ marginTop: 6 }}>
-                      {r.trade_name ? <span className="badge">{r.trade_name}</span> : null}
-                      {r.home_zip ? <span className="badge">{t(lang, 'admin_zip')} {r.home_zip}</span> : null}
-                      {typeof r.distance_miles === 'number' ? (
-                        <span className="badge">{r.distance_miles.toFixed(1)} {t(lang, 'admin_away')}</span>
-                      ) : null}
-                      {r.crew_size ? <span className="badge">{t(lang, 'admin_crew')} {r.crew_size}</span> : null}
-                      {r.city ? <span className="badge">{r.city}</span> : null}
+                <div className="grid two">
+                  <div className="card card-soft">
+                    <div className="card-section-title" style={{ fontSize: 15 }}>Location</div>
+                    <div className="muted" style={{ marginTop: 6 }}>
+                      {r.city || 'Unknown city'} • ZIP {r.home_zip || 'N/A'}
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <button
-                      className="btn small primary"
-                      onClick={() => saveAdminFields(r.user_id, r.admin_rating, r.admin_notes)}
-                      disabled={savingId === r.user_id}
-                    >
-                      {savingId === r.user_id ? t(lang, 'admin_saving') : t(lang, 'admin_save_notes')}
-                    </button>
+                  <div className="card card-soft">
+                    <div className="card-section-title" style={{ fontSize: 15 }}>Crew / Radius</div>
+                    <div className="muted" style={{ marginTop: 6 }}>
+                      Crew Size: {r.crew_size || 0} • Radius: {r.travel_radius_miles || 0} miles
+                    </div>
                   </div>
                 </div>
 
-                <hr />
+                <div className="card card-soft" style={{ marginTop: 12 }}>
+                  <div className="card-section-title" style={{ fontSize: 15 }}>Contact</div>
+                  <div className="stack-sm" style={{ marginTop: 8 }}>
+                    <div className="muted">Phone: {r.phone || 'Not provided'}</div>
+                    <div className="muted">Email: {r.email || 'Not provided'}</div>
+                    <div className="muted">City: {r.city || 'Not provided'}</div>
+                  </div>
+                </div>
 
-                <div className="grid two">
-                  <div>
-                    <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_phone')}</div>
-                    <div className="kbd">{r.phone || '—'}</div>
+                {r.bio ? (
+                  <div className="card card-soft" style={{ marginTop: 12 }}>
+                    <div className="card-section-title" style={{ fontSize: 15 }}>Bio</div>
+                    <div className="muted" style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>
+                      {r.bio}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div style={{ width: 320, maxWidth: '100%' }}>
+                <div className="card card-soft">
+                  <div className="card-section-title" style={{ fontSize: 15 }}>
+                    {t(lang, 'admin_private_title')}
                   </div>
 
-                  <div>
-                    <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_email')}</div>
-                    <div className="kbd">{r.email || '—'}</div>
-                  </div>
-
-                  <div>
-                    <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_rating')}</div>
-                    <select
+                  <div style={{ marginTop: 10 }}>
+                    <div className="muted" style={{ marginBottom: 6 }}>
+                      {t(lang, 'admin_rating_label')}
+                    </div>
+                    <input
                       className="input"
-                      value={r.admin_rating === null ? '' : String(r.admin_rating)}
+                      type="number"
+                      min="1"
+                      max="5"
+                      value={r.admin_rating ?? ''}
                       onChange={(e) => {
-                        const v = e.target.value
+                        const next = e.target.value
                         setPrivateRows((prev) =>
-                          prev.map((x) =>
-                            x.user_id !== r.user_id
-                              ? x
-                              : { ...x, admin_rating: v === '' ? null : Number(v) }
+                          prev.map((row) =>
+                            row.user_id === r.user_id ? { ...row, admin_rating: next } : row
                           )
                         )
                       }}
-                    >
-                      <option value="">—</option>
-                      <option value="1">1</option>
-                      <option value="2">2</option>
-                      <option value="3">3</option>
-                      <option value="4">4</option>
-                      <option value="5">5</option>
-                    </select>
+                    />
                   </div>
 
-                  <div>
-                    <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_notes')}</div>
+                  <div style={{ marginTop: 10 }}>
+                    <div className="muted" style={{ marginBottom: 6 }}>
+                      {t(lang, 'admin_notes_label')}
+                    </div>
                     <textarea
                       className="input"
                       value={r.admin_notes || ''}
                       onChange={(e) => {
-                        const v = e.target.value
+                        const next = e.target.value
                         setPrivateRows((prev) =>
-                          prev.map((x) =>
-                            x.user_id !== r.user_id ? x : { ...x, admin_notes: v }
+                          prev.map((row) =>
+                            row.user_id === r.user_id ? { ...row, admin_notes: next } : row
                           )
                         )
                       }}
                       placeholder={t(lang, 'admin_notes_placeholder')}
                     />
                   </div>
-                </div>
 
-                {r.bio ? (
-                  <>
-                    <hr />
-                    <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'admin_bio')}</div>
-                    <div>{r.bio}</div>
-                  </>
-                ) : null}
+                  <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <button
+                      className="btn primary"
+                      disabled={savingId === r.user_id}
+                      onClick={() => saveAdminFields(r.user_id, r.admin_rating, r.admin_notes)}
+                    >
+                      {savingId === r.user_id ? t(lang, 'admin_saving') : t(lang, 'admin_save')}
+                    </button>
+
+                    <Link className="btn" to={`/u/${r.user_id}`}>
+                      View Profile
+                    </Link>
+                  </div>
+                </div>
               </div>
-            ))
-          )}
-        </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

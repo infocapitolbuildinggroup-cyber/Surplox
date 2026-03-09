@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { useParams, Link } from 'react-router-dom'
 
@@ -63,6 +63,13 @@ function postTypeLabel(type) {
   return '💬 Discussion'
 }
 
+function relationshipLabel(type) {
+  if (type === 'hired_from_crew_post') return 'Marked Hired'
+  if (type === 'joined_crew_post') return 'Joined Crew'
+  if (type === 'replied_to_post') return 'Replied to Post'
+  return 'Connected'
+}
+
 export default function WorkerProfile() {
   const { userId } = useParams()
 
@@ -78,11 +85,14 @@ export default function WorkerProfile() {
   })
   const [recentPosts, setRecentPosts] = useState([])
   const [savingAvailability, setSavingAvailability] = useState(false)
+  const [workedWith, setWorkedWith] = useState([])
+  const [copyMsg, setCopyMsg] = useState('')
 
   useEffect(() => {
     async function load() {
       setLoading(true)
       setMsg('')
+      setCopyMsg('')
 
       try {
         const { data: sessionData } = await supabase.auth.getSession()
@@ -120,12 +130,12 @@ export default function WorkerProfile() {
 
         const { data: outgoingRels } = await supabase
           .from('user_relationships')
-          .select('target_user_id')
+          .select('source_user_id, target_user_id, relationship_type, post_id, created_at')
           .eq('source_user_id', userId)
 
         const { data: incomingRels } = await supabase
           .from('user_relationships')
-          .select('source_user_id')
+          .select('source_user_id, target_user_id, relationship_type, post_id, created_at')
           .eq('target_user_id', userId)
 
         const networkIds = new Set([
@@ -139,6 +149,64 @@ export default function WorkerProfile() {
           repliesMade: repliesMadeCount || 0,
           networkCount: networkIds.size
         })
+
+        const allRels = [...(outgoingRels || []), ...(incomingRels || [])]
+        const counterpartIds = Array.from(
+          new Set(
+            allRels
+              .map((rel) => {
+                if (rel.source_user_id === userId) return rel.target_user_id
+                if (rel.target_user_id === userId) return rel.source_user_id
+                return null
+              })
+              .filter(Boolean)
+          )
+        )
+
+        let workedProfiles = []
+        if (counterpartIds.length > 0) {
+          const { data: wp, error: wpErr } = await supabase
+            .from('profiles')
+            .select('user_id, display_name, role, is_available')
+            .in('user_id', counterpartIds)
+
+          if (wpErr) throw wpErr
+          workedProfiles = wp || []
+        }
+
+        const profileMap = new Map(workedProfiles.map((p) => [p.user_id, p]))
+
+        const grouped = counterpartIds.map((counterpartId) => {
+          const rels = allRels.filter((rel) => {
+            return (
+              (rel.source_user_id === userId && rel.target_user_id === counterpartId) ||
+              (rel.target_user_id === userId && rel.source_user_id === counterpartId)
+            )
+          })
+
+          const latest = rels
+            .slice()
+            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+
+          return {
+            ...(profileMap.get(counterpartId) || {
+              user_id: counterpartId,
+              display_name: 'Unknown Member',
+              role: '',
+              is_available: false
+            }),
+            connection_count: rels.length,
+            latest_type: latest?.relationship_type || '',
+            latest_post_id: latest?.post_id || '',
+            last_seen_at: latest?.created_at || null
+          }
+        })
+
+        setWorkedWith(
+          grouped.sort((a, b) => {
+            return (b.connection_count || 0) - (a.connection_count || 0)
+          })
+        )
 
         const { data: postsData, error: postsErr } = await supabase
           .from('posts')
@@ -183,6 +251,19 @@ export default function WorkerProfile() {
     }
   }
 
+  async function copyProfileInvite() {
+    try {
+      const url = `${window.location.origin}/u/${userId}`
+      await navigator.clipboard.writeText(url)
+      setCopyMsg('Profile link copied.')
+    } catch (err) {
+      console.error(err)
+      setCopyMsg('Unable to copy profile link.')
+    }
+  }
+
+  const isOwnProfile = useMemo(() => currentUserId === profile?.user_id, [currentUserId, profile])
+
   if (loading) {
     return <div className="card">Loading worker profile…</div>
   }
@@ -190,8 +271,6 @@ export default function WorkerProfile() {
   if (!profile) {
     return <div className="card card-message">{msg || 'Worker profile not found.'}</div>
   }
-
-  const isOwnProfile = currentUserId === profile.user_id
 
   return (
     <div className="grid" style={{ gap: 12 }}>
@@ -226,8 +305,8 @@ export default function WorkerProfile() {
           </div>
         </div>
 
-        {isOwnProfile ? (
-          <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {isOwnProfile ? (
             <button className="btn primary" onClick={toggleAvailability} disabled={savingAvailability}>
               {savingAvailability
                 ? 'Saving…'
@@ -235,6 +314,16 @@ export default function WorkerProfile() {
                   ? 'Turn Off Availability'
                   : 'Mark Available for Work'}
             </button>
+          ) : null}
+
+          <button className="btn" onClick={copyProfileInvite}>
+            Rehire / Share Profile
+          </button>
+        </div>
+
+        {copyMsg ? (
+          <div className="card card-soft" style={{ marginTop: 12 }}>
+            {copyMsg}
           </div>
         ) : null}
       </div>
@@ -266,6 +355,73 @@ export default function WorkerProfile() {
             <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{stats.networkCount}</div>
           </div>
         </div>
+      </div>
+
+      <div className="card">
+        <div className="card-section-title">Worked With</div>
+        <p className="card-section-subtitle">
+          These are people connected through crew joins, hiring, and post activity.
+        </p>
+
+        {workedWith.length === 0 ? (
+          <div className="card card-soft" style={{ marginTop: 12 }}>
+            <div className="muted">No worked-with connections yet.</div>
+          </div>
+        ) : (
+          <div className="list" style={{ marginTop: 12 }}>
+            {workedWith.map((person) => (
+              <div key={person.user_id} className="card card-soft">
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: 10,
+                    flexWrap: 'wrap',
+                    alignItems: 'center'
+                  }}
+                >
+                  <div>
+                    <div className="postMeta">
+                      <Link to={`/u/${person.user_id}`}>{person.display_name}</Link>
+
+                      {person.role ? (
+                        <span className="badge" style={roleBadgeStyle(person.role)}>
+                          {roleLabel(person.role)}
+                        </span>
+                      ) : null}
+
+                      {person.is_available ? (
+                        <span className="badge" style={availabilityBadgeStyle(true)}>
+                          Available
+                        </span>
+                      ) : null}
+
+                      <span className="badge">{person.connection_count} connections</span>
+                    </div>
+
+                    <div className="muted" style={{ marginTop: 8 }}>
+                      Latest: {relationshipLabel(person.latest_type)}
+                    </div>
+
+                    {person.latest_post_id ? (
+                      <div style={{ marginTop: 8 }}>
+                        <Link className="btn small" to={`/p/${person.latest_post_id}`}>
+                          Open Related Post
+                        </Link>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <Link className="btn small primary" to={`/u/${person.user_id}`}>
+                      View Profile
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="card">

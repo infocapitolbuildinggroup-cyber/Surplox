@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { useParams, Link } from 'react-router-dom'
 import { t } from '../i18n'
@@ -216,6 +216,7 @@ export default function PostDetail() {
   const [crewMembers, setCrewMembers] = useState([])
   const [myCrewMembership, setMyCrewMembership] = useState(false)
   const [crewActionLoading, setCrewActionLoading] = useState(false)
+  const [workedBeforeMap, setWorkedBeforeMap] = useState({})
 
   const [translatedPostBody, setTranslatedPostBody] = useState('')
   const [showTranslatedPost, setShowTranslatedPost] = useState(false)
@@ -311,6 +312,17 @@ export default function PostDetail() {
     } catch (err) {
       console.error(err)
       setMsg('Unable to open email invite.')
+    }
+  }
+
+  async function copyWorkerProfile(userId) {
+    try {
+      const url = `${window.location.origin}/u/${userId}`
+      await navigator.clipboard.writeText(url)
+      setMsg('Worker profile link copied.')
+    } catch (err) {
+      console.error(err)
+      setMsg('Unable to copy worker profile link.')
     }
   }
 
@@ -463,9 +475,54 @@ export default function PostDetail() {
 
         setCrewMembers(members)
         setMyCrewMembership(members.some((member) => member.user_id === uid))
+
+        if (p.author_id && members.length > 0) {
+          const counterpartIds = members.map((m) => m.user_id)
+
+          const { data: relA } = await supabase
+            .from('user_relationships')
+            .select('source_user_id, target_user_id, relationship_type, created_at')
+            .eq('source_user_id', p.author_id)
+            .in('target_user_id', counterpartIds)
+
+          const { data: relB } = await supabase
+            .from('user_relationships')
+            .select('source_user_id, target_user_id, relationship_type, created_at')
+            .eq('target_user_id', p.author_id)
+            .in('source_user_id', counterpartIds)
+
+          const workedMap = {}
+          ;[...(relA || []), ...(relB || [])].forEach((rel) => {
+            const counterpart =
+              rel.source_user_id === p.author_id ? rel.target_user_id : rel.source_user_id
+
+            if (!workedMap[counterpart]) {
+              workedMap[counterpart] = {
+                count: 0,
+                latest_type: rel.relationship_type,
+                latest_at: rel.created_at
+              }
+            }
+
+            workedMap[counterpart].count += 1
+
+            if (
+              !workedMap[counterpart].latest_at ||
+              new Date(rel.created_at).getTime() > new Date(workedMap[counterpart].latest_at).getTime()
+            ) {
+              workedMap[counterpart].latest_type = rel.relationship_type
+              workedMap[counterpart].latest_at = rel.created_at
+            }
+          })
+
+          setWorkedBeforeMap(workedMap)
+        } else {
+          setWorkedBeforeMap({})
+        }
       } else {
         setCrewMembers([])
         setMyCrewMembership(false)
+        setWorkedBeforeMap({})
       }
 
       setTranslatedPostBody('')
@@ -850,6 +907,10 @@ export default function PostDetail() {
     }
   }
 
+  const shouldOfferPostTranslation = useMemo(() => {
+    return post?.body && post?.source_language !== lang
+  }, [post, lang])
+
   if (loading) {
     return <div className="card">{t(lang, 'detail_loading')}</div>
   }
@@ -868,7 +929,6 @@ export default function PostDetail() {
     )
   }
 
-  const shouldOfferPostTranslation = post.body && post.source_language !== lang
   const isOpportunity = post.post_type === 'need_crew' || post.post_type === 'looking_for_work'
   const typeStyles = getPostTypeStyles(post.post_type || 'discussion')
   const isPostOwner = currentUserId && post.author_id === currentUserId
@@ -1087,105 +1147,135 @@ export default function PostDetail() {
                     </p>
                   ) : (
                     <div className="list" style={{ marginTop: 10 }}>
-                      {crewMembers.map((member) => (
-                        <div key={member.user_id} className="card card-soft">
-                          <div
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              gap: 10,
-                              flexWrap: 'wrap',
-                              alignItems: 'flex-start'
-                            }}
-                          >
-                            <div style={{ flex: 1, minWidth: 240 }}>
-                              <div className="postMeta">
-                                <Link to={`/u/${member.user_id}`}>{member.display_name}</Link>
+                      {crewMembers.map((member) => {
+                        const workedBefore = workedBeforeMap[member.user_id]
 
-                                {member.role ? (
-                                  <span className="badge" style={roleBadgeStyle(member.role)}>
-                                    {roleLabel(member.role, lang)}
+                        return (
+                          <div key={member.user_id} className="card card-soft">
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                gap: 10,
+                                flexWrap: 'wrap',
+                                alignItems: 'flex-start'
+                              }}
+                            >
+                              <div style={{ flex: 1, minWidth: 240 }}>
+                                <div className="postMeta">
+                                  <Link to={`/u/${member.user_id}`}>{member.display_name}</Link>
+
+                                  {member.role ? (
+                                    <span className="badge" style={roleBadgeStyle(member.role)}>
+                                      {roleLabel(member.role, lang)}
+                                    </span>
+                                  ) : null}
+
+                                  {member.is_available ? (
+                                    <span className="badge" style={availabilityBadgeStyle(true)}>
+                                      Available
+                                    </span>
+                                  ) : null}
+
+                                  <span className="badge" style={memberStatusBadgeStyle(member.status)}>
+                                    {memberStatusLabel(member.status, lang)}
                                   </span>
+
+                                  <span>Joined {timeAgo(member.created_at)}</span>
+                                </div>
+
+                                {workedBefore ? (
+                                  <div style={{ marginTop: 10 }}>
+                                    <span
+                                      className="badge"
+                                      style={{
+                                        color: '#ff751f',
+                                        borderColor: 'rgba(255, 222, 89, 0.65)',
+                                        background: 'rgba(255, 222, 89, 0.14)'
+                                      }}
+                                    >
+                                      Worked With Before • {workedBefore.count}
+                                    </span>
+                                  </div>
                                 ) : null}
 
-                                {member.is_available ? (
-                                  <span className="badge" style={availabilityBadgeStyle(true)}>
-                                    Available
-                                  </span>
-                                ) : null}
+                                {isPostOwner && (
+                                  <div
+                                    className="card"
+                                    style={{
+                                      marginTop: 10,
+                                      padding: 12,
+                                      borderColor: 'rgba(255, 222, 89, 0.22)',
+                                      background: 'rgba(255, 222, 89, 0.04)'
+                                    }}
+                                  >
+                                    <div className="card-section-title" style={{ fontSize: 14, marginBottom: 8 }}>
+                                      Contact Card
+                                    </div>
 
-                                <span className="badge" style={memberStatusBadgeStyle(member.status)}>
-                                  {memberStatusLabel(member.status, lang)}
-                                </span>
+                                    <div className="stack-sm">
+                                      {member.phone ? (
+                                        <div className="muted">
+                                          Phone: <a href={`tel:${member.phone}`}>{formatPhone(member.phone)}</a>
+                                        </div>
+                                      ) : (
+                                        <div className="muted">Phone: Not available</div>
+                                      )}
 
-                                <span>Joined {timeAgo(member.created_at)}</span>
+                                      {member.email ? (
+                                        <div className="muted">
+                                          Email: <a href={`mailto:${member.email}`}>{member.email}</a>
+                                        </div>
+                                      ) : (
+                                        <div className="muted">Email: Not available</div>
+                                      )}
+
+                                      {member.city ? (
+                                        <div className="muted">City: {member.city}</div>
+                                      ) : (
+                                        <div className="muted">City: Not available</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
 
                               {isPostOwner && (
-                                <div
-                                  className="card"
-                                  style={{
-                                    marginTop: 10,
-                                    padding: 12,
-                                    borderColor: 'rgba(255, 222, 89, 0.22)',
-                                    background: 'rgba(255, 222, 89, 0.04)'
-                                  }}
-                                >
-                                  <div className="card-section-title" style={{ fontSize: 14, marginBottom: 8 }}>
-                                    Contact Card
-                                  </div>
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                  <Link className="btn small" to={`/u/${member.user_id}`}>
+                                    View Profile
+                                  </Link>
 
-                                  <div className="stack-sm">
-                                    {member.phone ? (
-                                      <div className="muted">
-                                        Phone: <a href={`tel:${member.phone}`}>{formatPhone(member.phone)}</a>
-                                      </div>
-                                    ) : (
-                                      <div className="muted">Phone: Not available</div>
-                                    )}
+                                  <button
+                                    className="btn small"
+                                    onClick={() => copyWorkerProfile(member.user_id)}
+                                  >
+                                    Rehire / Share
+                                  </button>
 
-                                    {member.email ? (
-                                      <div className="muted">
-                                        Email: <a href={`mailto:${member.email}`}>{member.email}</a>
-                                      </div>
-                                    ) : (
-                                      <div className="muted">Email: Not available</div>
-                                    )}
-
-                                    {member.city ? (
-                                      <div className="muted">City: {member.city}</div>
-                                    ) : (
-                                      <div className="muted">City: Not available</div>
-                                    )}
-                                  </div>
+                                  {member.status !== 'hired' ? (
+                                    <button
+                                      className="btn small primary"
+                                      onClick={() => updateMemberStatus(member.user_id, 'hired')}
+                                      disabled={crewActionLoading}
+                                    >
+                                      Mark Hired
+                                    </button>
+                                  ) : (
+                                    <button
+                                      className="btn small"
+                                      onClick={() => updateMemberStatus(member.user_id, 'joined')}
+                                      disabled={crewActionLoading}
+                                    >
+                                      Move Back to Joined
+                                    </button>
+                                  )}
                                 </div>
                               )}
                             </div>
-
-                            {isPostOwner && (
-                              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                {member.status !== 'hired' ? (
-                                  <button
-                                    className="btn small primary"
-                                    onClick={() => updateMemberStatus(member.user_id, 'hired')}
-                                    disabled={crewActionLoading}
-                                  >
-                                    Mark Hired
-                                  </button>
-                                ) : (
-                                  <button
-                                    className="btn small"
-                                    onClick={() => updateMemberStatus(member.user_id, 'joined')}
-                                    disabled={crewActionLoading}
-                                  >
-                                    Move Back to Joined
-                                  </button>
-                                )}
-                              </div>
-                            )}
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </div>
