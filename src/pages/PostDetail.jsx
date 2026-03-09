@@ -91,6 +91,11 @@ export default function PostDetail() {
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(true)
   const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
+  const [currentUserId, setCurrentUserId] = useState(null)
+
+  const [crewMembers, setCrewMembers] = useState([])
+  const [myCrewMembership, setMyCrewMembership] = useState(false)
+  const [crewActionLoading, setCrewActionLoading] = useState(false)
 
   const [translatedPostBody, setTranslatedPostBody] = useState('')
   const [showTranslatedPost, setShowTranslatedPost] = useState(false)
@@ -106,7 +111,8 @@ export default function PostDetail() {
 
     try {
       const { data: sessionData } = await supabase.auth.getSession()
-      const uid = sessionData.session?.user?.id
+      const uid = sessionData.session?.user?.id || null
+      setCurrentUserId(uid)
 
       if (uid) {
         const { data: prof } = await supabase
@@ -182,6 +188,51 @@ export default function PostDetail() {
 
       const currentVote = (v || []).find((r) => r.voter_id === uid)?.value || 0
       setMyVote(currentVote)
+
+      if (p.post_type === 'need_crew') {
+        const { data: crewRows, error: crewErr } = await supabase
+          .from('crew_memberships')
+          .select(`
+            post_id,
+            user_id,
+            created_at
+          `)
+          .eq('post_id', id)
+          .order('created_at', { ascending: true })
+
+        if (crewErr) throw crewErr
+
+        const joinedUserIds = (crewRows || []).map((row) => row.user_id)
+
+        let profileMap = new Map()
+
+        if (joinedUserIds.length > 0) {
+          const { data: joinedProfiles, error: joinedProfilesErr } = await supabase
+            .from('profiles')
+            .select('user_id, display_name, role')
+            .in('user_id', joinedUserIds)
+
+          if (joinedProfilesErr) throw joinedProfilesErr
+
+          profileMap = new Map((joinedProfiles || []).map((row) => [row.user_id, row]))
+        }
+
+        const members = (crewRows || []).map((row) => {
+          const profile = profileMap.get(row.user_id)
+          return {
+            user_id: row.user_id,
+            created_at: row.created_at,
+            display_name: profile?.display_name || 'Unknown Member',
+            role: profile?.role || ''
+          }
+        })
+
+        setCrewMembers(members)
+        setMyCrewMembership(members.some((member) => member.user_id === uid))
+      } else {
+        setCrewMembers([])
+        setMyCrewMembership(false)
+      }
 
       setTranslatedPostBody('')
       setShowTranslatedPost(false)
@@ -285,6 +336,87 @@ export default function PostDetail() {
     }
   }
 
+  async function joinCrew() {
+    if (!post || post.post_type !== 'need_crew') return
+
+    try {
+      setCrewActionLoading(true)
+      setMsg('')
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      const uid = sessionData.session?.user?.id
+      if (!uid) throw new Error('Not signed in')
+      if (uid === post.author_id) throw new Error('Post owners cannot join their own crew request.')
+
+      const needed = Number(post.needed_crew_size || 0)
+      if (needed > 0 && crewMembers.length >= needed) {
+        throw new Error('This crew request is already full.')
+      }
+
+      const { error } = await supabase
+        .from('crew_memberships')
+        .insert({
+          post_id: id,
+          user_id: uid,
+          status: 'joined'
+        })
+
+      if (error) throw error
+
+      const { error: relationshipErr } = await supabase
+        .from('user_relationships')
+        .upsert(
+          {
+            source_user_id: uid,
+            target_user_id: post.author_id,
+            relationship_type: 'joined_crew_post',
+            post_id: String(id),
+            metadata: { post_type: 'need_crew' }
+          },
+          {
+            onConflict: 'source_user_id,target_user_id,relationship_type,post_id'
+          }
+        )
+
+      if (relationshipErr) {
+        console.error('Relationship graph insert failed:', relationshipErr)
+      }
+
+      await loadAll()
+    } catch (err) {
+      console.error(err)
+      setMsg(err.message || 'Unable to join this crew right now.')
+    } finally {
+      setCrewActionLoading(false)
+    }
+  }
+
+  async function leaveCrew() {
+    try {
+      setCrewActionLoading(true)
+      setMsg('')
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      const uid = sessionData.session?.user?.id
+      if (!uid) throw new Error('Not signed in')
+
+      const { error } = await supabase
+        .from('crew_memberships')
+        .delete()
+        .eq('post_id', id)
+        .eq('user_id', uid)
+
+      if (error) throw error
+
+      await loadAll()
+    } catch (err) {
+      console.error(err)
+      setMsg(err.message || 'Unable to leave this crew right now.')
+    } finally {
+      setCrewActionLoading(false)
+    }
+  }
+
   async function handleTranslatePost() {
     if (!post) return
 
@@ -380,13 +512,14 @@ export default function PostDetail() {
   const shouldOfferPostTranslation = post.body && post.source_language !== lang
   const isOpportunity = post.post_type === 'need_crew' || post.post_type === 'looking_for_work'
   const typeStyles = getPostTypeStyles(post.post_type || 'discussion')
+  const isPostOwner = currentUserId && post.author_id === currentUserId
+  const crewNeeded = Number(post.needed_crew_size || 0)
+  const crewFilled = crewMembers.length
+  const crewFull = crewNeeded > 0 && crewFilled >= crewNeeded
 
   return (
     <div className="grid" style={{ gap: 12 }}>
-      <div
-        className="card"
-        style={typeStyles.card}
-      >
+      <div className="card" style={typeStyles.card}>
         <div className="postMeta">
           <span className="badge" style={typeStyles.badge}>
             {postTypeLabel(post.post_type || 'discussion', lang)}
@@ -421,7 +554,10 @@ export default function PostDetail() {
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
               {post.post_type === 'need_crew' && post.needed_crew_size ? (
-                <span className="badge">Crew Needed: {post.needed_crew_size}</span>
+                <>
+                  <span className="badge">Crew Needed: {post.needed_crew_size}</span>
+                  <span className="badge">Filled: {crewFilled}/{post.needed_crew_size}</span>
+                </>
               ) : null}
 
               {post.compensation ? (
@@ -434,6 +570,70 @@ export default function PostDetail() {
                 </span>
               ) : null}
             </div>
+
+            {post.post_type === 'need_crew' && (
+              <div style={{ marginTop: 14 }}>
+                <div className="card-section-title" style={{ fontSize: 16 }}>
+                  Crew Builder
+                </div>
+
+                <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+                  Build a crew directly from this post. Workers can join the roster, and the post owner can see who is on the crew.
+                </p>
+
+                <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {!isPostOwner && !myCrewMembership && !crewFull && (
+                    <button className="btn primary" onClick={joinCrew} disabled={crewActionLoading}>
+                      {crewActionLoading ? 'Joining…' : 'Join Crew'}
+                    </button>
+                  )}
+
+                  {!isPostOwner && myCrewMembership && (
+                    <button className="btn" onClick={leaveCrew} disabled={crewActionLoading}>
+                      {crewActionLoading ? 'Leaving…' : 'Leave Crew'}
+                    </button>
+                  )}
+
+                  {isPostOwner && (
+                    <span className="badge">You posted this crew request</span>
+                  )}
+
+                  {crewFull && (
+                    <span className="badge">Crew Full</span>
+                  )}
+                </div>
+
+                <div style={{ marginTop: 14 }}>
+                  <div className="card-section-title" style={{ fontSize: 16 }}>
+                    Crew Roster
+                  </div>
+
+                  {crewMembers.length === 0 ? (
+                    <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+                      No one has joined this crew yet.
+                    </p>
+                  ) : (
+                    <div className="list" style={{ marginTop: 10 }}>
+                      {crewMembers.map((member) => (
+                        <div key={member.user_id} className="card card-soft">
+                          <div className="postMeta">
+                            <span>{member.display_name}</span>
+                            {member.role ? (
+                              <>
+                                <span>•</span>
+                                <span>{roleLabel(member.role, lang)}</span>
+                              </>
+                            ) : null}
+                            <span>•</span>
+                            <span>Joined {timeAgo(member.created_at)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
