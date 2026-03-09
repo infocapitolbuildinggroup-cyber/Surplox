@@ -117,7 +117,8 @@ export default function NewPost({ lang: langProp = 'en' }) {
     radius_miles: 50,
     needed_crew_size: '',
     compensation: '',
-    start_date: ''
+    start_date: '',
+    source_language: langProp || localStorage.getItem('surplox_lang') || 'en'
   })
 
   useEffect(() => {
@@ -139,11 +140,23 @@ export default function NewPost({ lang: langProp = 'en' }) {
           .eq('user_id', user.id)
           .maybeSingle()
 
-        const userLang = prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
+        const userLang =
+          prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
+
         setLang(userLang)
         localStorage.setItem('surplox_lang', userLang)
+
+        setForm((prev) => ({
+          ...prev,
+          source_language: prev.source_language || userLang
+        }))
       } else {
-        setLang(langProp || localStorage.getItem('surplox_lang') || 'en')
+        const localLang = langProp || localStorage.getItem('surplox_lang') || 'en'
+        setLang(localLang)
+        setForm((prev) => ({
+          ...prev,
+          source_language: prev.source_language || localLang
+        }))
       }
 
       const { data, error } = await supabase
@@ -166,6 +179,9 @@ export default function NewPost({ lang: langProp = 'en' }) {
     if (lang === 'es') {
       return {
         postType: 'Tipo de publicación',
+        postLanguage: 'Idioma de la publicación',
+        english: 'English',
+        spanish: 'Español',
         crewSize: 'Tamaño de cuadrilla',
         compensation: 'Pago / tarifa',
         startDate: 'Fecha de inicio',
@@ -187,12 +203,16 @@ export default function NewPost({ lang: langProp = 'en' }) {
         highVisibilityOpportunity: 'Oportunidad de alta visibilidad',
         availabilityPost: 'Publicación de disponibilidad',
         crewCompPlaceholder: '$250/día o $35/hora',
-        workCompPlaceholder: '$30/hora deseado o por propuesta'
+        workCompPlaceholder: '$30/hora deseado o por propuesta',
+        invalidPostLanguage: 'Selecciona un idioma válido para la publicación.'
       }
     }
 
     return {
       postType: 'Post Type',
+      postLanguage: 'Post Language',
+      english: 'English',
+      spanish: 'Español',
       crewSize: 'Crew Size Needed',
       compensation: 'Pay / Rate',
       startDate: 'Start Date',
@@ -214,7 +234,8 @@ export default function NewPost({ lang: langProp = 'en' }) {
       highVisibilityOpportunity: 'High Visibility Opportunity',
       availabilityPost: 'Availability Post',
       crewCompPlaceholder: '$250/day or $35/hr',
-      workCompPlaceholder: '$30/hr desired or bid-based'
+      workCompPlaceholder: '$30/hr desired or bid-based',
+      invalidPostLanguage: 'Select a valid post language.'
     }
   }, [lang])
 
@@ -252,6 +273,10 @@ export default function NewPost({ lang: langProp = 'en' }) {
         throw new Error(
           lang === 'es' ? 'Selecciona un tipo de publicación válido.' : 'Select a valid post type.'
         )
+      }
+
+      if (!['en', 'es'].includes(form.source_language)) {
+        throw new Error(helperCopy.invalidPostLanguage)
       }
 
       if (!form.title.trim()) throw new Error(t(lang, 'post_title_required'))
@@ -294,7 +319,8 @@ export default function NewPost({ lang: langProp = 'en' }) {
           radius_miles: radius,
           needed_crew_size: form.needed_crew_size ? Number(form.needed_crew_size) : null,
           compensation: form.compensation.trim() || null,
-          start_date: form.start_date || null
+          start_date: form.start_date || null,
+          source_language: form.source_language
         })
         .select('id')
         .single()
@@ -365,6 +391,18 @@ export default function NewPost({ lang: langProp = 'en' }) {
                 {postTypeLabel(option.value, lang)}
               </option>
             ))}
+          </select>
+        </div>
+
+        <div>
+          <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.postLanguage}</div>
+          <select
+            className="input"
+            value={form.source_language}
+            onChange={(e) => setField('source_language', e.target.value)}
+          >
+            <option value="en">{helperCopy.english}</option>
+            <option value="es">{helperCopy.spanish}</option>
           </select>
         </div>
 
