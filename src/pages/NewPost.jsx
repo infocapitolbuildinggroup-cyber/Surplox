@@ -19,6 +19,83 @@ function getValidPostType(type) {
   return POST_TYPE_OPTIONS.some((x) => x.value === type) ? type : 'discussion'
 }
 
+function getPostTypeTheme(type) {
+  if (type === 'need_crew') {
+    return {
+      icon: '🚧',
+      shell: {
+        borderColor: 'rgba(255, 222, 89, 0.5)',
+        background: 'rgba(255, 222, 89, 0.05)',
+        boxShadow: '0 0 20px rgba(255, 222, 89, 0.08)'
+      },
+      notice: {
+        borderColor: 'rgba(255, 222, 89, 0.45)',
+        background: 'rgba(255, 222, 89, 0.08)'
+      },
+      example: {
+        borderColor: 'rgba(255, 222, 89, 0.45)',
+        background: 'rgba(255, 222, 89, 0.06)'
+      },
+      badge: {
+        color: '#ff751f',
+        borderColor: 'rgba(255, 222, 89, 0.65)',
+        background: 'rgba(255, 222, 89, 0.14)',
+        boxShadow: '0 0 10px rgba(255, 222, 89, 0.18)'
+      },
+      button: 'btn primary'
+    }
+  }
+
+  if (type === 'looking_for_work') {
+    return {
+      icon: '🛠️',
+      shell: {
+        borderColor: 'rgba(255, 117, 31, 0.42)',
+        background: 'rgba(255, 117, 31, 0.04)',
+        boxShadow: '0 0 18px rgba(255, 117, 31, 0.06)'
+      },
+      notice: {
+        borderColor: 'rgba(255, 117, 31, 0.4)',
+        background: 'rgba(255, 117, 31, 0.07)'
+      },
+      example: {
+        borderColor: 'rgba(255, 117, 31, 0.4)',
+        background: 'rgba(255, 117, 31, 0.06)'
+      },
+      badge: {
+        color: '#ffde59',
+        borderColor: 'rgba(255, 117, 31, 0.55)',
+        background: 'rgba(255, 117, 31, 0.12)',
+        boxShadow: '0 0 10px rgba(255, 117, 31, 0.14)'
+      },
+      button: 'btn'
+    }
+  }
+
+  return {
+    icon: '💬',
+    shell: {
+      borderColor: 'rgba(255, 222, 89, 0.18)',
+      background: 'var(--card)',
+      boxShadow: 'none'
+    },
+    notice: {
+      borderColor: 'rgba(255, 222, 89, 0.32)',
+      background: 'rgba(255, 222, 89, 0.05)'
+    },
+    example: {
+      borderColor: 'rgba(255, 222, 89, 0.3)',
+      background: 'rgba(255, 222, 89, 0.04)'
+    },
+    badge: {
+      color: '#ff751f',
+      borderColor: 'rgba(255, 222, 89, 0.4)',
+      background: 'rgba(255, 222, 89, 0.06)'
+    },
+    button: 'btn primary'
+  }
+}
+
 export default function NewPost() {
   const [trades, setTrades] = useState([])
   const [saving, setSaving] = useState(false)
@@ -97,7 +174,9 @@ export default function NewPost() {
         workTitle: 'Ejemplo: Pipe welder available for shutdown work in DFW',
         crewBody: 'Describe the trade, where the job is, how many people you need, start timing, and pay details.',
         workBody: 'Describe your trade, availability, travel radius, experience, and what kind of work you want.',
-        crewRequired: 'Crew size must be at least 1 for Need Crew posts.'
+        crewRequired: 'Crew size must be at least 1 for Need Crew posts.',
+        opportunityIntro: 'Create a high-visibility local opportunity post so nearby workers and crews can find it quickly.',
+        opportunityNotice: 'Opportunity posts will still respect ZIP and radius, but they should be written clearly so nearby members can act fast.'
       }
     }
 
@@ -113,7 +192,9 @@ export default function NewPost() {
       workTitle: 'Example: Pipe welder available for shutdown work in DFW',
       workBody: 'Describe your trade, availability, travel radius, experience, and what kind of work you want.',
       crewBody: 'Describe the trade, where the job is, how many people you need, start timing, and pay details.',
-      crewRequired: 'Crew size must be at least 1 for Need Crew posts.'
+      crewRequired: 'Crew size must be at least 1 for Need Crew posts.',
+      opportunityIntro: 'Create a high-visibility local opportunity post so nearby workers and crews can find it quickly.',
+      opportunityNotice: 'Opportunity posts will still respect ZIP and radius, but they should be written clearly so nearby members can act fast.'
     }
   }, [lang])
 
@@ -201,23 +282,45 @@ export default function NewPost() {
   }
 
   const isOpportunity = form.post_type !== 'discussion'
+  const theme = getPostTypeTheme(form.post_type)
 
   return (
-    <div className="card" style={{ maxWidth: 860, margin: '0 auto' }}>
+    <div
+      className="card"
+      style={{
+        maxWidth: 860,
+        margin: '0 auto',
+        ...theme.shell
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          marginBottom: 8,
+          flexWrap: 'wrap'
+        }}
+      >
+        <span className="badge" style={theme.badge}>
+          {theme.icon} {postTypeLabel(form.post_type, lang)}
+        </span>
+      </div>
+
       <div className="h1">{t(lang, 'new_post_title')}</div>
 
       <p className="muted">
         {form.post_type === 'discussion'
           ? t(lang, 'new_post_intro')
-          : 'Create a high-visibility local opportunity post so nearby workers and crews can find it quickly.'}
+          : helperCopy.opportunityIntro}
       </p>
 
-      <div className="card card-notice" style={{ marginBottom: 12 }}>
+      <div className="card card-notice" style={{ marginBottom: 12, ...theme.notice }}>
         <div className="card-section-title">{t(lang, 'new_post_notice_title')}</div>
         <p className="card-section-subtitle">
           {form.post_type === 'discussion'
             ? t(lang, 'new_post_notice_body')
-            : 'Opportunity posts will still respect ZIP and radius, but they should be written clearly so nearby members can act fast.'}
+            : helperCopy.opportunityNotice}
         </p>
       </div>
 
@@ -336,13 +439,15 @@ export default function NewPost() {
           style={{
             borderStyle: 'dashed',
             gridColumn: isOpportunity ? '1 / -1' : undefined,
-            borderColor: isOpportunity ? 'rgba(255, 222, 89, 0.45)' : undefined,
-            background: isOpportunity ? 'rgba(255, 222, 89, 0.06)' : undefined
+            ...theme.example
           }}
         >
-          <div className="badge">
-            {form.post_type === 'discussion' ? t(lang, 'new_post_example') : postTypeLabel(form.post_type, lang)}
+          <div className="badge" style={theme.badge}>
+            {form.post_type === 'discussion'
+              ? `${theme.icon} ${t(lang, 'new_post_example')}`
+              : `${theme.icon} ${postTypeLabel(form.post_type, lang)}`}
           </div>
+
           <p className="card-section-subtitle" style={{ marginTop: 8 }}>
             {exampleBody()}
           </p>
@@ -375,10 +480,16 @@ export default function NewPost() {
         </div>
       )}
 
-      <div style={{ marginTop: 12 }}>
-        <button className="btn primary" onClick={create} disabled={saving}>
+      <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <button className={theme.button} onClick={create} disabled={saving}>
           {saving ? t(lang, 'new_post_publishing') : t(lang, 'new_post_publish')}
         </button>
+
+        {isOpportunity && (
+          <span className="badge" style={theme.badge}>
+            {form.post_type === 'need_crew' ? 'High Visibility Opportunity' : 'Availability Post'}
+          </span>
+        )}
       </div>
     </div>
   )
