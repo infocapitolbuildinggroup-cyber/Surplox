@@ -32,6 +32,42 @@ function roleLabel(role, lang) {
   return map[role]?.[lang] || map[role]?.en || role
 }
 
+function crewStatusLabel(status, lang) {
+  if (lang === 'es') {
+    if (status === 'full') return 'Cuadrilla llena'
+    if (status === 'closed') return 'Cerrado'
+    return 'Abierto'
+  }
+
+  if (status === 'full') return 'Crew Full'
+  if (status === 'closed') return 'Closed'
+  return 'Open'
+}
+
+function crewStatusBadgeStyle(status) {
+  if (status === 'full') {
+    return {
+      color: '#ff751f',
+      borderColor: 'rgba(255, 222, 89, 0.65)',
+      background: 'rgba(255, 222, 89, 0.14)'
+    }
+  }
+
+  if (status === 'closed') {
+    return {
+      color: '#ffde59',
+      borderColor: 'rgba(255, 117, 31, 0.55)',
+      background: 'rgba(255, 117, 31, 0.12)'
+    }
+  }
+
+  return {
+    color: '#ff751f',
+    borderColor: 'rgba(255, 222, 89, 0.4)',
+    background: 'rgba(255, 222, 89, 0.06)'
+  }
+}
+
 function getPostTypeStyles(type) {
   if (type === 'need_crew') {
     return {
@@ -132,6 +168,7 @@ export default function Feed() {
             radius_miles,
             trade_id,
             post_type,
+            crew_status,
             needed_crew_size,
             compensation,
             start_date,
@@ -321,6 +358,12 @@ export default function Feed() {
                   <span className="badge">{t(lang, 'feed_zip')} {p.center_zip}</span>
                   <span className="badge">{p.radius_miles} {t(lang, 'feed_radius')}</span>
                   {p.author_role ? <span className="badge">{roleLabel(p.author_role, lang)}</span> : null}
+
+                  {p.post_type === 'need_crew' ? (
+                    <span className="badge" style={crewStatusBadgeStyle(p.crew_status || 'open')}>
+                      {crewStatusLabel(p.crew_status || 'open', lang)}
+                    </span>
+                  ) : null}
                 </div>
 
                 <div className="postTitle">{p.title}</div>

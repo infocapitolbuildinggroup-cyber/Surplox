@@ -37,6 +37,42 @@ function roleLabel(role, lang) {
   return map[role]?.[lang] || map[role]?.en || role
 }
 
+function crewStatusLabel(status, lang) {
+  if (lang === 'es') {
+    if (status === 'full') return 'Cuadrilla llena'
+    if (status === 'closed') return 'Cerrado'
+    return 'Abierto'
+  }
+
+  if (status === 'full') return 'Crew Full'
+  if (status === 'closed') return 'Closed'
+  return 'Open'
+}
+
+function crewStatusBadgeStyle(status) {
+  if (status === 'full') {
+    return {
+      color: '#ff751f',
+      borderColor: 'rgba(255, 222, 89, 0.65)',
+      background: 'rgba(255, 222, 89, 0.14)'
+    }
+  }
+
+  if (status === 'closed') {
+    return {
+      color: '#ffde59',
+      borderColor: 'rgba(255, 117, 31, 0.55)',
+      background: 'rgba(255, 117, 31, 0.12)'
+    }
+  }
+
+  return {
+    color: '#ff751f',
+    borderColor: 'rgba(255, 222, 89, 0.4)',
+    background: 'rgba(255, 222, 89, 0.06)'
+  }
+}
+
 function getPostTypeStyles(type) {
   if (type === 'need_crew') {
     return {
@@ -137,6 +173,7 @@ export default function PostDetail() {
           created_at,
           trade_id,
           post_type,
+          crew_status,
           needed_crew_size,
           compensation,
           start_date,
@@ -336,6 +373,34 @@ export default function PostDetail() {
     }
   }
 
+  async function updateCrewStatus(nextStatus) {
+    if (!post || post.post_type !== 'need_crew') return
+
+    try {
+      setCrewActionLoading(true)
+      setMsg('')
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      const uid = sessionData.session?.user?.id
+      if (!uid) throw new Error('Not signed in')
+      if (uid !== post.author_id) throw new Error('Only the post owner can change crew status.')
+
+      const { error } = await supabase
+        .from('posts')
+        .update({ crew_status: nextStatus })
+        .eq('id', id)
+
+      if (error) throw error
+
+      await loadAll()
+    } catch (err) {
+      console.error(err)
+      setMsg(err.message || 'Unable to update crew status right now.')
+    } finally {
+      setCrewActionLoading(false)
+    }
+  }
+
   async function joinCrew() {
     if (!post || post.post_type !== 'need_crew') return
 
@@ -347,6 +412,7 @@ export default function PostDetail() {
       const uid = sessionData.session?.user?.id
       if (!uid) throw new Error('Not signed in')
       if (uid === post.author_id) throw new Error('Post owners cannot join their own crew request.')
+      if ((post.crew_status || 'open') !== 'open') throw new Error('This crew request is not open.')
 
       const needed = Number(post.needed_crew_size || 0)
       if (needed > 0 && crewMembers.length >= needed) {
@@ -382,6 +448,17 @@ export default function PostDetail() {
         console.error('Relationship graph insert failed:', relationshipErr)
       }
 
+      if (needed > 0 && crewMembers.length + 1 >= needed) {
+        const { error: statusErr } = await supabase
+          .from('posts')
+          .update({ crew_status: 'full' })
+          .eq('id', id)
+
+        if (statusErr) {
+          console.error('Auto-mark full failed:', statusErr)
+        }
+      }
+
       await loadAll()
     } catch (err) {
       console.error(err)
@@ -407,6 +484,17 @@ export default function PostDetail() {
         .eq('user_id', uid)
 
       if (error) throw error
+
+      if (post?.post_type === 'need_crew' && post?.crew_status === 'full') {
+        const { error: reopenErr } = await supabase
+          .from('posts')
+          .update({ crew_status: 'open' })
+          .eq('id', id)
+
+        if (reopenErr) {
+          console.error('Auto-reopen failed:', reopenErr)
+        }
+      }
 
       await loadAll()
     } catch (err) {
@@ -515,7 +603,10 @@ export default function PostDetail() {
   const isPostOwner = currentUserId && post.author_id === currentUserId
   const crewNeeded = Number(post.needed_crew_size || 0)
   const crewFilled = crewMembers.length
-  const crewFull = crewNeeded > 0 && crewFilled >= crewNeeded
+  const crewStatus = post.crew_status || 'open'
+  const crewOpen = crewStatus === 'open'
+  const crewFull = crewStatus === 'full'
+  const crewClosed = crewStatus === 'closed'
 
   return (
     <div className="grid" style={{ gap: 12 }}>
@@ -528,6 +619,13 @@ export default function PostDetail() {
           <span className="badge">ZIP {post.center_zip}</span>
           <span className="badge">{post.radius_miles} mi</span>
           {post.author_role ? <span className="badge">{roleLabel(post.author_role, lang)}</span> : null}
+
+          {post.post_type === 'need_crew' ? (
+            <span className="badge" style={crewStatusBadgeStyle(crewStatus)}>
+              {crewStatusLabel(crewStatus, lang)}
+            </span>
+          ) : null}
+
           <span>{t(lang, 'detail_posted_by')} {post.author_name}</span>
           <span>•</span>
           <span>{timeAgo(post.created_at)}</span>
@@ -578,11 +676,45 @@ export default function PostDetail() {
                 </div>
 
                 <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-                  Build a crew directly from this post. Workers can join the roster, and the post owner can see who is on the crew.
+                  Build a crew directly from this post. Workers can join the roster, and the post owner can control whether the crew request is open, full, or closed.
                 </p>
 
+                {isPostOwner && (
+                  <div style={{ marginTop: 12 }}>
+                    <div className="card-section-title" style={{ fontSize: 15 }}>
+                      Contractor Controls
+                    </div>
+
+                    <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      <button
+                        className="btn primary"
+                        onClick={() => updateCrewStatus('open')}
+                        disabled={crewActionLoading || crewOpen}
+                      >
+                        {crewActionLoading && crewOpen ? 'Saving…' : 'Mark Open'}
+                      </button>
+
+                      <button
+                        className="btn"
+                        onClick={() => updateCrewStatus('full')}
+                        disabled={crewActionLoading || crewFull}
+                      >
+                        {crewActionLoading && crewFull ? 'Saving…' : 'Mark Crew Full'}
+                      </button>
+
+                      <button
+                        className="btn"
+                        onClick={() => updateCrewStatus('closed')}
+                        disabled={crewActionLoading || crewClosed}
+                      >
+                        {crewActionLoading && crewClosed ? 'Saving…' : 'Close Post'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  {!isPostOwner && !myCrewMembership && !crewFull && (
+                  {!isPostOwner && !myCrewMembership && crewOpen && (
                     <button className="btn primary" onClick={joinCrew} disabled={crewActionLoading}>
                       {crewActionLoading ? 'Joining…' : 'Join Crew'}
                     </button>
@@ -600,6 +732,10 @@ export default function PostDetail() {
 
                   {crewFull && (
                     <span className="badge">Crew Full</span>
+                  )}
+
+                  {crewClosed && (
+                    <span className="badge">Post Closed</span>
                   )}
                 </div>
 
