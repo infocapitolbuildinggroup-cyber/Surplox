@@ -16,14 +16,14 @@ function timeAgo(ts) {
 
 function postTypeLabel(type, lang) {
   if (lang === 'es') {
-    if (type === 'need_crew') return 'Se necesita cuadrilla'
-    if (type === 'looking_for_work') return 'Buscando trabajo'
-    return 'Discusión'
+    if (type === 'need_crew') return '🚧 Se necesita cuadrilla'
+    if (type === 'looking_for_work') return '🛠️ Buscando trabajo'
+    return '💬 Discusión'
   }
 
-  if (type === 'need_crew') return 'Need Crew'
-  if (type === 'looking_for_work') return 'Looking for Work'
-  return 'Discussion'
+  if (type === 'need_crew') return '🚧 Need Crew'
+  if (type === 'looking_for_work') return '🛠️ Looking for Work'
+  return '💬 Discussion'
 }
 
 function roleLabel(role, lang) {
@@ -35,6 +35,49 @@ function roleLabel(role, lang) {
     supplier: { en: 'Supplier', es: 'Proveedor' }
   }
   return map[role]?.[lang] || map[role]?.en || role
+}
+
+function getPostTypeStyles(type) {
+  if (type === 'need_crew') {
+    return {
+      card: {
+        borderColor: 'rgba(255, 222, 89, 0.55)',
+        background: 'rgba(255, 222, 89, 0.08)',
+        boxShadow: '0 0 16px rgba(255, 222, 89, 0.12)'
+      },
+      badge: {
+        color: '#ff751f',
+        borderColor: 'rgba(255, 222, 89, 0.65)',
+        background: 'rgba(255, 222, 89, 0.14)',
+        boxShadow: '0 0 10px rgba(255, 222, 89, 0.18)'
+      }
+    }
+  }
+
+  if (type === 'looking_for_work') {
+    return {
+      card: {
+        borderColor: 'rgba(255, 117, 31, 0.42)',
+        background: 'rgba(255, 117, 31, 0.06)',
+        boxShadow: '0 0 14px rgba(255, 117, 31, 0.08)'
+      },
+      badge: {
+        color: '#ffde59',
+        borderColor: 'rgba(255, 117, 31, 0.55)',
+        background: 'rgba(255, 117, 31, 0.12)',
+        boxShadow: '0 0 10px rgba(255, 117, 31, 0.14)'
+      }
+    }
+  }
+
+  return {
+    card: {},
+    badge: {
+      color: '#ff751f',
+      borderColor: 'rgba(255, 222, 89, 0.35)',
+      background: 'rgba(255, 222, 89, 0.05)'
+    }
+  }
 }
 
 export default function PostDetail() {
@@ -336,18 +379,18 @@ export default function PostDetail() {
 
   const shouldOfferPostTranslation = post.body && post.source_language !== lang
   const isOpportunity = post.post_type === 'need_crew' || post.post_type === 'looking_for_work'
+  const typeStyles = getPostTypeStyles(post.post_type || 'discussion')
 
   return (
     <div className="grid" style={{ gap: 12 }}>
       <div
         className="card"
-        style={{
-          borderColor: isOpportunity ? 'rgba(255, 222, 89, 0.45)' : undefined,
-          background: isOpportunity ? 'rgba(255, 222, 89, 0.05)' : undefined
-        }}
+        style={typeStyles.card}
       >
         <div className="postMeta">
-          <span className="badge">{postTypeLabel(post.post_type || 'discussion', lang)}</span>
+          <span className="badge" style={typeStyles.badge}>
+            {postTypeLabel(post.post_type || 'discussion', lang)}
+          </span>
           <span className="badge">{post.trade_name}</span>
           <span className="badge">ZIP {post.center_zip}</span>
           <span className="badge">{post.radius_miles} mi</span>
@@ -364,8 +407,12 @@ export default function PostDetail() {
             className="card card-soft"
             style={{
               marginBottom: 12,
-              borderColor: 'rgba(255, 222, 89, 0.35)',
-              background: 'rgba(255, 222, 89, 0.06)'
+              borderColor: post.post_type === 'need_crew'
+                ? 'rgba(255, 222, 89, 0.35)'
+                : 'rgba(255, 117, 31, 0.35)',
+              background: post.post_type === 'need_crew'
+                ? 'rgba(255, 222, 89, 0.06)'
+                : 'rgba(255, 117, 31, 0.06)'
             }}
           >
             <div className="card-section-title">
