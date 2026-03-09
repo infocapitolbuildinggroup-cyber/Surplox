@@ -61,34 +61,96 @@ export default function Channels() {
   }
 
   return (
-    <div className="card">
-      <div className="h1">{t(lang, 'channels_title')}</div>
-      <p className="muted">
-        {t(lang, 'channels_intro')}
-      </p>
+    <div className="grid" style={{ gap: 14 }}>
+      <div className="card">
+        <div className="h1">{t(lang, 'channels_title')}</div>
+        <p className="muted">
+          {t(lang, 'channels_intro')}
+        </p>
+      </div>
 
-      <div className="list" style={{ marginTop: 12 }}>
-        {trades.length === 0 ? (
-          <div className="card card-soft">
-            <div className="card-section-title">{t(lang, 'channels_empty_title')}</div>
-            <p className="card-section-subtitle">
-              {t(lang, 'channels_empty_body')}
-            </p>
-          </div>
-        ) : (
-          trades.map((trow) => (
-            <Link
-              key={trow.id}
-              className="card card-soft"
-              to={`/feed?trade=${trow.id}`}
-            >
-              <div style={{ fontWeight: 800, fontSize: 16 }}>{trow.name}</div>
-              <div className="muted" style={{ marginTop: 4 }}>
-                {t(lang, 'channels_view_posts')}
-              </div>
-            </Link>
-          ))
-        )}
+      <div className="card">
+        <div className="card-section-title">{t(lang, 'channels_quick_actions')}</div>
+        <p className="card-section-subtitle">
+          {t(lang, 'channels_quick_actions_intro')}
+        </p>
+
+        <div className="grid two" style={{ marginTop: 12 }}>
+          <Link
+            className="card card-soft"
+            to="/new?type=need_crew"
+            style={{
+              borderColor: 'rgba(255, 222, 89, 0.4)',
+              background: 'rgba(255, 222, 89, 0.06)'
+            }}
+          >
+            <div className="badge">Need Crew</div>
+            <div style={{ fontWeight: 800, fontSize: 18, marginTop: 10 }}>
+              {t(lang, 'channels_need_crew_title')}
+            </div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              {t(lang, 'channels_need_crew_body')}
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <span className="btn small primary">
+                {t(lang, 'channels_need_crew_button')}
+              </span>
+            </div>
+          </Link>
+
+          <Link
+            className="card card-soft"
+            to="/new?type=looking_for_work"
+            style={{
+              borderColor: 'rgba(255, 222, 89, 0.4)',
+              background: 'rgba(255, 222, 89, 0.06)'
+            }}
+          >
+            <div className="badge">Looking for Work</div>
+            <div style={{ fontWeight: 800, fontSize: 18, marginTop: 10 }}>
+              {t(lang, 'channels_work_title')}
+            </div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              {t(lang, 'channels_work_body')}
+            </div>
+            <div style={{ marginTop: 12 }}>
+              <span className="btn small primary">
+                {t(lang, 'channels_work_button')}
+              </span>
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-section-title">{t(lang, 'channels_all_trades_title')}</div>
+        <p className="card-section-subtitle">
+          {t(lang, 'channels_all_trades_intro')}
+        </p>
+
+        <div className="list" style={{ marginTop: 12 }}>
+          {trades.length === 0 ? (
+            <div className="card card-soft">
+              <div className="card-section-title">{t(lang, 'channels_empty_title')}</div>
+              <p className="card-section-subtitle">
+                {t(lang, 'channels_empty_body')}
+              </p>
+            </div>
+          ) : (
+            trades.map((trow) => (
+              <Link
+                key={trow.id}
+                className="card card-soft"
+                to={`/feed?trade=${trow.id}`}
+              >
+                <div style={{ fontWeight: 800, fontSize: 16 }}>{trow.name}</div>
+                <div className="muted" style={{ marginTop: 4 }}>
+                  {t(lang, 'channels_view_posts')}
+                </div>
+              </Link>
+            ))
+          )}
+        </div>
       </div>
     </div>
   )

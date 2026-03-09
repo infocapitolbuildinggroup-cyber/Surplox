@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { t } from '../i18n'
 
 const POST_TYPE_OPTIONS = [
@@ -15,14 +15,24 @@ function postTypeLabel(type, lang) {
   return lang === 'es' ? match.es : match.en
 }
 
+function getValidPostType(type) {
+  return POST_TYPE_OPTIONS.some((x) => x.value === type) ? type : 'discussion'
+}
+
 export default function NewPost() {
   const [trades, setTrades] = useState([])
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
 
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const params = useMemo(() => new URLSearchParams(location.search), [location.search])
+  const preselectedType = getValidPostType(params.get('type'))
+
   const [form, setForm] = useState({
-    post_type: 'discussion',
+    post_type: preselectedType,
     trade_id: '',
     title: '',
     body: '',
@@ -33,7 +43,12 @@ export default function NewPost() {
     start_date: ''
   })
 
-  const navigate = useNavigate()
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      post_type: preselectedType
+    }))
+  }, [preselectedType])
 
   useEffect(() => {
     async function loadTrades() {
