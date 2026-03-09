@@ -35,7 +35,8 @@ const COPY = {
     available: 'Available',
     crewNeeded: 'Crew Needed',
     filled: 'Filled',
-    hired: 'Hired'
+    hired: 'Hired',
+    unknownDate: 'Unknown date'
   },
   es: {
     unknownMember: 'Miembro desconocido',
@@ -62,7 +63,8 @@ const COPY = {
     available: 'Disponible',
     crewNeeded: 'Cuadrilla necesaria',
     filled: 'Llenos',
-    hired: 'Contratados'
+    hired: 'Contratados',
+    unknownDate: 'Fecha desconocida'
   }
 }
 
@@ -269,7 +271,8 @@ export default function Feed({ lang: langProp = 'en' }) {
           return
         }
 
-        const userLang = prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
+        const userLang =
+          prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
         setLang(userLang)
         localStorage.setItem('surplox_lang', userLang)
 
@@ -615,26 +618,39 @@ export default function Feed({ lang: langProp = 'en' }) {
                   ) : null}
                 </div>
 
-                <div className="postTitle">{p.title}</div>
+                <Link to={`/p/${p.id}`} className="postTitle" style={{ display: 'block' }}>
+                  {p.title}
+                </Link>
 
-                <div className="postMeta" style={{ marginTop: 8 }}>
-                  <span>{p.author_name}</span>
+                <div className="postMeta" style={{ marginTop: 6 }}>
+                  <Link to={`/u/${p.author_id}`}>{p.author_name}</Link>
+                  <span>•</span>
+                  <span>{p.created_at ? new Date(p.created_at).toLocaleString() : copy.unknownDate}</span>
                 </div>
 
-                {isOpportunity ? (
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                {isOpportunity && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: 8,
+                      flexWrap: 'wrap',
+                      marginTop: 10
+                    }}
+                  >
                     {p.post_type === 'need_crew' && p.needed_crew_size ? (
                       <>
                         <span className="badge">{copy.crewNeeded}: {p.needed_crew_size}</span>
-                        <span className="badge">{copy.filled}: {p.crew_joined_count}/{p.needed_crew_size}</span>
-                        <span className="badge">{copy.hired}: {p.crew_hired_count}</span>
+                        <span className="badge">
+                          {copy.filled}: {p.crew_joined_count || 0}/{p.needed_crew_size}
+                        </span>
+                        <span className="badge">
+                          {copy.hired}: {p.crew_hired_count || 0}
+                        </span>
                       </>
                     ) : null}
 
                     {p.compensation ? (
-                      <span className="badge">
-                        {copy.pay}: {p.compensation}
-                      </span>
+                      <span className="badge">{copy.pay}: {p.compensation}</span>
                     ) : null}
 
                     {p.start_date ? (
@@ -643,7 +659,7 @@ export default function Feed({ lang: langProp = 'en' }) {
                       </span>
                     ) : null}
                   </div>
-                ) : null}
+                )}
 
                 {p.body ? (
                   <div className="postExcerpt">
