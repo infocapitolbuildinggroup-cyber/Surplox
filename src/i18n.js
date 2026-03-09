@@ -93,14 +93,14 @@ export const translations = {
       'Start a discussion for nearby members by choosing a trade, writing your post, and setting the ZIP code and radius where it should appear.',
     new_post_notice_title: 'Post Visibility',
     new_post_notice_body:
-      'Your post will only appear to members whose location falls within the ZIP and radius you choose.',
+      'Your post will only appear to members whose location falls within the ZIP code and radius you choose.',
     new_post_trade: 'Trade Channel',
     new_post_general: 'General Discussion',
     new_post_radius: 'Radius (miles)',
     new_post_zip: 'ZIP Code',
     new_post_example: 'Example',
     new_post_example_body:
-      'A post created in 76031 with a 100 mile radius will be shown to nearby members inside that area.',
+      'A post created in 76031 with a 100-mile radius will be shown to nearby members inside that area.',
     new_post_title_label: 'Post Title',
     new_post_body_label: 'Post Details',
     new_post_body_placeholder:
@@ -241,7 +241,7 @@ export const translations = {
     channels_loading: 'Cargando tableros de oficio…',
     channels_unavailable: 'Oficios no disponibles',
     channels_error: 'No se pudieron cargar los oficios en este momento.',
-    channels_title: 'Tableros de Oficio',
+    channels_title: 'Tableros de oficio',
     channels_intro:
       'Explora conversaciones locales por oficio o entra directo a oportunidades como Se necesita cuadrilla y Buscando trabajo.',
     channels_empty_title: 'Todavía no hay oficios',
