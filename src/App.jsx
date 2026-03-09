@@ -103,7 +103,6 @@ export default function App() {
         <div className="nav-inner">
           <NavLink className="brand" to="/">
             <img src={logo} alt="Surplox logo" className="logo" />
-            <span>Surplox</span>
           </NavLink>
 
           <div className="nav-links">
