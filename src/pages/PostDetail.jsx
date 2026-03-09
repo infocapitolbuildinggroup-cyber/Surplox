@@ -232,6 +232,79 @@ export default function PostDetail() {
     }
   }
 
+  function getInviteUrl() {
+    if (typeof window === 'undefined') return ''
+    return `${window.location.origin}/p/${id}`
+  }
+
+  function getInviteText() {
+    if (!post) return ''
+    const tradePart = post.trade_name ? `Trade: ${post.trade_name}. ` : ''
+    const zipPart = post.center_zip ? `ZIP: ${post.center_zip}. ` : ''
+    const startPart = post.start_date
+      ? `Start: ${new Date(post.start_date).toLocaleDateString()}. `
+      : ''
+    const payPart = post.compensation ? `Pay: ${post.compensation}. ` : ''
+
+    return `Check out this Surplox crew post: ${post.title}. ${tradePart}${zipPart}${startPart}${payPart}${getInviteUrl()}`
+  }
+
+  async function copyInviteLink() {
+    try {
+      const url = getInviteUrl()
+      if (!url) throw new Error('Invite link unavailable.')
+
+      await navigator.clipboard.writeText(url)
+      setMsg('Invite link copied.')
+    } catch (err) {
+      console.error(err)
+      setMsg('Unable to copy invite link.')
+    }
+  }
+
+  async function shareInviteLink() {
+    try {
+      const url = getInviteUrl()
+      const text = getInviteText()
+      if (!url) throw new Error('Invite link unavailable.')
+
+      if (navigator.share) {
+        await navigator.share({
+          title: post?.title || 'Surplox crew post',
+          text,
+          url
+        })
+      } else {
+        await copyInviteLink()
+      }
+    } catch (err) {
+      if (err?.name === 'AbortError') return
+      console.error(err)
+      setMsg('Unable to open share menu.')
+    }
+  }
+
+  function openTextInvite() {
+    try {
+      const text = encodeURIComponent(getInviteText())
+      window.open(`sms:?&body=${text}`, '_self')
+    } catch (err) {
+      console.error(err)
+      setMsg('Unable to open text invite.')
+    }
+  }
+
+  function openEmailInvite() {
+    try {
+      const subject = encodeURIComponent(post?.title || 'Surplox crew post')
+      const body = encodeURIComponent(getInviteText())
+      window.location.href = `mailto:?subject=${subject}&body=${body}`
+    } catch (err) {
+      console.error(err)
+      setMsg('Unable to open email invite.')
+    }
+  }
+
   async function loadAll() {
     setLoading(true)
     setMsg('')
@@ -875,6 +948,51 @@ export default function PostDetail() {
                 <p className="card-section-subtitle" style={{ marginTop: 6 }}>
                   Build a crew directly from this post. Workers can join the roster, and the post owner can control whether the crew request is open, full, or closed.
                 </p>
+
+                <div
+                  className="card"
+                  style={{
+                    marginTop: 12,
+                    borderColor: 'rgba(255, 222, 89, 0.32)',
+                    background: 'rgba(255, 222, 89, 0.05)'
+                  }}
+                >
+                  <div className="card-section-title" style={{ fontSize: 15 }}>
+                    Invite Crew
+                  </div>
+                  <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+                    Share this crew post with workers, subs, or people already in your network.
+                  </p>
+
+                  <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <button className="btn small primary" onClick={copyInviteLink}>
+                      Copy Invite Link
+                    </button>
+                    <button className="btn small" onClick={shareInviteLink}>
+                      Share
+                    </button>
+                    <button className="btn small" onClick={openTextInvite}>
+                      Text Invite
+                    </button>
+                    <button className="btn small" onClick={openEmailInvite}>
+                      Email Invite
+                    </button>
+                  </div>
+
+                  <div
+                    className="card card-soft"
+                    style={{
+                      marginTop: 10,
+                      padding: 12,
+                      borderColor: 'rgba(255, 222, 89, 0.18)',
+                      background: 'rgba(255, 222, 89, 0.03)'
+                    }}
+                  >
+                    <div className="muted" style={{ wordBreak: 'break-all' }}>
+                      {getInviteUrl()}
+                    </div>
+                  </div>
+                </div>
 
                 {isPostOwner && (
                   <div style={{ marginTop: 12 }}>
