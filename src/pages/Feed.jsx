@@ -311,7 +311,7 @@ export default function Feed({ lang: langProp = 'en' }) {
             start_date,
             author_id,
             trades(name),
-            profiles(display_name, role, is_available)
+            profiles!posts_author_id_fkey(display_name, role, is_available)
           `)
           .order('created_at', { ascending: false })
           .limit(50)
