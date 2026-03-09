@@ -169,7 +169,7 @@ export default function App() {
 
                 {isAdmin && (
                   <NavLink className={adminNavBtnClass} to="/admin">
-                    {t(lang, 'nav_directory')}
+                    Admin
                   </NavLink>
                 )}
 
