@@ -216,6 +216,22 @@ export default function PostDetail() {
   const [visibleTranslatedComments, setVisibleTranslatedComments] = useState({})
   const [translatingCommentId, setTranslatingCommentId] = useState(null)
 
+  async function createNotification({ userId, actorUserId, postId, type, message }) {
+    if (!userId || !message) return
+
+    const { error } = await supabase.from('notifications').insert({
+      user_id: userId,
+      actor_user_id: actorUserId || null,
+      post_id: postId || null,
+      type,
+      message
+    })
+
+    if (error) {
+      console.error('Notification insert failed:', error)
+    }
+  }
+
   async function loadAll() {
     setLoading(true)
     setMsg('')
@@ -459,6 +475,14 @@ export default function PostDetail() {
         if (relationshipErr) {
           console.error('Relationship graph insert failed:', relationshipErr)
         }
+
+        await createNotification({
+          userId: post.author_id,
+          actorUserId: uid,
+          postId: id,
+          type: 'post_reply',
+          message: 'Someone replied to your post.'
+        })
       }
 
       setNewComment('')
@@ -536,6 +560,14 @@ export default function PostDetail() {
         if (relationshipErr) {
           console.error('Relationship graph insert failed:', relationshipErr)
         }
+
+        await createNotification({
+          userId: memberUserId,
+          actorUserId: post.author_id,
+          postId: id,
+          type: 'crew_hired',
+          message: 'You were marked as hired on a crew post.'
+        })
       }
 
       await loadAll()
@@ -593,6 +625,14 @@ export default function PostDetail() {
       if (relationshipErr) {
         console.error('Relationship graph insert failed:', relationshipErr)
       }
+
+      await createNotification({
+        userId: post.author_id,
+        actorUserId: uid,
+        postId: id,
+        type: 'crew_join',
+        message: 'Someone joined your crew request.'
+      })
 
       if (needed > 0 && crewMembers.length + 1 >= needed) {
         const { error: statusErr } = await supabase

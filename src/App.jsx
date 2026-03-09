@@ -11,6 +11,7 @@ import PostDetail from './pages/PostDetail.jsx'
 import AdminDirectory from './pages/AdminDirectory.jsx'
 import Channels from './pages/Channels.jsx'
 import MyAccount from './pages/MyAccount.jsx'
+import Notifications from './pages/Notifications.jsx'
 import logo from './assets/logo.png'
 
 function Protected({ session, children }) {
@@ -30,6 +31,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [adminChecked, setAdminChecked] = useState(false)
   const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -43,6 +45,7 @@ export default function App() {
 
       if (!sess) {
         setIsAdmin(false)
+        setUnreadNotifications(0)
         const localLang = localStorage.getItem('surplox_lang') || 'en'
         setLang(localLang)
       }
@@ -82,10 +85,32 @@ export default function App() {
     checkProfile()
   }, [session?.user?.id, session?.access_token, navigate])
 
+  useEffect(() => {
+    async function loadUnreadCount() {
+      if (!session?.user?.id) return
+
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', session.user.id)
+        .eq('is_read', false)
+
+      if (error) {
+        console.error(error)
+        return
+      }
+
+      setUnreadNotifications(count || 0)
+    }
+
+    loadUnreadCount()
+  }, [session?.user?.id])
+
   async function signOut() {
     await supabase.auth.signOut()
     setIsAdmin(false)
     setAdminChecked(false)
+    setUnreadNotifications(0)
     navigate('/', { replace: true })
   }
 
@@ -118,6 +143,23 @@ export default function App() {
 
                 <NavLink className={navBtnClass} to="/new">
                   {t(lang, 'nav_new_post')}
+                </NavLink>
+
+                <NavLink className={navBtnClass} to="/notifications">
+                  Alerts
+                  {unreadNotifications > 0 ? (
+                    <span
+                      className="badge"
+                      style={{
+                        marginLeft: 8,
+                        color: '#ff751f',
+                        borderColor: 'rgba(255, 222, 89, 0.65)',
+                        background: 'rgba(255, 222, 89, 0.14)'
+                      }}
+                    >
+                      {unreadNotifications}
+                    </span>
+                  ) : null}
                 </NavLink>
 
                 <NavLink className={navBtnClass} to="/account">
@@ -180,6 +222,15 @@ export default function App() {
             element={
               <Protected session={session}>
                 <NewPost />
+              </Protected>
+            }
+          />
+
+          <Route
+            path="/notifications"
+            element={
+              <Protected session={session}>
+                <Notifications />
               </Protected>
             }
           />
