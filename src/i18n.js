@@ -5,37 +5,39 @@ export const translations = {
     nav_new_post: 'New Post',
     nav_account: 'My Account',
     nav_directory: 'Directory',
+    nav_alerts: 'Alerts',
+    nav_admin: 'Admin',
     nav_sign_out: 'Sign Out',
     nav_sign_in: 'Sign In',
     checking_permissions: 'Checking permissions…',
 
     footer_note:
-      'No direct messages by design. Discussions are visible only to members inside the network.',
+      'Surplox helps laborers, subcontractors, contractors, and suppliers stay connected through local opportunities, crew activity, and trade visibility.',
 
-    home_title: 'Texas Trades Network',
+    home_title: 'Local Construction Network',
     home_intro:
-      'Surplox is a members-only network for subcontractors and laborers across Texas. Join local trade discussions, ask questions by ZIP and radius, and stay connected to nearby crews.',
-    home_join_prompt: 'Create your account to join the network.',
+      'Surplox helps laborers, subcontractors, contractors, and suppliers stay connected in one place. Discover nearby work, post crew needs, show availability, and stay visible in your market.',
+    home_join_prompt: 'Create your account to join the Surplox network.',
     home_join_button: 'Join Surplox',
-    home_signed_in_prompt: 'You’re signed in and ready to browse local discussions.',
+    home_signed_in_prompt: 'You’re signed in and ready to explore local trade activity.',
     home_go_feed: 'Go to Feed',
     home_create_post: 'Create Post',
-    home_how_it_works: 'How It Works',
+    home_how_it_works: 'How Surplox Works',
     home_how_it_works_body:
-      'Posts are organized by trade and location. When someone creates a post, they choose a ZIP code and radius. Nearby members inside that area can see and respond.',
+      'Posts are organized by trade and location so nearby members can discover opportunities, availability, and discussions that matter to them.',
     home_example_label: 'Example:',
     home_example_body:
-      'A post created in 76031 with a radius of 100 miles will appear to members whose location falls inside that area.',
+      'A crew request posted in 76031 with a 100-mile radius appears to nearby members whose location falls inside that area.',
 
     auth_signup_title: 'Create Your Surplox Account',
     auth_signin_title: 'Sign In to Surplox',
     auth_signup_intro:
-      'Join the Surplox network to connect with local subcontractors and laborers across Texas.',
+      'Join Surplox to post opportunities, build crews, show availability, and grow your local construction network.',
     auth_signin_intro:
-      'Access your Surplox account to browse local trade discussions and manage your profile.',
-    auth_members_only: 'Members Only',
+      'Access your Surplox account to browse nearby work, manage your profile, and stay connected to local trade activity.',
+    auth_members_only: 'Built for the Field',
     auth_members_only_body:
-      'Surplox is built for subcontractors and laborers. No direct messaging. No public homeowner directory.',
+      'Surplox is built for laborers, subcontractors, contractors, and suppliers who need stronger local visibility and faster connections.',
     auth_email: 'Email',
     auth_password: 'Password',
     auth_wait: 'Please wait…',
@@ -51,7 +53,7 @@ export const translations = {
     feed_unavailable: 'Feed Unavailable',
     feed_try_again: 'Try Again',
     feed_title: 'Local Feed',
-    feed_intro: 'Browse trade discussions happening within your area',
+    feed_intro: 'Browse trade discussions and opportunities happening within your area',
     feed_intro_channel: ' for this trade.',
     feed_create_post: 'Create Post',
     feed_browse_channels: 'Browse Trades',
@@ -177,38 +179,39 @@ export const translations = {
     nav_new_post: 'Nueva publicación',
     nav_account: 'Mi cuenta',
     nav_directory: 'Directorio',
+    nav_alerts: 'Alertas',
+    nav_admin: 'Admin',
     nav_sign_out: 'Cerrar sesión',
     nav_sign_in: 'Iniciar sesión',
     checking_permissions: 'Verificando permisos…',
 
     footer_note:
-      'No hay mensajes directos por diseño. Las conversaciones solo son visibles para miembros dentro de la red.',
+      'Surplox ayuda a trabajadores, subcontratistas, contratistas y proveedores a mantenerse conectados mediante oportunidades locales, actividad de cuadrillas y visibilidad en el oficio.',
 
-    home_title: 'Red de Oficios de Texas',
+    home_title: 'Red local de construcción',
     home_intro:
-      'Surplox es una red exclusiva para subcontratistas y trabajadores en Texas. Únete a conversaciones locales por oficio, haz preguntas por código postal y radio, y mantente conectado con cuadrillas cercanas.',
-    home_join_prompt: 'Crea tu cuenta para unirte a la red.',
+      'Surplox ayuda a trabajadores, subcontratistas, contratistas y proveedores a mantenerse conectados en un solo lugar. Descubre trabajo cercano, publica necesidades de cuadrilla, muestra disponibilidad y mantente visible en tu mercado.',
+    home_join_prompt: 'Crea tu cuenta para unirte a la red de Surplox.',
     home_join_button: 'Únete a Surplox',
-    home_signed_in_prompt:
-      'Ya iniciaste sesión y estás listo para explorar conversaciones locales.',
+    home_signed_in_prompt: 'Ya iniciaste sesión y estás listo para explorar la actividad local del oficio.',
     home_go_feed: 'Ir a publicaciones',
     home_create_post: 'Crear publicación',
-    home_how_it_works: 'Cómo funciona',
+    home_how_it_works: 'Cómo funciona Surplox',
     home_how_it_works_body:
-      'Las publicaciones se organizan por oficio y ubicación. Cuando alguien crea una publicación, elige un código postal y un radio. Los miembros cercanos dentro de esa zona pueden verla y responder.',
+      'Las publicaciones se organizan por oficio y ubicación para que los miembros cercanos descubran oportunidades, disponibilidad y conversaciones relevantes.',
     home_example_label: 'Ejemplo:',
     home_example_body:
-      'Una publicación creada en 76031 con un radio de 100 millas aparecerá para los miembros cuya ubicación esté dentro de esa zona.',
+      'Una solicitud de cuadrilla publicada en 76031 con un radio de 100 millas aparecerá para miembros cercanos cuya ubicación esté dentro de esa zona.',
 
     auth_signup_title: 'Crea tu cuenta de Surplox',
     auth_signin_title: 'Inicia sesión en Surplox',
     auth_signup_intro:
-      'Únete a la red de Surplox para conectar con subcontratistas y trabajadores locales en todo Texas.',
+      'Únete a Surplox para publicar oportunidades, armar cuadrillas, mostrar disponibilidad y hacer crecer tu red local de construcción.',
     auth_signin_intro:
-      'Accede a tu cuenta de Surplox para ver conversaciones locales y administrar tu perfil.',
-    auth_members_only: 'Solo para miembros',
+      'Accede a tu cuenta de Surplox para ver trabajo cercano, administrar tu perfil y mantenerte conectado con la actividad local del oficio.',
+    auth_members_only: 'Hecho para el campo',
     auth_members_only_body:
-      'Surplox está hecho para subcontratistas y trabajadores. No hay mensajes directos. No existe un directorio público para propietarios.',
+      'Surplox está hecho para trabajadores, subcontratistas, contratistas y proveedores que necesitan más visibilidad local y conexiones más rápidas.',
     auth_email: 'Correo electrónico',
     auth_password: 'Contraseña',
     auth_wait: 'Espera…',
@@ -224,7 +227,7 @@ export const translations = {
     feed_unavailable: 'Publicaciones no disponibles',
     feed_try_again: 'Intentar de nuevo',
     feed_title: 'Publicaciones locales',
-    feed_intro: 'Explora conversaciones de oficios que están ocurriendo dentro de tu zona',
+    feed_intro: 'Explora conversaciones y oportunidades del oficio que están ocurriendo dentro de tu zona',
     feed_intro_channel: ' para este oficio.',
     feed_create_post: 'Crear publicación',
     feed_browse_channels: 'Ver oficios',
