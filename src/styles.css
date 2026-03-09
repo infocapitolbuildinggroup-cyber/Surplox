@@ -101,13 +101,18 @@ textarea {
   color: var(--orange);
 }
 
+/* BUTTONS */
+
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 10px 13px;
   border-radius: 10px;
-  border: 1px solid var(--border);
+
+  /* faint yellow border applied globally */
+  border: 1px solid rgba(255, 222, 89, 0.35);
+
   background: var(--card);
   color: var(--orange);
   cursor: pointer;
@@ -183,12 +188,14 @@ textarea {
   background: rgba(255, 222, 89, 0.9);
 }
 
+/* CARDS */
+
 .card {
   background: var(--card);
   border: 1px solid rgba(255, 222, 89, 0.14);
   border-radius: 18px;
   padding: 18px;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .card:hover {
@@ -210,32 +217,7 @@ textarea {
   background: rgba(255, 222, 89, 0.05);
 }
 
-.card-section-title {
-  font-size: 18px;
-  font-weight: 800;
-  margin: 0 0 6px;
-}
-
-.card-section-subtitle {
-  color: var(--muted);
-  font-size: 13px;
-  margin: 0;
-}
-
-.grid {
-  display: grid;
-  gap: 14px;
-}
-
-.grid.two {
-  grid-template-columns: 1fr;
-}
-
-@media (min-width: 860px) {
-  .grid.two {
-    grid-template-columns: 1fr 1fr;
-  }
-}
+/* TYPOGRAPHY */
 
 .h1 {
   font-size: 30px;
@@ -254,6 +236,8 @@ textarea {
 .muted {
   color: var(--muted);
 }
+
+/* INPUTS */
 
 .input,
 select,
@@ -278,16 +262,6 @@ textarea:focus {
 textarea {
   min-height: 130px;
   resize: vertical;
-}
-
-.row {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.row > * {
-  flex: 1;
 }
 
 .footerNote {
