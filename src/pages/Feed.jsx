@@ -230,6 +230,7 @@ export default function Feed() {
             needed_crew_size,
             compensation,
             start_date,
+            author_id,
             trades(name),
             profiles(display_name, role, is_available)
           `)
@@ -518,9 +519,8 @@ export default function Feed() {
             const isOpportunity = p.post_type === 'need_crew' || p.post_type === 'looking_for_work'
 
             return (
-              <Link
+              <div
                 key={p.id}
-                to={`/p/${p.id}`}
                 className="card"
                 style={typeStyles.card}
               >
@@ -557,10 +557,12 @@ export default function Feed() {
                   ) : null}
                 </div>
 
-                <div className="postTitle">{p.title}</div>
+                <Link to={`/p/${p.id}`} className="postTitle" style={{ display: 'block' }}>
+                  {p.title}
+                </Link>
 
-                <div className="postMeta">
-                  <span>{p.author_name}</span>
+                <div className="postMeta" style={{ marginTop: 6 }}>
+                  <Link to={`/u/${p.author_id}`}>{p.author_name}</Link>
                   <span>•</span>
                   <span>{new Date(p.created_at).toLocaleString()}</span>
                 </div>
@@ -604,7 +606,16 @@ export default function Feed() {
                     {p.body.length > 180 ? '…' : ''}
                   </div>
                 ) : null}
-              </Link>
+
+                <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <Link className="btn small primary" to={`/p/${p.id}`}>
+                    Open Post
+                  </Link>
+                  <Link className="btn small" to={`/u/${p.author_id}`}>
+                    View Profile
+                  </Link>
+                </div>
+              </div>
             )
           })}
         </div>
