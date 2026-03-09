@@ -155,6 +155,15 @@ function tradeBadgeStyle() {
   }
 }
 
+function availabilityBadgeStyle(isAvailable) {
+  if (!isAvailable) return null
+  return {
+    color: '#ff751f',
+    borderColor: 'rgba(255, 222, 89, 0.65)',
+    background: 'rgba(255, 222, 89, 0.14)'
+  }
+}
+
 export default function Feed() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -222,7 +231,7 @@ export default function Feed() {
             compensation,
             start_date,
             trades(name),
-            profiles(display_name, role)
+            profiles(display_name, role, is_available)
           `)
           .order('created_at', { ascending: false })
           .limit(50)
@@ -322,6 +331,7 @@ export default function Feed() {
             trade_name: post.trades?.name || '',
             author_name: post.profiles?.display_name || 'Unknown Member',
             author_role: post.profiles?.role || '',
+            author_available: Boolean(post.profiles?.is_available),
             crew_joined_count: crewCountMap.get(post.id) || 0,
             crew_hired_count: hiredCountMap.get(post.id) || 0
           }))
@@ -531,6 +541,12 @@ export default function Feed() {
                   {p.author_role ? (
                     <span className="badge" style={roleBadgeStyle(p.author_role)}>
                       {roleLabel(p.author_role, lang)}
+                    </span>
+                  ) : null}
+
+                  {p.author_available ? (
+                    <span className="badge" style={availabilityBadgeStyle(true)}>
+                      Available
                     </span>
                   ) : null}
 
