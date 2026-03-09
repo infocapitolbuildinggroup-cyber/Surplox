@@ -27,9 +27,9 @@ const COPY = {
     saveError: 'Unable to save your account changes.',
     title: 'My Surplox Account',
     intro: 'Review and update your account information below.',
-    noticeTitle: 'Account Security',
+    noticeTitle: 'Account Setup',
     noticeBody:
-      'Your role, trade, location, and language help Surplox route opportunities and build a better labor network over time.',
+      'Your role, trade, ZIP code, and language help Surplox route local opportunities and build a better labor network over time.',
     displayName: 'Display Name',
     primaryRole: 'Primary Role',
     trade: 'Trade',
@@ -67,9 +67,9 @@ const COPY = {
     saveError: 'No se pudieron guardar los cambios de tu cuenta.',
     title: 'Mi cuenta de Surplox',
     intro: 'Revisa y actualiza la información de tu cuenta abajo.',
-    noticeTitle: 'Seguridad de cuenta',
+    noticeTitle: 'Configuración de cuenta',
     noticeBody:
-      'Tu rol, oficio, ubicación e idioma ayudan a Surplox a dirigir oportunidades y construir una mejor red laboral con el tiempo.',
+      'Tu rol, oficio, código postal e idioma ayudan a Surplox a mostrar oportunidades locales y construir una mejor red laboral con el tiempo.',
     displayName: 'Nombre visible',
     primaryRole: 'Rol principal',
     trade: 'Oficio',
@@ -120,8 +120,8 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
     setLang(langProp || localStorage.getItem('surplox_lang') || 'en')
   }, [langProp])
 
-  function setField(k, v) {
-    setForm((f) => ({ ...f, [k]: v }))
+  function setField(key, value) {
+    setForm((prev) => ({ ...prev, [key]: value }))
   }
 
   function normalizePhone(raw) {
@@ -141,53 +141,63 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
       setLoading(true)
       setMsg('')
 
-      const { data: sessionData } = await supabase.auth.getSession()
-      const user = sessionData.session?.user
-      if (!user) {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        const user = sessionData.session?.user
+
+        if (!user) {
+          setLoading(false)
+          return
+        }
+
+        const { data: tradeRows, error: tradeErr } = await supabase
+          .from('trades')
+          .select('id,name')
+          .order('name')
+
+        if (tradeErr) console.error(tradeErr)
+
+        const { data: prof, error: profErr } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        if (profErr) console.error(profErr)
+
+        const { data: cp, error: cpErr } = await supabase
+          .from('contact_private')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        if (cpErr) console.error(cpErr)
+
+        const userLang =
+          prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
+
+        setLang(userLang)
+        localStorage.setItem('surplox_lang', userLang)
+        setTrades(tradeRows || [])
+
+        setForm({
+          display_name: prof?.display_name || '',
+          first_name: prof?.first_name || '',
+          last_name: prof?.last_name || '',
+          role: prof?.role || 'laborer',
+          trade_id: prof?.trade_id ? String(prof.trade_id) : '',
+          home_zip: prof?.home_zip || '',
+          travel_radius_miles: prof?.travel_radius_miles ?? 50,
+          crew_size: prof?.crew_size ?? 1,
+          bio: prof?.bio || '',
+          phone: cp?.phone || '',
+          city: cp?.city || '',
+          email: cp?.email || user.email || '',
+          preferred_language: userLang
+        })
+      } finally {
         setLoading(false)
-        return
       }
-
-      const { data: trows } = await supabase
-        .from('trades')
-        .select('id,name')
-        .order('name')
-
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      const { data: cp } = await supabase
-        .from('contact_private')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      const userLang = prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
-      setLang(userLang)
-      localStorage.setItem('surplox_lang', userLang)
-
-      setTrades(trows || [])
-
-      setForm({
-        display_name: prof?.display_name || '',
-        first_name: prof?.first_name || '',
-        last_name: prof?.last_name || '',
-        role: prof?.role || 'laborer',
-        trade_id: prof?.trade_id ? String(prof.trade_id) : '',
-        home_zip: prof?.home_zip || '',
-        travel_radius_miles: prof?.travel_radius_miles ?? 50,
-        crew_size: prof?.crew_size ?? 1,
-        bio: prof?.bio || '',
-        phone: cp?.phone || '',
-        city: cp?.city || '',
-        email: cp?.email || user.email || '',
-        preferred_language: userLang
-      })
-
-      setLoading(false)
     }
 
     load()
@@ -202,8 +212,8 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
     try {
       const { data: sessionData } = await supabase.auth.getSession()
       const user = sessionData.session?.user
-      if (!user) throw new Error(activeCopy.signedInRequired)
 
+      if (!user) throw new Error(activeCopy.signedInRequired)
       if (!form.display_name.trim()) throw new Error(activeCopy.displayNameRequired)
       if (!form.first_name.trim()) throw new Error(activeCopy.firstNameRequired)
       if (!form.last_name.trim()) throw new Error(activeCopy.lastNameRequired)
@@ -217,7 +227,9 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
 
       if (!form.email.trim()) throw new Error(activeCopy.emailRequired)
       if (!isValidEmail(form.email)) throw new Error(activeCopy.emailInvalid)
-      if (!['en', 'es'].includes(form.preferred_language)) throw new Error(activeCopy.languageInvalid)
+      if (!['en', 'es'].includes(form.preferred_language)) {
+        throw new Error(activeCopy.languageInvalid)
+      }
 
       const { error: profErr } = await supabase.from('profiles').upsert({
         user_id: user.id,
@@ -231,11 +243,13 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
         bio: form.bio,
         preferred_language: form.preferred_language
       })
+
       if (profErr) throw profErr
 
       const { error: zipErr } = await supabase.rpc('set_my_home_zip', {
         p_zip: form.home_zip
       })
+
       if (zipErr) throw zipErr
 
       const { error: cpErr } = await supabase.from('contact_private').upsert({
@@ -244,6 +258,7 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
         city: form.city.trim(),
         email: form.email.trim().toLowerCase()
       })
+
       if (cpErr) throw cpErr
 
       localStorage.setItem('surplox_lang', form.preferred_language)
@@ -317,8 +332,10 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
             onChange={(e) => setField('trade_id', e.target.value)}
           >
             <option value="">{copy.selectTrade}</option>
-            {trades.map((trow) => (
-              <option key={trow.id} value={trow.id}>{trow.name}</option>
+            {trades.map((trade) => (
+              <option key={trade.id} value={trade.id}>
+                {trade.name}
+              </option>
             ))}
           </select>
         </div>
