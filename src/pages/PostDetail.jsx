@@ -191,6 +191,15 @@ function formatPhone(phone) {
   return phone || ''
 }
 
+function availabilityBadgeStyle(isAvailable) {
+  if (!isAvailable) return null
+  return {
+    color: '#ff751f',
+    borderColor: 'rgba(255, 222, 89, 0.65)',
+    background: 'rgba(255, 222, 89, 0.14)'
+  }
+}
+
 export default function PostDetail() {
   const { id } = useParams()
 
@@ -343,7 +352,7 @@ export default function PostDetail() {
           start_date,
           trades(name),
           author_id,
-          profiles(display_name, role)
+          profiles(display_name, role, is_available)
         `)
         .eq('id', id)
         .single()
@@ -357,12 +366,13 @@ export default function PostDetail() {
         trade_name: p.trades?.name || t(lang, 'detail_general'),
         author_name: p.profiles?.display_name || 'Unknown Member',
         author_role: p.profiles?.role || '',
+        author_available: Boolean(p.profiles?.is_available),
         source_language: computedLang
       })
 
       const { data: c, error: cErr } = await supabase
         .from('comments')
-        .select('id,body,created_at,author_id,profiles(display_name, role)')
+        .select('id,body,created_at,author_id,profiles(display_name, role, is_available)')
         .eq('post_id', id)
         .order('created_at', { ascending: true })
 
@@ -373,6 +383,7 @@ export default function PostDetail() {
           ...x,
           author_name: x.profiles?.display_name || 'Unknown Member',
           author_role: x.profiles?.role || '',
+          author_available: Boolean(x.profiles?.is_available),
           source_language: detectLikelyLanguage(x.body || '')
         }))
       )
@@ -412,7 +423,7 @@ export default function PostDetail() {
         if (joinedUserIds.length > 0) {
           const { data: joinedProfiles, error: joinedProfilesErr } = await supabase
             .from('profiles')
-            .select('user_id, display_name, role')
+            .select('user_id, display_name, role, is_available')
             .in('user_id', joinedUserIds)
 
           if (joinedProfilesErr) throw joinedProfilesErr
@@ -443,6 +454,7 @@ export default function PostDetail() {
             status: row.status || 'joined',
             display_name: profile?.display_name || 'Unknown Member',
             role: profile?.role || '',
+            is_available: Boolean(profile?.is_available),
             phone: contact?.phone || '',
             email: contact?.email || '',
             city: contact?.city || ''
@@ -889,11 +901,21 @@ export default function PostDetail() {
             </span>
           ) : null}
 
+          {post.author_available ? (
+            <span className="badge" style={availabilityBadgeStyle(true)}>
+              Available
+            </span>
+          ) : null}
+
           {post.post_type === 'need_crew' ? (
             <span className="badge" style={crewStatusBadgeStyle(crewStatus)}>
               {crewStatusLabel(crewStatus, lang)}
             </span>
           ) : null}
+
+          <Link to={`/u/${post.author_id}`} className="badge">
+            View Profile
+          </Link>
 
           <span>{t(lang, 'detail_posted_by')} {post.author_name}</span>
           <span>•</span>
@@ -1078,11 +1100,17 @@ export default function PostDetail() {
                           >
                             <div style={{ flex: 1, minWidth: 240 }}>
                               <div className="postMeta">
-                                <span>{member.display_name}</span>
+                                <Link to={`/u/${member.user_id}`}>{member.display_name}</Link>
 
                                 {member.role ? (
                                   <span className="badge" style={roleBadgeStyle(member.role)}>
                                     {roleLabel(member.role, lang)}
+                                  </span>
+                                ) : null}
+
+                                {member.is_available ? (
+                                  <span className="badge" style={availabilityBadgeStyle(true)}>
+                                    Available
                                   </span>
                                 ) : null}
 
@@ -1254,11 +1282,17 @@ export default function PostDetail() {
               return (
                 <div key={c.id} className="card card-soft">
                   <div className="postMeta">
-                    <span>{c.author_name}</span>
+                    <Link to={`/u/${c.author_id}`}>{c.author_name}</Link>
 
                     {c.author_role ? (
                       <span className="badge" style={roleBadgeStyle(c.author_role)}>
                         {roleLabel(c.author_role, lang)}
+                      </span>
+                    ) : null}
+
+                    {c.author_available ? (
+                      <span className="badge" style={availabilityBadgeStyle(true)}>
+                        Available
                       </span>
                     ) : null}
 

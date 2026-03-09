@@ -12,6 +12,7 @@ import AdminDirectory from './pages/AdminDirectory.jsx'
 import Channels from './pages/Channels.jsx'
 import MyAccount from './pages/MyAccount.jsx'
 import Notifications from './pages/Notifications.jsx'
+import WorkerProfile from './pages/WorkerProfile.jsx'
 import logo from './assets/logo.png'
 
 function Protected({ session, children }) {
@@ -240,6 +241,15 @@ export default function App() {
             element={
               <Protected session={session}>
                 <MyAccount />
+              </Protected>
+            }
+          />
+
+          <Route
+            path="/u/:userId"
+            element={
+              <Protected session={session}>
+                <WorkerProfile />
               </Protected>
             }
           />
