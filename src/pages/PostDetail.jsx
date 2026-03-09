@@ -116,6 +116,73 @@ function getPostTypeStyles(type) {
   }
 }
 
+function roleBadgeStyle(role) {
+  if (role === 'contractor') {
+    return {
+      color: '#ffde59',
+      borderColor: 'rgba(255, 117, 31, 0.55)',
+      background: 'rgba(255, 117, 31, 0.12)'
+    }
+  }
+
+  if (role === 'subcontractor') {
+    return {
+      color: '#ff751f',
+      borderColor: 'rgba(255, 222, 89, 0.55)',
+      background: 'rgba(255, 222, 89, 0.12)'
+    }
+  }
+
+  if (role === 'laborer') {
+    return {
+      color: '#ffde59',
+      borderColor: 'rgba(255, 222, 89, 0.35)',
+      background: 'rgba(255, 222, 89, 0.05)'
+    }
+  }
+
+  if (role === 'supplier') {
+    return {
+      color: '#ffd6b5',
+      borderColor: 'rgba(255, 117, 31, 0.4)',
+      background: 'rgba(255, 117, 31, 0.08)'
+    }
+  }
+
+  return {}
+}
+
+function tradeBadgeStyle() {
+  return {
+    color: '#ffde59',
+    borderColor: 'rgba(255, 222, 89, 0.4)',
+    background: 'rgba(255, 222, 89, 0.05)'
+  }
+}
+
+function memberStatusLabel(status, lang) {
+  if (lang === 'es') {
+    return status === 'hired' ? 'Contratado' : 'Unido'
+  }
+  return status === 'hired' ? 'Hired' : 'Joined'
+}
+
+function memberStatusBadgeStyle(status) {
+  if (status === 'hired') {
+    return {
+      color: '#ff751f',
+      borderColor: 'rgba(255, 222, 89, 0.65)',
+      background: 'rgba(255, 222, 89, 0.14)'
+    }
+  }
+
+  return {
+    color: '#ffde59',
+    borderColor: 'rgba(255, 222, 89, 0.35)',
+    background: 'rgba(255, 222, 89, 0.05)'
+  }
+}
+
 export default function PostDetail() {
   const { id } = useParams()
 
@@ -232,6 +299,7 @@ export default function PostDetail() {
           .select(`
             post_id,
             user_id,
+            status,
             created_at
           `)
           .eq('post_id', id)
@@ -259,6 +327,7 @@ export default function PostDetail() {
           return {
             user_id: row.user_id,
             created_at: row.created_at,
+            status: row.status || 'joined',
             display_name: profile?.display_name || 'Unknown Member',
             role: profile?.role || ''
           }
@@ -401,6 +470,56 @@ export default function PostDetail() {
     }
   }
 
+  async function updateMemberStatus(memberUserId, nextStatus) {
+    if (!post || post.post_type !== 'need_crew') return
+
+    try {
+      setCrewActionLoading(true)
+      setMsg('')
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      const uid = sessionData.session?.user?.id
+      if (!uid) throw new Error('Not signed in')
+      if (uid !== post.author_id) throw new Error('Only the post owner can change member status.')
+
+      const { error } = await supabase
+        .from('crew_memberships')
+        .update({ status: nextStatus })
+        .eq('post_id', id)
+        .eq('user_id', memberUserId)
+
+      if (error) throw error
+
+      if (nextStatus === 'hired') {
+        const { error: relationshipErr } = await supabase
+          .from('user_relationships')
+          .upsert(
+            {
+              source_user_id: post.author_id,
+              target_user_id: memberUserId,
+              relationship_type: 'hired_from_crew_post',
+              post_id: String(id),
+              metadata: { post_type: 'need_crew' }
+            },
+            {
+              onConflict: 'source_user_id,target_user_id,relationship_type,post_id'
+            }
+          )
+
+        if (relationshipErr) {
+          console.error('Relationship graph insert failed:', relationshipErr)
+        }
+      }
+
+      await loadAll()
+    } catch (err) {
+      console.error(err)
+      setMsg(err.message || 'Unable to update member status right now.')
+    } finally {
+      setCrewActionLoading(false)
+    }
+  }
+
   async function joinCrew() {
     if (!post || post.post_type !== 'need_crew') return
 
@@ -444,9 +563,9 @@ export default function PostDetail() {
           }
         )
 
-      if (relationshipErr) {
-        console.error('Relationship graph insert failed:', relationshipErr)
-      }
+        if (relationshipErr) {
+          console.error('Relationship graph insert failed:', relationshipErr)
+        }
 
       if (needed > 0 && crewMembers.length + 1 >= needed) {
         const { error: statusErr } = await supabase
@@ -603,6 +722,7 @@ export default function PostDetail() {
   const isPostOwner = currentUserId && post.author_id === currentUserId
   const crewNeeded = Number(post.needed_crew_size || 0)
   const crewFilled = crewMembers.length
+  const hiredCount = crewMembers.filter((member) => member.status === 'hired').length
   const crewStatus = post.crew_status || 'open'
   const crewOpen = crewStatus === 'open'
   const crewFull = crewStatus === 'full'
@@ -615,10 +735,19 @@ export default function PostDetail() {
           <span className="badge" style={typeStyles.badge}>
             {postTypeLabel(post.post_type || 'discussion', lang)}
           </span>
-          <span className="badge">{post.trade_name}</span>
+
+          <span className="badge" style={tradeBadgeStyle()}>
+            {post.trade_name}
+          </span>
+
           <span className="badge">ZIP {post.center_zip}</span>
           <span className="badge">{post.radius_miles} mi</span>
-          {post.author_role ? <span className="badge">{roleLabel(post.author_role, lang)}</span> : null}
+
+          {post.author_role ? (
+            <span className="badge" style={roleBadgeStyle(post.author_role)}>
+              {roleLabel(post.author_role, lang)}
+            </span>
+          ) : null}
 
           {post.post_type === 'need_crew' ? (
             <span className="badge" style={crewStatusBadgeStyle(crewStatus)}>
@@ -655,6 +784,7 @@ export default function PostDetail() {
                 <>
                   <span className="badge">Crew Needed: {post.needed_crew_size}</span>
                   <span className="badge">Filled: {crewFilled}/{post.needed_crew_size}</span>
+                  <span className="badge">Hired: {hiredCount}</span>
                 </>
               ) : null}
 
@@ -752,16 +882,52 @@ export default function PostDetail() {
                     <div className="list" style={{ marginTop: 10 }}>
                       {crewMembers.map((member) => (
                         <div key={member.user_id} className="card card-soft">
-                          <div className="postMeta">
-                            <span>{member.display_name}</span>
-                            {member.role ? (
-                              <>
-                                <span>•</span>
-                                <span>{roleLabel(member.role, lang)}</span>
-                              </>
-                            ) : null}
-                            <span>•</span>
-                            <span>Joined {timeAgo(member.created_at)}</span>
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              gap: 10,
+                              flexWrap: 'wrap',
+                              alignItems: 'center'
+                            }}
+                          >
+                            <div className="postMeta">
+                              <span>{member.display_name}</span>
+
+                              {member.role ? (
+                                <span className="badge" style={roleBadgeStyle(member.role)}>
+                                  {roleLabel(member.role, lang)}
+                                </span>
+                              ) : null}
+
+                              <span className="badge" style={memberStatusBadgeStyle(member.status)}>
+                                {memberStatusLabel(member.status, lang)}
+                              </span>
+
+                              <span>Joined {timeAgo(member.created_at)}</span>
+                            </div>
+
+                            {isPostOwner && (
+                              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                {member.status !== 'hired' ? (
+                                  <button
+                                    className="btn small primary"
+                                    onClick={() => updateMemberStatus(member.user_id, 'hired')}
+                                    disabled={crewActionLoading}
+                                  >
+                                    Mark Hired
+                                  </button>
+                                ) : (
+                                  <button
+                                    className="btn small"
+                                    onClick={() => updateMemberStatus(member.user_id, 'joined')}
+                                    disabled={crewActionLoading}
+                                  >
+                                    Move Back to Joined
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -862,13 +1028,13 @@ export default function PostDetail() {
                 <div key={c.id} className="card card-soft">
                   <div className="postMeta">
                     <span>{c.author_name}</span>
+
                     {c.author_role ? (
-                      <>
-                        <span>•</span>
-                        <span>{roleLabel(c.author_role, lang)}</span>
-                      </>
+                      <span className="badge" style={roleBadgeStyle(c.author_role)}>
+                        {roleLabel(c.author_role, lang)}
+                      </span>
                     ) : null}
-                    <span>•</span>
+
                     <span>{timeAgo(c.created_at)}</span>
                   </div>
 

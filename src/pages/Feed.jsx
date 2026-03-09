@@ -111,6 +111,50 @@ function getPostTypeStyles(type) {
   }
 }
 
+function roleBadgeStyle(role) {
+  if (role === 'contractor') {
+    return {
+      color: '#ffde59',
+      borderColor: 'rgba(255, 117, 31, 0.55)',
+      background: 'rgba(255, 117, 31, 0.12)'
+    }
+  }
+
+  if (role === 'subcontractor') {
+    return {
+      color: '#ff751f',
+      borderColor: 'rgba(255, 222, 89, 0.55)',
+      background: 'rgba(255, 222, 89, 0.12)'
+    }
+  }
+
+  if (role === 'laborer') {
+    return {
+      color: '#ffde59',
+      borderColor: 'rgba(255, 222, 89, 0.35)',
+      background: 'rgba(255, 222, 89, 0.05)'
+    }
+  }
+
+  if (role === 'supplier') {
+    return {
+      color: '#ffd6b5',
+      borderColor: 'rgba(255, 117, 31, 0.4)',
+      background: 'rgba(255, 117, 31, 0.08)'
+    }
+  }
+
+  return {}
+}
+
+function tradeBadgeStyle() {
+  return {
+    color: '#ffde59',
+    borderColor: 'rgba(255, 222, 89, 0.4)',
+    background: 'rgba(255, 222, 89, 0.05)'
+  }
+}
+
 export default function Feed() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -246,11 +290,12 @@ export default function Feed() {
           .map((post) => post.id)
 
         const crewCountMap = new Map()
+        const hiredCountMap = new Map()
 
         if (needCrewPostIds.length > 0) {
           const { data: crewRows, error: crewErr } = await supabase
             .from('crew_memberships')
-            .select('post_id')
+            .select('post_id, status')
             .in('post_id', needCrewPostIds)
 
           if (crewErr) throw crewErr
@@ -258,6 +303,11 @@ export default function Feed() {
           ;(crewRows || []).forEach((row) => {
             const current = crewCountMap.get(row.post_id) || 0
             crewCountMap.set(row.post_id, current + 1)
+
+            if (row.status === 'hired') {
+              const hiredCurrent = hiredCountMap.get(row.post_id) || 0
+              hiredCountMap.set(row.post_id, hiredCurrent + 1)
+            }
           })
         }
 
@@ -267,7 +317,8 @@ export default function Feed() {
             trade_name: post.trades?.name || '',
             author_name: post.profiles?.display_name || 'Unknown Member',
             author_role: post.profiles?.role || '',
-            crew_joined_count: crewCountMap.get(post.id) || 0
+            crew_joined_count: crewCountMap.get(post.id) || 0,
+            crew_hired_count: hiredCountMap.get(post.id) || 0
           }))
           .sort((a, b) => {
             const pa = POST_TYPE_PRIORITY[a.post_type || 'discussion'] ?? 99
@@ -354,10 +405,20 @@ export default function Feed() {
                     {postTypeLabel(p.post_type || 'discussion', lang)}
                   </span>
 
-                  {p.trade_name ? <span className="badge">{p.trade_name}</span> : null}
+                  {p.trade_name ? (
+                    <span className="badge" style={tradeBadgeStyle()}>
+                      {p.trade_name}
+                    </span>
+                  ) : null}
+
                   <span className="badge">{t(lang, 'feed_zip')} {p.center_zip}</span>
                   <span className="badge">{p.radius_miles} {t(lang, 'feed_radius')}</span>
-                  {p.author_role ? <span className="badge">{roleLabel(p.author_role, lang)}</span> : null}
+
+                  {p.author_role ? (
+                    <span className="badge" style={roleBadgeStyle(p.author_role)}>
+                      {roleLabel(p.author_role, lang)}
+                    </span>
+                  ) : null}
 
                   {p.post_type === 'need_crew' ? (
                     <span className="badge" style={crewStatusBadgeStyle(p.crew_status || 'open')}>
@@ -388,6 +449,9 @@ export default function Feed() {
                         <span className="badge">Crew Needed: {p.needed_crew_size}</span>
                         <span className="badge">
                           Filled: {p.crew_joined_count || 0}/{p.needed_crew_size}
+                        </span>
+                        <span className="badge">
+                          Hired: {p.crew_hired_count || 0}
                         </span>
                       </>
                     ) : null}
