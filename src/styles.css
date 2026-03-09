@@ -183,28 +183,29 @@ textarea {
 
 .card {
   background: var(--card);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 222, 89, 0.14);
   border-radius: 18px;
   padding: 18px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
 .card:hover {
-  border-color: rgba(255, 222, 89, 0.22);
+  border-color: rgba(255, 222, 89, 0.28);
   box-shadow: 0 0 12px rgba(255, 222, 89, 0.08);
 }
 
 .card-soft {
   background: var(--card-soft);
+  border-color: rgba(255, 222, 89, 0.12);
 }
 
 .card-notice {
-  border-color: rgba(255, 222, 89, 0.3);
+  border-color: rgba(255, 222, 89, 0.32);
   background: rgba(255, 222, 89, 0.05);
 }
 
 .card-message {
-  border-color: rgba(255, 222, 89, 0.3);
+  border-color: rgba(255, 222, 89, 0.32);
   background: rgba(255, 222, 89, 0.05);
 }
 
@@ -304,7 +305,7 @@ textarea {
   align-items: center;
   padding: 4px 8px;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 222, 89, 0.18);
   color: var(--muted);
   font-size: 12px;
   line-height: 1.2;
@@ -317,7 +318,7 @@ textarea {
 
 hr {
   border: none;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgba(255, 222, 89, 0.12);
   margin: 16px 0;
 }
 
