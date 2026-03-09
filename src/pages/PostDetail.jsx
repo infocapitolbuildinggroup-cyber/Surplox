@@ -14,6 +14,29 @@ function timeAgo(ts) {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
+function postTypeLabel(type, lang) {
+  if (lang === 'es') {
+    if (type === 'need_crew') return 'Se necesita cuadrilla'
+    if (type === 'looking_for_work') return 'Buscando trabajo'
+    return 'Discusión'
+  }
+
+  if (type === 'need_crew') return 'Need Crew'
+  if (type === 'looking_for_work') return 'Looking for Work'
+  return 'Discussion'
+}
+
+function roleLabel(role, lang) {
+  if (!role) return ''
+  const map = {
+    laborer: { en: 'Laborer', es: 'Trabajador' },
+    subcontractor: { en: 'Subcontractor', es: 'Subcontratista' },
+    contractor: { en: 'Contractor', es: 'Contratista' },
+    supplier: { en: 'Supplier', es: 'Proveedor' }
+  }
+  return map[role]?.[lang] || map[role]?.en || role
+}
+
 export default function PostDetail() {
   const { id } = useParams()
 
@@ -56,7 +79,22 @@ export default function PostDetail() {
 
       const { data: p, error: pErr } = await supabase
         .from('posts')
-        .select('id,title,body,center_zip,radius_miles,created_at,trade_id,trades(name),author_id,profiles(display_name)')
+        .select(`
+          id,
+          title,
+          body,
+          center_zip,
+          radius_miles,
+          created_at,
+          trade_id,
+          post_type,
+          needed_crew_size,
+          compensation,
+          start_date,
+          trades(name),
+          author_id,
+          profiles(display_name, role)
+        `)
         .eq('id', id)
         .single()
 
@@ -68,12 +106,13 @@ export default function PostDetail() {
         ...p,
         trade_name: p.trades?.name || t(lang, 'detail_general'),
         author_name: p.profiles?.display_name || 'Unknown Member',
+        author_role: p.profiles?.role || '',
         source_language: computedLang
       })
 
       const { data: c, error: cErr } = await supabase
         .from('comments')
-        .select('id,body,created_at,author_id,profiles(display_name)')
+        .select('id,body,created_at,author_id,profiles(display_name, role)')
         .eq('post_id', id)
         .order('created_at', { ascending: true })
 
@@ -83,6 +122,7 @@ export default function PostDetail() {
         (c || []).map((x) => ({
           ...x,
           author_name: x.profiles?.display_name || 'Unknown Member',
+          author_role: x.profiles?.role || '',
           source_language: detectLikelyLanguage(x.body || '')
         }))
       )
@@ -173,6 +213,27 @@ export default function PostDetail() {
 
       if (error) throw error
 
+      if (post?.author_id && post.author_id !== uid) {
+        const { error: relationshipErr } = await supabase
+          .from('user_relationships')
+          .upsert(
+            {
+              source_user_id: uid,
+              target_user_id: post.author_id,
+              relationship_type: 'replied_to_post',
+              post_id: String(id),
+              metadata: { post_type: post.post_type || 'discussion' }
+            },
+            {
+              onConflict: 'source_user_id,target_user_id,relationship_type,post_id'
+            }
+          )
+
+        if (relationshipErr) {
+          console.error('Relationship graph insert failed:', relationshipErr)
+        }
+      }
+
       setNewComment('')
       await loadAll()
     } catch (err) {
@@ -255,13 +316,6 @@ export default function PostDetail() {
     }
   }
 
-  function translateButtonLabel(sourceLanguage) {
-    if (sourceLanguage === lang) {
-      return lang === 'es' ? 'Ver original' : 'Show original'
-    }
-    return lang === 'es' ? 'Traducir' : 'Translate'
-  }
-
   if (loading) {
     return <div className="card">{t(lang, 'detail_loading')}</div>
   }
@@ -281,20 +335,60 @@ export default function PostDetail() {
   }
 
   const shouldOfferPostTranslation = post.body && post.source_language !== lang
+  const isOpportunity = post.post_type === 'need_crew' || post.post_type === 'looking_for_work'
 
   return (
     <div className="grid" style={{ gap: 12 }}>
-      <div className="card">
+      <div
+        className="card"
+        style={{
+          borderColor: isOpportunity ? 'rgba(255, 222, 89, 0.45)' : undefined,
+          background: isOpportunity ? 'rgba(255, 222, 89, 0.05)' : undefined
+        }}
+      >
         <div className="postMeta">
+          <span className="badge">{postTypeLabel(post.post_type || 'discussion', lang)}</span>
           <span className="badge">{post.trade_name}</span>
           <span className="badge">ZIP {post.center_zip}</span>
           <span className="badge">{post.radius_miles} mi</span>
+          {post.author_role ? <span className="badge">{roleLabel(post.author_role, lang)}</span> : null}
           <span>{t(lang, 'detail_posted_by')} {post.author_name}</span>
           <span>•</span>
           <span>{timeAgo(post.created_at)}</span>
         </div>
 
         <h2 className="h2" style={{ marginTop: 10 }}>{post.title}</h2>
+
+        {isOpportunity && (
+          <div
+            className="card card-soft"
+            style={{
+              marginBottom: 12,
+              borderColor: 'rgba(255, 222, 89, 0.35)',
+              background: 'rgba(255, 222, 89, 0.06)'
+            }}
+          >
+            <div className="card-section-title">
+              {post.post_type === 'need_crew' ? 'Opportunity Details' : 'Availability Details'}
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+              {post.post_type === 'need_crew' && post.needed_crew_size ? (
+                <span className="badge">Crew Needed: {post.needed_crew_size}</span>
+              ) : null}
+
+              {post.compensation ? (
+                <span className="badge">Pay / Rate: {post.compensation}</span>
+              ) : null}
+
+              {post.start_date ? (
+                <span className="badge">
+                  Start: {new Date(post.start_date).toLocaleDateString()}
+                </span>
+              ) : null}
+            </div>
+          </div>
+        )}
 
         <p className="muted" style={{ whiteSpace: 'pre-wrap' }}>
           {post.body}
@@ -385,6 +479,12 @@ export default function PostDetail() {
                 <div key={c.id} className="card card-soft">
                   <div className="postMeta">
                     <span>{c.author_name}</span>
+                    {c.author_role ? (
+                      <>
+                        <span>•</span>
+                        <span>{roleLabel(c.author_role, lang)}</span>
+                      </>
+                    ) : null}
                     <span>•</span>
                     <span>{timeAgo(c.created_at)}</span>
                   </div>

@@ -1,205 +1,370 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { t } from '../i18n'
 
-export default function Feed() {
-  const location = useLocation()
-  const navigate = useNavigate()
+const POST_TYPE_OPTIONS = [
+  { value: 'discussion', en: 'Discussion', es: 'Discusión' },
+  { value: 'need_crew', en: 'Need Crew', es: 'Se necesita cuadrilla' },
+  { value: 'looking_for_work', en: 'Looking for Work', es: 'Buscando trabajo' }
+]
 
-  const [loading, setLoading] = useState(true)
-  const [err, setErr] = useState('')
-  const [posts, setPosts] = useState([])
+function postTypeLabel(type, lang) {
+  const match = POST_TYPE_OPTIONS.find((x) => x.value === type)
+  if (!match) return type
+  return lang === 'es' ? match.es : match.en
+}
+
+export default function NewPost() {
+  const [trades, setTrades] = useState([])
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState('')
   const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
 
-  const params = useMemo(() => new URLSearchParams(location.search), [location.search])
-  const tradeParam = params.get('trade')
+  const [form, setForm] = useState({
+    post_type: 'discussion',
+    trade_id: '',
+    title: '',
+    body: '',
+    center_zip: '',
+    radius_miles: 50,
+    needed_crew_size: '',
+    compensation: '',
+    start_date: ''
+  })
+
+  const navigate = useNavigate()
 
   useEffect(() => {
-    let alive = true
+    async function loadTrades() {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const user = sessionData.session?.user
 
-    async function load() {
-      setLoading(true)
-      setErr('')
-
-      try {
-        const { data: sessionData, error: sErr } = await supabase.auth.getSession()
-        if (sErr) throw sErr
-
-        const user = sessionData.session?.user
-        if (!user) {
-          navigate('/auth', { replace: true })
-          return
-        }
-
-        const { data: prof, error: pErr } = await supabase
+      if (user) {
+        const { data: prof } = await supabase
           .from('profiles')
-          .select('user_id, home_zip, travel_radius_miles, preferred_language')
+          .select('preferred_language')
           .eq('user_id', user.id)
           .maybeSingle()
-
-        if (pErr) throw pErr
-
-        if (!prof?.home_zip) {
-          navigate('/onboarding', { replace: true })
-          return
-        }
 
         const userLang = prof?.preferred_language || 'en'
         setLang(userLang)
         localStorage.setItem('surplox_lang', userLang)
+      }
 
-        let q = supabase
-          .from('posts')
-          .select('id, title, body, created_at, center_zip, radius_miles, trade_id')
-          .order('created_at', { ascending: false })
-          .limit(50)
+      const { data, error } = await supabase
+        .from('trades')
+        .select('id,name')
+        .order('name')
 
-        if (tradeParam) q = q.eq('trade_id', Number(tradeParam))
+      if (error) console.error(error)
+      setTrades(data || [])
+    }
 
-        const { data: p, error: postsErr } = await q
-        if (postsErr) throw postsErr
+    loadTrades()
+  }, [])
 
-        const myZip = String(prof.home_zip || '')
-        const myRadius = Number(prof.travel_radius_miles || 50)
+  function setField(key, value) {
+    setForm((f) => ({ ...f, [key]: value }))
+  }
 
-        function haversineMiles(lat1, lon1, lat2, lon2) {
-          const toRad = (x) => (x * Math.PI) / 180
-          const R = 3958.8
-          const dLat = toRad(lat2 - lat1)
-          const dLon = toRad(lon2 - lon1)
-
-          const a =
-            Math.sin(dLat / 2) ** 2 +
-            Math.cos(toRad(lat1)) *
-              Math.cos(toRad(lat2)) *
-              Math.sin(dLon / 2) ** 2
-
-          return 2 * R * Math.asin(Math.sqrt(a))
-        }
-
-        const { data: myZipRow, error: myZipErr } = await supabase
-          .from('zipcodes')
-          .select('lat, lon')
-          .eq('zip', myZip)
-          .maybeSingle()
-
-        if (myZipErr) throw myZipErr
-
-        let filtered = p || []
-
-        if (myZipRow?.lat && myZipRow?.lon && filtered.length > 0) {
-          const postZips = Array.from(
-            new Set(filtered.map((x) => String(x.center_zip)).filter(Boolean))
-          )
-
-          const { data: zipRows, error: zipErr } = await supabase
-            .from('zipcodes')
-            .select('zip, lat, lon')
-            .in('zip', postZips)
-
-          if (zipErr) throw zipErr
-
-          const zipMap = new Map((zipRows || []).map((z) => [String(z.zip), z]))
-
-          filtered = filtered.filter((post) => {
-            const z = zipMap.get(String(post.center_zip))
-            if (!z?.lat || !z?.lon) return false
-
-            const dist = haversineMiles(
-              Number(myZipRow.lat),
-              Number(myZipRow.lon),
-              Number(z.lat),
-              Number(z.lon)
-            )
-
-            const postRadius = Number(post.radius_miles || 0)
-            return dist <= myRadius && dist <= postRadius
-          })
-        }
-
-        if (!alive) return
-        setPosts(filtered || [])
-      } catch (e) {
-        console.error(e)
-        if (!alive) return
-        setErr(e?.message || 'Something went wrong while loading your feed.')
-      } finally {
-        if (!alive) return
-        setLoading(false)
+  const helperCopy = useMemo(() => {
+    if (lang === 'es') {
+      return {
+        postType: 'Tipo de publicación',
+        crewSize: 'Tamaño de cuadrilla',
+        compensation: 'Pago / tarifa',
+        startDate: 'Fecha de inicio',
+        selectTrade: 'Discusión general',
+        crewExample: 'Ejemplo: 2 trabajadores, empieza el lunes, $250/día',
+        workExample: 'Ejemplo: soldador disponible esta semana en Dallas',
+        crewTitle: 'Ejemplo: Need 2 concrete finishers in Fort Worth starting Monday',
+        workTitle: 'Ejemplo: Pipe welder available for shutdown work in DFW',
+        crewBody: 'Describe the trade, where the job is, how many people you need, start timing, and pay details.',
+        workBody: 'Describe your trade, availability, travel radius, experience, and what kind of work you want.',
+        crewRequired: 'Crew size must be at least 1 for Need Crew posts.'
       }
     }
 
-    load()
-    return () => {
-      alive = false
+    return {
+      postType: 'Post Type',
+      crewSize: 'Crew Size Needed',
+      compensation: 'Pay / Rate',
+      startDate: 'Start Date',
+      selectTrade: 'General Discussion',
+      crewExample: 'Example: 2 workers, starts Monday, $250/day',
+      workExample: 'Example: welder available this week in Dallas',
+      crewTitle: 'Example: Need 2 concrete finishers in Fort Worth starting Monday',
+      workTitle: 'Example: Pipe welder available for shutdown work in DFW',
+      workBody: 'Describe your trade, availability, travel radius, experience, and what kind of work you want.',
+      crewBody: 'Describe the trade, where the job is, how many people you need, start timing, and pay details.',
+      crewRequired: 'Crew size must be at least 1 for Need Crew posts.'
     }
-  }, [navigate, tradeParam])
+  }, [lang])
 
-  if (loading) {
-    return <div className="card">{t(lang, 'feed_loading')}</div>
+  function titlePlaceholder() {
+    if (form.post_type === 'need_crew') return helperCopy.crewTitle
+    if (form.post_type === 'looking_for_work') return helperCopy.workTitle
+    return 'Example: Best way to set bollards in rocky soil?'
   }
 
-  if (err) {
-    return (
-      <div className="card card-message">
-        <div className="card-section-title">{t(lang, 'feed_unavailable')}</div>
-        <p className="card-section-subtitle">{err}</p>
-        <hr />
-        <button className="btn primary" onClick={() => navigate(0)}>
-          {t(lang, 'feed_try_again')}
-        </button>
-      </div>
-    )
+  function bodyPlaceholder() {
+    if (form.post_type === 'need_crew') return helperCopy.crewBody
+    if (form.post_type === 'looking_for_work') return helperCopy.workBody
+    return t(lang, 'new_post_body_placeholder')
   }
+
+  function exampleBody() {
+    if (form.post_type === 'need_crew') return helperCopy.crewExample
+    if (form.post_type === 'looking_for_work') return helperCopy.workExample
+    return t(lang, 'new_post_example_body')
+  }
+
+  async function create() {
+    setSaving(true)
+    setMsg('')
+
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const user = sessionData.session?.user
+
+      if (!user) throw new Error('Not signed in')
+      if (!POST_TYPE_OPTIONS.some((x) => x.value === form.post_type)) throw new Error('Select a valid post type.')
+      if (!form.title.trim()) throw new Error(t(lang, 'post_title_required'))
+      if (!form.body.trim()) throw new Error(t(lang, 'post_body_required'))
+      if (!/^[0-9]{5}$/.test(form.center_zip)) throw new Error(t(lang, 'post_zip_invalid'))
+
+      const radius = Number(form.radius_miles)
+      if (!radius || radius < 1 || radius > 300) {
+        throw new Error(t(lang, 'post_radius_invalid'))
+      }
+
+      if (form.post_type === 'need_crew') {
+        const neededCrew = Number(form.needed_crew_size || 0)
+        if (!neededCrew || neededCrew < 1) {
+          throw new Error(helperCopy.crewRequired)
+        }
+      }
+
+      const { data: zipRow, error: zipErr } = await supabase
+        .from('zipcodes')
+        .select('lat, lon')
+        .eq('zip', form.center_zip)
+        .maybeSingle()
+
+      if (zipErr) throw zipErr
+      if (!zipRow) throw new Error(t(lang, 'post_zip_missing'))
+
+      const wktPoint = `POINT(${zipRow.lon} ${zipRow.lat})`
+
+      const { data: post, error: insertErr } = await supabase
+        .from('posts')
+        .insert({
+          author_id: user.id,
+          post_type: form.post_type,
+          trade_id: form.trade_id ? Number(form.trade_id) : null,
+          title: form.title.trim(),
+          body: form.body.trim(),
+          center_zip: form.center_zip,
+          center_point: wktPoint,
+          radius_miles: radius,
+          needed_crew_size: form.needed_crew_size ? Number(form.needed_crew_size) : null,
+          compensation: form.compensation.trim() || null,
+          start_date: form.start_date || null
+        })
+        .select('id')
+        .single()
+
+      if (insertErr) throw insertErr
+
+      navigate(`/p/${post.id}`, { replace: true })
+    } catch (err) {
+      setMsg(err.message || t(lang, 'post_create_error'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const isOpportunity = form.post_type !== 'discussion'
 
   return (
-    <div className="grid" style={{ gap: 12 }}>
-      <div className="card">
-        <div className="h1" style={{ fontSize: 20, marginTop: 0 }}>{t(lang, 'feed_title')}</div>
-        <p className="muted">
-          {t(lang, 'feed_intro')}{tradeParam ? t(lang, 'feed_intro_channel') : '.'}
-        </p>
+    <div className="card" style={{ maxWidth: 860, margin: '0 auto' }}>
+      <div className="h1">{t(lang, 'new_post_title')}</div>
 
-        <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link className="btn primary" to="/new">{t(lang, 'feed_create_post')}</Link>
-          <Link className="btn" to="/channels">{t(lang, 'feed_browse_channels')}</Link>
+      <p className="muted">
+        {form.post_type === 'discussion'
+          ? t(lang, 'new_post_intro')
+          : 'Create a high-visibility local opportunity post so nearby workers and crews can find it quickly.'}
+      </p>
+
+      <div className="card card-notice" style={{ marginBottom: 12 }}>
+        <div className="card-section-title">{t(lang, 'new_post_notice_title')}</div>
+        <p className="card-section-subtitle">
+          {form.post_type === 'discussion'
+            ? t(lang, 'new_post_notice_body')
+            : 'Opportunity posts will still respect ZIP and radius, but they should be written clearly so nearby members can act fast.'}
+        </p>
+      </div>
+
+      <div className="grid two">
+        <div>
+          <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.postType}</div>
+          <select
+            className="input"
+            value={form.post_type}
+            onChange={(e) => setField('post_type', e.target.value)}
+          >
+            {POST_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {postTypeLabel(option.value, lang)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'new_post_trade')}</div>
+          <select
+            className="input"
+            value={form.trade_id}
+            onChange={(e) => setField('trade_id', e.target.value)}
+          >
+            <option value="">{helperCopy.selectTrade}</option>
+            {trades.map((trow) => (
+              <option key={trow.id} value={trow.id}>{trow.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'new_post_radius')}</div>
+          <input
+            className="input"
+            type="number"
+            value={form.radius_miles}
+            onChange={(e) => setField('radius_miles', e.target.value)}
+          />
+        </div>
+
+        <div>
+          <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'new_post_zip')}</div>
+          <input
+            className="input"
+            value={form.center_zip}
+            onChange={(e) => setField('center_zip', e.target.value)}
+            placeholder="76031"
+          />
+        </div>
+
+        {form.post_type === 'need_crew' && (
+          <>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.crewSize}</div>
+              <input
+                className="input"
+                type="number"
+                min="1"
+                value={form.needed_crew_size}
+                onChange={(e) => setField('needed_crew_size', e.target.value)}
+                placeholder="2"
+              />
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.compensation}</div>
+              <input
+                className="input"
+                value={form.compensation}
+                onChange={(e) => setField('compensation', e.target.value)}
+                placeholder="$250/day or $35/hr"
+              />
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.startDate}</div>
+              <input
+                className="input"
+                type="date"
+                value={form.start_date}
+                onChange={(e) => setField('start_date', e.target.value)}
+              />
+            </div>
+          </>
+        )}
+
+        {form.post_type === 'looking_for_work' && (
+          <>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.compensation}</div>
+              <input
+                className="input"
+                value={form.compensation}
+                onChange={(e) => setField('compensation', e.target.value)}
+                placeholder="$30/hr desired or bid-based"
+              />
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.startDate}</div>
+              <input
+                className="input"
+                type="date"
+                value={form.start_date}
+                onChange={(e) => setField('start_date', e.target.value)}
+              />
+            </div>
+          </>
+        )}
+
+        <div
+          className="card card-soft"
+          style={{
+            borderStyle: 'dashed',
+            gridColumn: isOpportunity ? '1 / -1' : undefined,
+            borderColor: isOpportunity ? 'rgba(255, 222, 89, 0.45)' : undefined,
+            background: isOpportunity ? 'rgba(255, 222, 89, 0.06)' : undefined
+          }}
+        >
+          <div className="badge">
+            {form.post_type === 'discussion' ? t(lang, 'new_post_example') : postTypeLabel(form.post_type, lang)}
+          </div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {exampleBody()}
+          </p>
         </div>
       </div>
 
-      {posts.length === 0 ? (
-        <div className="card card-soft">
-          <div className="card-section-title">{t(lang, 'feed_empty_title')}</div>
-          <p className="card-section-subtitle">
-            {t(lang, 'feed_empty_body')}
-          </p>
+      <div style={{ marginTop: 10 }}>
+        <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'new_post_title_label')}</div>
+        <input
+          className="input"
+          value={form.title}
+          onChange={(e) => setField('title', e.target.value)}
+          placeholder={titlePlaceholder()}
+        />
+      </div>
 
-          <div style={{ marginTop: 10 }}>
-            <Link className="btn primary" to="/new">{t(lang, 'feed_start_post')}</Link>
-          </div>
-        </div>
-      ) : (
-        <div className="list">
-          {posts.map((p) => (
-            <Link key={p.id} to={`/p/${p.id}`} className="card">
-              <div className="postTitle">{p.title}</div>
+      <div style={{ marginTop: 10 }}>
+        <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'new_post_body_label')}</div>
+        <textarea
+          className="input"
+          value={form.body}
+          onChange={(e) => setField('body', e.target.value)}
+          placeholder={bodyPlaceholder()}
+        />
+      </div>
 
-              <div className="postMeta">
-                <span className="badge">{t(lang, 'feed_zip')} {p.center_zip}</span>
-                <span className="badge">{p.radius_miles} {t(lang, 'feed_radius')}</span>
-                <span>{new Date(p.created_at).toLocaleString()}</span>
-              </div>
-
-              {p.body ? (
-                <div className="postExcerpt">
-                  {p.body.slice(0, 140)}
-                  {p.body.length > 140 ? '…' : ''}
-                </div>
-              ) : null}
-            </Link>
-          ))}
+      {msg && (
+        <div className="card card-message" style={{ marginTop: 12 }}>
+          {msg}
         </div>
       )}
+
+      <div style={{ marginTop: 12 }}>
+        <button className="btn primary" onClick={create} disabled={saving}>
+          {saving ? t(lang, 'new_post_publishing') : t(lang, 'new_post_publish')}
+        </button>
+      </div>
     </div>
   )
 }

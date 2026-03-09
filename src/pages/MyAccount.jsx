@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 
+const ROLE_OPTIONS = [
+  { value: 'laborer', label: { en: 'Laborer', es: 'Trabajador' } },
+  { value: 'subcontractor', label: { en: 'Subcontractor', es: 'Subcontratista' } },
+  { value: 'contractor', label: { en: 'Contractor', es: 'Contratista' } },
+  { value: 'supplier', label: { en: 'Supplier', es: 'Proveedor' } }
+]
+
 export default function MyAccount() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -11,6 +18,7 @@ export default function MyAccount() {
     display_name: '',
     first_name: '',
     last_name: '',
+    role: 'laborer',
     trade_id: '',
     home_zip: '',
     travel_radius_miles: 50,
@@ -32,6 +40,10 @@ export default function MyAccount() {
 
   function isValidEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim())
+  }
+
+  function roleLabel(option) {
+    return option.label[form.preferred_language] || option.label.en
   }
 
   useEffect(() => {
@@ -69,6 +81,7 @@ export default function MyAccount() {
         display_name: prof?.display_name || '',
         first_name: prof?.first_name || '',
         last_name: prof?.last_name || '',
+        role: prof?.role || 'laborer',
         trade_id: prof?.trade_id ? String(prof.trade_id) : '',
         home_zip: prof?.home_zip || '',
         travel_radius_miles: prof?.travel_radius_miles ?? 50,
@@ -98,6 +111,7 @@ export default function MyAccount() {
       if (!form.display_name.trim()) throw new Error('Display name is required.')
       if (!form.first_name.trim()) throw new Error('First name is required.')
       if (!form.last_name.trim()) throw new Error('Last name is required.')
+      if (!ROLE_OPTIONS.some((x) => x.value === form.role)) throw new Error('Select your primary role.')
       if (!form.city.trim()) throw new Error('City is required.')
       if (!/^[0-9]{5}$/.test(form.home_zip)) throw new Error('Enter a valid 5-digit ZIP code.')
       if (!form.trade_id) throw new Error('Select your trade.')
@@ -114,6 +128,7 @@ export default function MyAccount() {
         display_name: form.display_name.trim(),
         first_name: form.first_name.trim(),
         last_name: form.last_name.trim(),
+        role: form.role,
         trade_id: Number(form.trade_id),
         travel_radius_miles: Number(form.travel_radius_miles),
         crew_size: Number(form.crew_size),
@@ -156,7 +171,7 @@ export default function MyAccount() {
       <div className="card card-notice" style={{ marginBottom: 12 }}>
         <div className="card-section-title">Account Security</div>
         <p className="card-section-subtitle">
-          Some updates to required account details may require verification in the future.
+          Your role and trade help Surplox route opportunities and build a better labor network over time.
         </p>
       </div>
 
@@ -174,6 +189,21 @@ export default function MyAccount() {
             value={form.display_name}
             onChange={(e) => setField('display_name', e.target.value)}
           />
+        </div>
+
+        <div>
+          <div className="muted" style={{ marginBottom: 6 }}>Primary Role</div>
+          <select
+            className="input"
+            value={form.role}
+            onChange={(e) => setField('role', e.target.value)}
+          >
+            {ROLE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {roleLabel(option)}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>

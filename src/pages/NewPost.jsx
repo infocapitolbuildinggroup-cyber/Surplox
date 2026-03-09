@@ -1,7 +1,19 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { useNavigate } from 'react-router-dom'
 import { t } from '../i18n'
+
+const POST_TYPE_OPTIONS = [
+  { value: 'discussion', en: 'Discussion', es: 'Discusión' },
+  { value: 'need_crew', en: 'Need Crew', es: 'Se necesita cuadrilla' },
+  { value: 'looking_for_work', en: 'Looking for Work', es: 'Buscando trabajo' }
+]
+
+function postTypeLabel(type, lang) {
+  const match = POST_TYPE_OPTIONS.find((x) => x.value === type)
+  if (!match) return type
+  return lang === 'es' ? match.es : match.en
+}
 
 export default function NewPost() {
   const [trades, setTrades] = useState([])
@@ -10,11 +22,15 @@ export default function NewPost() {
   const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
 
   const [form, setForm] = useState({
+    post_type: 'discussion',
     trade_id: '',
     title: '',
     body: '',
     center_zip: '',
-    radius_miles: 50
+    radius_miles: 50,
+    needed_crew_size: '',
+    compensation: '',
+    start_date: ''
   })
 
   const navigate = useNavigate()
@@ -52,6 +68,58 @@ export default function NewPost() {
     setForm((f) => ({ ...f, [key]: value }))
   }
 
+  const helperCopy = useMemo(() => {
+    if (lang === 'es') {
+      return {
+        postType: 'Tipo de publicación',
+        crewSize: 'Tamaño de cuadrilla',
+        compensation: 'Pago / tarifa',
+        startDate: 'Fecha de inicio',
+        selectTrade: 'Discusión general',
+        crewExample: 'Ejemplo: 2 trabajadores, empieza el lunes, $250/día',
+        workExample: 'Ejemplo: soldador disponible esta semana en Dallas',
+        crewTitle: 'Ejemplo: Need 2 concrete finishers in Fort Worth starting Monday',
+        workTitle: 'Ejemplo: Pipe welder available for shutdown work in DFW',
+        crewBody: 'Describe the trade, where the job is, how many people you need, start timing, and pay details.',
+        workBody: 'Describe your trade, availability, travel radius, experience, and what kind of work you want.',
+        crewRequired: 'Crew size must be at least 1 for Need Crew posts.'
+      }
+    }
+
+    return {
+      postType: 'Post Type',
+      crewSize: 'Crew Size Needed',
+      compensation: 'Pay / Rate',
+      startDate: 'Start Date',
+      selectTrade: 'General Discussion',
+      crewExample: 'Example: 2 workers, starts Monday, $250/day',
+      workExample: 'Example: welder available this week in Dallas',
+      crewTitle: 'Example: Need 2 concrete finishers in Fort Worth starting Monday',
+      workTitle: 'Example: Pipe welder available for shutdown work in DFW',
+      workBody: 'Describe your trade, availability, travel radius, experience, and what kind of work you want.',
+      crewBody: 'Describe the trade, where the job is, how many people you need, start timing, and pay details.',
+      crewRequired: 'Crew size must be at least 1 for Need Crew posts.'
+    }
+  }, [lang])
+
+  function titlePlaceholder() {
+    if (form.post_type === 'need_crew') return helperCopy.crewTitle
+    if (form.post_type === 'looking_for_work') return helperCopy.workTitle
+    return 'Example: Best way to set bollards in rocky soil?'
+  }
+
+  function bodyPlaceholder() {
+    if (form.post_type === 'need_crew') return helperCopy.crewBody
+    if (form.post_type === 'looking_for_work') return helperCopy.workBody
+    return t(lang, 'new_post_body_placeholder')
+  }
+
+  function exampleBody() {
+    if (form.post_type === 'need_crew') return helperCopy.crewExample
+    if (form.post_type === 'looking_for_work') return helperCopy.workExample
+    return t(lang, 'new_post_example_body')
+  }
+
   async function create() {
     setSaving(true)
     setMsg('')
@@ -61,6 +129,7 @@ export default function NewPost() {
       const user = sessionData.session?.user
 
       if (!user) throw new Error('Not signed in')
+      if (!POST_TYPE_OPTIONS.some((x) => x.value === form.post_type)) throw new Error('Select a valid post type.')
       if (!form.title.trim()) throw new Error(t(lang, 'post_title_required'))
       if (!form.body.trim()) throw new Error(t(lang, 'post_body_required'))
       if (!/^[0-9]{5}$/.test(form.center_zip)) throw new Error(t(lang, 'post_zip_invalid'))
@@ -68,6 +137,13 @@ export default function NewPost() {
       const radius = Number(form.radius_miles)
       if (!radius || radius < 1 || radius > 300) {
         throw new Error(t(lang, 'post_radius_invalid'))
+      }
+
+      if (form.post_type === 'need_crew') {
+        const neededCrew = Number(form.needed_crew_size || 0)
+        if (!neededCrew || neededCrew < 1) {
+          throw new Error(helperCopy.crewRequired)
+        }
       }
 
       const { data: zipRow, error: zipErr } = await supabase
@@ -85,12 +161,16 @@ export default function NewPost() {
         .from('posts')
         .insert({
           author_id: user.id,
+          post_type: form.post_type,
           trade_id: form.trade_id ? Number(form.trade_id) : null,
           title: form.title.trim(),
           body: form.body.trim(),
           center_zip: form.center_zip,
           center_point: wktPoint,
-          radius_miles: radius
+          radius_miles: radius,
+          needed_crew_size: form.needed_crew_size ? Number(form.needed_crew_size) : null,
+          compensation: form.compensation.trim() || null,
+          start_date: form.start_date || null
         })
         .select('id')
         .single()
@@ -105,22 +185,43 @@ export default function NewPost() {
     }
   }
 
+  const isOpportunity = form.post_type !== 'discussion'
+
   return (
     <div className="card" style={{ maxWidth: 860, margin: '0 auto' }}>
       <div className="h1">{t(lang, 'new_post_title')}</div>
 
       <p className="muted">
-        {t(lang, 'new_post_intro')}
+        {form.post_type === 'discussion'
+          ? t(lang, 'new_post_intro')
+          : 'Create a high-visibility local opportunity post so nearby workers and crews can find it quickly.'}
       </p>
 
       <div className="card card-notice" style={{ marginBottom: 12 }}>
         <div className="card-section-title">{t(lang, 'new_post_notice_title')}</div>
         <p className="card-section-subtitle">
-          {t(lang, 'new_post_notice_body')}
+          {form.post_type === 'discussion'
+            ? t(lang, 'new_post_notice_body')
+            : 'Opportunity posts will still respect ZIP and radius, but they should be written clearly so nearby members can act fast.'}
         </p>
       </div>
 
       <div className="grid two">
+        <div>
+          <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.postType}</div>
+          <select
+            className="input"
+            value={form.post_type}
+            onChange={(e) => setField('post_type', e.target.value)}
+          >
+            {POST_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {postTypeLabel(option.value, lang)}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'new_post_trade')}</div>
           <select
@@ -128,7 +229,7 @@ export default function NewPost() {
             value={form.trade_id}
             onChange={(e) => setField('trade_id', e.target.value)}
           >
-            <option value="">{t(lang, 'new_post_general')}</option>
+            <option value="">{helperCopy.selectTrade}</option>
             {trades.map((trow) => (
               <option key={trow.id} value={trow.id}>{trow.name}</option>
             ))}
@@ -155,10 +256,80 @@ export default function NewPost() {
           />
         </div>
 
-        <div className="card card-soft" style={{ borderStyle: 'dashed' }}>
-          <div className="badge">{t(lang, 'new_post_example')}</div>
+        {form.post_type === 'need_crew' && (
+          <>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.crewSize}</div>
+              <input
+                className="input"
+                type="number"
+                min="1"
+                value={form.needed_crew_size}
+                onChange={(e) => setField('needed_crew_size', e.target.value)}
+                placeholder="2"
+              />
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.compensation}</div>
+              <input
+                className="input"
+                value={form.compensation}
+                onChange={(e) => setField('compensation', e.target.value)}
+                placeholder="$250/day or $35/hr"
+              />
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.startDate}</div>
+              <input
+                className="input"
+                type="date"
+                value={form.start_date}
+                onChange={(e) => setField('start_date', e.target.value)}
+              />
+            </div>
+          </>
+        )}
+
+        {form.post_type === 'looking_for_work' && (
+          <>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.compensation}</div>
+              <input
+                className="input"
+                value={form.compensation}
+                onChange={(e) => setField('compensation', e.target.value)}
+                placeholder="$30/hr desired or bid-based"
+              />
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.startDate}</div>
+              <input
+                className="input"
+                type="date"
+                value={form.start_date}
+                onChange={(e) => setField('start_date', e.target.value)}
+              />
+            </div>
+          </>
+        )}
+
+        <div
+          className="card card-soft"
+          style={{
+            borderStyle: 'dashed',
+            gridColumn: isOpportunity ? '1 / -1' : undefined,
+            borderColor: isOpportunity ? 'rgba(255, 222, 89, 0.45)' : undefined,
+            background: isOpportunity ? 'rgba(255, 222, 89, 0.06)' : undefined
+          }}
+        >
+          <div className="badge">
+            {form.post_type === 'discussion' ? t(lang, 'new_post_example') : postTypeLabel(form.post_type, lang)}
+          </div>
           <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {t(lang, 'new_post_example_body')}
+            {exampleBody()}
           </p>
         </div>
       </div>
@@ -169,7 +340,7 @@ export default function NewPost() {
           className="input"
           value={form.title}
           onChange={(e) => setField('title', e.target.value)}
-          placeholder="Example: Best way to set bollards in rocky soil?"
+          placeholder={titlePlaceholder()}
         />
       </div>
 
@@ -179,7 +350,7 @@ export default function NewPost() {
           className="input"
           value={form.body}
           onChange={(e) => setField('body', e.target.value)}
-          placeholder={t(lang, 'new_post_body_placeholder')}
+          placeholder={bodyPlaceholder()}
         />
       </div>
 
