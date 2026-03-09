@@ -4,9 +4,16 @@ import { useParams, Link } from 'react-router-dom'
 import { t } from '../i18n'
 import { detectLikelyLanguage, translateText } from '../translate'
 
-function timeAgo(ts) {
+function timeAgo(ts, lang = 'en') {
   const d = new Date(ts)
   const diff = (Date.now() - d.getTime()) / 1000
+
+  if (lang === 'es') {
+    if (diff < 60) return `hace ${Math.floor(diff)} s`
+    if (diff < 3600) return `hace ${Math.floor(diff / 60)} min`
+    if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`
+    return `hace ${Math.floor(diff / 86400)} d`
+  }
 
   if (diff < 60) return `${Math.floor(diff)}s ago`
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
@@ -200,7 +207,162 @@ function availabilityBadgeStyle(isAvailable) {
   }
 }
 
-export default function PostDetail() {
+const UI = {
+  en: {
+    unknownMember: 'Unknown Member',
+    notSignedIn: 'Not signed in',
+    inviteLinkUnavailable: 'Invite link unavailable.',
+    inviteLinkCopied: 'Invite link copied.',
+    unableCopyInvite: 'Unable to copy invite link.',
+    unableShareMenu: 'Unable to open share menu.',
+    unableOpenTextInvite: 'Unable to open text invite.',
+    unableOpenEmailInvite: 'Unable to open email invite.',
+    workerProfileCopied: 'Worker profile link copied.',
+    unableCopyWorkerProfile: 'Unable to copy worker profile link.',
+    replyNotification: 'Someone replied to your post.',
+    crewHiredNotification: 'You were marked as hired on a crew post.',
+    crewJoinNotification: 'Someone joined your crew request.',
+    onlyOwnerCrewStatus: 'Only the post owner can change crew status.',
+    unableUpdateCrewStatus: 'Unable to update crew status right now.',
+    onlyOwnerMemberStatus: 'Only the post owner can change member status.',
+    unableUpdateMemberStatus: 'Unable to update member status right now.',
+    postOwnerCannotJoin: 'Post owners cannot join their own crew request.',
+    crewNotOpen: 'This crew request is not open.',
+    crewAlreadyFull: 'This crew request is already full.',
+    unableJoinCrew: 'Unable to join this crew right now.',
+    unableLeaveCrew: 'Unable to leave this crew right now.',
+    unableTranslatePost: 'Unable to translate this post right now.',
+    unableTranslateReply: 'Unable to translate this reply right now.',
+    trade: 'Trade',
+    zip: 'ZIP',
+    start: 'Start',
+    pay: 'Pay',
+    viewProfile: 'View Profile',
+    available: 'Available',
+    opportunityDetails: 'Opportunity Details',
+    availabilityDetails: 'Availability Details',
+    crewNeeded: 'Crew Needed',
+    filled: 'Filled',
+    hired: 'Hired',
+    payRate: 'Pay / Rate',
+    crewBuilder: 'Crew Builder',
+    crewBuilderBody:
+      'Build a crew directly from this post. Workers can join the roster, and the post owner can control whether the crew request is open, full, or closed.',
+    inviteCrew: 'Invite Crew',
+    inviteCrewBody:
+      'Share this crew post with workers, subs, or people already in your network.',
+    copyInviteLink: 'Copy Invite Link',
+    share: 'Share',
+    textInvite: 'Text Invite',
+    emailInvite: 'Email Invite',
+    contractorControls: 'Contractor Controls',
+    saving: 'Saving…',
+    markOpen: 'Mark Open',
+    markCrewFull: 'Mark Crew Full',
+    closePost: 'Close Post',
+    joining: 'Joining…',
+    joinCrew: 'Join Crew',
+    leaving: 'Leaving…',
+    leaveCrew: 'Leave Crew',
+    youPostedThis: 'You posted this crew request',
+    crewFull: 'Crew Full',
+    postClosed: 'Post Closed',
+    crewRoster: 'Crew Roster',
+    noOneJoined: 'No one has joined this crew yet.',
+    joinedAt: 'Joined',
+    workedBefore: 'Worked With Before',
+    contactCard: 'Contact Card',
+    phone: 'Phone',
+    email: 'Email',
+    city: 'City',
+    notAvailable: 'Not available',
+    rehireShare: 'Rehire / Share',
+    markHired: 'Mark Hired',
+    moveBackToJoined: 'Move Back to Joined',
+    translating: 'Translating…',
+    showOriginal: 'Show original',
+    translate: 'Translate',
+    translatedVersion: 'Translated version'
+  },
+  es: {
+    unknownMember: 'Miembro desconocido',
+    notSignedIn: 'No has iniciado sesión',
+    inviteLinkUnavailable: 'El enlace de invitación no está disponible.',
+    inviteLinkCopied: 'Enlace de invitación copiado.',
+    unableCopyInvite: 'No se pudo copiar el enlace de invitación.',
+    unableShareMenu: 'No se pudo abrir el menú de compartir.',
+    unableOpenTextInvite: 'No se pudo abrir la invitación por texto.',
+    unableOpenEmailInvite: 'No se pudo abrir la invitación por correo.',
+    workerProfileCopied: 'Enlace del perfil copiado.',
+    unableCopyWorkerProfile: 'No se pudo copiar el enlace del perfil.',
+    replyNotification: 'Alguien respondió a tu publicación.',
+    crewHiredNotification: 'Fuiste marcado como contratado en una publicación de cuadrilla.',
+    crewJoinNotification: 'Alguien se unió a tu solicitud de cuadrilla.',
+    onlyOwnerCrewStatus: 'Solo el dueño de la publicación puede cambiar el estado de la cuadrilla.',
+    unableUpdateCrewStatus: 'No se pudo actualizar el estado de la cuadrilla.',
+    onlyOwnerMemberStatus: 'Solo el dueño de la publicación puede cambiar el estado del miembro.',
+    unableUpdateMemberStatus: 'No se pudo actualizar el estado del miembro.',
+    postOwnerCannotJoin: 'El dueño de la publicación no puede unirse a su propia solicitud.',
+    crewNotOpen: 'Esta solicitud de cuadrilla no está abierta.',
+    crewAlreadyFull: 'Esta solicitud de cuadrilla ya está llena.',
+    unableJoinCrew: 'No se pudo unir a esta cuadrilla.',
+    unableLeaveCrew: 'No se pudo salir de esta cuadrilla.',
+    unableTranslatePost: 'No se pudo traducir esta publicación.',
+    unableTranslateReply: 'No se pudo traducir esta respuesta.',
+    trade: 'Oficio',
+    zip: 'Código postal',
+    start: 'Inicio',
+    pay: 'Pago',
+    viewProfile: 'Ver perfil',
+    available: 'Disponible',
+    opportunityDetails: 'Detalles de la oportunidad',
+    availabilityDetails: 'Detalles de disponibilidad',
+    crewNeeded: 'Cuadrilla necesaria',
+    filled: 'Llenos',
+    hired: 'Contratados',
+    payRate: 'Pago / tarifa',
+    crewBuilder: 'Constructor de cuadrilla',
+    crewBuilderBody:
+      'Construye una cuadrilla directamente desde esta publicación. Los trabajadores pueden unirse y el dueño puede controlar si la solicitud está abierta, llena o cerrada.',
+    inviteCrew: 'Invitar cuadrilla',
+    inviteCrewBody:
+      'Comparte esta publicación con trabajadores, subcontratistas o gente de tu red.',
+    copyInviteLink: 'Copiar enlace',
+    share: 'Compartir',
+    textInvite: 'Invitar por texto',
+    emailInvite: 'Invitar por correo',
+    contractorControls: 'Controles del contratista',
+    saving: 'Guardando…',
+    markOpen: 'Marcar abierta',
+    markCrewFull: 'Marcar cuadrilla llena',
+    closePost: 'Cerrar publicación',
+    joining: 'Uniéndose…',
+    joinCrew: 'Unirse a cuadrilla',
+    leaving: 'Saliendo…',
+    leaveCrew: 'Salir de cuadrilla',
+    youPostedThis: 'Tú publicaste esta solicitud',
+    crewFull: 'Cuadrilla llena',
+    postClosed: 'Publicación cerrada',
+    crewRoster: 'Lista de cuadrilla',
+    noOneJoined: 'Nadie se ha unido a esta cuadrilla todavía.',
+    joinedAt: 'Se unió',
+    workedBefore: 'Ya trabajaron antes',
+    contactCard: 'Tarjeta de contacto',
+    phone: 'Teléfono',
+    email: 'Correo',
+    city: 'Ciudad',
+    notAvailable: 'No disponible',
+    rehireShare: 'Recontratar / compartir',
+    markHired: 'Marcar contratado',
+    moveBackToJoined: 'Volver a unido',
+    translating: 'Traduciendo…',
+    showOriginal: 'Ver original',
+    translate: 'Traducir',
+    translatedVersion: 'Versión traducida'
+  }
+}
+
+export default function PostDetail({ lang: langProp = 'en' }) {
   const { id } = useParams()
 
   const [post, setPost] = useState(null)
@@ -210,7 +372,7 @@ export default function PostDetail() {
   const [newComment, setNewComment] = useState('')
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(true)
-  const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
+  const [lang, setLang] = useState(langProp || localStorage.getItem('surplox_lang') || 'en')
   const [currentUserId, setCurrentUserId] = useState(null)
 
   const [crewMembers, setCrewMembers] = useState([])
@@ -225,6 +387,12 @@ export default function PostDetail() {
   const [translatedComments, setTranslatedComments] = useState({})
   const [visibleTranslatedComments, setVisibleTranslatedComments] = useState({})
   const [translatingCommentId, setTranslatingCommentId] = useState(null)
+
+  const copy = UI[lang] || UI.en
+
+  useEffect(() => {
+    setLang(langProp || localStorage.getItem('surplox_lang') || 'en')
+  }, [langProp])
 
   async function createNotification({ userId, actorUserId, postId, type, message }) {
     if (!userId || !message) return
@@ -249,6 +417,18 @@ export default function PostDetail() {
 
   function getInviteText() {
     if (!post) return ''
+
+    if (lang === 'es') {
+      const tradePart = post.trade_name ? `${copy.trade}: ${post.trade_name}. ` : ''
+      const zipPart = post.center_zip ? `${copy.zip}: ${post.center_zip}. ` : ''
+      const startPart = post.start_date
+        ? `${copy.start}: ${new Date(post.start_date).toLocaleDateString()}. `
+        : ''
+      const payPart = post.compensation ? `${copy.pay}: ${post.compensation}. ` : ''
+
+      return `Mira esta publicación de cuadrilla en Surplox: ${post.title}. ${tradePart}${zipPart}${startPart}${payPart}${getInviteUrl()}`
+    }
+
     const tradePart = post.trade_name ? `Trade: ${post.trade_name}. ` : ''
     const zipPart = post.center_zip ? `ZIP: ${post.center_zip}. ` : ''
     const startPart = post.start_date
@@ -262,13 +442,13 @@ export default function PostDetail() {
   async function copyInviteLink() {
     try {
       const url = getInviteUrl()
-      if (!url) throw new Error('Invite link unavailable.')
+      if (!url) throw new Error(copy.inviteLinkUnavailable)
 
       await navigator.clipboard.writeText(url)
-      setMsg('Invite link copied.')
+      setMsg(copy.inviteLinkCopied)
     } catch (err) {
       console.error(err)
-      setMsg('Unable to copy invite link.')
+      setMsg(copy.unableCopyInvite)
     }
   }
 
@@ -276,7 +456,7 @@ export default function PostDetail() {
     try {
       const url = getInviteUrl()
       const text = getInviteText()
-      if (!url) throw new Error('Invite link unavailable.')
+      if (!url) throw new Error(copy.inviteLinkUnavailable)
 
       if (navigator.share) {
         await navigator.share({
@@ -290,7 +470,7 @@ export default function PostDetail() {
     } catch (err) {
       if (err?.name === 'AbortError') return
       console.error(err)
-      setMsg('Unable to open share menu.')
+      setMsg(copy.unableShareMenu)
     }
   }
 
@@ -300,7 +480,7 @@ export default function PostDetail() {
       window.open(`sms:?&body=${text}`, '_self')
     } catch (err) {
       console.error(err)
-      setMsg('Unable to open text invite.')
+      setMsg(copy.unableOpenTextInvite)
     }
   }
 
@@ -311,7 +491,7 @@ export default function PostDetail() {
       window.location.href = `mailto:?subject=${subject}&body=${body}`
     } catch (err) {
       console.error(err)
-      setMsg('Unable to open email invite.')
+      setMsg(copy.unableOpenEmailInvite)
     }
   }
 
@@ -319,10 +499,10 @@ export default function PostDetail() {
     try {
       const url = `${window.location.origin}/u/${userId}`
       await navigator.clipboard.writeText(url)
-      setMsg('Worker profile link copied.')
+      setMsg(copy.workerProfileCopied)
     } catch (err) {
       console.error(err)
-      setMsg('Unable to copy worker profile link.')
+      setMsg(copy.unableCopyWorkerProfile)
     }
   }
 
@@ -335,6 +515,8 @@ export default function PostDetail() {
       const uid = sessionData.session?.user?.id || null
       setCurrentUserId(uid)
 
+      let activeLang = langProp || localStorage.getItem('surplox_lang') || 'en'
+
       if (uid) {
         const { data: prof } = await supabase
           .from('profiles')
@@ -342,10 +524,11 @@ export default function PostDetail() {
           .eq('user_id', uid)
           .maybeSingle()
 
-        const userLang = prof?.preferred_language || 'en'
-        setLang(userLang)
-        localStorage.setItem('surplox_lang', userLang)
+        activeLang = prof?.preferred_language || activeLang
       }
+
+      setLang(activeLang)
+      localStorage.setItem('surplox_lang', activeLang)
 
       const { data: p, error: pErr } = await supabase
         .from('posts')
@@ -353,6 +536,7 @@ export default function PostDetail() {
           id,
           title,
           body,
+          source_language,
           center_zip,
           radius_miles,
           created_at,
@@ -362,8 +546,8 @@ export default function PostDetail() {
           needed_crew_size,
           compensation,
           start_date,
-          trades(name),
           author_id,
+          trades(name),
           profiles(display_name, role, is_available)
         `)
         .eq('id', id)
@@ -371,15 +555,15 @@ export default function PostDetail() {
 
       if (pErr) throw pErr
 
-      const computedLang = detectLikelyLanguage(`${p.title || ''} ${p.body || ''}`)
+      const detectedLang = detectLikelyLanguage(`${p.title || ''} ${p.body || ''}`)
 
       setPost({
         ...p,
-        trade_name: p.trades?.name || t(lang, 'detail_general'),
-        author_name: p.profiles?.display_name || 'Unknown Member',
+        trade_name: p.trades?.name || t(activeLang, 'detail_general'),
+        author_name: p.profiles?.display_name || copy.unknownMember,
         author_role: p.profiles?.role || '',
         author_available: Boolean(p.profiles?.is_available),
-        source_language: computedLang
+        source_language: p.source_language || detectedLang
       })
 
       const { data: c, error: cErr } = await supabase
@@ -393,7 +577,7 @@ export default function PostDetail() {
       setComments(
         (c || []).map((x) => ({
           ...x,
-          author_name: x.profiles?.display_name || 'Unknown Member',
+          author_name: x.profiles?.display_name || copy.unknownMember,
           author_role: x.profiles?.role || '',
           author_available: Boolean(x.profiles?.is_available),
           source_language: detectLikelyLanguage(x.body || '')
@@ -464,7 +648,7 @@ export default function PostDetail() {
             user_id: row.user_id,
             created_at: row.created_at,
             status: row.status || 'joined',
-            display_name: profile?.display_name || 'Unknown Member',
+            display_name: profile?.display_name || copy.unknownMember,
             role: profile?.role || '',
             is_available: Boolean(profile?.is_available),
             phone: contact?.phone || '',
@@ -539,7 +723,8 @@ export default function PostDetail() {
 
   useEffect(() => {
     loadAll()
-  }, [id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, langProp])
 
   async function vote(val) {
     setMsg('')
@@ -547,7 +732,7 @@ export default function PostDetail() {
     try {
       const { data: sessionData } = await supabase.auth.getSession()
       const uid = sessionData.session?.user?.id
-      if (!uid) throw new Error('Not signed in')
+      if (!uid) throw new Error(copy.notSignedIn)
 
       const newVal = myVote === val ? 0 : val
 
@@ -586,7 +771,7 @@ export default function PostDetail() {
 
       const { data: sessionData } = await supabase.auth.getSession()
       const uid = sessionData.session?.user?.id
-      if (!uid) throw new Error('Not signed in')
+      if (!uid) throw new Error(copy.notSignedIn)
 
       const { error } = await supabase
         .from('comments')
@@ -623,7 +808,7 @@ export default function PostDetail() {
           actorUserId: uid,
           postId: id,
           type: 'post_reply',
-          message: 'Someone replied to your post.'
+          message: copy.replyNotification
         })
       }
 
@@ -644,8 +829,8 @@ export default function PostDetail() {
 
       const { data: sessionData } = await supabase.auth.getSession()
       const uid = sessionData.session?.user?.id
-      if (!uid) throw new Error('Not signed in')
-      if (uid !== post.author_id) throw new Error('Only the post owner can change crew status.')
+      if (!uid) throw new Error(copy.notSignedIn)
+      if (uid !== post.author_id) throw new Error(copy.onlyOwnerCrewStatus)
 
       const { error } = await supabase
         .from('posts')
@@ -657,7 +842,7 @@ export default function PostDetail() {
       await loadAll()
     } catch (err) {
       console.error(err)
-      setMsg(err.message || 'Unable to update crew status right now.')
+      setMsg(err.message || copy.unableUpdateCrewStatus)
     } finally {
       setCrewActionLoading(false)
     }
@@ -672,8 +857,8 @@ export default function PostDetail() {
 
       const { data: sessionData } = await supabase.auth.getSession()
       const uid = sessionData.session?.user?.id
-      if (!uid) throw new Error('Not signed in')
-      if (uid !== post.author_id) throw new Error('Only the post owner can change member status.')
+      if (!uid) throw new Error(copy.notSignedIn)
+      if (uid !== post.author_id) throw new Error(copy.onlyOwnerMemberStatus)
 
       const { error } = await supabase
         .from('crew_memberships')
@@ -708,14 +893,14 @@ export default function PostDetail() {
           actorUserId: post.author_id,
           postId: id,
           type: 'crew_hired',
-          message: 'You were marked as hired on a crew post.'
+          message: copy.crewHiredNotification
         })
       }
 
       await loadAll()
     } catch (err) {
       console.error(err)
-      setMsg(err.message || 'Unable to update member status right now.')
+      setMsg(err.message || copy.unableUpdateMemberStatus)
     } finally {
       setCrewActionLoading(false)
     }
@@ -730,13 +915,13 @@ export default function PostDetail() {
 
       const { data: sessionData } = await supabase.auth.getSession()
       const uid = sessionData.session?.user?.id
-      if (!uid) throw new Error('Not signed in')
-      if (uid === post.author_id) throw new Error('Post owners cannot join their own crew request.')
-      if ((post.crew_status || 'open') !== 'open') throw new Error('This crew request is not open.')
+      if (!uid) throw new Error(copy.notSignedIn)
+      if (uid === post.author_id) throw new Error(copy.postOwnerCannotJoin)
+      if ((post.crew_status || 'open') !== 'open') throw new Error(copy.crewNotOpen)
 
       const needed = Number(post.needed_crew_size || 0)
       if (needed > 0 && crewMembers.length >= needed) {
-        throw new Error('This crew request is already full.')
+        throw new Error(copy.crewAlreadyFull)
       }
 
       const { error } = await supabase
@@ -773,7 +958,7 @@ export default function PostDetail() {
         actorUserId: uid,
         postId: id,
         type: 'crew_join',
-        message: 'Someone joined your crew request.'
+        message: copy.crewJoinNotification
       })
 
       if (needed > 0 && crewMembers.length + 1 >= needed) {
@@ -790,7 +975,7 @@ export default function PostDetail() {
       await loadAll()
     } catch (err) {
       console.error(err)
-      setMsg(err.message || 'Unable to join this crew right now.')
+      setMsg(err.message || copy.unableJoinCrew)
     } finally {
       setCrewActionLoading(false)
     }
@@ -803,7 +988,7 @@ export default function PostDetail() {
 
       const { data: sessionData } = await supabase.auth.getSession()
       const uid = sessionData.session?.user?.id
-      if (!uid) throw new Error('Not signed in')
+      if (!uid) throw new Error(copy.notSignedIn)
 
       const { error } = await supabase
         .from('crew_memberships')
@@ -827,7 +1012,7 @@ export default function PostDetail() {
       await loadAll()
     } catch (err) {
       console.error(err)
-      setMsg(err.message || 'Unable to leave this crew right now.')
+      setMsg(err.message || copy.unableLeaveCrew)
     } finally {
       setCrewActionLoading(false)
     }
@@ -857,7 +1042,7 @@ export default function PostDetail() {
       setShowTranslatedPost(true)
     } catch (err) {
       console.error(err)
-      setMsg('Unable to translate this post right now.')
+      setMsg(copy.unableTranslatePost)
     } finally {
       setTranslatingPost(false)
     }
@@ -901,7 +1086,7 @@ export default function PostDetail() {
       }))
     } catch (err) {
       console.error(err)
-      setMsg('Unable to translate this reply right now.')
+      setMsg(copy.unableTranslateReply)
     } finally {
       setTranslatingCommentId(null)
     }
@@ -932,7 +1117,6 @@ export default function PostDetail() {
   const isOpportunity = post.post_type === 'need_crew' || post.post_type === 'looking_for_work'
   const typeStyles = getPostTypeStyles(post.post_type || 'discussion')
   const isPostOwner = currentUserId && post.author_id === currentUserId
-  const crewNeeded = Number(post.needed_crew_size || 0)
   const crewFilled = crewMembers.length
   const hiredCount = crewMembers.filter((member) => member.status === 'hired').length
   const crewStatus = post.crew_status || 'open'
@@ -952,7 +1136,7 @@ export default function PostDetail() {
             {post.trade_name}
           </span>
 
-          <span className="badge">ZIP {post.center_zip}</span>
+          <span className="badge">{copy.zip} {post.center_zip}</span>
           <span className="badge">{post.radius_miles} mi</span>
 
           {post.author_role ? (
@@ -963,7 +1147,7 @@ export default function PostDetail() {
 
           {post.author_available ? (
             <span className="badge" style={availabilityBadgeStyle(true)}>
-              Available
+              {copy.available}
             </span>
           ) : null}
 
@@ -974,12 +1158,12 @@ export default function PostDetail() {
           ) : null}
 
           <Link to={`/u/${post.author_id}`} className="badge">
-            View Profile
+            {copy.viewProfile}
           </Link>
 
           <span>{t(lang, 'detail_posted_by')} {post.author_name}</span>
           <span>•</span>
-          <span>{timeAgo(post.created_at)}</span>
+          <span>{timeAgo(post.created_at, lang)}</span>
         </div>
 
         <h2 className="h2" style={{ marginTop: 10 }}>{post.title}</h2>
@@ -998,25 +1182,25 @@ export default function PostDetail() {
             }}
           >
             <div className="card-section-title">
-              {post.post_type === 'need_crew' ? 'Opportunity Details' : 'Availability Details'}
+              {post.post_type === 'need_crew' ? copy.opportunityDetails : copy.availabilityDetails}
             </div>
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
               {post.post_type === 'need_crew' && post.needed_crew_size ? (
                 <>
-                  <span className="badge">Crew Needed: {post.needed_crew_size}</span>
-                  <span className="badge">Filled: {crewFilled}/{post.needed_crew_size}</span>
-                  <span className="badge">Hired: {hiredCount}</span>
+                  <span className="badge">{copy.crewNeeded}: {post.needed_crew_size}</span>
+                  <span className="badge">{copy.filled}: {crewFilled}/{post.needed_crew_size}</span>
+                  <span className="badge">{copy.hired}: {hiredCount}</span>
                 </>
               ) : null}
 
               {post.compensation ? (
-                <span className="badge">Pay / Rate: {post.compensation}</span>
+                <span className="badge">{copy.payRate}: {post.compensation}</span>
               ) : null}
 
               {post.start_date ? (
                 <span className="badge">
-                  Start: {new Date(post.start_date).toLocaleDateString()}
+                  {copy.start}: {new Date(post.start_date).toLocaleDateString()}
                 </span>
               ) : null}
             </div>
@@ -1024,11 +1208,11 @@ export default function PostDetail() {
             {post.post_type === 'need_crew' && (
               <div style={{ marginTop: 14 }}>
                 <div className="card-section-title" style={{ fontSize: 16 }}>
-                  Crew Builder
+                  {copy.crewBuilder}
                 </div>
 
                 <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-                  Build a crew directly from this post. Workers can join the roster, and the post owner can control whether the crew request is open, full, or closed.
+                  {copy.crewBuilderBody}
                 </p>
 
                 <div
@@ -1040,24 +1224,24 @@ export default function PostDetail() {
                   }}
                 >
                   <div className="card-section-title" style={{ fontSize: 15 }}>
-                    Invite Crew
+                    {copy.inviteCrew}
                   </div>
                   <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-                    Share this crew post with workers, subs, or people already in your network.
+                    {copy.inviteCrewBody}
                   </p>
 
                   <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                     <button className="btn small primary" onClick={copyInviteLink}>
-                      Copy Invite Link
+                      {copy.copyInviteLink}
                     </button>
                     <button className="btn small" onClick={shareInviteLink}>
-                      Share
+                      {copy.share}
                     </button>
                     <button className="btn small" onClick={openTextInvite}>
-                      Text Invite
+                      {copy.textInvite}
                     </button>
                     <button className="btn small" onClick={openEmailInvite}>
-                      Email Invite
+                      {copy.emailInvite}
                     </button>
                   </div>
 
@@ -1079,7 +1263,7 @@ export default function PostDetail() {
                 {isPostOwner && (
                   <div style={{ marginTop: 12 }}>
                     <div className="card-section-title" style={{ fontSize: 15 }}>
-                      Contractor Controls
+                      {copy.contractorControls}
                     </div>
 
                     <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -1088,7 +1272,7 @@ export default function PostDetail() {
                         onClick={() => updateCrewStatus('open')}
                         disabled={crewActionLoading || crewOpen}
                       >
-                        {crewActionLoading && crewOpen ? 'Saving…' : 'Mark Open'}
+                        {crewActionLoading && crewOpen ? copy.saving : copy.markOpen}
                       </button>
 
                       <button
@@ -1096,7 +1280,7 @@ export default function PostDetail() {
                         onClick={() => updateCrewStatus('full')}
                         disabled={crewActionLoading || crewFull}
                       >
-                        {crewActionLoading && crewFull ? 'Saving…' : 'Mark Crew Full'}
+                        {crewActionLoading && crewFull ? copy.saving : copy.markCrewFull}
                       </button>
 
                       <button
@@ -1104,7 +1288,7 @@ export default function PostDetail() {
                         onClick={() => updateCrewStatus('closed')}
                         disabled={crewActionLoading || crewClosed}
                       >
-                        {crewActionLoading && crewClosed ? 'Saving…' : 'Close Post'}
+                        {crewActionLoading && crewClosed ? copy.saving : copy.closePost}
                       </button>
                     </div>
                   </div>
@@ -1113,37 +1297,37 @@ export default function PostDetail() {
                 <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   {!isPostOwner && !myCrewMembership && crewOpen && (
                     <button className="btn primary" onClick={joinCrew} disabled={crewActionLoading}>
-                      {crewActionLoading ? 'Joining…' : 'Join Crew'}
+                      {crewActionLoading ? copy.joining : copy.joinCrew}
                     </button>
                   )}
 
                   {!isPostOwner && myCrewMembership && (
                     <button className="btn" onClick={leaveCrew} disabled={crewActionLoading}>
-                      {crewActionLoading ? 'Leaving…' : 'Leave Crew'}
+                      {crewActionLoading ? copy.leaving : copy.leaveCrew}
                     </button>
                   )}
 
                   {isPostOwner && (
-                    <span className="badge">You posted this crew request</span>
+                    <span className="badge">{copy.youPostedThis}</span>
                   )}
 
                   {crewFull && (
-                    <span className="badge">Crew Full</span>
+                    <span className="badge">{copy.crewFull}</span>
                   )}
 
                   {crewClosed && (
-                    <span className="badge">Post Closed</span>
+                    <span className="badge">{copy.postClosed}</span>
                   )}
                 </div>
 
                 <div style={{ marginTop: 14 }}>
                   <div className="card-section-title" style={{ fontSize: 16 }}>
-                    Crew Roster
+                    {copy.crewRoster}
                   </div>
 
                   {crewMembers.length === 0 ? (
                     <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-                      No one has joined this crew yet.
+                      {copy.noOneJoined}
                     </p>
                   ) : (
                     <div className="list" style={{ marginTop: 10 }}>
@@ -1173,7 +1357,7 @@ export default function PostDetail() {
 
                                   {member.is_available ? (
                                     <span className="badge" style={availabilityBadgeStyle(true)}>
-                                      Available
+                                      {copy.available}
                                     </span>
                                   ) : null}
 
@@ -1181,7 +1365,7 @@ export default function PostDetail() {
                                     {memberStatusLabel(member.status, lang)}
                                   </span>
 
-                                  <span>Joined {timeAgo(member.created_at)}</span>
+                                  <span>{copy.joinedAt} {timeAgo(member.created_at, lang)}</span>
                                 </div>
 
                                 {workedBefore ? (
@@ -1194,7 +1378,7 @@ export default function PostDetail() {
                                         background: 'rgba(255, 222, 89, 0.14)'
                                       }}
                                     >
-                                      Worked With Before • {workedBefore.count}
+                                      {copy.workedBefore} • {workedBefore.count}
                                     </span>
                                   </div>
                                 ) : null}
@@ -1210,30 +1394,30 @@ export default function PostDetail() {
                                     }}
                                   >
                                     <div className="card-section-title" style={{ fontSize: 14, marginBottom: 8 }}>
-                                      Contact Card
+                                      {copy.contactCard}
                                     </div>
 
                                     <div className="stack-sm">
                                       {member.phone ? (
                                         <div className="muted">
-                                          Phone: <a href={`tel:${member.phone}`}>{formatPhone(member.phone)}</a>
+                                          {copy.phone}: <a href={`tel:${member.phone}`}>{formatPhone(member.phone)}</a>
                                         </div>
                                       ) : (
-                                        <div className="muted">Phone: Not available</div>
+                                        <div className="muted">{copy.phone}: {copy.notAvailable}</div>
                                       )}
 
                                       {member.email ? (
                                         <div className="muted">
-                                          Email: <a href={`mailto:${member.email}`}>{member.email}</a>
+                                          {copy.email}: <a href={`mailto:${member.email}`}>{member.email}</a>
                                         </div>
                                       ) : (
-                                        <div className="muted">Email: Not available</div>
+                                        <div className="muted">{copy.email}: {copy.notAvailable}</div>
                                       )}
 
                                       {member.city ? (
-                                        <div className="muted">City: {member.city}</div>
+                                        <div className="muted">{copy.city}: {member.city}</div>
                                       ) : (
-                                        <div className="muted">City: Not available</div>
+                                        <div className="muted">{copy.city}: {copy.notAvailable}</div>
                                       )}
                                     </div>
                                   </div>
@@ -1243,14 +1427,14 @@ export default function PostDetail() {
                               {isPostOwner && (
                                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                                   <Link className="btn small" to={`/u/${member.user_id}`}>
-                                    View Profile
+                                    {copy.viewProfile}
                                   </Link>
 
                                   <button
                                     className="btn small"
                                     onClick={() => copyWorkerProfile(member.user_id)}
                                   >
-                                    Rehire / Share
+                                    {copy.rehireShare}
                                   </button>
 
                                   {member.status !== 'hired' ? (
@@ -1259,7 +1443,7 @@ export default function PostDetail() {
                                       onClick={() => updateMemberStatus(member.user_id, 'hired')}
                                       disabled={crewActionLoading}
                                     >
-                                      Mark Hired
+                                      {copy.markHired}
                                     </button>
                                   ) : (
                                     <button
@@ -1267,7 +1451,7 @@ export default function PostDetail() {
                                       onClick={() => updateMemberStatus(member.user_id, 'joined')}
                                       disabled={crewActionLoading}
                                     >
-                                      Move Back to Joined
+                                      {copy.moveBackToJoined}
                                     </button>
                                   )}
                                 </div>
@@ -1292,10 +1476,8 @@ export default function PostDetail() {
           <div style={{ marginTop: 10 }}>
             <button className="btn small" onClick={handleTranslatePost} disabled={translatingPost}>
               {translatingPost
-                ? (lang === 'es' ? 'Traduciendo…' : 'Translating…')
-                : (showTranslatedPost
-                    ? (lang === 'es' ? 'Ver original' : 'Show original')
-                    : (lang === 'es' ? 'Traducir' : 'Translate'))}
+                ? copy.translating
+                : (showTranslatedPost ? copy.showOriginal : copy.translate)}
             </button>
           </div>
         )}
@@ -1303,7 +1485,7 @@ export default function PostDetail() {
         {showTranslatedPost && translatedPostBody && (
           <div className="card card-soft" style={{ marginTop: 12 }}>
             <div className="card-section-title">
-              {lang === 'es' ? 'Versión traducida' : 'Translated version'}
+              {copy.translatedVersion}
             </div>
             <p className="card-section-subtitle" style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>
               {translatedPostBody}
@@ -1382,11 +1564,11 @@ export default function PostDetail() {
 
                     {c.author_available ? (
                       <span className="badge" style={availabilityBadgeStyle(true)}>
-                        Available
+                        {copy.available}
                       </span>
                     ) : null}
 
-                    <span>{timeAgo(c.created_at)}</span>
+                    <span>{timeAgo(c.created_at, lang)}</span>
                   </div>
 
                   <div style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>
@@ -1401,10 +1583,8 @@ export default function PostDetail() {
                         disabled={translatingCommentId === c.id}
                       >
                         {translatingCommentId === c.id
-                          ? (lang === 'es' ? 'Traduciendo…' : 'Translating…')
-                          : (showTranslated
-                              ? (lang === 'es' ? 'Ver original' : 'Show original')
-                              : (lang === 'es' ? 'Traducir' : 'Translate'))}
+                          ? copy.translating
+                          : (showTranslated ? copy.showOriginal : copy.translate)}
                       </button>
                     </div>
                   )}
@@ -1412,7 +1592,7 @@ export default function PostDetail() {
                   {showTranslated && translated && (
                     <div className="card" style={{ marginTop: 12 }}>
                       <div className="card-section-title">
-                        {lang === 'es' ? 'Versión traducida' : 'Translated version'}
+                        {copy.translatedVersion}
                       </div>
                       <p className="card-section-subtitle" style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>
                         {translated}
