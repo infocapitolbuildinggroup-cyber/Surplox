@@ -33,6 +33,7 @@ export default function App() {
   const [adminChecked, setAdminChecked] = useState(false)
   const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
   const [unreadNotifications, setUnreadNotifications] = useState(0)
+  const [savingLang, setSavingLang] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -72,7 +73,7 @@ export default function App() {
         return
       }
 
-      const userLang = prof?.preferred_language || 'en'
+      const userLang = prof?.preferred_language || localStorage.getItem('surplox_lang') || 'en'
       setLang(userLang)
       localStorage.setItem('surplox_lang', userLang)
 
@@ -107,6 +108,30 @@ export default function App() {
     loadUnreadCount()
   }, [session?.user?.id])
 
+  async function updateLanguage(newLang) {
+    if (!newLang || newLang === lang) return
+
+    setLang(newLang)
+    localStorage.setItem('surplox_lang', newLang)
+
+    if (!session?.user?.id) return
+
+    try {
+      setSavingLang(true)
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({ preferred_language: newLang })
+        .eq('user_id', session.user.id)
+
+      if (error) {
+        console.error(error)
+      }
+    } finally {
+      setSavingLang(false)
+    }
+  }
+
   async function signOut() {
     await supabase.auth.signOut()
     setIsAdmin(false)
@@ -132,6 +157,36 @@ export default function App() {
           </NavLink>
 
           <div className="nav-links">
+            <div
+              style={{
+                display: 'flex',
+                gap: 6,
+                marginRight: 12,
+                alignItems: 'center',
+                flexWrap: 'wrap'
+              }}
+            >
+              <button
+                type="button"
+                className={lang === 'en' ? 'btn small primary' : 'btn small'}
+                onClick={() => updateLanguage('en')}
+                disabled={savingLang}
+                aria-pressed={lang === 'en'}
+              >
+                EN
+              </button>
+
+              <button
+                type="button"
+                className={lang === 'es' ? 'btn small primary' : 'btn small'}
+                onClick={() => updateLanguage('es')}
+                disabled={savingLang}
+                aria-pressed={lang === 'es'}
+              >
+                ES
+              </button>
+            </div>
+
             {session ? (
               <>
                 <NavLink className={navBtnClass} to="/feed">
@@ -147,7 +202,7 @@ export default function App() {
                 </NavLink>
 
                 <NavLink className={navBtnClass} to="/notifications">
-                  Alerts
+                  {t(lang, 'nav_alerts') || 'Alerts'}
                   {unreadNotifications > 0 ? (
                     <span
                       className="badge"
@@ -169,7 +224,7 @@ export default function App() {
 
                 {isAdmin && (
                   <NavLink className={adminNavBtnClass} to="/admin">
-                    Admin
+                    {t(lang, 'nav_admin') || 'Admin'}
                   </NavLink>
                 )}
 
@@ -189,13 +244,13 @@ export default function App() {
       <div className="container">
         <Routes>
           <Route path="/" element={<Home session={session} lang={lang} />} />
-          <Route path="/auth" element={<Auth lang={lang} />} />
+          <Route path="/auth" element={<Auth lang={lang} setLang={updateLanguage} />} />
 
           <Route
             path="/onboarding"
             element={
               <Protected session={session}>
-                <Onboarding />
+                <Onboarding lang={lang} setLang={updateLanguage} />
               </Protected>
             }
           />
@@ -204,7 +259,7 @@ export default function App() {
             path="/feed"
             element={
               <Protected session={session}>
-                <Feed />
+                <Feed lang={lang} />
               </Protected>
             }
           />
@@ -213,7 +268,7 @@ export default function App() {
             path="/channels"
             element={
               <Protected session={session}>
-                <Channels />
+                <Channels lang={lang} />
               </Protected>
             }
           />
@@ -222,7 +277,7 @@ export default function App() {
             path="/new"
             element={
               <Protected session={session}>
-                <NewPost />
+                <NewPost lang={lang} />
               </Protected>
             }
           />
@@ -231,7 +286,7 @@ export default function App() {
             path="/notifications"
             element={
               <Protected session={session}>
-                <Notifications />
+                <Notifications lang={lang} />
               </Protected>
             }
           />
@@ -240,7 +295,7 @@ export default function App() {
             path="/account"
             element={
               <Protected session={session}>
-                <MyAccount />
+                <MyAccount lang={lang} setLang={updateLanguage} />
               </Protected>
             }
           />
@@ -249,7 +304,7 @@ export default function App() {
             path="/u/:userId"
             element={
               <Protected session={session}>
-                <WorkerProfile />
+                <WorkerProfile lang={lang} />
               </Protected>
             }
           />
@@ -258,7 +313,7 @@ export default function App() {
             path="/p/:id"
             element={
               <Protected session={session}>
-                <PostDetail />
+                <PostDetail lang={lang} />
               </Protected>
             }
           />
@@ -272,7 +327,7 @@ export default function App() {
                 adminChecked={adminChecked}
                 lang={lang}
               >
-                <AdminDirectory />
+                <AdminDirectory lang={lang} />
               </AdminOnly>
             }
           />
