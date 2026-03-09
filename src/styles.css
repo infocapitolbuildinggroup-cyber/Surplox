@@ -5,7 +5,7 @@
   --text: #e8e8e8;
   --muted: #a3a3a3;
   --border: #23263a;
-  --accent: #ff3131;
+  --accent: #ffde59;
   --danger: #ef4444;
 }
 
@@ -86,7 +86,7 @@ textarea {
   height: 30px;
   width: auto;
   display: block;
-  filter: drop-shadow(0 0 6px rgba(255, 49, 49, 0.35));
+  filter: drop-shadow(0 0 6px rgba(255, 222, 89, 0.35));
 }
 
 .nav-links {
@@ -97,7 +97,7 @@ textarea {
 }
 
 .nav-links a:hover {
-  color: var(--accent);
+  color: #ff751f;
 }
 
 .btn {
@@ -114,9 +114,9 @@ textarea {
 }
 
 .btn:hover {
-  color: #ffffff;
-  border-color: rgba(255, 49, 49, 0.28);
-  box-shadow: 0 0 10px rgba(255, 49, 49, 0.08);
+  color: #ff751f;
+  border-color: #ffde59;
+  box-shadow: 0 0 10px rgba(255, 222, 89, 0.4);
   background: rgba(255, 255, 255, 0.01);
 }
 
@@ -127,30 +127,30 @@ textarea {
 }
 
 .btn.primary {
-  border-color: rgba(255, 49, 49, 0.55);
-  background: rgba(255, 49, 49, 0.12);
+  border-color: #ffde59;
+  background: rgba(255, 222, 89, 0.12);
   color: #ffffff;
-  box-shadow: 0 0 10px rgba(255, 49, 49, 0.12);
+  box-shadow: 0 0 10px rgba(255, 222, 89, 0.25);
 }
 
 .btn.primary:hover {
-  color: #ffffff;
-  border-color: rgba(255, 49, 49, 0.75);
-  background: rgba(255, 49, 49, 0.18);
-  box-shadow: 0 0 14px rgba(255, 49, 49, 0.22);
-  outline: 1px solid rgba(255, 49, 49, 0.35);
+  color: #ff751f;
+  border-color: #ffde59;
+  background: rgba(255, 222, 89, 0.18);
+  box-shadow: 0 0 14px rgba(255, 222, 89, 0.45);
+  outline: 1px solid rgba(255, 222, 89, 0.35);
 }
 
 .btn.danger {
-  border-color: rgba(239, 68, 68, 0.38);
+  border-color: rgba(255, 222, 89, 0.45);
   background: transparent;
 }
 
 .btn.danger:hover {
-  color: var(--accent);
-  border-color: rgba(255, 49, 49, 0.55);
-  box-shadow: 0 0 10px rgba(255, 49, 49, 0.18);
-  background: rgba(255, 49, 49, 0.05);
+  color: #ff751f;
+  border-color: #ffde59;
+  box-shadow: 0 0 10px rgba(255, 222, 89, 0.28);
+  background: rgba(255, 222, 89, 0.05);
 }
 
 .btn.small {
@@ -165,9 +165,9 @@ textarea {
 
 .nav-link-active {
   color: #ffffff !important;
-  border-color: rgba(255, 49, 49, 0.45) !important;
-  box-shadow: 0 0 10px rgba(255, 49, 49, 0.14);
-  background: rgba(255, 49, 49, 0.06);
+  border-color: rgba(255, 222, 89, 0.55) !important;
+  box-shadow: 0 0 10px rgba(255, 222, 89, 0.18);
+  background: rgba(255, 222, 89, 0.08);
 }
 
 .nav-link-active::after {
@@ -178,7 +178,7 @@ textarea {
   bottom: -6px;
   height: 2px;
   border-radius: 999px;
-  background: rgba(255, 49, 49, 0.78);
+  background: rgba(255, 222, 89, 0.9);
 }
 
 .card {
@@ -190,8 +190,8 @@ textarea {
 }
 
 .card:hover {
-  border-color: rgba(255, 49, 49, 0.2);
-  box-shadow: 0 0 12px rgba(255, 49, 49, 0.08);
+  border-color: rgba(255, 222, 89, 0.22);
+  box-shadow: 0 0 12px rgba(255, 222, 89, 0.08);
 }
 
 .card-soft {
@@ -199,13 +199,13 @@ textarea {
 }
 
 .card-notice {
-  border-color: rgba(255, 49, 49, 0.25);
-  background: rgba(255, 49, 49, 0.04);
+  border-color: rgba(255, 222, 89, 0.3);
+  background: rgba(255, 222, 89, 0.05);
 }
 
 .card-message {
-  border-color: rgba(255, 49, 49, 0.25);
-  background: rgba(255, 49, 49, 0.04);
+  border-color: rgba(255, 222, 89, 0.3);
+  background: rgba(255, 222, 89, 0.05);
 }
 
 .card-section-title {
@@ -270,7 +270,7 @@ textarea {
 select:focus,
 textarea:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 8px rgba(255, 49, 49, 0.25);
+  box-shadow: 0 0 8px rgba(255, 222, 89, 0.25);
 }
 
 textarea {
@@ -312,7 +312,7 @@ textarea {
 
 .badge.good {
   color: var(--accent);
-  border-color: rgba(255, 49, 49, 0.35);
+  border-color: rgba(255, 222, 89, 0.4);
 }
 
 hr {
