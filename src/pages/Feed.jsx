@@ -9,6 +9,63 @@ const POST_TYPE_PRIORITY = {
   discussion: 2
 }
 
+const COPY = {
+  en: {
+    unknownMember: 'Unknown Member',
+    loadError: 'Something went wrong while loading your feed.',
+    filtersTitle: 'Feed Filters',
+    filtersIntro: 'Narrow posts by type, role, crew status, or keyword.',
+    postType: 'Post Type',
+    allPostTypes: 'All Post Types',
+    posterRole: 'Poster Role',
+    allRoles: 'All Roles',
+    crewStatus: 'Crew Status',
+    allStatuses: 'All Statuses',
+    search: 'Search',
+    searchPlaceholder: 'Search title, body, trade, role, ZIP...',
+    clearFilters: 'Clear Filters',
+    showing: 'Showing',
+    of: 'of',
+    noMatchBody: 'No posts match your current filters.',
+    resetFilters: 'Reset Filters',
+    openPost: 'Open Post',
+    viewProfile: 'View Profile',
+    start: 'Start',
+    pay: 'Pay',
+    available: 'Available',
+    crewNeeded: 'Crew Needed',
+    filled: 'Filled',
+    hired: 'Hired'
+  },
+  es: {
+    unknownMember: 'Miembro desconocido',
+    loadError: 'Ocurrió un problema al cargar tu feed.',
+    filtersTitle: 'Filtros del feed',
+    filtersIntro: 'Reduce publicaciones por tipo, rol, estado de cuadrilla o palabra clave.',
+    postType: 'Tipo de publicación',
+    allPostTypes: 'Todos los tipos',
+    posterRole: 'Rol del autor',
+    allRoles: 'Todos los roles',
+    crewStatus: 'Estado de cuadrilla',
+    allStatuses: 'Todos los estados',
+    search: 'Buscar',
+    searchPlaceholder: 'Buscar por título, texto, oficio, rol, ZIP...',
+    clearFilters: 'Limpiar filtros',
+    showing: 'Mostrando',
+    of: 'de',
+    noMatchBody: 'No hay publicaciones que coincidan con tus filtros actuales.',
+    resetFilters: 'Restablecer filtros',
+    openPost: 'Abrir publicación',
+    viewProfile: 'Ver perfil',
+    start: 'Inicio',
+    pay: 'Pago',
+    available: 'Disponible',
+    crewNeeded: 'Cuadrilla necesaria',
+    filled: 'Llenos',
+    hired: 'Contratados'
+  }
+}
+
 function postTypeLabel(type, lang) {
   if (lang === 'es') {
     if (type === 'need_crew') return '🚧 Se necesita cuadrilla'
@@ -164,14 +221,14 @@ function availabilityBadgeStyle(isAvailable) {
   }
 }
 
-export default function Feed() {
+export default function Feed({ lang: langProp = 'en' }) {
   const location = useLocation()
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [posts, setPosts] = useState([])
-  const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
+  const [lang, setLang] = useState(langProp || localStorage.getItem('surplox_lang') || 'en')
 
   const [typeFilter, setTypeFilter] = useState('all')
   const [roleFilter, setRoleFilter] = useState('all')
@@ -180,6 +237,7 @@ export default function Feed() {
 
   const params = useMemo(() => new URLSearchParams(location.search), [location.search])
   const tradeParam = params.get('trade')
+  const copy = COPY[lang] || COPY.en
 
   useEffect(() => {
     let alive = true
@@ -211,7 +269,7 @@ export default function Feed() {
           return
         }
 
-        const userLang = prof?.preferred_language || 'en'
+        const userLang = prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
         setLang(userLang)
         localStorage.setItem('surplox_lang', userLang)
 
@@ -330,7 +388,7 @@ export default function Feed() {
           .map((post) => ({
             ...post,
             trade_name: post.trades?.name || '',
-            author_name: post.profiles?.display_name || 'Unknown Member',
+            author_name: post.profiles?.display_name || copy.unknownMember,
             author_role: post.profiles?.role || '',
             author_available: Boolean(post.profiles?.is_available),
             crew_joined_count: crewCountMap.get(post.id) || 0,
@@ -348,7 +406,7 @@ export default function Feed() {
       } catch (e) {
         console.error(e)
         if (!alive) return
-        setErr(e?.message || 'Something went wrong while loading your feed.')
+        setErr(e?.message || copy.loadError)
       } finally {
         if (!alive) return
         setLoading(false)
@@ -359,7 +417,7 @@ export default function Feed() {
     return () => {
       alive = false
     }
-  }, [navigate, tradeParam])
+  }, [navigate, tradeParam, langProp])
 
   const filteredPosts = useMemo(() => {
     return posts.filter((post) => {
@@ -424,50 +482,50 @@ export default function Feed() {
       </div>
 
       <div className="card">
-        <div className="card-section-title">Feed Filters</div>
+        <div className="card-section-title">{copy.filtersTitle}</div>
         <p className="card-section-subtitle">
-          Narrow posts by type, role, crew status, or keyword.
+          {copy.filtersIntro}
         </p>
 
         <div className="grid two" style={{ marginTop: 12 }}>
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>Post Type</div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.postType}</div>
             <select className="input" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-              <option value="all">All Post Types</option>
-              <option value="need_crew">Need Crew</option>
-              <option value="looking_for_work">Looking for Work</option>
-              <option value="discussion">Discussion</option>
+              <option value="all">{copy.allPostTypes}</option>
+              <option value="need_crew">{lang === 'es' ? 'Se necesita cuadrilla' : 'Need Crew'}</option>
+              <option value="looking_for_work">{lang === 'es' ? 'Buscando trabajo' : 'Looking for Work'}</option>
+              <option value="discussion">{lang === 'es' ? 'Discusión' : 'Discussion'}</option>
             </select>
           </div>
 
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>Poster Role</div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.posterRole}</div>
             <select className="input" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
-              <option value="all">All Roles</option>
-              <option value="laborer">Laborer</option>
-              <option value="subcontractor">Subcontractor</option>
-              <option value="contractor">Contractor</option>
-              <option value="supplier">Supplier</option>
+              <option value="all">{copy.allRoles}</option>
+              <option value="laborer">{roleLabel('laborer', lang)}</option>
+              <option value="subcontractor">{roleLabel('subcontractor', lang)}</option>
+              <option value="contractor">{roleLabel('contractor', lang)}</option>
+              <option value="supplier">{roleLabel('supplier', lang)}</option>
             </select>
           </div>
 
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>Crew Status</div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.crewStatus}</div>
             <select className="input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="all">All Statuses</option>
-              <option value="open">Open</option>
-              <option value="full">Crew Full</option>
-              <option value="closed">Closed</option>
+              <option value="all">{copy.allStatuses}</option>
+              <option value="open">{crewStatusLabel('open', lang)}</option>
+              <option value="full">{crewStatusLabel('full', lang)}</option>
+              <option value="closed">{crewStatusLabel('closed', lang)}</option>
             </select>
           </div>
 
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>Search</div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.search}</div>
             <input
               className="input"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search title, body, trade, role, ZIP..."
+              placeholder={copy.searchPlaceholder}
             />
           </div>
         </div>
@@ -482,11 +540,11 @@ export default function Feed() {
               setSearchQuery('')
             }}
           >
-            Clear Filters
+            {copy.clearFilters}
           </button>
 
           <span className="badge" style={{ color: '#ff751f' }}>
-            Showing {filteredPosts.length} of {posts.length}
+            {copy.showing} {filteredPosts.length} {copy.of} {posts.length}
           </span>
         </div>
       </div>
@@ -495,7 +553,7 @@ export default function Feed() {
         <div className="card card-soft">
           <div className="card-section-title">{t(lang, 'feed_empty_title')}</div>
           <p className="card-section-subtitle">
-            No posts match your current filters.
+            {copy.noMatchBody}
           </p>
 
           <div style={{ marginTop: 10 }}>
@@ -508,7 +566,7 @@ export default function Feed() {
                 setSearchQuery('')
               }}
             >
-              Reset Filters
+              {copy.resetFilters}
             </button>
           </div>
         </div>
@@ -546,7 +604,7 @@ export default function Feed() {
 
                   {p.author_available ? (
                     <span className="badge" style={availabilityBadgeStyle(true)}>
-                      Available
+                      {copy.available}
                     </span>
                   ) : null}
 
@@ -557,48 +615,35 @@ export default function Feed() {
                   ) : null}
                 </div>
 
-                <Link to={`/p/${p.id}`} className="postTitle" style={{ display: 'block' }}>
-                  {p.title}
-                </Link>
+                <div className="postTitle">{p.title}</div>
 
-                <div className="postMeta" style={{ marginTop: 6 }}>
-                  <Link to={`/u/${p.author_id}`}>{p.author_name}</Link>
-                  <span>•</span>
-                  <span>{new Date(p.created_at).toLocaleString()}</span>
+                <div className="postMeta" style={{ marginTop: 8 }}>
+                  <span>{p.author_name}</span>
                 </div>
 
-                {isOpportunity && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: 8,
-                      flexWrap: 'wrap',
-                      marginTop: 10
-                    }}
-                  >
+                {isOpportunity ? (
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                     {p.post_type === 'need_crew' && p.needed_crew_size ? (
                       <>
-                        <span className="badge">Crew Needed: {p.needed_crew_size}</span>
-                        <span className="badge">
-                          Filled: {p.crew_joined_count || 0}/{p.needed_crew_size}
-                        </span>
-                        <span className="badge">
-                          Hired: {p.crew_hired_count || 0}
-                        </span>
+                        <span className="badge">{copy.crewNeeded}: {p.needed_crew_size}</span>
+                        <span className="badge">{copy.filled}: {p.crew_joined_count}/{p.needed_crew_size}</span>
+                        <span className="badge">{copy.hired}: {p.crew_hired_count}</span>
                       </>
                     ) : null}
 
                     {p.compensation ? (
-                      <span className="badge">Pay: {p.compensation}</span>
+                      <span className="badge">
+                        {copy.pay}: {p.compensation}
+                      </span>
                     ) : null}
 
                     {p.start_date ? (
                       <span className="badge">
-                        Start: {new Date(p.start_date).toLocaleDateString()}
+                        {copy.start}: {new Date(p.start_date).toLocaleDateString()}
                       </span>
                     ) : null}
                   </div>
-                )}
+                ) : null}
 
                 {p.body ? (
                   <div className="postExcerpt">
@@ -609,10 +654,10 @@ export default function Feed() {
 
                 <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   <Link className="btn small primary" to={`/p/${p.id}`}>
-                    Open Post
+                    {copy.openPost}
                   </Link>
                   <Link className="btn small" to={`/u/${p.author_id}`}>
-                    View Profile
+                    {copy.viewProfile}
                   </Link>
                 </div>
               </div>

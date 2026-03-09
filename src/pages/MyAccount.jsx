@@ -8,11 +8,95 @@ const ROLE_OPTIONS = [
   { value: 'supplier', label: { en: 'Supplier', es: 'Proveedor' } }
 ]
 
-export default function MyAccount() {
+const COPY = {
+  en: {
+    loading: 'Loading your account…',
+    signedInRequired: 'You must be signed in to update your account.',
+    displayNameRequired: 'Display name is required.',
+    firstNameRequired: 'First name is required.',
+    lastNameRequired: 'Last name is required.',
+    roleRequired: 'Select your primary role.',
+    cityRequired: 'City is required.',
+    zipInvalid: 'Enter a valid 5-digit ZIP code.',
+    tradeRequired: 'Select your trade.',
+    phoneInvalid: 'Enter a valid phone number.',
+    emailRequired: 'Email is required.',
+    emailInvalid: 'Enter a valid email address.',
+    languageInvalid: 'Select a valid language.',
+    success: 'Your account has been updated.',
+    saveError: 'Unable to save your account changes.',
+    title: 'My Surplox Account',
+    intro: 'Review and update your account information below.',
+    noticeTitle: 'Account Security',
+    noticeBody:
+      'Your role, trade, location, and language help Surplox route opportunities and build a better labor network over time.',
+    displayName: 'Display Name',
+    primaryRole: 'Primary Role',
+    trade: 'Trade',
+    firstName: 'First Name',
+    lastName: 'Last Name',
+    email: 'Email Address',
+    phone: 'Phone Number',
+    city: 'City',
+    zip: 'Home ZIP Code',
+    radius: 'Travel Radius (Miles)',
+    crewSize: 'Crew Size',
+    language: 'Preferred Language',
+    bio: 'Bio',
+    bioPlaceholder:
+      'Share what kind of work you do, where you work, and what crews or capabilities you have.',
+    selectTrade: 'Select your trade',
+    save: 'Save Changes',
+    saving: 'Saving…'
+  },
+  es: {
+    loading: 'Cargando tu cuenta…',
+    signedInRequired: 'Debes iniciar sesión para actualizar tu cuenta.',
+    displayNameRequired: 'El nombre visible es obligatorio.',
+    firstNameRequired: 'El nombre es obligatorio.',
+    lastNameRequired: 'El apellido es obligatorio.',
+    roleRequired: 'Selecciona tu rol principal.',
+    cityRequired: 'La ciudad es obligatoria.',
+    zipInvalid: 'Ingresa un código postal válido de 5 dígitos.',
+    tradeRequired: 'Selecciona tu oficio.',
+    phoneInvalid: 'Ingresa un número de teléfono válido.',
+    emailRequired: 'El correo electrónico es obligatorio.',
+    emailInvalid: 'Ingresa un correo electrónico válido.',
+    languageInvalid: 'Selecciona un idioma válido.',
+    success: 'Tu cuenta ha sido actualizada.',
+    saveError: 'No se pudieron guardar los cambios de tu cuenta.',
+    title: 'Mi cuenta de Surplox',
+    intro: 'Revisa y actualiza la información de tu cuenta abajo.',
+    noticeTitle: 'Seguridad de cuenta',
+    noticeBody:
+      'Tu rol, oficio, ubicación e idioma ayudan a Surplox a dirigir oportunidades y construir una mejor red laboral con el tiempo.',
+    displayName: 'Nombre visible',
+    primaryRole: 'Rol principal',
+    trade: 'Oficio',
+    firstName: 'Nombre',
+    lastName: 'Apellido',
+    email: 'Correo electrónico',
+    phone: 'Número de teléfono',
+    city: 'Ciudad',
+    zip: 'Código postal',
+    radius: 'Radio de viaje (millas)',
+    crewSize: 'Tamaño de cuadrilla',
+    language: 'Idioma preferido',
+    bio: 'Biografía',
+    bioPlaceholder:
+      'Comparte qué tipo de trabajo haces, dónde trabajas y qué cuadrillas o capacidades tienes.',
+    selectTrade: 'Selecciona tu oficio',
+    save: 'Guardar cambios',
+    saving: 'Guardando…'
+  }
+}
+
+export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLang }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [trades, setTrades] = useState([])
+  const [lang, setLang] = useState(langProp || localStorage.getItem('surplox_lang') || 'en')
 
   const [form, setForm] = useState({
     display_name: '',
@@ -29,6 +113,12 @@ export default function MyAccount() {
     email: '',
     preferred_language: 'en'
   })
+
+  const copy = COPY[lang] || COPY.en
+
+  useEffect(() => {
+    setLang(langProp || localStorage.getItem('surplox_lang') || 'en')
+  }, [langProp])
 
   function setField(k, v) {
     setForm((f) => ({ ...f, [k]: v }))
@@ -58,7 +148,7 @@ export default function MyAccount() {
         return
       }
 
-      const { data: t } = await supabase
+      const { data: trows } = await supabase
         .from('trades')
         .select('id,name')
         .order('name')
@@ -75,7 +165,11 @@ export default function MyAccount() {
         .eq('user_id', user.id)
         .maybeSingle()
 
-      setTrades(t || [])
+      const userLang = prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
+      setLang(userLang)
+      localStorage.setItem('surplox_lang', userLang)
+
+      setTrades(trows || [])
 
       setForm({
         display_name: prof?.display_name || '',
@@ -90,38 +184,40 @@ export default function MyAccount() {
         phone: cp?.phone || '',
         city: cp?.city || '',
         email: cp?.email || user.email || '',
-        preferred_language: prof?.preferred_language || 'en'
+        preferred_language: userLang
       })
 
       setLoading(false)
     }
 
     load()
-  }, [])
+  }, [langProp])
 
   async function save() {
     setSaving(true)
     setMsg('')
 
+    const activeCopy = COPY[form.preferred_language] || COPY.en
+
     try {
       const { data: sessionData } = await supabase.auth.getSession()
       const user = sessionData.session?.user
-      if (!user) throw new Error('You must be signed in to update your account.')
+      if (!user) throw new Error(activeCopy.signedInRequired)
 
-      if (!form.display_name.trim()) throw new Error('Display name is required.')
-      if (!form.first_name.trim()) throw new Error('First name is required.')
-      if (!form.last_name.trim()) throw new Error('Last name is required.')
-      if (!ROLE_OPTIONS.some((x) => x.value === form.role)) throw new Error('Select your primary role.')
-      if (!form.city.trim()) throw new Error('City is required.')
-      if (!/^[0-9]{5}$/.test(form.home_zip)) throw new Error('Enter a valid 5-digit ZIP code.')
-      if (!form.trade_id) throw new Error('Select your trade.')
+      if (!form.display_name.trim()) throw new Error(activeCopy.displayNameRequired)
+      if (!form.first_name.trim()) throw new Error(activeCopy.firstNameRequired)
+      if (!form.last_name.trim()) throw new Error(activeCopy.lastNameRequired)
+      if (!ROLE_OPTIONS.some((x) => x.value === form.role)) throw new Error(activeCopy.roleRequired)
+      if (!form.city.trim()) throw new Error(activeCopy.cityRequired)
+      if (!/^[0-9]{5}$/.test(form.home_zip)) throw new Error(activeCopy.zipInvalid)
+      if (!form.trade_id) throw new Error(activeCopy.tradeRequired)
 
       const phoneDigits = normalizePhone(form.phone)
-      if (phoneDigits.length < 10) throw new Error('Enter a valid phone number.')
+      if (phoneDigits.length < 10) throw new Error(activeCopy.phoneInvalid)
 
-      if (!form.email.trim()) throw new Error('Email is required.')
-      if (!isValidEmail(form.email)) throw new Error('Enter a valid email address.')
-      if (!['en', 'es'].includes(form.preferred_language)) throw new Error('Select a valid language.')
+      if (!form.email.trim()) throw new Error(activeCopy.emailRequired)
+      if (!isValidEmail(form.email)) throw new Error(activeCopy.emailInvalid)
+      if (!['en', 'es'].includes(form.preferred_language)) throw new Error(activeCopy.languageInvalid)
 
       const { error: profErr } = await supabase.from('profiles').upsert({
         user_id: user.id,
@@ -150,28 +246,35 @@ export default function MyAccount() {
       })
       if (cpErr) throw cpErr
 
-      setMsg('Your account has been updated.')
+      localStorage.setItem('surplox_lang', form.preferred_language)
+      setLang(form.preferred_language)
+
+      if (typeof setGlobalLang === 'function') {
+        await setGlobalLang(form.preferred_language)
+      }
+
+      setMsg(activeCopy.success)
     } catch (err) {
-      setMsg(err.message || 'Unable to save your account changes.')
+      setMsg(err.message || activeCopy.saveError)
     } finally {
       setSaving(false)
     }
   }
 
-  if (loading) return <div className="card">Loading your account…</div>
+  if (loading) return <div className="card">{copy.loading}</div>
 
   return (
     <div className="card" style={{ maxWidth: 860, margin: '0 auto' }}>
-      <div className="h1">My Surplox Account</div>
+      <div className="h1">{copy.title}</div>
 
       <p className="muted">
-        Review and update your account information below.
+        {copy.intro}
       </p>
 
       <div className="card card-notice" style={{ marginBottom: 12 }}>
-        <div className="card-section-title">Account Security</div>
+        <div className="card-section-title">{copy.noticeTitle}</div>
         <p className="card-section-subtitle">
-          Your role and trade help Surplox route opportunities and build a better labor network over time.
+          {copy.noticeBody}
         </p>
       </div>
 
@@ -183,7 +286,7 @@ export default function MyAccount() {
 
       <div className="grid two">
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>Display Name</div>
+          <div className="muted" style={{ marginBottom: 6 }}>{copy.displayName}</div>
           <input
             className="input"
             value={form.display_name}
@@ -192,7 +295,7 @@ export default function MyAccount() {
         </div>
 
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>Primary Role</div>
+          <div className="muted" style={{ marginBottom: 6 }}>{copy.primaryRole}</div>
           <select
             className="input"
             value={form.role}
@@ -207,21 +310,21 @@ export default function MyAccount() {
         </div>
 
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>Trade</div>
+          <div className="muted" style={{ marginBottom: 6 }}>{copy.trade}</div>
           <select
             className="input"
             value={form.trade_id}
             onChange={(e) => setField('trade_id', e.target.value)}
           >
-            <option value="">Select your trade</option>
-            {trades.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
+            <option value="">{copy.selectTrade}</option>
+            {trades.map((trow) => (
+              <option key={trow.id} value={trow.id}>{trow.name}</option>
             ))}
           </select>
         </div>
 
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>First Name</div>
+          <div className="muted" style={{ marginBottom: 6 }}>{copy.firstName}</div>
           <input
             className="input"
             value={form.first_name}
@@ -230,7 +333,7 @@ export default function MyAccount() {
         </div>
 
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>Last Name</div>
+          <div className="muted" style={{ marginBottom: 6 }}>{copy.lastName}</div>
           <input
             className="input"
             value={form.last_name}
@@ -239,7 +342,7 @@ export default function MyAccount() {
         </div>
 
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>Email Address</div>
+          <div className="muted" style={{ marginBottom: 6 }}>{copy.email}</div>
           <input
             className="input"
             type="email"
@@ -249,7 +352,7 @@ export default function MyAccount() {
         </div>
 
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>Phone Number</div>
+          <div className="muted" style={{ marginBottom: 6 }}>{copy.phone}</div>
           <input
             className="input"
             value={form.phone}
@@ -258,7 +361,7 @@ export default function MyAccount() {
         </div>
 
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>City</div>
+          <div className="muted" style={{ marginBottom: 6 }}>{copy.city}</div>
           <input
             className="input"
             value={form.city}
@@ -267,7 +370,7 @@ export default function MyAccount() {
         </div>
 
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>Home ZIP Code</div>
+          <div className="muted" style={{ marginBottom: 6 }}>{copy.zip}</div>
           <input
             className="input"
             value={form.home_zip}
@@ -276,7 +379,7 @@ export default function MyAccount() {
         </div>
 
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>Travel Radius (Miles)</div>
+          <div className="muted" style={{ marginBottom: 6 }}>{copy.radius}</div>
           <input
             className="input"
             type="number"
@@ -286,7 +389,7 @@ export default function MyAccount() {
         </div>
 
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>Crew Size</div>
+          <div className="muted" style={{ marginBottom: 6 }}>{copy.crewSize}</div>
           <input
             className="input"
             type="number"
@@ -296,11 +399,16 @@ export default function MyAccount() {
         </div>
 
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>Preferred Language</div>
+          <div className="muted" style={{ marginBottom: 6 }}>{copy.language}</div>
           <select
             className="input"
             value={form.preferred_language}
-            onChange={(e) => setField('preferred_language', e.target.value)}
+            onChange={(e) => {
+              const nextLang = e.target.value
+              setField('preferred_language', nextLang)
+              setLang(nextLang)
+              localStorage.setItem('surplox_lang', nextLang)
+            }}
           >
             <option value="en">English</option>
             <option value="es">Español</option>
@@ -309,18 +417,18 @@ export default function MyAccount() {
       </div>
 
       <div style={{ marginTop: 10 }}>
-        <div className="muted" style={{ marginBottom: 6 }}>Bio</div>
+        <div className="muted" style={{ marginBottom: 6 }}>{copy.bio}</div>
         <textarea
           className="input"
           value={form.bio}
           onChange={(e) => setField('bio', e.target.value)}
-          placeholder="Share what kind of work you do, where you work, and what crews or capabilities you have."
+          placeholder={copy.bioPlaceholder}
         />
       </div>
 
       <div style={{ marginTop: 12 }}>
         <button className="btn primary" onClick={save} disabled={saving}>
-          {saving ? 'Saving…' : 'Save Changes'}
+          {saving ? copy.saving : copy.save}
         </button>
       </div>
     </div>
