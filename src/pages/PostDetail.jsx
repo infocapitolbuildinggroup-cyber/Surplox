@@ -183,6 +183,14 @@ function memberStatusBadgeStyle(status) {
   }
 }
 
+function formatPhone(phone) {
+  const digits = String(phone || '').replace(/\D/g, '')
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+  }
+  return phone || ''
+}
+
 export default function PostDetail() {
   const { id } = useParams()
 
@@ -310,6 +318,7 @@ export default function PostDetail() {
         const joinedUserIds = (crewRows || []).map((row) => row.user_id)
 
         let profileMap = new Map()
+        let contactMap = new Map()
 
         if (joinedUserIds.length > 0) {
           const { data: joinedProfiles, error: joinedProfilesErr } = await supabase
@@ -320,16 +329,34 @@ export default function PostDetail() {
           if (joinedProfilesErr) throw joinedProfilesErr
 
           profileMap = new Map((joinedProfiles || []).map((row) => [row.user_id, row]))
+
+          if (uid === p.author_id) {
+            const { data: contactRows, error: contactErr } = await supabase
+              .from('contact_private')
+              .select('user_id, phone, email, city')
+              .in('user_id', joinedUserIds)
+
+            if (contactErr) {
+              console.error('Unable to load private contact data:', contactErr)
+            } else {
+              contactMap = new Map((contactRows || []).map((row) => [row.user_id, row]))
+            }
+          }
         }
 
         const members = (crewRows || []).map((row) => {
           const profile = profileMap.get(row.user_id)
+          const contact = contactMap.get(row.user_id)
+
           return {
             user_id: row.user_id,
             created_at: row.created_at,
             status: row.status || 'joined',
             display_name: profile?.display_name || 'Unknown Member',
-            role: profile?.role || ''
+            role: profile?.role || '',
+            phone: contact?.phone || '',
+            email: contact?.email || '',
+            city: contact?.city || ''
           }
         })
 
@@ -563,9 +590,9 @@ export default function PostDetail() {
           }
         )
 
-        if (relationshipErr) {
-          console.error('Relationship graph insert failed:', relationshipErr)
-        }
+      if (relationshipErr) {
+        console.error('Relationship graph insert failed:', relationshipErr)
+      }
 
       if (needed > 0 && crewMembers.length + 1 >= needed) {
         const { error: statusErr } = await supabase
@@ -888,23 +915,65 @@ export default function PostDetail() {
                               justifyContent: 'space-between',
                               gap: 10,
                               flexWrap: 'wrap',
-                              alignItems: 'center'
+                              alignItems: 'flex-start'
                             }}
                           >
-                            <div className="postMeta">
-                              <span>{member.display_name}</span>
+                            <div style={{ flex: 1, minWidth: 240 }}>
+                              <div className="postMeta">
+                                <span>{member.display_name}</span>
 
-                              {member.role ? (
-                                <span className="badge" style={roleBadgeStyle(member.role)}>
-                                  {roleLabel(member.role, lang)}
+                                {member.role ? (
+                                  <span className="badge" style={roleBadgeStyle(member.role)}>
+                                    {roleLabel(member.role, lang)}
+                                  </span>
+                                ) : null}
+
+                                <span className="badge" style={memberStatusBadgeStyle(member.status)}>
+                                  {memberStatusLabel(member.status, lang)}
                                 </span>
-                              ) : null}
 
-                              <span className="badge" style={memberStatusBadgeStyle(member.status)}>
-                                {memberStatusLabel(member.status, lang)}
-                              </span>
+                                <span>Joined {timeAgo(member.created_at)}</span>
+                              </div>
 
-                              <span>Joined {timeAgo(member.created_at)}</span>
+                              {isPostOwner && (
+                                <div
+                                  className="card"
+                                  style={{
+                                    marginTop: 10,
+                                    padding: 12,
+                                    borderColor: 'rgba(255, 222, 89, 0.22)',
+                                    background: 'rgba(255, 222, 89, 0.04)'
+                                  }}
+                                >
+                                  <div className="card-section-title" style={{ fontSize: 14, marginBottom: 8 }}>
+                                    Contact Card
+                                  </div>
+
+                                  <div className="stack-sm">
+                                    {member.phone ? (
+                                      <div className="muted">
+                                        Phone: <a href={`tel:${member.phone}`}>{formatPhone(member.phone)}</a>
+                                      </div>
+                                    ) : (
+                                      <div className="muted">Phone: Not available</div>
+                                    )}
+
+                                    {member.email ? (
+                                      <div className="muted">
+                                        Email: <a href={`mailto:${member.email}`}>{member.email}</a>
+                                      </div>
+                                    ) : (
+                                      <div className="muted">Email: Not available</div>
+                                    )}
+
+                                    {member.city ? (
+                                      <div className="muted">City: {member.city}</div>
+                                    ) : (
+                                      <div className="muted">City: Not available</div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
 
                             {isPostOwner && (
