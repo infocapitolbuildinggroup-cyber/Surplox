@@ -36,7 +36,16 @@ const COPY = {
     crewNeeded: 'Crew Needed',
     filled: 'Filled',
     hired: 'Hired',
-    unknownDate: 'Unknown date'
+    unknownDate: 'Unknown date',
+    welcomeTitle: 'Welcome to Surplox',
+    welcomeBody:
+      'This is the construction worker network for local crews, laborers, subcontractors, and opportunities.',
+    welcomeBullet1: 'Post work opportunities',
+    welcomeBullet2: 'Find crews near your jobsite',
+    welcomeBullet3: 'Ask trade questions',
+    welcomeBullet4: 'Connect with local subs and workers',
+    welcomeCta: 'Create Your First Post',
+    emptyBetter: 'Be the first to post in your area.'
   },
   es: {
     unknownMember: 'Miembro desconocido',
@@ -64,7 +73,16 @@ const COPY = {
     crewNeeded: 'Cuadrilla necesaria',
     filled: 'Llenos',
     hired: 'Contratados',
-    unknownDate: 'Fecha desconocida'
+    unknownDate: 'Fecha desconocida',
+    welcomeTitle: 'Bienvenido a Surplox',
+    welcomeBody:
+      'Esta es la red de construcción para cuadrillas locales, trabajadores, subcontratistas y oportunidades.',
+    welcomeBullet1: 'Publica oportunidades de trabajo',
+    welcomeBullet2: 'Encuentra cuadrillas cerca de tu obra',
+    welcomeBullet3: 'Haz preguntas del oficio',
+    welcomeBullet4: 'Conecta con subcontratistas y trabajadores locales',
+    welcomeCta: 'Crea tu primera publicación',
+    emptyBetter: 'Sé el primero en publicar en tu área.'
   }
 }
 
@@ -453,6 +471,8 @@ export default function Feed({ lang: langProp = 'en' }) {
     })
   }, [posts, typeFilter, roleFilter, statusFilter, searchQuery])
 
+  const showWelcomeCard = posts.length === 0
+
   if (loading) {
     return <div className="card">{t(lang, 'feed_loading')}</div>
   }
@@ -483,6 +503,49 @@ export default function Feed({ lang: langProp = 'en' }) {
           <Link className="btn" to="/channels">{t(lang, 'feed_browse_channels')}</Link>
         </div>
       </div>
+
+      {showWelcomeCard && (
+        <div
+          className="card"
+          style={{
+            borderColor: 'rgba(255, 222, 89, 0.4)',
+            background: 'rgba(255, 222, 89, 0.06)'
+          }}
+        >
+          <div className="badge" style={{ marginBottom: 10 }}>
+            🚧 {copy.welcomeTitle}
+          </div>
+
+          <div className="card-section-title" style={{ fontSize: 20 }}>
+            {copy.welcomeTitle}
+          </div>
+
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {copy.welcomeBody}
+          </p>
+
+          <div className="grid two" style={{ marginTop: 12, gap: 10 }}>
+            <div className="card card-soft">
+              <div>{copy.welcomeBullet1}</div>
+            </div>
+            <div className="card card-soft">
+              <div>{copy.welcomeBullet2}</div>
+            </div>
+            <div className="card card-soft">
+              <div>{copy.welcomeBullet3}</div>
+            </div>
+            <div className="card card-soft">
+              <div>{copy.welcomeBullet4}</div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 14 }}>
+            <Link className="btn primary" to="/new">
+              {copy.welcomeCta}
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="card">
         <div className="card-section-title">{copy.filtersTitle}</div>
@@ -556,20 +619,25 @@ export default function Feed({ lang: langProp = 'en' }) {
         <div className="card card-soft">
           <div className="card-section-title">{t(lang, 'feed_empty_title')}</div>
           <p className="card-section-subtitle">
-            {copy.noMatchBody}
+            {showWelcomeCard ? copy.emptyBetter : copy.noMatchBody}
           </p>
 
           <div style={{ marginTop: 10 }}>
             <button
               className="btn primary"
               onClick={() => {
+                if (showWelcomeCard) {
+                  navigate('/new')
+                  return
+                }
+
                 setTypeFilter('all')
                 setRoleFilter('all')
                 setStatusFilter('all')
                 setSearchQuery('')
               }}
             >
-              {copy.resetFilters}
+              {showWelcomeCard ? copy.welcomeCta : copy.resetFilters}
             </button>
           </div>
         </div>

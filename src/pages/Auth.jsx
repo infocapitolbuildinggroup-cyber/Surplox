@@ -11,16 +11,21 @@ const COPY = {
       'Get back to nearby opportunities, crew activity, alerts, profile visibility, and local construction connections.',
     signUpIntro:
       'Join Surplox to post crew needs, discover nearby work, stay visible in your trade, and build stronger local connections.',
-
+    previewTitle: 'Join the Surplox Trades Network',
+    previewBody:
+      'Built for construction workers, subcontractors, contractors, and suppliers.',
+    previewBullet1: 'Find crews and workers near your jobsite',
+    previewBullet2: 'Post work opportunities',
+    previewBullet3: 'Connect with local trades instantly',
+    previewFree: 'Free for workers.',
+    previewTexas: 'Early access for construction workers in Texas.',
     languageLabel: 'Language',
     languageEnglish: 'English',
     languageSpanish: 'Español',
-
     email: 'Email',
     password: 'Password',
     emailPlaceholder: 'you@email.com',
     passwordPlaceholder: 'Enter your password',
-
     signInButton: 'Sign In',
     signUpButton: 'Create Account',
     wait: 'Please wait…',
@@ -28,30 +33,23 @@ const COPY = {
     switchToSignIn: 'Already have an account? Sign in',
     checkEmail: 'Check your email to confirm your account.',
     authError: 'Unable to complete authentication right now.',
-
     sideBadge: 'Why Surplox',
     sideTitle: 'Construction moves through people. Surplox keeps them connected.',
     sideBody:
       'Surplox gives the field one place to stay visible, respond faster, and build stronger local momentum without relying only on scattered calls, texts, and word of mouth.',
-
     point1Title: 'Nearby trade activity',
     point1Body:
       'Follow local work and conversations based on ZIP code, radius, and trade relevance.',
-
     point2Title: 'Crew posts and opportunities',
     point2Body:
       'Post labor needs, discover available workers, and move faster when it is time to fill jobs.',
-
     point3Title: 'Profiles that carry weight',
     point3Body:
       'Show your role, trade, travel radius, and availability so the right people can find you.',
-
     point4Title: 'Alerts and repeat connections',
     point4Body:
       'Stay on top of replies, joins, hires, and local activity that can turn into future work.',
-
-    footer:
-      'Built for laborers, subcontractors, contractors, and suppliers.'
+    footer: 'Built for laborers, subcontractors, contractors, and suppliers.'
   },
   es: {
     formLabel: 'Acceso a Surplox',
@@ -61,16 +59,21 @@ const COPY = {
       'Vuelve a oportunidades cercanas, actividad de cuadrillas, alertas, visibilidad de perfil y conexiones locales de construcción.',
     signUpIntro:
       'Únete a Surplox para publicar necesidades de cuadrilla, descubrir trabajo cercano, mantenerte visible en tu oficio y construir conexiones locales más fuertes.',
-
+    previewTitle: 'Únete a la red de oficios Surplox',
+    previewBody:
+      'Hecho para trabajadores de construcción, subcontratistas, contratistas y proveedores.',
+    previewBullet1: 'Encuentra cuadrillas y trabajadores cerca de tu obra',
+    previewBullet2: 'Publica oportunidades de trabajo',
+    previewBullet3: 'Conecta con oficios locales al instante',
+    previewFree: 'Gratis para trabajadores.',
+    previewTexas: 'Acceso temprano para trabajadores de construcción en Texas.',
     languageLabel: 'Idioma',
     languageEnglish: 'English',
     languageSpanish: 'Español',
-
     email: 'Correo electrónico',
     password: 'Contraseña',
     emailPlaceholder: 'tu@email.com',
     passwordPlaceholder: 'Ingresa tu contraseña',
-
     signInButton: 'Iniciar sesión',
     signUpButton: 'Crear cuenta',
     wait: 'Espera…',
@@ -78,30 +81,23 @@ const COPY = {
     switchToSignIn: '¿Ya tienes cuenta? Inicia sesión',
     checkEmail: 'Revisa tu correo para confirmar tu cuenta.',
     authError: 'No se pudo completar la autenticación en este momento.',
-
     sideBadge: 'Por qué Surplox',
     sideTitle: 'La construcción se mueve por personas. Surplox las mantiene conectadas.',
     sideBody:
       'Surplox le da al campo un solo lugar para mantenerse visible, responder más rápido y crear impulso local sin depender solo de llamadas, mensajes y recomendaciones.',
-
     point1Title: 'Actividad cercana del oficio',
     point1Body:
       'Sigue el trabajo y las conversaciones locales según código postal, radio y relevancia del oficio.',
-
     point2Title: 'Publicaciones de cuadrilla y oportunidades',
     point2Body:
       'Publica necesidades de personal, descubre trabajadores disponibles y avanza más rápido al llenar puestos.',
-
     point3Title: 'Perfiles con peso',
     point3Body:
       'Muestra tu rol, oficio, radio de trabajo y disponibilidad para que la gente correcta te encuentre.',
-
     point4Title: 'Alertas y conexiones repetidas',
     point4Body:
       'Mantente al tanto de respuestas, uniones, contrataciones y actividad local que puede convertirse en trabajo futuro.',
-
-    footer:
-      'Hecho para trabajadores, subcontratistas, contratistas y proveedores.'
+    footer: 'Hecho para trabajadores, subcontratistas, contratistas y proveedores.'
   }
 }
 
@@ -230,6 +226,33 @@ export default function Auth({ lang = 'en', setLang }) {
         >
           {copy.formLabel}
         </div>
+
+        {mode === 'signup' && (
+          <div
+            className="card card-soft"
+            style={{
+              marginBottom: 14,
+              borderColor: 'rgba(255, 222, 89, 0.28)',
+              background: 'rgba(255, 222, 89, 0.05)'
+            }}
+          >
+            <div className="card-section-title">{copy.previewTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+              {copy.previewBody}
+            </p>
+
+            <div className="grid" style={{ gap: 8, marginTop: 10 }}>
+              <div>{copy.previewBullet1}</div>
+              <div>{copy.previewBullet2}</div>
+              <div>{copy.previewBullet3}</div>
+            </div>
+
+            <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <span className="badge">{copy.previewFree}</span>
+              <span className="badge">{copy.previewTexas}</span>
+            </div>
+          </div>
+        )}
 
         <div className="h1">
           {mode === 'signup' ? copy.signUpTitle : copy.signInTitle}
