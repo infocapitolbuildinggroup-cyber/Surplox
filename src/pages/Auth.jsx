@@ -12,26 +12,31 @@ const COPY = {
     signUpIntro:
       'Join Surplox to post crew needs, discover nearby work, stay visible in your trade, and build stronger local connections.',
 
+    languageLabel: 'Language',
+    languageEnglish: 'English',
+    languageSpanish: 'Español',
+
     email: 'Email',
     password: 'Password',
     emailPlaceholder: 'you@email.com',
     passwordPlaceholder: 'Enter your password',
+
     signInButton: 'Sign In',
     signUpButton: 'Create Account',
     wait: 'Please wait…',
     switchToSignUp: 'Need an account? Sign up',
     switchToSignIn: 'Already have an account? Sign in',
     checkEmail: 'Check your email to confirm your account.',
-    authError: 'Unable to sign in right now.',
+    authError: 'Unable to complete authentication right now.',
 
     sideBadge: 'Why Surplox',
     sideTitle: 'Construction moves through people. Surplox keeps them connected.',
     sideBody:
-      'Surplox gives the field one place to stay visible, respond faster, and build stronger local momentum without relying on scattered calls, texts, and word of mouth alone.',
+      'Surplox gives the field one place to stay visible, respond faster, and build stronger local momentum without relying only on scattered calls, texts, and word of mouth.',
 
     point1Title: 'Nearby trade activity',
     point1Body:
-      'Follow the work happening around your market based on ZIP code, radius, and trade relevance.',
+      'Follow local work and conversations based on ZIP code, radius, and trade relevance.',
 
     point2Title: 'Crew posts and opportunities',
     point2Body:
@@ -39,7 +44,7 @@ const COPY = {
 
     point3Title: 'Profiles that carry weight',
     point3Body:
-      'Show role, trade, travel radius, and availability so the right people can find you more easily.',
+      'Show your role, trade, travel radius, and availability so the right people can find you.',
 
     point4Title: 'Alerts and repeat connections',
     point4Body:
@@ -57,17 +62,22 @@ const COPY = {
     signUpIntro:
       'Únete a Surplox para publicar necesidades de cuadrilla, descubrir trabajo cercano, mantenerte visible en tu oficio y construir conexiones locales más fuertes.',
 
+    languageLabel: 'Idioma',
+    languageEnglish: 'English',
+    languageSpanish: 'Español',
+
     email: 'Correo electrónico',
     password: 'Contraseña',
     emailPlaceholder: 'tu@email.com',
     passwordPlaceholder: 'Ingresa tu contraseña',
+
     signInButton: 'Iniciar sesión',
     signUpButton: 'Crear cuenta',
     wait: 'Espera…',
     switchToSignUp: '¿Necesitas cuenta? Regístrate',
     switchToSignIn: '¿Ya tienes cuenta? Inicia sesión',
     checkEmail: 'Revisa tu correo para confirmar tu cuenta.',
-    authError: 'No se pudo iniciar sesión en este momento.',
+    authError: 'No se pudo completar la autenticación en este momento.',
 
     sideBadge: 'Por qué Surplox',
     sideTitle: 'La construcción se mueve por personas. Surplox las mantiene conectadas.',
@@ -76,7 +86,7 @@ const COPY = {
 
     point1Title: 'Actividad cercana del oficio',
     point1Body:
-      'Sigue el trabajo que sucede alrededor de tu mercado según ZIP, radio y relevancia del oficio.',
+      'Sigue el trabajo y las conversaciones locales según código postal, radio y relevancia del oficio.',
 
     point2Title: 'Publicaciones de cuadrilla y oportunidades',
     point2Body:
@@ -84,7 +94,7 @@ const COPY = {
 
     point3Title: 'Perfiles con peso',
     point3Body:
-      'Muestra rol, oficio, radio de trabajo y disponibilidad para que la gente correcta te encuentre más fácil.',
+      'Muestra tu rol, oficio, radio de trabajo y disponibilidad para que la gente correcta te encuentre.',
 
     point4Title: 'Alertas y conexiones repetidas',
     point4Body:
@@ -95,7 +105,7 @@ const COPY = {
   }
 }
 
-export default function Auth({ lang = 'en' }) {
+export default function Auth({ lang = 'en', setLang }) {
   const [mode, setMode] = useState('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -144,6 +154,13 @@ export default function Auth({ lang = 'en' }) {
       setMsg(err.message || copy.authError)
     } finally {
       setLoading(false)
+    }
+  }
+
+  function handleLanguageChange(e) {
+    const nextLang = e.target.value
+    if (typeof setLang === 'function') {
+      setLang(nextLang)
     }
   }
 
@@ -222,6 +239,16 @@ export default function Auth({ lang = 'en' }) {
           {mode === 'signup' ? copy.signUpIntro : copy.signInIntro}
         </p>
 
+        <div style={{ marginTop: 14 }}>
+          <div className="muted" style={{ marginBottom: 6 }}>
+            {copy.languageLabel}
+          </div>
+          <select className="input" value={lang} onChange={handleLanguageChange}>
+            <option value="en">{copy.languageEnglish}</option>
+            <option value="es">{copy.languageSpanish}</option>
+          </select>
+        </div>
+
         {msg ? (
           <div className="card card-message" style={{ marginTop: 14, marginBottom: 14 }}>
             {msg}
@@ -265,6 +292,7 @@ export default function Auth({ lang = 'en' }) {
         <hr />
 
         <button
+          type="button"
           className="btn"
           onClick={() => setMode(mode === 'signup' ? 'signin' : 'signup')}
         >
