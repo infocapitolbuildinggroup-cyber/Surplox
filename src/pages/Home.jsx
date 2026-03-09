@@ -3,90 +3,84 @@ import { Link } from 'react-router-dom'
 
 const COPY = {
   en: {
-    heroBadge: 'Built for the field',
-    heroTitle: 'The construction network for crews, opportunities, and local trade activity.',
-    heroBody:
-      'Surplox helps laborers, subcontractors, contractors, and suppliers stay connected in one place. Discover nearby work, post crew needs, show availability, build your network, and move faster on the job.',
-    ctaPrimary: 'Join Surplox',
-    ctaSecondary: 'Sign In',
+    badge: 'Built for local construction',
+    title: 'The network where crews, workers, and opportunities move faster.',
+    body:
+      'Surplox helps laborers, subcontractors, contractors, and suppliers stay connected in one place. Discover nearby work, post crew needs, show availability, grow your network, and stay in the loop on real trade activity happening around you.',
+    primaryCta: 'Join Surplox',
+    secondaryCta: 'Sign In',
     signedInPrimary: 'Go to Feed',
     signedInSecondary: 'Create Post',
 
-    panelTitle: 'What you can do in Surplox',
-    panelBody:
-      'Surplox is no longer just a discussion board. It is a live local trades network designed to help the right people find each other faster.',
+    valueTitle: 'What Surplox does now',
+    valueBody:
+      'Surplox is no longer just a forum. It is a live local construction network built to help the right people find each other faster and keep work moving.',
 
-    feature1Title: 'Post Opportunities',
-    feature1Body:
-      'Create Need Crew and Looking for Work posts tied to real ZIP codes, radius, start timing, and pay details.',
+    card1Title: 'Find nearby opportunities',
+    card1Body:
+      'See local trade activity based on ZIP code and radius so relevant work, discussions, and crew needs are easier to discover.',
 
-    feature2Title: 'Build Crews',
-    feature2Body:
-      'Turn a post into a crew builder where workers can join, get marked hired, and help fill real job needs.',
+    card2Title: 'Build and fill crews',
+    card2Body:
+      'Post when you need labor, track who joins, and move people into real job opportunities faster.',
 
-    feature3Title: 'Show Availability',
-    feature3Body:
-      'Profiles can show role, trade, travel radius, and availability so nearby companies and crews can spot active workers.',
+    card3Title: 'Show availability',
+    card3Body:
+      'Workers and subs can stay visible with profiles, trade details, travel radius, and current availability.',
 
-    feature4Title: 'Grow Your Network',
-    feature4Body:
-      'Stay visible in your trade, get activity alerts, share crew posts, and build repeat working relationships across your market.',
+    card4Title: 'Strengthen your network',
+    card4Body:
+      'Stay connected through activity, alerts, replies, and repeat working relationships across your market.',
 
-    whoTitle: 'Who Surplox is for',
-    whoBody:
-      'Laborers, subcontractors, contractors, and suppliers using one local network to find work, fill jobs, and stay connected to trade activity.',
+    audienceTitle: 'Who it is for',
+    audience1: 'Laborers looking for local work and visibility',
+    audience2: 'Subcontractors building crews and finding help',
+    audience3: 'Contractors filling labor gaps and posting opportunities',
+    audience4: 'Suppliers staying connected to active job markets',
 
-    who1: 'Laborers looking for nearby work and visibility',
-    who2: 'Subcontractors building crews and finding help',
-    who3: 'Contractors posting opportunities and filling labor gaps',
-    who4: 'Suppliers staying connected to active trade markets',
-
-    footerTitle: 'Built for local execution',
-    footerBody:
-      'Surplox organizes trade activity by location so the right posts, workers, and crews are easier to discover in the markets that matter.'
+    bottomTitle: 'Built for the field, not the office.',
+    bottomBody:
+      'Surplox is designed around how construction actually moves — through people, timing, location, and trusted local connections.'
   },
   es: {
-    heroBadge: 'Hecho para el trabajo en campo',
-    heroTitle: 'La red de construcción para cuadrillas, oportunidades y actividad local del oficio.',
-    heroBody:
-      'Surplox ayuda a trabajadores, subcontratistas, contratistas y proveedores a mantenerse conectados en un solo lugar. Descubre trabajo cercano, publica necesidades de cuadrilla, muestra disponibilidad, construye tu red y avanza más rápido en cada proyecto.',
-    ctaPrimary: 'Unirse a Surplox',
-    ctaSecondary: 'Iniciar sesión',
+    badge: 'Hecho para la construcción local',
+    title: 'La red donde cuadrillas, trabajadores y oportunidades avanzan más rápido.',
+    body:
+      'Surplox ayuda a trabajadores, subcontratistas, contratistas y proveedores a mantenerse conectados en un solo lugar. Descubre trabajo cercano, publica necesidades de cuadrilla, muestra disponibilidad, haz crecer tu red y mantente al tanto de la actividad real del oficio cerca de ti.',
+    primaryCta: 'Unirse a Surplox',
+    secondaryCta: 'Iniciar sesión',
     signedInPrimary: 'Ir al Feed',
     signedInSecondary: 'Crear publicación',
 
-    panelTitle: 'Lo que puedes hacer en Surplox',
-    panelBody:
-      'Surplox ya no es solo un foro de discusión. Ahora es una red activa local para la industria donde las personas correctas pueden encontrarse más rápido.',
+    valueTitle: 'Lo que hace Surplox ahora',
+    valueBody:
+      'Surplox ya no es solo un foro. Ahora es una red activa local de construcción diseñada para que la gente correcta se encuentre más rápido y el trabajo siga avanzando.',
 
-    feature1Title: 'Publicar oportunidades',
-    feature1Body:
-      'Crea publicaciones de Se necesita cuadrilla y Buscando trabajo con ZIP real, radio, fecha de inicio y detalles de pago.',
+    card1Title: 'Encontrar oportunidades cercanas',
+    card1Body:
+      'Ve actividad local del oficio según ZIP y radio para descubrir trabajo, conversaciones y necesidades de cuadrilla más relevantes.',
 
-    feature2Title: 'Armar cuadrillas',
-    feature2Body:
-      'Convierte una publicación en una herramienta para formar cuadrilla donde los trabajadores pueden unirse y ser marcados como contratados.',
+    card2Title: 'Armar y llenar cuadrillas',
+    card2Body:
+      'Publica cuando necesites personal, revisa quién se une y mueve gente hacia oportunidades reales más rápido.',
 
-    feature3Title: 'Mostrar disponibilidad',
-    feature3Body:
-      'Los perfiles pueden mostrar rol, oficio, radio de trabajo y disponibilidad para que empresas y cuadrillas cercanas encuentren gente activa.',
+    card3Title: 'Mostrar disponibilidad',
+    card3Body:
+      'Trabajadores y subcontratistas pueden mantenerse visibles con perfiles, oficio, radio de trabajo y disponibilidad actual.',
 
-    feature4Title: 'Hacer crecer tu red',
-    feature4Body:
-      'Mantente visible en tu oficio, recibe alertas de actividad, comparte publicaciones de cuadrilla y crea relaciones de trabajo repetidas.',
+    card4Title: 'Fortalecer tu red',
+    card4Body:
+      'Mantente conectado mediante actividad, alertas, respuestas y relaciones de trabajo repetidas dentro de tu mercado.',
 
-    whoTitle: 'Para quién es Surplox',
-    whoBody:
-      'Trabajadores, subcontratistas, contratistas y proveedores usando una sola red local para encontrar trabajo, llenar vacantes y mantenerse conectados.',
+    audienceTitle: 'Para quién es',
+    audience1: 'Trabajadores buscando visibilidad y trabajo local',
+    audience2: 'Subcontratistas armando cuadrillas y encontrando apoyo',
+    audience3: 'Contratistas cubriendo faltantes y publicando oportunidades',
+    audience4: 'Proveedores conectados a mercados activos de trabajo',
 
-    who1: 'Trabajadores buscando trabajo cercano y visibilidad',
-    who2: 'Subcontratistas armando cuadrillas y encontrando apoyo',
-    who3: 'Contratistas publicando oportunidades y cubriendo faltantes',
-    who4: 'Proveedores conectados con mercados activos del oficio',
-
-    footerTitle: 'Hecho para la ejecución local',
-    footerBody:
-      'Surplox organiza la actividad del oficio por ubicación para que publicaciones, trabajadores y cuadrillas sean más fáciles de descubrir.'
+    bottomTitle: 'Hecho para el campo, no para la oficina.',
+    bottomBody:
+      'Surplox está diseñado alrededor de cómo realmente se mueve la construcción: personas, tiempo, ubicación y conexiones locales de confianza.'
   }
 }
 
@@ -101,7 +95,7 @@ export default function Home({ session, lang = 'en' }) {
           borderColor: 'rgba(255, 222, 89, 0.28)',
           background:
             'linear-gradient(180deg, rgba(10,14,24,0.98) 0%, rgba(8,11,18,0.98) 100%)',
-          boxShadow: '0 0 28px rgba(255, 222, 89, 0.06)'
+          boxShadow: '0 0 30px rgba(255, 222, 89, 0.07)'
         }}
       >
         <div
@@ -113,25 +107,28 @@ export default function Home({ session, lang = 'en' }) {
             background: 'rgba(255, 222, 89, 0.12)'
           }}
         >
-          {copy.heroBadge}
+          {copy.badge}
         </div>
 
-        <div className="h1" style={{ maxWidth: 900 }}>
-          {copy.heroTitle}
+        <div className="h1" style={{ maxWidth: 920 }}>
+          {copy.title}
         </div>
 
-        <p className="muted" style={{ marginTop: 12, maxWidth: 920, fontSize: 17, lineHeight: 1.65 }}>
-          {copy.heroBody}
+        <p
+          className="muted"
+          style={{ marginTop: 12, maxWidth: 920, fontSize: 17, lineHeight: 1.65 }}
+        >
+          {copy.body}
         </p>
 
         <div className="row" style={{ marginTop: 18, gap: 10, flexWrap: 'wrap' }}>
           {!session ? (
             <>
               <Link className="btn primary" to="/auth">
-                {copy.ctaPrimary}
+                {copy.primaryCta}
               </Link>
               <Link className="btn" to="/auth">
-                {copy.ctaSecondary}
+                {copy.secondaryCta}
               </Link>
             </>
           ) : (
@@ -147,104 +144,99 @@ export default function Home({ session, lang = 'en' }) {
         </div>
       </div>
 
-      <div className="grid two" style={{ gap: 16 }}>
-        <div className="card">
-          <div className="h1">{copy.panelTitle}</div>
-          <p className="muted" style={{ marginTop: 10 }}>
-            {copy.panelBody}
-          </p>
+      <div className="card">
+        <div className="h1">{copy.valueTitle}</div>
+        <p className="muted" style={{ marginTop: 10, maxWidth: 900 }}>
+          {copy.valueBody}
+        </p>
 
-          <div className="grid" style={{ gap: 10, marginTop: 16 }}>
-            <div
-              className="card card-soft"
-              style={{
-                borderColor: 'rgba(255, 222, 89, 0.22)',
-                background: 'rgba(255, 222, 89, 0.04)'
-              }}
-            >
-              <div className="card-section-title">{copy.feature1Title}</div>
-              <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-                {copy.feature1Body}
-              </p>
-            </div>
-
-            <div
-              className="card card-soft"
-              style={{
-                borderColor: 'rgba(255, 117, 31, 0.22)',
-                background: 'rgba(255, 117, 31, 0.04)'
-              }}
-            >
-              <div className="card-section-title">{copy.feature2Title}</div>
-              <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-                {copy.feature2Body}
-              </p>
-            </div>
-
-            <div
-              className="card card-soft"
-              style={{
-                borderColor: 'rgba(255, 222, 89, 0.22)',
-                background: 'rgba(255, 222, 89, 0.04)'
-              }}
-            >
-              <div className="card-section-title">{copy.feature3Title}</div>
-              <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-                {copy.feature3Body}
-              </p>
-            </div>
-
-            <div
-              className="card card-soft"
-              style={{
-                borderColor: 'rgba(255, 117, 31, 0.22)',
-                background: 'rgba(255, 117, 31, 0.04)'
-              }}
-            >
-              <div className="card-section-title">{copy.feature4Title}</div>
-              <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-                {copy.feature4Body}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid" style={{ gap: 16 }}>
-          <div className="card">
-            <div className="h1">{copy.whoTitle}</div>
-            <p className="muted" style={{ marginTop: 10 }}>
-              {copy.whoBody}
+        <div className="grid two" style={{ gap: 12, marginTop: 16 }}>
+          <div
+            className="card card-soft"
+            style={{
+              borderColor: 'rgba(255, 222, 89, 0.22)',
+              background: 'rgba(255, 222, 89, 0.04)'
+            }}
+          >
+            <div className="card-section-title">{copy.card1Title}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+              {copy.card1Body}
             </p>
-
-            <div className="grid" style={{ gap: 10, marginTop: 16 }}>
-              {[copy.who1, copy.who2, copy.who3, copy.who4].map((item) => (
-                <div
-                  key={item}
-                  className="card card-soft"
-                  style={{
-                    padding: 14,
-                    borderColor: 'rgba(255, 222, 89, 0.18)',
-                    background: 'rgba(255, 222, 89, 0.03)'
-                  }}
-                >
-                  <div style={{ fontWeight: 700 }}>{item}</div>
-                </div>
-              ))}
-            </div>
           </div>
 
           <div
-            className="card"
+            className="card card-soft"
             style={{
-              borderColor: 'rgba(255, 117, 31, 0.24)',
+              borderColor: 'rgba(255, 117, 31, 0.22)',
               background: 'rgba(255, 117, 31, 0.04)'
             }}
           >
-            <div className="card-section-title">{copy.footerTitle}</div>
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-              {copy.footerBody}
+            <div className="card-section-title">{copy.card2Title}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+              {copy.card2Body}
             </p>
           </div>
+
+          <div
+            className="card card-soft"
+            style={{
+              borderColor: 'rgba(255, 222, 89, 0.22)',
+              background: 'rgba(255, 222, 89, 0.04)'
+            }}
+          >
+            <div className="card-section-title">{copy.card3Title}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+              {copy.card3Body}
+            </p>
+          </div>
+
+          <div
+            className="card card-soft"
+            style={{
+              borderColor: 'rgba(255, 117, 31, 0.22)',
+              background: 'rgba(255, 117, 31, 0.04)'
+            }}
+          >
+            <div className="card-section-title">{copy.card4Title}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+              {copy.card4Body}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid two" style={{ gap: 16 }}>
+        <div className="card">
+          <div className="h1">{copy.audienceTitle}</div>
+
+          <div className="grid" style={{ gap: 10, marginTop: 16 }}>
+            {[copy.audience1, copy.audience2, copy.audience3, copy.audience4].map((item) => (
+              <div
+                key={item}
+                className="card card-soft"
+                style={{
+                  padding: 14,
+                  borderColor: 'rgba(255, 222, 89, 0.18)',
+                  background: 'rgba(255, 222, 89, 0.03)'
+                }}
+              >
+                <div style={{ fontWeight: 700 }}>{item}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div
+          className="card"
+          style={{
+            borderColor: 'rgba(255, 117, 31, 0.24)',
+            background: 'rgba(255, 117, 31, 0.04)'
+          }}
+        >
+          <div className="h1">{copy.bottomTitle}</div>
+          <p className="muted" style={{ marginTop: 10 }}>
+            {copy.bottomBody}
+          </p>
         </div>
       </div>
     </div>
