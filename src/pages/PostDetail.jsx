@@ -306,7 +306,7 @@ const UI = {
     crewNotOpen: 'Esta solicitud de cuadrilla no está abierta.',
     crewAlreadyFull: 'Esta solicitud de cuadrilla ya está llena.',
     unableJoinCrew: 'No se pudo unir a esta cuadrilla.',
-    unableLeaveCrew: 'No se pudo salir de esta cuadrilla.',
+    unableLeaveCrew: 'No se pudo salir a esta cuadrilla.',
     unableTranslatePost: 'No se pudo traducir esta publicación.',
     unableTranslateReply: 'No se pudo traducir esta respuesta.',
     trade: 'Oficio',
@@ -530,6 +530,8 @@ export default function PostDetail({ lang: langProp = 'en' }) {
       setLang(activeLang)
       localStorage.setItem('surplox_lang', activeLang)
 
+      const activeCopy = UI[activeLang] || UI.en
+
       const { data: p, error: pErr } = await supabase
         .from('posts')
         .select(`
@@ -548,27 +550,43 @@ export default function PostDetail({ lang: langProp = 'en' }) {
           start_date,
           author_id,
           trades(name),
-          profiles(display_name, role, is_available)
+          author_profile:profiles!posts_author_id_fkey(display_name, role, is_available)
         `)
         .eq('id', id)
-        .single()
+        .maybeSingle()
 
       if (pErr) throw pErr
+      if (!p) {
+        setPost(null)
+        setComments([])
+        setCrewMembers([])
+        setMyCrewMembership(false)
+        setWorkedBeforeMap({})
+        setScore(0)
+        setMyVote(0)
+        return
+      }
 
       const detectedLang = detectLikelyLanguage(`${p.title || ''} ${p.body || ''}`)
 
       setPost({
         ...p,
         trade_name: p.trades?.name || t(activeLang, 'detail_general'),
-        author_name: p.profiles?.display_name || copy.unknownMember,
-        author_role: p.profiles?.role || '',
-        author_available: Boolean(p.profiles?.is_available),
+        author_name: p.author_profile?.display_name || activeCopy.unknownMember,
+        author_role: p.author_profile?.role || '',
+        author_available: Boolean(p.author_profile?.is_available),
         source_language: p.source_language || detectedLang
       })
 
       const { data: c, error: cErr } = await supabase
         .from('comments')
-        .select('id,body,created_at,author_id,profiles(display_name, role, is_available)')
+        .select(`
+          id,
+          body,
+          created_at,
+          author_id,
+          author_profile:profiles!comments_author_id_fkey(display_name, role, is_available)
+        `)
         .eq('post_id', id)
         .order('created_at', { ascending: true })
 
@@ -577,9 +595,9 @@ export default function PostDetail({ lang: langProp = 'en' }) {
       setComments(
         (c || []).map((x) => ({
           ...x,
-          author_name: x.profiles?.display_name || copy.unknownMember,
-          author_role: x.profiles?.role || '',
-          author_available: Boolean(x.profiles?.is_available),
+          author_name: x.author_profile?.display_name || activeCopy.unknownMember,
+          author_role: x.author_profile?.role || '',
+          author_available: Boolean(x.author_profile?.is_available),
           source_language: detectLikelyLanguage(x.body || '')
         }))
       )
@@ -648,7 +666,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
             user_id: row.user_id,
             created_at: row.created_at,
             status: row.status || 'joined',
-            display_name: profile?.display_name || copy.unknownMember,
+            display_name: profile?.display_name || activeCopy.unknownMember,
             role: profile?.role || '',
             is_available: Boolean(profile?.is_available),
             phone: contact?.phone || '',
@@ -716,6 +734,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
     } catch (err) {
       console.error(err)
       setMsg(err.message || t(lang, 'detail_load_error'))
+      setPost(null)
     } finally {
       setLoading(false)
     }
@@ -1105,7 +1124,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
       <div className="card card-message">
         <div className="card-section-title">{t(lang, 'detail_not_found')}</div>
         <p className="card-section-subtitle">
-          {t(lang, 'detail_not_found_body')}
+          {msg || t(lang, 'detail_not_found_body')}
         </p>
         <div style={{ marginTop: 12 }}>
           <Link className="btn primary" to="/feed">{t(lang, 'detail_return_feed')}</Link>
@@ -1320,7 +1339,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
                   )}
                 </div>
 
-                <div style={{ marginTop: 14 }}>
+                <div style={{ marginTop: 16 }}>
                   <div className="card-section-title" style={{ fontSize: 16 }}>
                     {copy.crewRoster}
                   </div>
