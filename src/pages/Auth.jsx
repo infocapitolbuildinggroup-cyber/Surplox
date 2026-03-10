@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 const COPY = {
   en: {
@@ -101,15 +101,25 @@ const COPY = {
   }
 }
 
+function normalizeMode(value) {
+  return value === 'signin' ? 'signin' : 'signup'
+}
+
 export default function Auth({ lang = 'en', setLang }) {
-  const [mode, setMode] = useState('signin')
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const [mode, setMode] = useState(normalizeMode(searchParams.get('mode')))
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const navigate = useNavigate()
   const copy = COPY[lang] || COPY.en
+
+  useEffect(() => {
+    setMode(normalizeMode(searchParams.get('mode')))
+  }, [searchParams])
 
   const points = useMemo(
     () => [
@@ -121,6 +131,13 @@ export default function Auth({ lang = 'en', setLang }) {
     [copy]
   )
 
+  function switchMode(nextMode) {
+    const normalized = normalizeMode(nextMode)
+    setMode(normalized)
+    setMsg('')
+    setSearchParams({ mode: normalized }, { replace: true })
+  }
+
   async function handleAuth(e) {
     e.preventDefault()
     setMsg('')
@@ -130,11 +147,13 @@ export default function Auth({ lang = 'en', setLang }) {
       if (mode === 'signup') {
         const { error } = await supabase.auth.signUp({
           email,
-          password
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth?mode=signin`
+          }
         })
 
         if (error) throw error
-
         setMsg(copy.checkEmail)
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -265,7 +284,7 @@ export default function Auth({ lang = 'en', setLang }) {
         <button
           type="button"
           className="btn"
-          onClick={() => setMode(mode === 'signup' ? 'signin' : 'signup')}
+          onClick={() => switchMode(mode === 'signup' ? 'signin' : 'signup')}
         >
           {mode === 'signup' ? copy.switchToSignIn : copy.switchToSignUp}
         </button>

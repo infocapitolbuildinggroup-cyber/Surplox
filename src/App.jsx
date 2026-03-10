@@ -16,19 +16,19 @@ import WorkerProfile from './pages/WorkerProfile.jsx'
 import logo from './assets/logo.png'
 
 function SessionOnly({ session, children }) {
-  if (!session) return <Navigate to="/auth" replace />
+  if (!session) return <Navigate to="/auth?mode=signin" replace />
   return children
 }
 
 function ProfileCompleteOnly({ session, profileChecked, profileComplete, children, lang }) {
-  if (!session) return <Navigate to="/auth" replace />
+  if (!session) return <Navigate to="/auth?mode=signin" replace />
   if (!profileChecked) return <div className="card">{t(lang, 'checking_permissions')}</div>
   if (!profileComplete) return <Navigate to="/onboarding" replace />
   return children
 }
 
 function AdminOnly({ session, profileChecked, profileComplete, isAdmin, adminChecked, children, lang }) {
-  if (!session) return <Navigate to="/auth" replace />
+  if (!session) return <Navigate to="/auth?mode=signin" replace />
   if (!profileChecked) return <div className="card">{t(lang, 'checking_permissions')}</div>
   if (!profileComplete) return <Navigate to="/onboarding" replace />
   if (!adminChecked) return <div className="card">{t(lang, 'checking_permissions')}</div>
@@ -330,7 +330,7 @@ export default function App() {
                 </button>
               </>
             ) : (
-              <NavLink className="btn small primary nav-link" to="/auth">
+              <NavLink className="btn small primary nav-link" to="/auth?mode=signin">
                 {t(lang, 'nav_sign_in')}
               </NavLink>
             )}
