@@ -124,10 +124,10 @@ export default function Home({ session, lang = 'en' }) {
         <div className="row" style={{ marginTop: 18, gap: 10, flexWrap: 'wrap' }}>
           {!session ? (
             <>
-              <Link className="btn primary" to="/auth">
+              <Link className="btn primary" to="/auth?mode=signup">
                 {copy.primaryCta}
               </Link>
-              <Link className="btn" to="/auth">
+              <Link className="btn" to="/auth?mode=signin">
                 {copy.secondaryCta}
               </Link>
             </>
@@ -144,100 +144,69 @@ export default function Home({ session, lang = 'en' }) {
         </div>
       </div>
 
-      <div className="card">
-        <div className="h1">{copy.valueTitle}</div>
-        <p className="muted" style={{ marginTop: 10, maxWidth: 900 }}>
-          {copy.valueBody}
-        </p>
+      <div className="grid two">
+        <div className="card card-soft">
+          <div className="card-section-title">{copy.valueTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {copy.valueBody}
+          </p>
+        </div>
 
-        <div className="grid two" style={{ gap: 12, marginTop: 16 }}>
-          <div
-            className="card card-soft"
-            style={{
-              borderColor: 'rgba(255, 222, 89, 0.22)',
-              background: 'rgba(255, 222, 89, 0.04)'
-            }}
-          >
-            <div className="card-section-title">{copy.card1Title}</div>
-            <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-              {copy.card1Body}
-            </p>
-          </div>
-
-          <div
-            className="card card-soft"
-            style={{
-              borderColor: 'rgba(255, 117, 31, 0.22)',
-              background: 'rgba(255, 117, 31, 0.04)'
-            }}
-          >
-            <div className="card-section-title">{copy.card2Title}</div>
-            <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-              {copy.card2Body}
-            </p>
-          </div>
-
-          <div
-            className="card card-soft"
-            style={{
-              borderColor: 'rgba(255, 222, 89, 0.22)',
-              background: 'rgba(255, 222, 89, 0.04)'
-            }}
-          >
-            <div className="card-section-title">{copy.card3Title}</div>
-            <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-              {copy.card3Body}
-            </p>
-          </div>
-
-          <div
-            className="card card-soft"
-            style={{
-              borderColor: 'rgba(255, 117, 31, 0.22)',
-              background: 'rgba(255, 117, 31, 0.04)'
-            }}
-          >
-            <div className="card-section-title">{copy.card4Title}</div>
-            <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-              {copy.card4Body}
-            </p>
+        <div className="card card-soft">
+          <div className="card-section-title">{copy.audienceTitle}</div>
+          <div className="grid" style={{ gap: 8, marginTop: 10 }}>
+            <div>{copy.audience1}</div>
+            <div>{copy.audience2}</div>
+            <div>{copy.audience3}</div>
+            <div>{copy.audience4}</div>
           </div>
         </div>
       </div>
 
-      <div className="grid two" style={{ gap: 16 }}>
+      <div className="grid two">
         <div className="card">
-          <div className="h1">{copy.audienceTitle}</div>
-
-          <div className="grid" style={{ gap: 10, marginTop: 16 }}>
-            {[copy.audience1, copy.audience2, copy.audience3, copy.audience4].map((item) => (
-              <div
-                key={item}
-                className="card card-soft"
-                style={{
-                  padding: 14,
-                  borderColor: 'rgba(255, 222, 89, 0.18)',
-                  background: 'rgba(255, 222, 89, 0.03)'
-                }}
-              >
-                <div style={{ fontWeight: 700 }}>{item}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div
-          className="card"
-          style={{
-            borderColor: 'rgba(255, 117, 31, 0.24)',
-            background: 'rgba(255, 117, 31, 0.04)'
-          }}
-        >
-          <div className="h1">{copy.bottomTitle}</div>
-          <p className="muted" style={{ marginTop: 10 }}>
-            {copy.bottomBody}
+          <div className="card-section-title">{copy.card1Title}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {copy.card1Body}
           </p>
         </div>
+
+        <div className="card">
+          <div className="card-section-title">{copy.card2Title}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {copy.card2Body}
+          </p>
+        </div>
+
+        <div className="card">
+          <div className="card-section-title">{copy.card3Title}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {copy.card3Body}
+          </p>
+        </div>
+
+        <div className="card">
+          <div className="card-section-title">{copy.card4Title}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {copy.card4Body}
+          </p>
+        </div>
+      </div>
+
+      <div
+        className="card"
+        style={{
+          borderColor: 'rgba(255, 222, 89, 0.24)',
+          background:
+            'linear-gradient(180deg, rgba(12,16,28,0.98) 0%, rgba(8,11,18,0.98) 100%)'
+        }}
+      >
+        <div className="h1" style={{ maxWidth: 760 }}>
+          {copy.bottomTitle}
+        </div>
+        <p className="muted" style={{ marginTop: 12, maxWidth: 820 }}>
+          {copy.bottomBody}
+        </p>
       </div>
     </div>
   )
