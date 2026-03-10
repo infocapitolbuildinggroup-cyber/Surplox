@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Routes, Route, Navigate, useNavigate, NavLink } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate, NavLink, useLocation } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 import { t } from './i18n'
 import Home from './pages/Home.jsx'
@@ -15,13 +15,22 @@ import Notifications from './pages/Notifications.jsx'
 import WorkerProfile from './pages/WorkerProfile.jsx'
 import logo from './assets/logo.png'
 
-function Protected({ session, children }) {
+function SessionOnly({ session, children }) {
   if (!session) return <Navigate to="/auth" replace />
   return children
 }
 
-function AdminOnly({ session, isAdmin, adminChecked, children, lang }) {
+function ProfileCompleteOnly({ session, profileChecked, profileComplete, children, lang }) {
   if (!session) return <Navigate to="/auth" replace />
+  if (!profileChecked) return <div className="card">{t(lang, 'checking_permissions')}</div>
+  if (!profileComplete) return <Navigate to="/onboarding" replace />
+  return children
+}
+
+function AdminOnly({ session, profileChecked, profileComplete, isAdmin, adminChecked, children, lang }) {
+  if (!session) return <Navigate to="/auth" replace />
+  if (!profileChecked) return <div className="card">{t(lang, 'checking_permissions')}</div>
+  if (!profileComplete) return <Navigate to="/onboarding" replace />
   if (!adminChecked) return <div className="card">{t(lang, 'checking_permissions')}</div>
   if (!isAdmin) return <Navigate to="/feed" replace />
   return children
@@ -31,10 +40,14 @@ export default function App() {
   const [session, setSession] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [adminChecked, setAdminChecked] = useState(false)
+  const [profileChecked, setProfileChecked] = useState(false)
+  const [profileComplete, setProfileComplete] = useState(false)
   const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [savingLang, setSavingLang] = useState(false)
+
   const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -44,9 +57,11 @@ export default function App() {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
       setSession(sess)
       setAdminChecked(false)
+      setProfileChecked(false)
 
       if (!sess) {
         setIsAdmin(false)
+        setProfileComplete(false)
         setUnreadNotifications(0)
         const localLang = localStorage.getItem('surplox_lang') || 'en'
         setLang(localLang)
@@ -60,36 +75,73 @@ export default function App() {
     async function checkProfile() {
       if (!session?.user) return
 
-      const { data: prof, error } = await supabase
-        .from('profiles')
-        .select('user_id, home_zip, preferred_language')
-        .eq('user_id', session.user.id)
-        .maybeSingle()
+      setProfileChecked(false)
+      setAdminChecked(false)
 
-      if (error) console.error(error)
+      try {
+        const { data: prof, error } = await supabase
+          .from('profiles')
+          .select(
+            'user_id, display_name, first_name, last_name, role, trade_id, home_zip, preferred_language'
+          )
+          .eq('user_id', session.user.id)
+          .maybeSingle()
 
-      if (!prof) {
-        navigate('/onboarding', { replace: true })
-        return
+        if (error) {
+          console.error(error)
+        }
+
+        const hasCompleteProfile = Boolean(
+          prof &&
+            prof.display_name &&
+            prof.first_name &&
+            prof.last_name &&
+            prof.role &&
+            prof.trade_id &&
+            prof.home_zip
+        )
+
+        if (!hasCompleteProfile) {
+          setProfileComplete(false)
+          setProfileChecked(true)
+          setIsAdmin(false)
+          setAdminChecked(true)
+
+          if (location.pathname !== '/onboarding') {
+            navigate('/onboarding', { replace: true })
+          }
+          return
+        }
+
+        setProfileComplete(true)
+
+        const userLang = prof?.preferred_language || localStorage.getItem('surplox_lang') || 'en'
+        setLang(userLang)
+        localStorage.setItem('surplox_lang', userLang)
+
+        const { data: adminFlag, error: adminErr } = await supabase.rpc('is_admin')
+        if (adminErr) console.error(adminErr)
+
+        setIsAdmin(Boolean(adminFlag))
+        setAdminChecked(true)
+        setProfileChecked(true)
+
+        if (location.pathname === '/auth' || location.pathname === '/onboarding') {
+          navigate('/feed', { replace: true })
+        }
+      } catch (err) {
+        console.error(err)
+        setProfileComplete(false)
+        setProfileChecked(true)
       }
-
-      const userLang = prof?.preferred_language || localStorage.getItem('surplox_lang') || 'en'
-      setLang(userLang)
-      localStorage.setItem('surplox_lang', userLang)
-
-      const { data: adminFlag, error: adminErr } = await supabase.rpc('is_admin')
-      if (adminErr) console.error(adminErr)
-
-      setIsAdmin(Boolean(adminFlag))
-      setAdminChecked(true)
     }
 
     checkProfile()
-  }, [session?.user?.id, session?.access_token, navigate])
+  }, [session?.user?.id, session?.access_token, navigate, location.pathname])
 
   useEffect(() => {
     async function loadUnreadCount() {
-      if (!session?.user?.id) return
+      if (!session?.user?.id || !profileComplete) return
 
       const { count, error } = await supabase
         .from('notifications')
@@ -106,7 +158,7 @@ export default function App() {
     }
 
     loadUnreadCount()
-  }, [session?.user?.id])
+  }, [session?.user?.id, profileComplete])
 
   async function updateLanguage(newLang) {
     if (!newLang || newLang === lang) return
@@ -114,7 +166,7 @@ export default function App() {
     setLang(newLang)
     localStorage.setItem('surplox_lang', newLang)
 
-    if (!session?.user?.id) return
+    if (!session?.user?.id || !profileComplete) return
 
     try {
       setSavingLang(true)
@@ -136,6 +188,8 @@ export default function App() {
     await supabase.auth.signOut()
     setIsAdmin(false)
     setAdminChecked(false)
+    setProfileChecked(false)
+    setProfileComplete(false)
     setUnreadNotifications(0)
     navigate('/', { replace: true })
   }
@@ -148,13 +202,48 @@ export default function App() {
     return isActive ? 'btn small primary nav-link nav-link-active' : 'btn small primary nav-link'
   }
 
+  const brandTarget = session && profileChecked && !profileComplete ? '/onboarding' : '/'
+  const showFullAppNav = Boolean(session && profileChecked && profileComplete)
+
   return (
     <>
       <div className="nav">
         <div className="nav-inner">
-          <NavLink className="brand" to="/">
-            <img src={logo} alt="Surplox logo" className="logo" />
-          </NavLink>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              flexWrap: 'wrap'
+            }}
+          >
+            <NavLink className="brand" to={brandTarget}>
+              <img src={logo} alt="Surplox logo" className="logo" />
+            </NavLink>
+
+            <span
+              aria-label="Surplox beta"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '6px 10px',
+                borderRadius: 999,
+                border: '1px solid rgba(255, 222, 89, 0.65)',
+                background: 'rgba(255, 117, 31, 0.08)',
+                color: '#ff751f',
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                boxShadow: '0 0 10px rgba(255, 222, 89, 0.22)',
+                userSelect: 'none',
+                pointerEvents: 'none'
+              }}
+            >
+              Beta
+            </span>
+          </div>
 
           <div className="nav-links">
             <div
@@ -189,42 +278,50 @@ export default function App() {
 
             {session ? (
               <>
-                <NavLink className={navBtnClass} to="/feed">
-                  {t(lang, 'nav_feed')}
-                </NavLink>
+                {showFullAppNav ? (
+                  <>
+                    <NavLink className={navBtnClass} to="/feed">
+                      {t(lang, 'nav_feed')}
+                    </NavLink>
 
-                <NavLink className={navBtnClass} to="/channels">
-                  {t(lang, 'nav_channels')}
-                </NavLink>
+                    <NavLink className={navBtnClass} to="/channels">
+                      {t(lang, 'nav_channels')}
+                    </NavLink>
 
-                <NavLink className={navBtnClass} to="/new">
-                  {t(lang, 'nav_new_post')}
-                </NavLink>
+                    <NavLink className={navBtnClass} to="/new">
+                      {t(lang, 'nav_new_post')}
+                    </NavLink>
 
-                <NavLink className={navBtnClass} to="/notifications">
-                  {t(lang, 'nav_alerts') || 'Alerts'}
-                  {unreadNotifications > 0 ? (
-                    <span
-                      className="badge"
-                      style={{
-                        marginLeft: 8,
-                        color: '#ff751f',
-                        borderColor: 'rgba(255, 222, 89, 0.65)',
-                        background: 'rgba(255, 222, 89, 0.14)'
-                      }}
-                    >
-                      {unreadNotifications}
-                    </span>
-                  ) : null}
-                </NavLink>
+                    <NavLink className={navBtnClass} to="/notifications">
+                      {t(lang, 'nav_alerts') || 'Alerts'}
+                      {unreadNotifications > 0 ? (
+                        <span
+                          className="badge"
+                          style={{
+                            marginLeft: 8,
+                            color: '#ff751f',
+                            borderColor: 'rgba(255, 222, 89, 0.65)',
+                            background: 'rgba(255, 222, 89, 0.14)'
+                          }}
+                        >
+                          {unreadNotifications}
+                        </span>
+                      ) : null}
+                    </NavLink>
 
-                <NavLink className={navBtnClass} to="/account">
-                  {t(lang, 'nav_account')}
-                </NavLink>
+                    <NavLink className={navBtnClass} to="/account">
+                      {t(lang, 'nav_account')}
+                    </NavLink>
 
-                {isAdmin && (
-                  <NavLink className={adminNavBtnClass} to="/admin">
-                    {t(lang, 'nav_admin') || 'Admin'}
+                    {isAdmin && (
+                      <NavLink className={adminNavBtnClass} to="/admin">
+                        {t(lang, 'nav_admin') || 'Admin'}
+                      </NavLink>
+                    )}
+                  </>
+                ) : (
+                  <NavLink className="btn small primary nav-link" to="/onboarding">
+                    Complete Profile
                   </NavLink>
                 )}
 
@@ -249,72 +346,111 @@ export default function App() {
           <Route
             path="/onboarding"
             element={
-              <Protected session={session}>
-                <Onboarding lang={lang} setLang={updateLanguage} />
-              </Protected>
+              <SessionOnly session={session}>
+                {profileChecked && profileComplete ? (
+                  <Navigate to="/feed" replace />
+                ) : (
+                  <Onboarding lang={lang} setLang={updateLanguage} />
+                )}
+              </SessionOnly>
             }
           />
 
           <Route
             path="/feed"
             element={
-              <Protected session={session}>
+              <ProfileCompleteOnly
+                session={session}
+                profileChecked={profileChecked}
+                profileComplete={profileComplete}
+                lang={lang}
+              >
                 <Feed lang={lang} />
-              </Protected>
+              </ProfileCompleteOnly>
             }
           />
 
           <Route
             path="/channels"
             element={
-              <Protected session={session}>
+              <ProfileCompleteOnly
+                session={session}
+                profileChecked={profileChecked}
+                profileComplete={profileComplete}
+                lang={lang}
+              >
                 <Channels lang={lang} />
-              </Protected>
+              </ProfileCompleteOnly>
             }
           />
 
           <Route
             path="/new"
             element={
-              <Protected session={session}>
+              <ProfileCompleteOnly
+                session={session}
+                profileChecked={profileChecked}
+                profileComplete={profileComplete}
+                lang={lang}
+              >
                 <NewPost lang={lang} />
-              </Protected>
+              </ProfileCompleteOnly>
             }
           />
 
           <Route
             path="/notifications"
             element={
-              <Protected session={session}>
+              <ProfileCompleteOnly
+                session={session}
+                profileChecked={profileChecked}
+                profileComplete={profileComplete}
+                lang={lang}
+              >
                 <Notifications lang={lang} />
-              </Protected>
+              </ProfileCompleteOnly>
             }
           />
 
           <Route
             path="/account"
             element={
-              <Protected session={session}>
+              <ProfileCompleteOnly
+                session={session}
+                profileChecked={profileChecked}
+                profileComplete={profileComplete}
+                lang={lang}
+              >
                 <MyAccount lang={lang} setLang={updateLanguage} />
-              </Protected>
+              </ProfileCompleteOnly>
             }
           />
 
           <Route
             path="/u/:userId"
             element={
-              <Protected session={session}>
+              <ProfileCompleteOnly
+                session={session}
+                profileChecked={profileChecked}
+                profileComplete={profileComplete}
+                lang={lang}
+              >
                 <WorkerProfile lang={lang} />
-              </Protected>
+              </ProfileCompleteOnly>
             }
           />
 
           <Route
             path="/p/:id"
             element={
-              <Protected session={session}>
+              <ProfileCompleteOnly
+                session={session}
+                profileChecked={profileChecked}
+                profileComplete={profileComplete}
+                lang={lang}
+              >
                 <PostDetail lang={lang} />
-              </Protected>
+              </ProfileCompleteOnly>
             }
           />
 
@@ -323,6 +459,8 @@ export default function App() {
             element={
               <AdminOnly
                 session={session}
+                profileChecked={profileChecked}
+                profileComplete={profileComplete}
                 isAdmin={isAdmin}
                 adminChecked={adminChecked}
                 lang={lang}
