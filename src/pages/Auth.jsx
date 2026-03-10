@@ -161,59 +161,7 @@ export default function Auth({ lang = 'en', setLang }) {
   }
 
   return (
-    <div className="grid two" style={{ gap: 16, alignItems: 'stretch' }}>
-      <div
-        className="card"
-        style={{
-          borderColor: 'rgba(255, 222, 89, 0.3)',
-          background:
-            'linear-gradient(180deg, rgba(10,14,24,0.98) 0%, rgba(8,11,18,0.98) 100%)',
-          boxShadow: '0 0 30px rgba(255, 222, 89, 0.07)'
-        }}
-      >
-        <div
-          className="badge"
-          style={{
-            marginBottom: 14,
-            color: '#ff751f',
-            borderColor: 'rgba(255, 222, 89, 0.55)',
-            background: 'rgba(255, 222, 89, 0.12)'
-          }}
-        >
-          {copy.sideBadge}
-        </div>
-
-        <div className="h1" style={{ maxWidth: 680 }}>
-          {copy.sideTitle}
-        </div>
-
-        <p className="muted" style={{ marginTop: 12, maxWidth: 720 }}>
-          {copy.sideBody}
-        </p>
-
-        <div className="grid" style={{ gap: 10, marginTop: 18 }}>
-          {points.map((item) => (
-            <div
-              key={item.title}
-              className="card card-soft"
-              style={{
-                borderColor: 'rgba(255, 222, 89, 0.2)',
-                background: 'rgba(255, 222, 89, 0.04)'
-              }}
-            >
-              <div className="card-section-title">{item.title}</div>
-              <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-                {item.body}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <p className="muted" style={{ marginTop: 16, marginBottom: 0 }}>
-          {copy.footer}
-        </p>
-      </div>
-
+    <div className="grid" style={{ gap: 16 }}>
       <div className="card" style={{ maxWidth: 560, width: '100%', margin: '0 auto' }}>
         <div
           className="badge"
@@ -321,6 +269,58 @@ export default function Auth({ lang = 'en', setLang }) {
         >
           {mode === 'signup' ? copy.switchToSignIn : copy.switchToSignUp}
         </button>
+      </div>
+
+      <div
+        className="card"
+        style={{
+          borderColor: 'rgba(255, 222, 89, 0.3)',
+          background:
+            'linear-gradient(180deg, rgba(10,14,24,0.98) 0%, rgba(8,11,18,0.98) 100%)',
+          boxShadow: '0 0 30px rgba(255, 222, 89, 0.07)'
+        }}
+      >
+        <div
+          className="badge"
+          style={{
+            marginBottom: 14,
+            color: '#ff751f',
+            borderColor: 'rgba(255, 222, 89, 0.55)',
+            background: 'rgba(255, 222, 89, 0.12)'
+          }}
+        >
+          {copy.sideBadge}
+        </div>
+
+        <div className="h1" style={{ maxWidth: 680 }}>
+          {copy.sideTitle}
+        </div>
+
+        <p className="muted" style={{ marginTop: 12, maxWidth: 720 }}>
+          {copy.sideBody}
+        </p>
+
+        <div className="grid" style={{ gap: 10, marginTop: 18 }}>
+          {points.map((item) => (
+            <div
+              key={item.title}
+              className="card card-soft"
+              style={{
+                borderColor: 'rgba(255, 222, 89, 0.2)',
+                background: 'rgba(255, 222, 89, 0.04)'
+              }}
+            >
+              <div className="card-section-title">{item.title}</div>
+              <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+                {item.body}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <p className="muted" style={{ marginTop: 16, marginBottom: 0 }}>
+          {copy.footer}
+        </p>
       </div>
     </div>
   )
