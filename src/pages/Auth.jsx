@@ -2,6 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
+const GENERAL_CONSTRUCTION_OPTION = {
+  id: 'general-construction',
+  name: 'General Construction'
+}
+
 const COPY = {
   en: {
     formLabel: 'Surplox Access',
@@ -55,6 +60,7 @@ const COPY = {
     namePlaceholder: 'Juan Martinez',
     tradeLabel: 'What trade do you work in?',
     tradePlaceholder: 'Select your trade',
+    generalConstruction: 'General Construction',
     zipLabel: 'What ZIP do you usually work in?',
     zipPlaceholder: '76102',
     tradeRequired: 'Select your trade.',
@@ -116,6 +122,7 @@ const COPY = {
     namePlaceholder: 'Juan Martinez',
     tradeLabel: '¿Qué oficio trabajas?',
     tradePlaceholder: 'Selecciona tu oficio',
+    generalConstruction: 'Construcción general',
     zipLabel: '¿En qué ZIP trabajas normalmente?',
     zipPlaceholder: '76102',
     tradeRequired: 'Selecciona tu oficio.',
@@ -162,12 +169,23 @@ export default function Auth({ lang = 'en', setLang }) {
 
   useEffect(() => {
     async function loadTrades() {
-      const { data, error } = await supabase.from('trades').select('id,name').order('name')
-      if (error) {
-        console.error(error)
-        return
+      try {
+        const { data, error } = await supabase
+          .from('trades')
+          .select('id,name')
+          .order('name')
+
+        if (error) {
+          console.error(error)
+          setTrades([GENERAL_CONSTRUCTION_OPTION])
+          return
+        }
+
+        setTrades([GENERAL_CONSTRUCTION_OPTION, ...(data || [])])
+      } catch (err) {
+        console.error(err)
+        setTrades([GENERAL_CONSTRUCTION_OPTION])
       }
-      setTrades(data || [])
     }
 
     loadTrades()
@@ -314,16 +332,18 @@ export default function Auth({ lang = 'en', setLang }) {
       const firstName = nameParts[0] || rawName
       const lastName = nameParts.slice(1).join(' ')
 
+      const isGeneralConstruction = String(signUpForm.trade_id) === GENERAL_CONSTRUCTION_OPTION.id
+
       const { error: profileError } = await supabase.from('profiles').upsert({
         user_id: user.id,
         display_name: rawName,
         first_name: firstName,
         last_name: lastName,
         role: 'laborer',
-        trade_id: Number(signUpForm.trade_id),
+        trade_id: isGeneralConstruction ? null : Number(signUpForm.trade_id),
         travel_radius_miles: 50,
         crew_size: 1,
-        bio: '',
+        bio: isGeneralConstruction ? copy.generalConstruction : '',
         preferred_language: lang
       })
 
@@ -456,7 +476,9 @@ export default function Auth({ lang = 'en', setLang }) {
                     <option value="">{copy.tradePlaceholder}</option>
                     {trades.map((trade) => (
                       <option key={trade.id} value={trade.id}>
-                        {trade.name}
+                        {trade.id === GENERAL_CONSTRUCTION_OPTION.id
+                          ? copy.generalConstruction
+                          : trade.name}
                       </option>
                     ))}
                   </select>
