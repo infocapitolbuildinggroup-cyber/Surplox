@@ -1,5 +1,5 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 const COPY = {
   en: {
@@ -8,6 +8,15 @@ const COPY = {
     body:
       'Surplox helps laborers, subcontractors, contractors, and suppliers stay connected in one place. Discover nearby work, post crew needs, show availability, grow your network, and stay in the loop on real trade activity happening around you.',
     primaryCta: 'Join Surplox',
+    joinBadge: 'Fast signup for crews, classmates, and local workers',
+    joinTitle: 'Join the Surplox construction network before the next opportunity moves without you.',
+    joinBody:
+      'Create your profile, get visible to local trade activity, and invite your crew or classmates onto Surplox in a few taps.',
+    joinPrimaryCta: 'Create Your Profile',
+    joinSecondaryCta: 'Already have an account? Sign In',
+    joinPoint1: 'Find crews and nearby work',
+    joinPoint2: 'Ask trade questions and stay visible',
+    joinPoint3: 'Invite your class or crew with one link',
     secondaryCta: 'Sign In',
     signedInPrimary: 'Go to Feed',
     signedInSecondary: 'Create Post',
@@ -48,6 +57,15 @@ const COPY = {
     body:
       'Surplox ayuda a trabajadores, subcontratistas, contratistas y proveedores a mantenerse conectados en un solo lugar. Descubre trabajo cercano, publica necesidades de cuadrilla, muestra disponibilidad, haz crecer tu red y mantente al tanto de la actividad real del oficio cerca de ti.',
     primaryCta: 'Unirse a Surplox',
+    joinBadge: 'Registro rápido para cuadrillas, compañeros y trabajadores locales',
+    joinTitle: 'Únete a la red de construcción Surplox antes de que la próxima oportunidad se mueva sin ti.',
+    joinBody:
+      'Crea tu perfil, mantente visible para la actividad local del oficio e invita a tu cuadrilla o compañeros a Surplox en pocos toques.',
+    joinPrimaryCta: 'Crear tu perfil',
+    joinSecondaryCta: '¿Ya tienes cuenta? Inicia sesión',
+    joinPoint1: 'Encuentra cuadrillas y trabajo cercano',
+    joinPoint2: 'Haz preguntas del oficio y mantente visible',
+    joinPoint3: 'Invita a tu clase o cuadrilla con un solo enlace',
     secondaryCta: 'Iniciar sesión',
     signedInPrimary: 'Ir al Feed',
     signedInSecondary: 'Crear publicación',
@@ -84,11 +102,98 @@ const COPY = {
   }
 }
 
-export default function Home({ session, lang = 'en' }) {
+export default function Home({ session, lang = 'en', variant = 'default' }) {
   const copy = COPY[lang] || COPY.en
+  const location = useLocation()
+  const ref = new URLSearchParams(location.search).get('ref')
+  const isJoinVariant = variant === 'join'
+  const inviteHint =
+    ref && !session
+      ? lang === 'es'
+        ? 'Alguien de tu red te invitó a unirte a Surplox.'
+        : 'Someone in your network invited you to join Surplox.'
+      : ''
 
   return (
     <div className="grid" style={{ gap: 16 }}>
+      {isJoinVariant ? (
+        <div
+          className="card"
+          style={{
+            borderColor: 'rgba(255, 222, 89, 0.35)',
+            background:
+              'linear-gradient(180deg, rgba(10,14,24,0.98) 0%, rgba(8,11,18,0.98) 100%)',
+            boxShadow: '0 0 30px rgba(255, 222, 89, 0.07)'
+          }}
+        >
+          <div
+            className="badge"
+            style={{
+              marginBottom: 14,
+              color: '#ff751f',
+              borderColor: 'rgba(255, 222, 89, 0.55)',
+              background: 'rgba(255, 222, 89, 0.12)'
+            }}
+          >
+            {copy.joinBadge}
+          </div>
+
+          <div className="h1" style={{ maxWidth: 920 }}>
+            {copy.joinTitle}
+          </div>
+
+          <p
+            className="muted"
+            style={{ marginTop: 12, maxWidth: 920, fontSize: 17, lineHeight: 1.65 }}
+          >
+            {copy.joinBody}
+          </p>
+
+          {inviteHint ? (
+            <div className="card card-soft" style={{ marginTop: 14 }}>
+              {inviteHint}
+            </div>
+          ) : null}
+
+          <div className="grid two" style={{ marginTop: 16 }}>
+            <div className="card card-soft">
+              <div>{copy.joinPoint1}</div>
+            </div>
+            <div className="card card-soft">
+              <div>{copy.joinPoint2}</div>
+            </div>
+            <div className="card card-soft">
+              <div>{copy.joinPoint3}</div>
+            </div>
+            <div className="card card-soft">
+              <div>{copy.audience1}</div>
+            </div>
+          </div>
+
+          <div className="row" style={{ marginTop: 18, gap: 10, flexWrap: 'wrap' }}>
+            {!session ? (
+              <>
+                <Link className="btn primary" to="/auth?mode=signup">
+                  {copy.joinPrimaryCta}
+                </Link>
+                <Link className="btn" to="/auth?mode=signin">
+                  {copy.joinSecondaryCta}
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link className="btn primary" to="/feed">
+                  {copy.signedInPrimary}
+                </Link>
+                <Link className="btn" to="/new">
+                  {copy.signedInSecondary}
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      ) : null}
+
       <div
         className="card"
         style={{

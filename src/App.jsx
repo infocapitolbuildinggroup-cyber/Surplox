@@ -413,6 +413,7 @@ export default function App() {
       <div className="container">
         <Routes>
           <Route path="/" element={<Home session={session} lang={lang} />} />
+          <Route path="/join" element={<Home session={session} lang={lang} variant="join" />} />
           <Route path="/auth" element={<Auth lang={lang} setLang={updateLanguage} />} />
 
           <Route

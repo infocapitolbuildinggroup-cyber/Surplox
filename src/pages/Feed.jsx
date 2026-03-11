@@ -30,6 +30,9 @@ const COPY = {
     resetFilters: 'Reset Filters',
     openPost: 'Open Post',
     viewProfile: 'View Profile',
+    sharePost: 'Share Post',
+    postCopied: 'Post link copied.',
+    postShareError: 'Unable to share this post right now.',
     start: 'Start',
     pay: 'Pay',
     available: 'Available',
@@ -67,6 +70,9 @@ const COPY = {
     resetFilters: 'Restablecer filtros',
     openPost: 'Abrir publicación',
     viewProfile: 'Ver perfil',
+    sharePost: 'Compartir publicación',
+    postCopied: 'Enlace de la publicación copiado.',
+    postShareError: 'No se pudo compartir esta publicación en este momento.',
     start: 'Inicio',
     pay: 'Pago',
     available: 'Disponible',
@@ -241,6 +247,17 @@ function availabilityBadgeStyle(isAvailable) {
   }
 }
 
+function haversineMiles(lat1, lon1, lat2, lon2) {
+  const toRad = (v) => (v * Math.PI) / 180
+  const R = 3958.8
+  const dLat = toRad(lat2 - lat1)
+  const dLon = toRad(lon2 - lon1)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2
+  return 2 * R * Math.asin(Math.sqrt(a))
+}
+
 export default function Feed({ lang: langProp = 'en' }) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -254,10 +271,40 @@ export default function Feed({ lang: langProp = 'en' }) {
   const [roleFilter, setRoleFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [msg, setMsg] = useState('')
 
   const params = useMemo(() => new URLSearchParams(location.search), [location.search])
   const tradeParam = params.get('trade')
   const copy = COPY[lang] || COPY.en
+
+  function buildPostUrl(postId) {
+    return `${window.location.origin}/p/${postId}`
+  }
+
+  async function sharePost(post) {
+    try {
+      const url = buildPostUrl(post.id)
+      const text =
+        lang === 'es'
+          ? `Mira esta publicación en Surplox: ${post.title || 'Publicación de construcción'}`
+          : `Check out this Surplox post: ${post.title || 'Construction post'}`
+
+      if (navigator.share) {
+        await navigator.share({
+          title: post.title || 'Surplox',
+          text,
+          url
+        })
+      } else {
+        await navigator.clipboard.writeText(url)
+        setMsg(copy.postCopied)
+      }
+    } catch (error) {
+      if (error?.name === 'AbortError') return
+      console.error(error)
+      setMsg(copy.postShareError)
+    }
+  }
 
   useEffect(() => {
     let alive = true
@@ -278,31 +325,48 @@ export default function Feed({ lang: langProp = 'en' }) {
 
         const { data: prof, error: pErr } = await supabase
           .from('profiles')
-          .select('user_id, home_zip, travel_radius_miles, preferred_language')
+          .select('home_zip, travel_radius_miles, preferred_language')
           .eq('user_id', user.id)
           .maybeSingle()
 
         if (pErr) throw pErr
 
-        if (!prof?.home_zip) {
-          navigate('/onboarding', { replace: true })
+        const activeLang =
+          prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
+
+        if (!alive) return
+        setLang(activeLang)
+        localStorage.setItem('surplox_lang', activeLang)
+
+        const myZip = String(prof?.home_zip || '').trim()
+        const myRadius = Number(prof?.travel_radius_miles || 0)
+
+        if (!myZip || !myRadius) {
+          setPosts([])
           return
         }
 
-        const userLang =
-          prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
-        setLang(userLang)
-        localStorage.setItem('surplox_lang', userLang)
+        const { data: myZipRow, error: myZipErr } = await supabase
+          .from('zipcodes')
+          .select('zip, lat, lon')
+          .eq('zip', myZip)
+          .maybeSingle()
 
-        let q = supabase
+        if (myZipErr) throw myZipErr
+        if (!myZipRow?.lat || !myZipRow?.lon) {
+          setPosts([])
+          return
+        }
+
+        let query = supabase
           .from('posts')
           .select(`
             id,
             title,
             body,
-            created_at,
             center_zip,
             radius_miles,
+            created_at,
             trade_id,
             post_type,
             crew_status,
@@ -314,50 +378,42 @@ export default function Feed({ lang: langProp = 'en' }) {
             profiles!posts_author_id_fkey(display_name, role, is_available)
           `)
           .order('created_at', { ascending: false })
-          .limit(50)
 
-        if (tradeParam) q = q.eq('trade_id', Number(tradeParam))
+        if (tradeParam) {
+          const { data: tradeRows } = await supabase
+            .from('trades')
+            .select('id')
+            .ilike('name', tradeParam)
+            .limit(1)
 
-        const { data: p, error: postsErr } = await q
-        if (postsErr) throw postsErr
-
-        const myZip = String(prof.home_zip || '')
-        const myRadius = Number(prof.travel_radius_miles || 50)
-
-        function haversineMiles(lat1, lon1, lat2, lon2) {
-          const toRad = (x) => (x * Math.PI) / 180
-          const R = 3958.8
-          const dLat = toRad(lat2 - lat1)
-          const dLon = toRad(lon2 - lon1)
-
-          const a =
-            Math.sin(dLat / 2) ** 2 +
-            Math.cos(toRad(lat1)) *
-              Math.cos(toRad(lat2)) *
-              Math.sin(dLon / 2) ** 2
-
-          return 2 * R * Math.asin(Math.sqrt(a))
+          const tradeId = tradeRows?.[0]?.id
+          if (tradeId) {
+            query = query.eq('trade_id', tradeId)
+          } else {
+            setPosts([])
+            setLoading(false)
+            return
+          }
         }
 
-        const { data: myZipRow, error: myZipErr } = await supabase
-          .from('zipcodes')
-          .select('lat, lon')
-          .eq('zip', myZip)
-          .maybeSingle()
+        const { data: rows, error: rowsErr } = await query
+        if (rowsErr) throw rowsErr
 
-        if (myZipErr) throw myZipErr
+        let filtered = rows || []
 
-        let filtered = p || []
-
-        if (myZipRow?.lat && myZipRow?.lon && filtered.length > 0) {
-          const postZips = Array.from(
-            new Set(filtered.map((x) => String(x.center_zip)).filter(Boolean))
+        const uniqueZips = Array.from(
+          new Set(
+            filtered
+              .map((post) => String(post.center_zip || '').trim())
+              .filter(Boolean)
           )
+        )
 
+        if (uniqueZips.length > 0) {
           const { data: zipRows, error: zipErr } = await supabase
             .from('zipcodes')
             .select('zip, lat, lon')
-            .in('zip', postZips)
+            .in('zip', uniqueZips)
 
           if (zipErr) throw zipErr
 
@@ -424,10 +480,10 @@ export default function Feed({ lang: langProp = 'en' }) {
 
         if (!alive) return
         setPosts(filtered || [])
-      } catch (e) {
-        console.error(e)
+      } catch (error) {
+        console.error(error)
         if (!alive) return
-        setErr(e?.message || copy.loadError)
+        setErr(error?.message || copy.loadError)
       } finally {
         if (!alive) return
         setLoading(false)
@@ -493,16 +549,29 @@ export default function Feed({ lang: langProp = 'en' }) {
   return (
     <div className="grid" style={{ gap: 12 }}>
       <div className="card">
-        <div className="h1" style={{ fontSize: 20, marginTop: 0 }}>{t(lang, 'feed_title')}</div>
+        <div className="h1" style={{ fontSize: 20, marginTop: 0 }}>
+          {t(lang, 'feed_title')}
+        </div>
         <p className="muted">
-          {t(lang, 'feed_intro')}{tradeParam ? t(lang, 'feed_intro_channel') : '.'}
+          {t(lang, 'feed_intro')}
+          {tradeParam ? t(lang, 'feed_intro_channel') : '.'}
         </p>
 
         <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link className="btn primary" to="/new">{t(lang, 'feed_create_post')}</Link>
-          <Link className="btn" to="/channels">{t(lang, 'feed_browse_channels')}</Link>
+          <Link className="btn primary" to="/new">
+            {t(lang, 'feed_create_post')}
+          </Link>
+          <Link className="btn" to="/channels">
+            {t(lang, 'feed_browse_channels')}
+          </Link>
         </div>
       </div>
+
+      {msg ? (
+        <div className="card card-message">
+          {msg}
+        </div>
+      ) : null}
 
       {showWelcomeCard && (
         <div
@@ -539,7 +608,7 @@ export default function Feed({ lang: langProp = 'en' }) {
             </div>
           </div>
 
-          <div style={{ marginTop: 14 }}>
+          <div style={{ marginTop: 12 }}>
             <Link className="btn primary" to="/new">
               {copy.welcomeCta}
             </Link>
@@ -549,7 +618,7 @@ export default function Feed({ lang: langProp = 'en' }) {
 
       <div className="card">
         <div className="card-section-title">{copy.filtersTitle}</div>
-        <p className="card-section-subtitle">
+        <p className="card-section-subtitle" style={{ marginTop: 6 }}>
           {copy.filtersIntro}
         </p>
 
@@ -558,9 +627,9 @@ export default function Feed({ lang: langProp = 'en' }) {
             <div className="muted" style={{ marginBottom: 6 }}>{copy.postType}</div>
             <select className="input" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
               <option value="all">{copy.allPostTypes}</option>
-              <option value="need_crew">{lang === 'es' ? 'Se necesita cuadrilla' : 'Need Crew'}</option>
-              <option value="looking_for_work">{lang === 'es' ? 'Buscando trabajo' : 'Looking for Work'}</option>
-              <option value="discussion">{lang === 'es' ? 'Discusión' : 'Discussion'}</option>
+              <option value="discussion">{postTypeLabel('discussion', lang)}</option>
+              <option value="need_crew">{postTypeLabel('need_crew', lang)}</option>
+              <option value="looking_for_work">{postTypeLabel('looking_for_work', lang)}</option>
             </select>
           </div>
 
@@ -596,7 +665,7 @@ export default function Feed({ lang: langProp = 'en' }) {
           </div>
         </div>
 
-        <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button
             className="btn"
             onClick={() => {
@@ -609,43 +678,37 @@ export default function Feed({ lang: langProp = 'en' }) {
             {copy.clearFilters}
           </button>
 
-          <span className="badge" style={{ color: '#ff751f' }}>
+          <div className="badge">
             {copy.showing} {filteredPosts.length} {copy.of} {posts.length}
-          </span>
+          </div>
         </div>
       </div>
 
-      {filteredPosts.length === 0 ? (
-        <div className="card card-soft">
-          <div className="card-section-title">{t(lang, 'feed_empty_title')}</div>
-          <p className="card-section-subtitle">
-            {showWelcomeCard ? copy.emptyBetter : copy.noMatchBody}
-          </p>
-
-          <div style={{ marginTop: 10 }}>
+      {filteredPosts.length === 0 && posts.length > 0 ? (
+        <div className="card">
+          <div className="card-section-title">{copy.noMatchBody}</div>
+          <div style={{ marginTop: 12 }}>
             <button
-              className="btn primary"
+              className="btn"
               onClick={() => {
-                if (showWelcomeCard) {
-                  navigate('/new')
-                  return
-                }
-
                 setTypeFilter('all')
                 setRoleFilter('all')
                 setStatusFilter('all')
                 setSearchQuery('')
               }}
             >
-              {showWelcomeCard ? copy.welcomeCta : copy.resetFilters}
+              {copy.resetFilters}
             </button>
           </div>
         </div>
-      ) : (
+      ) : null}
+
+      {!showWelcomeCard ? (
         <div className="list">
           {filteredPosts.map((p) => {
             const typeStyles = getPostTypeStyles(p.post_type || 'discussion')
-            const isOpportunity = p.post_type === 'need_crew' || p.post_type === 'looking_for_work'
+            const isOpportunity =
+              p.post_type === 'need_crew' || p.post_type === 'looking_for_work'
 
             return (
               <div
@@ -743,12 +806,15 @@ export default function Feed({ lang: langProp = 'en' }) {
                   <Link className="btn small" to={`/u/${p.author_id}`}>
                     {copy.viewProfile}
                   </Link>
+                  <button className="btn small" onClick={() => sharePost(p)}>
+                    {copy.sharePost}
+                  </button>
                 </div>
               </div>
             )
           })}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

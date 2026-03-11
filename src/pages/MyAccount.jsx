@@ -46,6 +46,19 @@ const COPY = {
     bioPlaceholder:
       'Share what kind of work you do, where you work, and what crews or capabilities you have.',
     selectTrade: 'Select your trade',
+    inviteTitle: 'Invite Your Crew',
+    inviteBody:
+      'Use your personal Surplox invite link to bring classmates, coworkers, or people from your crew onto the network before the event.',
+    copyInvite: 'Copy Invite Link',
+    shareInvite: 'Share Invite',
+    textInvite: 'Text Invite',
+    emailInvite: 'Email Invite',
+    inviteCopied: 'Your invite link was copied.',
+    inviteCopyError: 'Unable to copy your invite link right now.',
+    inviteShareError: 'Unable to open the share menu right now.',
+    inviteTextError: 'Unable to open text invite right now.',
+    inviteEmailError: 'Unable to open email invite right now.',
+    invitePreviewLabel: 'Your invite link',
     save: 'Save Changes',
     saving: 'Saving…'
   },
@@ -86,6 +99,19 @@ const COPY = {
     bioPlaceholder:
       'Comparte qué tipo de trabajo haces, dónde trabajas y qué cuadrillas o capacidades tienes.',
     selectTrade: 'Selecciona tu oficio',
+    inviteTitle: 'Invita a tu cuadrilla',
+    inviteBody:
+      'Usa tu enlace personal de Surplox para invitar compañeros de clase, compañeros de trabajo o gente de tu cuadrilla antes del evento.',
+    copyInvite: 'Copiar enlace',
+    shareInvite: 'Compartir',
+    textInvite: 'Invitar por texto',
+    emailInvite: 'Invitar por correo',
+    inviteCopied: 'Tu enlace de invitación fue copiado.',
+    inviteCopyError: 'No se pudo copiar tu enlace en este momento.',
+    inviteShareError: 'No se pudo abrir el menú para compartir.',
+    inviteTextError: 'No se pudo abrir la invitación por texto.',
+    inviteEmailError: 'No se pudo abrir la invitación por correo.',
+    invitePreviewLabel: 'Tu enlace de invitación',
     save: 'Guardar cambios',
     saving: 'Guardando…'
   }
@@ -97,6 +123,7 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
   const [msg, setMsg] = useState('')
   const [trades, setTrades] = useState([])
   const [lang, setLang] = useState(langProp || localStorage.getItem('surplox_lang') || 'en')
+  const [inviteCode, setInviteCode] = useState('')
 
   const [form, setForm] = useState({
     display_name: '',
@@ -134,6 +161,71 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
 
   function roleLabel(option) {
     return option.label[form.preferred_language] || option.label.en
+  }
+
+  function buildInviteUrl() {
+    const base = `${window.location.origin}/join`
+    return inviteCode ? `${base}?ref=${encodeURIComponent(inviteCode)}` : base
+  }
+
+  function getInviteText() {
+    const name = form.display_name?.trim() || 'A Surplox member'
+    const message =
+      lang === 'es'
+        ? `${name} te invitó a unirte a Surplox, la red local de construcción para cuadrillas, trabajo y actividad del oficio.`
+        : `${name} invited you to join Surplox, the local construction network for crews, work, and trade activity.`
+
+    return `${message}\n\n${buildInviteUrl()}`
+  }
+
+  async function copyInviteLink() {
+    try {
+      await navigator.clipboard.writeText(buildInviteUrl())
+      setMsg(copy.inviteCopied)
+    } catch (err) {
+      console.error(err)
+      setMsg(copy.inviteCopyError)
+    }
+  }
+
+  async function shareInviteLink() {
+    try {
+      const shareData = {
+        title: 'Surplox',
+        text: getInviteText(),
+        url: buildInviteUrl()
+      }
+
+      if (navigator.share) {
+        await navigator.share(shareData)
+      } else {
+        await copyInviteLink()
+      }
+    } catch (err) {
+      if (err?.name === 'AbortError') return
+      console.error(err)
+      setMsg(copy.inviteShareError)
+    }
+  }
+
+  function textInvite() {
+    try {
+      window.open(`sms:?&body=${encodeURIComponent(getInviteText())}`, '_self')
+    } catch (err) {
+      console.error(err)
+      setMsg(copy.inviteTextError)
+    }
+  }
+
+  function emailInvite() {
+    try {
+      const subject = encodeURIComponent('Join me on Surplox')
+      const body = encodeURIComponent(getInviteText())
+      window.location.href = `mailto:?subject=${subject}&body=${body}`
+    } catch (err) {
+      console.error(err)
+      setMsg(copy.inviteEmailError)
+    }
   }
 
   useEffect(() => {
@@ -176,6 +268,7 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
         const userLang =
           prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
 
+        setInviteCode(user.id)
         setLang(userLang)
         localStorage.setItem('surplox_lang', userLang)
         setTrades(tradeRows || [])
@@ -282,15 +375,57 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
     <div className="card" style={{ maxWidth: 860, margin: '0 auto' }}>
       <div className="h1">{copy.title}</div>
 
-      <p className="muted">
-        {copy.intro}
-      </p>
+      <p className="muted">{copy.intro}</p>
 
       <div className="card card-notice" style={{ marginBottom: 12 }}>
         <div className="card-section-title">{copy.noticeTitle}</div>
-        <p className="card-section-subtitle">
-          {copy.noticeBody}
+        <p className="card-section-subtitle">{copy.noticeBody}</p>
+      </div>
+
+      <div
+        className="card"
+        style={{
+          marginBottom: 12,
+          borderColor: 'rgba(255, 222, 89, 0.32)',
+          background: 'rgba(255, 222, 89, 0.05)'
+        }}
+      >
+        <div className="card-section-title">{copy.inviteTitle}</div>
+        <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+          {copy.inviteBody}
         </p>
+
+        <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button className="btn small primary" onClick={copyInviteLink}>
+            {copy.copyInvite}
+          </button>
+          <button className="btn small" onClick={shareInviteLink}>
+            {copy.shareInvite}
+          </button>
+          <button className="btn small" onClick={textInvite}>
+            {copy.textInvite}
+          </button>
+          <button className="btn small" onClick={emailInvite}>
+            {copy.emailInvite}
+          </button>
+        </div>
+
+        <div
+          className="card card-soft"
+          style={{
+            marginTop: 10,
+            padding: 12,
+            borderColor: 'rgba(255, 222, 89, 0.18)',
+            background: 'rgba(255, 222, 89, 0.03)'
+          }}
+        >
+          <div className="muted" style={{ marginBottom: 6 }}>
+            {copy.invitePreviewLabel}
+          </div>
+          <div className="muted" style={{ wordBreak: 'break-all' }}>
+            {buildInviteUrl()}
+          </div>
+        </div>
       </div>
 
       {msg && (
