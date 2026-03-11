@@ -408,6 +408,34 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
 
       <p className="muted">{copy.intro}</p>
 
+      {completionItems.length > 0 ? (
+        <div
+          className="card"
+          style={{
+            marginBottom: 12,
+            borderColor: 'rgba(255, 117, 31, 0.42)',
+            background: 'rgba(255, 117, 31, 0.06)',
+            boxShadow: '0 0 18px rgba(255, 117, 31, 0.14)'
+          }}
+        >
+          <div
+            className="card-section-title"
+            style={{ color: '#ffde59' }}
+          >
+            {copy.completionTitle}
+          </div>
+          <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+            {copy.completionBody}
+          </p>
+
+          <div className="grid" style={{ gap: 8, marginTop: 10 }}>
+            {completionItems.map((item) => (
+              <div key={item}>• {item}</div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       <div
         className="card"
         style={{
@@ -453,21 +481,6 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
           </div>
         </div>
       </div>
-
-      {completionItems.length > 0 ? (
-        <div className="card card-soft" style={{ marginBottom: 12 }}>
-          <div className="card-section-title">{copy.completionTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-            {copy.completionBody}
-          </p>
-
-          <div className="grid" style={{ gap: 8, marginTop: 10 }}>
-            {completionItems.map((item) => (
-              <div key={item}>• {item}</div>
-            ))}
-          </div>
-        </div>
-      ) : null}
 
       {msg && (
         <div className="card card-message" style={{ marginBottom: 12 }}>
