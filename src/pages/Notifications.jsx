@@ -274,11 +274,6 @@ export default function Notifications({ lang: langProp = 'en' }) {
           <span className="badge">
             {unreadCount} {copy.unread}
           </span>
-          {profileReminderItems.length > 0 ? (
-            <span className="badge" style={{ color: '#ff751f', borderColor: 'rgba(255, 222, 89, 0.65)', background: 'rgba(255, 222, 89, 0.14)' }}>
-              {profileReminderItems.length}
-            </span>
-          ) : null}
         </div>
       </div>
 
@@ -315,14 +310,16 @@ export default function Notifications({ lang: langProp = 'en' }) {
         </div>
       ) : null}
 
-      {notifications.length === 0 ? (
+      {notifications.length === 0 && profileReminderItems.length === 0 ? (
         <div className="card card-soft">
           <div className="card-section-title">{copy.emptyTitle}</div>
           <p className="card-section-subtitle" style={{ marginTop: 6 }}>
             {copy.emptyBody}
           </p>
         </div>
-      ) : (
+      ) : null}
+
+      {notifications.length > 0 ? (
         <div className="list">
           {notifications.map((note) => (
             <div
@@ -365,7 +362,7 @@ export default function Notifications({ lang: langProp = 'en' }) {
             </div>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

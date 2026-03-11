@@ -22,9 +22,6 @@ const COPY = {
     saveError: 'Unable to save your account changes.',
     title: 'My Surplox Account',
     intro: 'Review and update your account information below.',
-    noticeTitle: 'Progressive Profile Completion',
-    noticeBody:
-      'You are already inside the app. Add more account details over time to improve profile strength, trust, and visibility.',
     displayName: 'Display Name',
     primaryRole: 'Primary Role',
     trade: 'Trade',
@@ -56,9 +53,9 @@ const COPY = {
     invitePreviewLabel: 'Your invite link',
     save: 'Save Changes',
     saving: 'Saving…',
-    completionTitle: 'Recommended next steps',
+    completionTitle: 'Finish Profile Completion',
     completionBody:
-      'Complete these when you can so your profile is stronger when contractors, crews, or other workers look at it.',
+      'Complete these remaining items so your profile is fully finished and carries more weight with workers, crews, and contractors.',
     completionCrew: 'Add crew size',
     completionBio: 'Add experience and certifications in your bio',
     completionPhone: 'Add phone number',
@@ -79,9 +76,6 @@ const COPY = {
     saveError: 'No se pudieron guardar los cambios de tu cuenta.',
     title: 'Mi cuenta de Surplox',
     intro: 'Revisa y actualiza la información de tu cuenta abajo.',
-    noticeTitle: 'Perfil progresivo',
-    noticeBody:
-      'Ya estás dentro de la app. Agrega más detalles con el tiempo para mejorar la fuerza, confianza y visibilidad de tu perfil.',
     displayName: 'Nombre visible',
     primaryRole: 'Rol principal',
     trade: 'Oficio',
@@ -113,9 +107,9 @@ const COPY = {
     invitePreviewLabel: 'Tu enlace de invitación',
     save: 'Guardar cambios',
     saving: 'Guardando…',
-    completionTitle: 'Siguientes pasos recomendados',
+    completionTitle: 'Terminar perfil',
     completionBody:
-      'Completa esto cuando puedas para que tu perfil sea más fuerte cuando contratistas, cuadrillas u otros trabajadores lo vean.',
+      'Completa estos elementos restantes para que tu perfil quede completamente terminado y tenga más peso con trabajadores, cuadrillas y contratistas.',
     completionCrew: 'Agregar tamaño de cuadrilla',
     completionBio: 'Agregar experiencia y certificaciones en tu biografía',
     completionPhone: 'Agregar número de teléfono',
@@ -352,6 +346,7 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
       const phoneDigits = normalizePhone(form.phone)
       if (form.phone.trim() && phoneDigits.length < 10) throw new Error(activeCopy.phoneInvalid)
       if (form.email.trim() && !isValidEmail(form.email)) throw new Error(activeCopy.emailInvalid)
+
       if (!['en', 'es'].includes(form.preferred_language)) {
         throw new Error(activeCopy.languageInvalid)
       }
@@ -412,11 +407,6 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
       <div className="h1">{copy.title}</div>
 
       <p className="muted">{copy.intro}</p>
-
-      <div className="card card-notice" style={{ marginBottom: 12 }}>
-        <div className="card-section-title">{copy.noticeTitle}</div>
-        <p className="card-section-subtitle">{copy.noticeBody}</p>
-      </div>
 
       <div
         className="card"
