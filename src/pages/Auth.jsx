@@ -7,6 +7,21 @@ const GENERAL_CONSTRUCTION_OPTION = {
   name: 'General Construction'
 }
 
+const CHANNEL_TRADE_FALLBACKS = [
+  'Concrete & Flatwork',
+  'Drywall',
+  'Electrical',
+  'Fencing & Gates',
+  'Framing & Carpentry',
+  'HVAC',
+  'Masonry',
+  'Painting',
+  'Plumbing',
+  'Roofing',
+  'Sitework & Excavation',
+  'Welding & Fabrication'
+]
+
 const COPY = {
   en: {
     formLabel: 'Surplox Access',
@@ -61,6 +76,8 @@ const COPY = {
     tradeLabel: 'What trade do you work in?',
     tradePlaceholder: 'Select your trade',
     generalConstruction: 'General Construction',
+    tradesLoading: 'Loading trades…',
+    tradesUnavailable: 'Trades unavailable right now. Showing Surplox default trades.',
     zipLabel: 'What ZIP do you usually work in?',
     zipPlaceholder: '76102',
     tradeRequired: 'Select your trade.',
@@ -123,6 +140,8 @@ const COPY = {
     tradeLabel: '¿Qué oficio trabajas?',
     tradePlaceholder: 'Selecciona tu oficio',
     generalConstruction: 'Construcción general',
+    tradesLoading: 'Cargando oficios…',
+    tradesUnavailable: 'Los oficios no están disponibles en este momento. Mostrando oficios predeterminados de Surplox.',
     zipLabel: '¿En qué ZIP trabajas normalmente?',
     zipPlaceholder: '76102',
     tradeRequired: 'Selecciona tu oficio.',
@@ -138,6 +157,36 @@ function normalizeMode(value) {
   return value === 'signin' ? 'signin' : 'signup'
 }
 
+function dedupeTradeOptions(dynamicTrades) {
+  const seen = new Set()
+  const result = []
+
+  const addOption = (option) => {
+    const key = String(option.name || '').trim().toLowerCase()
+    if (!key || seen.has(key)) return
+    seen.add(key)
+    result.push(option)
+  }
+
+  addOption(GENERAL_CONSTRUCTION_OPTION)
+
+  ;(dynamicTrades || []).forEach((trade) => {
+    addOption({
+      id: trade.id,
+      name: trade.name
+    })
+  })
+
+  CHANNEL_TRADE_FALLBACKS.forEach((name) => {
+    addOption({
+      id: `fallback:${name}`,
+      name
+    })
+  })
+
+  return result
+}
+
 export default function Auth({ lang = 'en', setLang }) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -146,7 +195,9 @@ export default function Auth({ lang = 'en', setLang }) {
   const [step, setStep] = useState(1)
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
-  const [trades, setTrades] = useState([])
+  const [tradesLoading, setTradesLoading] = useState(true)
+  const [tradesError, setTradesError] = useState('')
+  const [tradeOptions, setTradeOptions] = useState([])
 
   const [signInForm, setSignInForm] = useState({
     email: '',
@@ -169,6 +220,9 @@ export default function Auth({ lang = 'en', setLang }) {
 
   useEffect(() => {
     async function loadTrades() {
+      setTradesLoading(true)
+      setTradesError('')
+
       try {
         const { data, error } = await supabase
           .from('trades')
@@ -177,19 +231,23 @@ export default function Auth({ lang = 'en', setLang }) {
 
         if (error) {
           console.error(error)
-          setTrades([GENERAL_CONSTRUCTION_OPTION])
+          setTradesError(copy.tradesUnavailable)
+          setTradeOptions(dedupeTradeOptions([]))
           return
         }
 
-        setTrades([GENERAL_CONSTRUCTION_OPTION, ...(data || [])])
+        setTradeOptions(dedupeTradeOptions(data || []))
       } catch (err) {
         console.error(err)
-        setTrades([GENERAL_CONSTRUCTION_OPTION])
+        setTradesError(copy.tradesUnavailable)
+        setTradeOptions(dedupeTradeOptions([]))
+      } finally {
+        setTradesLoading(false)
       }
     }
 
     loadTrades()
-  }, [])
+  }, [copy.tradesUnavailable])
 
   const points = useMemo(
     () => [
@@ -294,6 +352,45 @@ export default function Auth({ lang = 'en', setLang }) {
     }
   }
 
+  async function resolveTradeId(selectedTradeValue) {
+    if (selectedTradeValue === GENERAL_CONSTRUCTION_OPTION.id) {
+      return { tradeId: null, isGeneralConstruction: true }
+    }
+
+    const exactOption = tradeOptions.find(
+      (option) => String(option.id) === String(selectedTradeValue)
+    )
+
+    if (!exactOption) {
+      return { tradeId: null, isGeneralConstruction: false }
+    }
+
+    if (!String(exactOption.id).startsWith('fallback:')) {
+      return {
+        tradeId: Number(exactOption.id),
+        isGeneralConstruction: false
+      }
+    }
+
+    const { data, error } = await supabase
+      .from('trades')
+      .select('id,name')
+      .ilike('name', exactOption.name)
+      .limit(1)
+
+    if (error) throw error
+
+    const resolvedTrade = data?.[0]
+    if (!resolvedTrade?.id) {
+      throw new Error(copy.tradeRequired)
+    }
+
+    return {
+      tradeId: Number(resolvedTrade.id),
+      isGeneralConstruction: false
+    }
+  }
+
   async function handleSignUpSubmit(e) {
     e.preventDefault()
     if (!validateStep(3)) return
@@ -332,7 +429,7 @@ export default function Auth({ lang = 'en', setLang }) {
       const firstName = nameParts[0] || rawName
       const lastName = nameParts.slice(1).join(' ')
 
-      const isGeneralConstruction = String(signUpForm.trade_id) === GENERAL_CONSTRUCTION_OPTION.id
+      const { tradeId, isGeneralConstruction } = await resolveTradeId(signUpForm.trade_id)
 
       const { error: profileError } = await supabase.from('profiles').upsert({
         user_id: user.id,
@@ -340,7 +437,7 @@ export default function Auth({ lang = 'en', setLang }) {
         first_name: firstName,
         last_name: lastName,
         role: 'laborer',
-        trade_id: isGeneralConstruction ? null : Number(signUpForm.trade_id),
+        trade_id: tradeId,
         travel_radius_miles: 50,
         crew_size: 1,
         bio: isGeneralConstruction ? copy.generalConstruction : '',
@@ -468,20 +565,31 @@ export default function Auth({ lang = 'en', setLang }) {
               <div className="grid" style={{ gap: 12 }}>
                 <div>
                   <div className="muted" style={{ marginBottom: 6 }}>{copy.tradeLabel}</div>
-                  <select
-                    className="input"
-                    value={signUpForm.trade_id}
-                    onChange={(e) => setSignUpField('trade_id', e.target.value)}
-                  >
-                    <option value="">{copy.tradePlaceholder}</option>
-                    {trades.map((trade) => (
-                      <option key={trade.id} value={trade.id}>
-                        {trade.id === GENERAL_CONSTRUCTION_OPTION.id
-                          ? copy.generalConstruction
-                          : trade.name}
-                      </option>
-                    ))}
-                  </select>
+
+                  {tradesLoading ? (
+                    <div className="card card-soft">{copy.tradesLoading}</div>
+                  ) : (
+                    <select
+                      className="input"
+                      value={signUpForm.trade_id}
+                      onChange={(e) => setSignUpField('trade_id', e.target.value)}
+                    >
+                      <option value="">{copy.tradePlaceholder}</option>
+                      {tradeOptions.map((trade) => (
+                        <option key={trade.id} value={trade.id}>
+                          {trade.id === GENERAL_CONSTRUCTION_OPTION.id
+                            ? copy.generalConstruction
+                            : trade.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {tradesError ? (
+                    <div className="muted" style={{ marginTop: 8 }}>
+                      {tradesError}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ) : null}
