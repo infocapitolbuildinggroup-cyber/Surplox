@@ -42,8 +42,7 @@ const COPY = {
     point2Body:
       'Post labor needs, discover available workers, and move faster when it is time to fill jobs.',
     point3Title: 'Profiles that carry weight',
-    point3Body:
-      'Show your trade and area so the right people can find you.',
+    point3Body: 'Show your trade and area so the right people can find you.',
     point4Title: 'Alerts and repeat connections',
     point4Body:
       'Stay on top of replies, joins, hires, and local activity that can turn into future work.',
@@ -55,6 +54,7 @@ const COPY = {
     nameLabel: 'What’s your name?',
     namePlaceholder: 'Juan Martinez',
     tradeLabel: 'What trade do you work in?',
+    tradePlaceholder: 'Select your trade',
     zipLabel: 'What ZIP do you usually work in?',
     zipPlaceholder: '76102',
     tradeRequired: 'Select your trade.',
@@ -103,8 +103,7 @@ const COPY = {
     point2Body:
       'Publica necesidades de personal, descubre trabajadores disponibles y avanza más rápido al llenar puestos.',
     point3Title: 'Perfiles con peso',
-    point3Body:
-      'Muestra tu oficio y tu zona para que la gente correcta te encuentre.',
+    point3Body: 'Muestra tu oficio y tu zona para que la gente correcta te encuentre.',
     point4Title: 'Alertas y conexiones repetidas',
     point4Body:
       'Mantente al tanto de respuestas, uniones, contrataciones y actividad local que puede convertirse en trabajo futuro.',
@@ -116,6 +115,7 @@ const COPY = {
     nameLabel: '¿Cómo te llamas?',
     namePlaceholder: 'Juan Martinez',
     tradeLabel: '¿Qué oficio trabajas?',
+    tradePlaceholder: 'Selecciona tu oficio',
     zipLabel: '¿En qué ZIP trabajas normalmente?',
     zipPlaceholder: '76102',
     tradeRequired: 'Selecciona tu oficio.',
@@ -361,33 +361,6 @@ export default function Auth({ lang = 'en', setLang }) {
           {copy.formLabel}
         </div>
 
-        {mode === 'signup' && (
-          <div
-            className="card card-soft"
-            style={{
-              marginBottom: 14,
-              borderColor: 'rgba(255, 222, 89, 0.28)',
-              background: 'rgba(255, 222, 89, 0.05)'
-            }}
-          >
-            <div className="card-section-title">{copy.previewTitle}</div>
-            <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-              {copy.previewBody}
-            </p>
-
-            <div className="grid" style={{ gap: 8, marginTop: 10 }}>
-              <div>{copy.previewBullet1}</div>
-              <div>{copy.previewBullet2}</div>
-              <div>{copy.previewBullet3}</div>
-            </div>
-
-            <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <span className="badge">{copy.previewFree}</span>
-              <span className="badge">{copy.previewTexas}</span>
-            </div>
-          </div>
-        )}
-
         <div className="h1">
           {mode === 'signup' ? copy.signUpTitle : copy.signInTitle}
         </div>
@@ -473,23 +446,20 @@ export default function Auth({ lang = 'en', setLang }) {
 
             {step === 2 ? (
               <div className="grid" style={{ gap: 12 }}>
-                <div className="muted" style={{ marginBottom: 2 }}>{copy.tradeLabel}</div>
-
-                <div className="grid two" style={{ gap: 10 }}>
-                  {trades.map((trade) => {
-                    const selected = String(signUpForm.trade_id) === String(trade.id)
-                    return (
-                      <button
-                        key={trade.id}
-                        type="button"
-                        className={selected ? 'btn primary' : 'btn'}
-                        onClick={() => setSignUpField('trade_id', String(trade.id))}
-                        style={{ justifyContent: 'flex-start', minHeight: 48 }}
-                      >
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>{copy.tradeLabel}</div>
+                  <select
+                    className="input"
+                    value={signUpForm.trade_id}
+                    onChange={(e) => setSignUpField('trade_id', e.target.value)}
+                  >
+                    <option value="">{copy.tradePlaceholder}</option>
+                    {trades.map((trade) => (
+                      <option key={trade.id} value={trade.id}>
                         {trade.name}
-                      </button>
-                    )
-                  })}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             ) : null}
@@ -556,6 +526,31 @@ export default function Auth({ lang = 'en', setLang }) {
               >
                 {copy.switchToSignIn}
               </button>
+            </div>
+
+            <div
+              className="card card-soft"
+              style={{
+                marginTop: 16,
+                borderColor: 'rgba(255, 222, 89, 0.28)',
+                background: 'rgba(255, 222, 89, 0.05)'
+              }}
+            >
+              <div className="card-section-title">{copy.previewTitle}</div>
+              <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+                {copy.previewBody}
+              </p>
+
+              <div className="grid" style={{ gap: 8, marginTop: 10 }}>
+                <div>{copy.previewBullet1}</div>
+                <div>{copy.previewBullet2}</div>
+                <div>{copy.previewBullet3}</div>
+              </div>
+
+              <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <span className="badge">{copy.previewFree}</span>
+                <span className="badge">{copy.previewTexas}</span>
+              </div>
             </div>
           </form>
         )}
