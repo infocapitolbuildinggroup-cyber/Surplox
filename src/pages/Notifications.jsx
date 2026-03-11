@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { Link } from 'react-router-dom'
 
@@ -9,7 +9,7 @@ const COPY = {
     markAllError: 'Unable to mark alerts as read.',
     markOneError: 'Unable to mark this alert as read.',
     title: 'Alerts',
-    intro: 'Replies, crew joins, and hired updates show up here.',
+    intro: 'Replies, crew joins, hired updates, and profile reminders show up here.',
     markAllRead: 'Mark All Read',
     refresh: 'Refresh',
     emptyTitle: 'No Alerts Yet',
@@ -21,7 +21,17 @@ const COPY = {
     markRead: 'Mark Read',
     typeReply: 'Reply',
     typeCrewJoined: 'Crew Joined',
-    typeMarkedHired: 'Marked Hired'
+    typeMarkedHired: 'Marked Hired',
+    reminderTitle: 'Complete your profile to unlock more value',
+    reminderBody:
+      'You can already use Surplox, but finishing these details will make your profile stronger and unlock more posting use cases.',
+    reminderCta: 'Finish Profile',
+    addFirstLast: 'Add first and last name',
+    addPhone: 'Add phone number',
+    addCity: 'Add city',
+    addRole: 'Add primary role',
+    addBio: 'Add bio / experience',
+    addCrewSize: 'Add crew size'
   },
   es: {
     loading: 'Cargando alertas…',
@@ -29,7 +39,7 @@ const COPY = {
     markAllError: 'No se pudieron marcar las alertas como leídas.',
     markOneError: 'No se pudo marcar esta alerta como leída.',
     title: 'Alertas',
-    intro: 'Las respuestas, uniones a cuadrillas y contrataciones aparecen aquí.',
+    intro: 'Las respuestas, uniones a cuadrillas, contrataciones y recordatorios de perfil aparecen aquí.',
     markAllRead: 'Marcar todas como leídas',
     refresh: 'Actualizar',
     emptyTitle: 'Todavía no hay alertas',
@@ -41,41 +51,51 @@ const COPY = {
     markRead: 'Marcar como leída',
     typeReply: 'Respuesta',
     typeCrewJoined: 'Se unió a la cuadrilla',
-    typeMarkedHired: 'Marcado como contratado'
+    typeMarkedHired: 'Marcado como contratado',
+    reminderTitle: 'Completa tu perfil para desbloquear más valor',
+    reminderBody:
+      'Ya puedes usar Surplox, pero completar estos detalles hará tu perfil más fuerte y desbloqueará más usos al publicar.',
+    reminderCta: 'Completar perfil',
+    addFirstLast: 'Agregar nombre y apellido',
+    addPhone: 'Agregar número de teléfono',
+    addCity: 'Agregar ciudad',
+    addRole: 'Agregar rol principal',
+    addBio: 'Agregar biografía / experiencia',
+    addCrewSize: 'Agregar tamaño de cuadrilla'
   }
 }
 
 function timeAgo(ts, lang = 'en') {
-  const d = new Date(ts)
-  const diff = (Date.now() - d.getTime()) / 1000
+  const date = new Date(ts)
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
 
-  if (lang === 'es') {
-    if (diff < 60) return `hace ${Math.floor(diff)} s`
-    if (diff < 3600) return `hace ${Math.floor(diff / 60)} min`
-    if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`
-    return `hace ${Math.floor(diff / 86400)} d`
+  if (seconds < 60) return lang === 'es' ? 'justo ahora' : 'just now'
+  if (seconds < 3600) {
+    const mins = Math.floor(seconds / 60)
+    return lang === 'es' ? `hace ${mins} min` : `${mins} min ago`
   }
-
-  if (diff < 60) return `${Math.floor(diff)}s ago`
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-  return `${Math.floor(diff / 86400)}d ago`
+  if (seconds < 86400) {
+    const hrs = Math.floor(seconds / 3600)
+    return lang === 'es' ? `hace ${hrs} h` : `${hrs}h ago`
+  }
+  const days = Math.floor(seconds / 86400)
+  return lang === 'es' ? `hace ${days} d` : `${days}d ago`
 }
 
-function notificationBadgeStyle(type) {
+function notificationTypeStyle(type) {
   if (type === 'crew_hired') {
     return {
-      color: '#ff751f',
-      borderColor: 'rgba(255, 222, 89, 0.65)',
-      background: 'rgba(255, 222, 89, 0.14)'
+      color: '#ffde59',
+      borderColor: 'rgba(255, 117, 31, 0.55)',
+      background: 'rgba(255, 117, 31, 0.12)'
     }
   }
 
   if (type === 'crew_join') {
     return {
-      color: '#ffde59',
-      borderColor: 'rgba(255, 117, 31, 0.55)',
-      background: 'rgba(255, 117, 31, 0.12)'
+      color: '#ff751f',
+      borderColor: 'rgba(255, 222, 89, 0.65)',
+      background: 'rgba(255, 222, 89, 0.14)'
     }
   }
 
@@ -93,11 +113,43 @@ function notificationTypeLabel(type, lang = 'en') {
   return copy.typeReply
 }
 
+function getReminderItems(profile = {}, contact = {}, lang = 'en') {
+  const copy = COPY[lang] || COPY.en
+  const items = []
+
+  if (!String(profile.first_name || '').trim() || !String(profile.last_name || '').trim()) {
+    items.push(copy.addFirstLast)
+  }
+
+  if (!String(contact.phone || '').trim()) {
+    items.push(copy.addPhone)
+  }
+
+  if (!String(contact.city || '').trim()) {
+    items.push(copy.addCity)
+  }
+
+  if (!String(profile.role || '').trim()) {
+    items.push(copy.addRole)
+  }
+
+  if (!String(profile.bio || '').trim()) {
+    items.push(copy.addBio)
+  }
+
+  if (!Number(profile.crew_size || 0) || Number(profile.crew_size || 0) <= 1) {
+    items.push(copy.addCrewSize)
+  }
+
+  return items
+}
+
 export default function Notifications({ lang: langProp = 'en' }) {
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
   const [notifications, setNotifications] = useState([])
   const [lang, setLang] = useState(langProp || localStorage.getItem('surplox_lang') || 'en')
+  const [profileReminderItems, setProfileReminderItems] = useState([])
 
   const copy = COPY[lang] || COPY.en
 
@@ -120,13 +172,22 @@ export default function Notifications({ lang: langProp = 'en' }) {
 
       const { data: prof } = await supabase
         .from('profiles')
-        .select('preferred_language')
+        .select('*')
+        .eq('user_id', uid)
+        .maybeSingle()
+
+      const { data: cp } = await supabase
+        .from('contact_private')
+        .select('*')
         .eq('user_id', uid)
         .maybeSingle()
 
       const userLang = prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
       setLang(userLang)
       localStorage.setItem('surplox_lang', userLang)
+
+      const reminders = getReminderItems(prof || {}, cp || {}, userLang)
+      setProfileReminderItems(reminders)
 
       const { data, error } = await supabase
         .from('notifications')
@@ -190,81 +251,113 @@ export default function Notifications({ lang: langProp = 'en' }) {
     }
   }
 
-  if (loading) {
-    return <div className="card">{copy.loading}</div>
-  }
+  const unreadCount = useMemo(
+    () => notifications.filter((n) => !n.is_read).length,
+    [notifications]
+  )
+
+  if (loading) return <div className="card">{copy.loading}</div>
 
   return (
     <div className="grid" style={{ gap: 12 }}>
       <div className="card">
-        <div className="h1" style={{ fontSize: 22, marginTop: 0 }}>{copy.title}</div>
-        <p className="muted">
-          {copy.intro}
-        </p>
+        <div className="h1" style={{ fontSize: 22 }}>{copy.title}</div>
+        <p className="muted">{copy.intro}</p>
 
-        <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button className="btn primary" onClick={markAllRead}>
+        <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button className="btn primary" onClick={markAllRead} disabled={unreadCount === 0}>
             {copy.markAllRead}
           </button>
           <button className="btn" onClick={loadNotifications}>
             {copy.refresh}
           </button>
+          <span className="badge">
+            {unreadCount} {copy.unread}
+          </span>
+          {profileReminderItems.length > 0 ? (
+            <span className="badge" style={{ color: '#ff751f', borderColor: 'rgba(255, 222, 89, 0.65)', background: 'rgba(255, 222, 89, 0.14)' }}>
+              {profileReminderItems.length}
+            </span>
+          ) : null}
         </div>
       </div>
 
-      {msg ? <div className="card card-message">{msg}</div> : null}
+      {profileReminderItems.length > 0 ? (
+        <div
+          className="card"
+          style={{
+            borderColor: 'rgba(255, 222, 89, 0.36)',
+            background: 'rgba(255, 222, 89, 0.06)'
+          }}
+        >
+          <div className="card-section-title">{copy.reminderTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+            {copy.reminderBody}
+          </p>
+
+          <div className="grid" style={{ gap: 8, marginTop: 12 }}>
+            {profileReminderItems.map((item) => (
+              <div key={item}>• {item}</div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 14 }}>
+            <Link className="btn primary" to="/account">
+              {copy.reminderCta}
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
+      {msg ? (
+        <div className="card card-message">
+          {msg}
+        </div>
+      ) : null}
 
       {notifications.length === 0 ? (
         <div className="card card-soft">
           <div className="card-section-title">{copy.emptyTitle}</div>
-          <p className="card-section-subtitle">
+          <p className="card-section-subtitle" style={{ marginTop: 6 }}>
             {copy.emptyBody}
           </p>
         </div>
       ) : (
         <div className="list">
-          {notifications.map((item) => (
+          {notifications.map((note) => (
             <div
-              key={item.id}
+              key={note.id}
               className="card"
               style={{
-                borderColor: item.is_read
+                borderColor: note.is_read
                   ? 'rgba(255, 222, 89, 0.14)'
-                  : 'rgba(255, 222, 89, 0.4)',
-                background: item.is_read
-                  ? undefined
+                  : 'rgba(255, 222, 89, 0.35)',
+                background: note.is_read
+                  ? 'var(--card)'
                   : 'rgba(255, 222, 89, 0.04)'
               }}
             >
-              <div className="postMeta" style={{ marginBottom: 8 }}>
-                <span className="badge" style={notificationBadgeStyle(item.type)}>
-                  {notificationTypeLabel(item.type, lang)}
+              <div className="postMeta" style={{ marginBottom: 10 }}>
+                <span className="badge" style={notificationTypeStyle(note.type)}>
+                  {notificationTypeLabel(note.type, lang)}
                 </span>
-                {item.is_read ? (
-                  <span className="badge">{copy.read}</span>
-                ) : (
-                  <span className="badge">{copy.unread}</span>
-                )}
-                <span>{timeAgo(item.created_at, lang)}</span>
+                <span className="badge">
+                  {note.is_read ? copy.read : copy.unread}
+                </span>
+                <span className="badge">{timeAgo(note.created_at, lang)}</span>
               </div>
 
-              <div className="postTitle" style={{ fontSize: 16 }}>
-                {item.message}
-              </div>
+              <div style={{ lineHeight: 1.55 }}>{note.message}</div>
 
               <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {item.post_id ? (
-                  <Link
-                    className="btn small primary"
-                    to={`/p/${item.post_id}`}
-                    onClick={() => markRead(item.id)}
-                  >
+                {note.post_id ? (
+                  <Link className="btn small primary" to={`/p/${note.post_id}`}>
                     {copy.openPost}
                   </Link>
                 ) : null}
 
-                {!item.is_read ? (
-                  <button className="btn small" onClick={() => markRead(item.id)}>
+                {!note.is_read ? (
+                  <button className="btn small" onClick={() => markRead(note.id)}>
                     {copy.markRead}
                   </button>
                 ) : null}

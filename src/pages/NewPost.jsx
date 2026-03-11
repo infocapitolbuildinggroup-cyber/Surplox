@@ -102,6 +102,8 @@ export default function NewPost({ lang: langProp = 'en' }) {
   const [msg, setMsg] = useState('')
   const [lang, setLang] = useState(langProp || localStorage.getItem('surplox_lang') || 'en')
   const [profilePromptItems, setProfilePromptItems] = useState([])
+  const [profileGateMessage, setProfileGateMessage] = useState('')
+  const [profileReadyForPosting, setProfileReadyForPosting] = useState(false)
 
   const location = useLocation()
   const navigate = useNavigate()
@@ -162,6 +164,14 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
         const prompts = []
 
+        if (!String(prof?.first_name || '').trim() || !String(prof?.last_name || '').trim()) {
+          prompts.push(userLang === 'es' ? 'Agrega nombre y apellido' : 'Add first and last name')
+        }
+
+        if (!String(prof?.role || '').trim()) {
+          prompts.push(userLang === 'es' ? 'Agrega rol principal' : 'Add primary role')
+        }
+
         if (!Number(prof?.crew_size || 0) || Number(prof?.crew_size || 0) <= 1) {
           prompts.push(userLang === 'es' ? 'Agrega tamaño de cuadrilla' : 'Add crew size')
         }
@@ -178,7 +188,20 @@ export default function NewPost({ lang: langProp = 'en' }) {
           prompts.push(userLang === 'es' ? 'Agrega número de teléfono' : 'Add phone number')
         }
 
+        if (!String(cp?.city || '').trim()) {
+          prompts.push(userLang === 'es' ? 'Agrega ciudad' : 'Add city')
+        }
+
         setProfilePromptItems(prompts)
+
+        const hasCorePostingProfile = Boolean(
+          prof &&
+            String(prof.display_name || '').trim() &&
+            String(prof.home_zip || '').trim() &&
+            (prof.trade_id || String(prof.bio || '').trim())
+        )
+
+        setProfileReadyForPosting(hasCorePostingProfile)
       } else {
         const localLang = langProp || localStorage.getItem('surplox_lang') || 'en'
         setLang(localLang)
@@ -199,6 +222,49 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
     loadTradesAndProfile()
   }, [langProp])
+
+  useEffect(() => {
+    if (!profileReadyForPosting) {
+      setProfileGateMessage(
+        lang === 'es'
+          ? 'Completa tu nombre visible, oficio y ZIP antes de publicar.'
+          : 'Complete your display name, trade, and ZIP before posting.'
+      )
+      return
+    }
+
+    if (form.post_type === 'need_crew') {
+      const needs = profilePromptItems.filter((item) =>
+        ['Add crew size', 'Add phone number', 'Add city', 'Agrega tamaño de cuadrilla', 'Agrega número de teléfono', 'Agrega ciudad'].includes(item)
+      )
+
+      setProfileGateMessage(
+        needs.length > 0
+          ? lang === 'es'
+            ? 'Para publicar "Se necesita cuadrilla", agrega tamaño de cuadrilla, teléfono y ciudad.'
+            : 'To publish a Need Crew post, add crew size, phone number, and city.'
+          : ''
+      )
+      return
+    }
+
+    if (form.post_type === 'looking_for_work') {
+      const needs = profilePromptItems.filter((item) =>
+        ['Add phone number', 'Add experience and certifications in your bio', 'Agrega número de teléfono', 'Agrega experiencia y certificaciones en tu biografía'].includes(item)
+      )
+
+      setProfileGateMessage(
+        needs.length > 0
+          ? lang === 'es'
+            ? 'Para publicar "Buscando trabajo", agrega teléfono y experiencia en tu biografía.'
+            : 'To publish a Looking for Work post, add phone number and experience in your bio.'
+          : ''
+      )
+      return
+    }
+
+    setProfileGateMessage('')
+  }, [form.post_type, lang, profilePromptItems, profileReadyForPosting])
 
   function setField(key, value) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -236,7 +302,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
         invalidPostLanguage: 'Selecciona un idioma válido para la publicación.',
         strengthenTitle: 'Fortalece tu perfil mientras publicas',
         strengthenBody:
-          'Ya puedes publicar. Pero si completas estos detalles, tu perfil tendrá más peso cuando otros vean tu publicación.',
+          'Ya puedes usar Surplox, pero completar tu perfil hará que tus publicaciones tengan más peso.',
         finishAccount: 'Terminar cuenta'
       }
     }
@@ -271,7 +337,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
       invalidPostLanguage: 'Select a valid post language.',
       strengthenTitle: 'Strengthen your profile while you post',
       strengthenBody:
-        'You can already post. But if you complete these details, your profile will carry more weight when people see your post.',
+        'You can already use Surplox, but completing your profile will make your posts carry more weight.',
       finishAccount: 'Finish Account'
     }
   }, [lang])
@@ -304,6 +370,18 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
       if (!user) {
         throw new Error(lang === 'es' ? 'No has iniciado sesión' : 'Not signed in')
+      }
+
+      if (!profileReadyForPosting) {
+        throw new Error(profileGateMessage)
+      }
+
+      if (form.post_type === 'need_crew' && profileGateMessage) {
+        throw new Error(profileGateMessage)
+      }
+
+      if (form.post_type === 'looking_for_work' && profileGateMessage) {
+        throw new Error(profileGateMessage)
       }
 
       if (!POST_TYPE_OPTIONS.some((x) => x.value === form.post_type)) {
@@ -384,15 +462,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
         ...theme.shell
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          marginBottom: 8,
-          flexWrap: 'wrap'
-        }}
-      >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
         <span className="badge" style={theme.badge}>
           {theme.icon} {postTypeLabel(form.post_type, lang)}
         </span>
@@ -434,6 +504,12 @@ export default function NewPost({ lang: langProp = 'en' }) {
         </div>
       ) : null}
 
+      {profileGateMessage ? (
+        <div className="card card-message" style={{ marginBottom: 12 }}>
+          {profileGateMessage}
+        </div>
+      ) : null}
+
       <div className="card card-notice" style={{ marginBottom: 12, ...theme.notice }}>
         <div className="card-section-title">{t(lang, 'new_post_notice_title')}</div>
         <p className="card-section-subtitle">
@@ -446,11 +522,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
       <div className="grid two">
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.postType}</div>
-          <select
-            className="input"
-            value={form.post_type}
-            onChange={(e) => setField('post_type', e.target.value)}
-          >
+          <select className="input" value={form.post_type} onChange={(e) => setField('post_type', e.target.value)}>
             {POST_TYPE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {postTypeLabel(option.value, lang)}
@@ -461,11 +533,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.postLanguage}</div>
-          <select
-            className="input"
-            value={form.source_language}
-            onChange={(e) => setField('source_language', e.target.value)}
-          >
+          <select className="input" value={form.source_language} onChange={(e) => setField('source_language', e.target.value)}>
             <option value="en">{helperCopy.english}</option>
             <option value="es">{helperCopy.spanish}</option>
           </select>
@@ -473,11 +541,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'new_post_trade')}</div>
-          <select
-            className="input"
-            value={form.trade_id}
-            onChange={(e) => setField('trade_id', e.target.value)}
-          >
+          <select className="input" value={form.trade_id} onChange={(e) => setField('trade_id', e.target.value)}>
             <option value="">{helperCopy.selectTrade}</option>
             {trades.map((trow) => (
               <option key={trow.id} value={trow.id}>{trow.name}</option>
@@ -487,22 +551,12 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'new_post_radius')}</div>
-          <input
-            className="input"
-            type="number"
-            value={form.radius_miles}
-            onChange={(e) => setField('radius_miles', e.target.value)}
-          />
+          <input className="input" type="number" value={form.radius_miles} onChange={(e) => setField('radius_miles', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'new_post_zip')}</div>
-          <input
-            className="input"
-            value={form.center_zip}
-            onChange={(e) => setField('center_zip', e.target.value)}
-            placeholder="76031"
-          />
+          <input className="input" value={form.center_zip} onChange={(e) => setField('center_zip', e.target.value)} placeholder="76031" />
         </div>
 
         {form.post_type === 'need_crew' && (
@@ -531,12 +585,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
             <div>
               <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.startDate}</div>
-              <input
-                className="input"
-                type="date"
-                value={form.start_date}
-                onChange={(e) => setField('start_date', e.target.value)}
-              />
+              <input className="input" type="date" value={form.start_date} onChange={(e) => setField('start_date', e.target.value)} />
             </div>
           </>
         )}
@@ -555,12 +604,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
             <div>
               <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.startDate}</div>
-              <input
-                className="input"
-                type="date"
-                value={form.start_date}
-                onChange={(e) => setField('start_date', e.target.value)}
-              />
+              <input className="input" type="date" value={form.start_date} onChange={(e) => setField('start_date', e.target.value)} />
             </div>
           </>
         )}
@@ -587,22 +631,12 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
       <div style={{ marginTop: 10 }}>
         <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'new_post_title_label')}</div>
-        <input
-          className="input"
-          value={form.title}
-          onChange={(e) => setField('title', e.target.value)}
-          placeholder={titlePlaceholder()}
-        />
+        <input className="input" value={form.title} onChange={(e) => setField('title', e.target.value)} placeholder={titlePlaceholder()} />
       </div>
 
       <div style={{ marginTop: 10 }}>
         <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'new_post_body_label')}</div>
-        <textarea
-          className="input"
-          value={form.body}
-          onChange={(e) => setField('body', e.target.value)}
-          placeholder={bodyPlaceholder()}
-        />
+        <textarea className="input" value={form.body} onChange={(e) => setField('body', e.target.value)} placeholder={bodyPlaceholder()} />
       </div>
 
       {msg && (

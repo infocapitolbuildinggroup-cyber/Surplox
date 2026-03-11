@@ -14,10 +14,10 @@ const COPY = {
     loading: 'Loading account setup…',
     title: 'Complete Your Surplox Account',
     intro:
-      'You are already in Surplox. Add the rest of your details when you are ready so contractors, crews, and nearby members can trust your profile more.',
-    noticeTitle: 'Finish Setup Later-Friendly',
+      'You are already inside Surplox. Add the rest of your profile details when you are ready so your account carries more weight.',
+    noticeTitle: 'Progressive Completion',
     noticeBody:
-      'Only your name, trade, and ZIP are needed to get inside. Everything else can be completed now or later.',
+      'Only your display name, trade, and ZIP are required to get inside the app. Everything else can be completed later.',
     displayName: 'Display Name',
     primaryRole: 'Primary Role',
     trade: 'Trade',
@@ -31,31 +31,30 @@ const COPY = {
     travelRadius: 'Travel Radius (Miles)',
     crewSize: 'Crew Size',
     preferredLanguage: 'Preferred Language',
-    bio: 'Bio / Experience / Certifications',
-    bioPlaceholder:
-      'Tell nearby crews and contractors what kind of work you do, your experience, and any certifications you want visible.',
-    save: 'Save Account Details',
+    bio: 'Bio / Experience',
+    bioPlaceholder: 'Tell nearby crews and contractors what kind of work you do.',
+    save: 'Save Details',
     saving: 'Saving…',
-    success: 'Your account details have been saved.',
+    success: 'Your account details have been updated.',
     errSignedIn: 'You must be signed in to continue.',
     errDisplayName: 'Display name is required.',
     errTrade: 'Select your trade.',
     errZip: 'Enter a valid 5-digit ZIP code.',
-    errEmailValid: 'Enter a valid email address.',
     errPhone: 'Enter a valid phone number.',
+    errEmailValid: 'Enter a valid email address.',
     errLanguage: 'Select a valid language.',
     errGeneric: 'Unable to save account setup.',
-    skip: 'Do This Later',
+    doLater: 'Do This Later',
     goFeed: 'Go to Feed'
   },
   es: {
     loading: 'Cargando configuración de cuenta…',
     title: 'Completa tu cuenta de Surplox',
     intro:
-      'Ya estás dentro de Surplox. Agrega el resto de tus datos cuando quieras para que contratistas, cuadrillas y miembros cercanos confíen más en tu perfil.',
-    noticeTitle: 'Configuración flexible',
+      'Ya estás dentro de Surplox. Agrega el resto de tu perfil cuando quieras para que tu cuenta tenga más peso.',
+    noticeTitle: 'Completar progresivamente',
     noticeBody:
-      'Solo tu nombre, oficio y ZIP se necesitan para entrar. Todo lo demás lo puedes completar ahora o después.',
+      'Solo tu nombre visible, oficio y ZIP son requeridos para entrar a la app. Todo lo demás se puede completar después.',
     displayName: 'Nombre visible',
     primaryRole: 'Rol principal',
     trade: 'Oficio',
@@ -69,22 +68,21 @@ const COPY = {
     travelRadius: 'Radio de viaje (millas)',
     crewSize: 'Tamaño de cuadrilla',
     preferredLanguage: 'Idioma preferido',
-    bio: 'Biografía / Experiencia / Certificaciones',
-    bioPlaceholder:
-      'Cuéntales a cuadrillas y contratistas cercanos qué tipo de trabajo haces, tu experiencia y cualquier certificación que quieras mostrar.',
-    save: 'Guardar detalles de cuenta',
+    bio: 'Biografía / Experiencia',
+    bioPlaceholder: 'Cuéntales a cuadrillas y contratistas cercanos qué tipo de trabajo haces.',
+    save: 'Guardar detalles',
     saving: 'Guardando…',
-    success: 'Los detalles de tu cuenta fueron guardados.',
+    success: 'Los detalles de tu cuenta han sido actualizados.',
     errSignedIn: 'Debes iniciar sesión para continuar.',
     errDisplayName: 'El nombre visible es obligatorio.',
     errTrade: 'Selecciona tu oficio.',
     errZip: 'Ingresa un código postal válido de 5 dígitos.',
-    errEmailValid: 'Ingresa un correo válido.',
     errPhone: 'Ingresa un número de teléfono válido.',
+    errEmailValid: 'Ingresa un correo electrónico válido.',
     errLanguage: 'Selecciona un idioma válido.',
-    errGeneric: 'No se pudo guardar la configuración de la cuenta.',
-    skip: 'Hacer esto después',
-    goFeed: 'Ir al Feed'
+    errGeneric: 'No se pudieron guardar los detalles de la cuenta.',
+    doLater: 'Hacer esto después',
+    goFeed: 'Ir al feed'
   }
 }
 
@@ -158,21 +156,17 @@ export default function Onboarding({ lang = 'en', setLang }) {
       if (tradesErr) console.error(tradesErr)
       setTrades(tradesData || [])
 
-      const { data: prof, error: profErr } = await supabase
+      const { data: prof } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle()
 
-      if (profErr) console.error(profErr)
-
-      const { data: cp, error: cpErr } = await supabase
+      const { data: cp } = await supabase
         .from('contact_private')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle()
-
-      if (cpErr) console.error(cpErr)
 
       const preferredLanguage =
         prof?.preferred_language || localStorage.getItem('surplox_lang') || lang || 'en'
@@ -218,21 +212,20 @@ export default function Onboarding({ lang = 'en', setLang }) {
 
       const phoneDigits = normalizePhone(form.phone)
       if (form.phone.trim() && phoneDigits.length < 10) throw new Error(copy.errPhone)
-
       if (form.email.trim() && !isValidEmail(form.email)) throw new Error(copy.errEmailValid)
       if (!['en', 'es'].includes(form.preferred_language)) throw new Error(copy.errLanguage)
 
-      const rawName = form.display_name.trim()
-      const firstName = form.first_name.trim() || rawName.split(/\s+/)[0] || rawName
+      const displayName = form.display_name.trim()
+      const firstName = form.first_name.trim() || displayName.split(/\s+/)[0] || displayName
 
       const { error: profErr } = await supabase
         .from('profiles')
         .upsert({
           user_id: user.id,
-          display_name: rawName,
+          display_name: displayName,
           first_name: firstName,
           last_name: form.last_name.trim(),
-          role: form.role,
+          role: form.role || 'laborer',
           trade_id: Number(form.trade_id),
           travel_radius_miles: Number(form.travel_radius_miles || 50),
           crew_size: Number(form.crew_size || 1),
@@ -287,29 +280,21 @@ export default function Onboarding({ lang = 'en', setLang }) {
         <p className="card-section-subtitle">{copy.noticeBody}</p>
       </div>
 
-      {msg ? (
+      {msg && (
         <div className="card card-message" style={{ marginBottom: 12 }}>
           {msg}
         </div>
-      ) : null}
+      )}
 
       <div className="grid two">
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.displayName}</div>
-          <input
-            className="input"
-            value={form.display_name}
-            onChange={(e) => setField('display_name', e.target.value)}
-          />
+          <input className="input" value={form.display_name} onChange={(e) => setField('display_name', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.primaryRole}</div>
-          <select
-            className="input"
-            value={form.role}
-            onChange={(e) => setField('role', e.target.value)}
-          >
+          <select className="input" value={form.role} onChange={(e) => setField('role', e.target.value)}>
             {ROLE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {roleLabel(option)}
@@ -320,11 +305,7 @@ export default function Onboarding({ lang = 'en', setLang }) {
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.trade}</div>
-          <select
-            className="input"
-            value={form.trade_id}
-            onChange={(e) => setField('trade_id', e.target.value)}
-          >
+          <select className="input" value={form.trade_id} onChange={(e) => setField('trade_id', e.target.value)}>
             <option value="">{copy.selectTrade}</option>
             {trades.map((trade) => (
               <option key={trade.id} value={trade.id}>
@@ -336,86 +317,47 @@ export default function Onboarding({ lang = 'en', setLang }) {
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.homeZip}</div>
-          <input
-            className="input"
-            value={form.home_zip}
-            onChange={(e) => setField('home_zip', e.target.value)}
-          />
+          <input className="input" value={form.home_zip} onChange={(e) => setField('home_zip', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.firstName}</div>
-          <input
-            className="input"
-            value={form.first_name}
-            onChange={(e) => setField('first_name', e.target.value)}
-          />
+          <input className="input" value={form.first_name} onChange={(e) => setField('first_name', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.lastName}</div>
-          <input
-            className="input"
-            value={form.last_name}
-            onChange={(e) => setField('last_name', e.target.value)}
-          />
+          <input className="input" value={form.last_name} onChange={(e) => setField('last_name', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.email}</div>
-          <input
-            className="input"
-            type="email"
-            value={form.email}
-            onChange={(e) => setField('email', e.target.value)}
-          />
+          <input className="input" type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.phone}</div>
-          <input
-            className="input"
-            value={form.phone}
-            onChange={(e) => setField('phone', e.target.value)}
-          />
+          <input className="input" value={form.phone} onChange={(e) => setField('phone', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.city}</div>
-          <input
-            className="input"
-            value={form.city}
-            onChange={(e) => setField('city', e.target.value)}
-          />
+          <input className="input" value={form.city} onChange={(e) => setField('city', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.travelRadius}</div>
-          <input
-            className="input"
-            type="number"
-            value={form.travel_radius_miles}
-            onChange={(e) => setField('travel_radius_miles', e.target.value)}
-          />
+          <input className="input" type="number" value={form.travel_radius_miles} onChange={(e) => setField('travel_radius_miles', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.crewSize}</div>
-          <input
-            className="input"
-            type="number"
-            value={form.crew_size}
-            onChange={(e) => setField('crew_size', e.target.value)}
-          />
+          <input className="input" type="number" value={form.crew_size} onChange={(e) => setField('crew_size', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.preferredLanguage}</div>
-          <select
-            className="input"
-            value={form.preferred_language}
-            onChange={(e) => setField('preferred_language', e.target.value)}
-          >
+          <select className="input" value={form.preferred_language} onChange={(e) => setField('preferred_language', e.target.value)}>
             {languageOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -441,7 +383,7 @@ export default function Onboarding({ lang = 'en', setLang }) {
         </button>
 
         <button className="btn" onClick={() => navigate('/feed')} disabled={saving}>
-          {copy.skip}
+          {copy.doLater}
         </button>
 
         <button className="btn" onClick={() => navigate('/feed')} disabled={saving}>

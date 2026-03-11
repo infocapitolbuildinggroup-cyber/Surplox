@@ -20,17 +20,15 @@ function SessionOnly({ session, children }) {
   return children
 }
 
-function CoreProfileOnly({ session, profileChecked, profileReady, children, lang }) {
+function AppOnly({ session, profileChecked, children, lang }) {
   if (!session) return <Navigate to="/auth?mode=signin" replace />
   if (!profileChecked) return <div className="card">{t(lang, 'checking_permissions')}</div>
-  if (!profileReady) return <Navigate to="/onboarding" replace />
   return children
 }
 
-function AdminOnly({ session, profileChecked, profileReady, isAdmin, adminChecked, children, lang }) {
+function AdminOnly({ session, profileChecked, isAdmin, adminChecked, children, lang }) {
   if (!session) return <Navigate to="/auth?mode=signin" replace />
   if (!profileChecked) return <div className="card">{t(lang, 'checking_permissions')}</div>
-  if (!profileReady) return <Navigate to="/onboarding" replace />
   if (!adminChecked) return <div className="card">{t(lang, 'checking_permissions')}</div>
   if (!isAdmin) return <Navigate to="/feed" replace />
   return children
@@ -61,12 +59,43 @@ function MenuIcon() {
   )
 }
 
+function getProfileReminderItems(profile = {}, contact = {}, lang = 'en') {
+  const items = []
+
+  if (!String(profile.first_name || '').trim() || !String(profile.last_name || '').trim()) {
+    items.push(lang === 'es' ? 'Agregar nombre y apellido' : 'Add first and last name')
+  }
+
+  if (!String(contact.phone || '').trim()) {
+    items.push(lang === 'es' ? 'Agregar número de teléfono' : 'Add phone number')
+  }
+
+  if (!String(contact.city || '').trim()) {
+    items.push(lang === 'es' ? 'Agregar ciudad' : 'Add city')
+  }
+
+  if (!String(profile.role || '').trim()) {
+    items.push(lang === 'es' ? 'Agregar rol principal' : 'Add primary role')
+  }
+
+  if (!String(profile.bio || '').trim()) {
+    items.push(lang === 'es' ? 'Agregar experiencia o biografía' : 'Add bio or experience')
+  }
+
+  if (!Number(profile.crew_size || 0) || Number(profile.crew_size || 0) <= 1) {
+    items.push(lang === 'es' ? 'Agregar tamaño de cuadrilla' : 'Add crew size')
+  }
+
+  return items
+}
+
 export default function App() {
   const [session, setSession] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [adminChecked, setAdminChecked] = useState(false)
   const [profileChecked, setProfileChecked] = useState(false)
-  const [profileReady, setProfileReady] = useState(false)
+  const [coreProfileReady, setCoreProfileReady] = useState(false)
+  const [hasProfileReminder, setHasProfileReminder] = useState(false)
   const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [savingLang, setSavingLang] = useState(false)
@@ -84,11 +113,12 @@ export default function App() {
       setSession(sess)
       setAdminChecked(false)
       setProfileChecked(false)
+      setCoreProfileReady(false)
+      setHasProfileReminder(false)
       setMobileMenuOpen(false)
 
       if (!sess) {
         setIsAdmin(false)
-        setProfileReady(false)
         setUnreadNotifications(0)
         const localLang = localStorage.getItem('surplox_lang') || 'en'
         setLang(localLang)
@@ -103,69 +133,67 @@ export default function App() {
   }, [location.pathname])
 
   useEffect(() => {
-    async function checkProfile() {
+    async function loadProfileState() {
       if (!session?.user) return
 
       setProfileChecked(false)
       setAdminChecked(false)
 
       try {
-        const { data: prof, error } = await supabase
+        const { data: prof, error: profErr } = await supabase
           .from('profiles')
-          .select('user_id, display_name, trade_id, home_zip, preferred_language')
+          .select('*')
           .eq('user_id', session.user.id)
           .maybeSingle()
 
-        if (error) {
-          console.error(error)
-        }
+        if (profErr) console.error(profErr)
 
-        const hasCoreProfile = Boolean(
-          prof &&
-            String(prof.display_name || '').trim() &&
-            prof.trade_id &&
-            String(prof.home_zip || '').trim()
-        )
+        const { data: contact, error: contactErr } = await supabase
+          .from('contact_private')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .maybeSingle()
 
-        setProfileReady(hasCoreProfile)
-        setProfileChecked(true)
+        if (contactErr) console.error(contactErr)
 
         const userLang = prof?.preferred_language || localStorage.getItem('surplox_lang') || 'en'
         setLang(userLang)
         localStorage.setItem('surplox_lang', userLang)
 
-        if (!hasCoreProfile) {
-          setIsAdmin(false)
-          setAdminChecked(true)
+        const hasCore = Boolean(
+          prof &&
+            String(prof.display_name || '').trim() &&
+            String(prof.home_zip || '').trim() &&
+            (prof.trade_id || String(prof.bio || '').trim())
+        )
 
-          if (location.pathname !== '/onboarding' && location.pathname !== '/auth') {
-            navigate('/onboarding', { replace: true })
-          }
-          return
-        }
+        setCoreProfileReady(hasCore)
+
+        const reminderItems = getProfileReminderItems(prof || {}, contact || {}, userLang)
+        setHasProfileReminder(reminderItems.length > 0)
 
         const { data: adminFlag, error: adminErr } = await supabase.rpc('is_admin')
         if (adminErr) console.error(adminErr)
 
         setIsAdmin(Boolean(adminFlag))
         setAdminChecked(true)
+        setProfileChecked(true)
 
         if (location.pathname === '/auth') {
           navigate('/feed', { replace: true })
         }
       } catch (err) {
         console.error(err)
-        setProfileReady(false)
         setProfileChecked(true)
       }
     }
 
-    checkProfile()
+    loadProfileState()
   }, [session?.user?.id, session?.access_token, navigate, location.pathname])
 
   useEffect(() => {
     async function loadUnreadCount() {
-      if (!session?.user?.id || !profileReady) return
+      if (!session?.user?.id) return
 
       const { count, error } = await supabase
         .from('notifications')
@@ -182,7 +210,7 @@ export default function App() {
     }
 
     loadUnreadCount()
-  }, [session?.user?.id, profileReady, location.pathname])
+  }, [session?.user?.id, location.pathname])
 
   async function updateLanguage(newLang) {
     if (!newLang || newLang === lang) return
@@ -200,9 +228,7 @@ export default function App() {
         .update({ preferred_language: newLang })
         .eq('user_id', session.user.id)
 
-      if (error) {
-        console.error(error)
-      }
+      if (error) console.error(error)
     } finally {
       setSavingLang(false)
     }
@@ -214,7 +240,8 @@ export default function App() {
     setIsAdmin(false)
     setAdminChecked(false)
     setProfileChecked(false)
-    setProfileReady(false)
+    setCoreProfileReady(false)
+    setHasProfileReminder(false)
     setUnreadNotifications(0)
     navigate('/', { replace: true })
   }
@@ -227,8 +254,9 @@ export default function App() {
     return isActive ? 'btn small primary nav-link nav-link-active' : 'btn small primary nav-link'
   }
 
-  const brandTarget = session && profileChecked && !profileReady ? '/onboarding' : '/'
-  const showFullAppNav = Boolean(session && profileChecked && profileReady)
+  const brandTarget = session ? '/feed' : '/'
+  const showFullAppNav = Boolean(session && profileChecked)
+  const alertsBadgeCount = unreadNotifications + (hasProfileReminder ? 1 : 0)
 
   const menuItems = useMemo(() => {
     if (!showFullAppNav) return []
@@ -242,7 +270,7 @@ export default function App() {
         to: '/notifications',
         label: t(lang, 'nav_alerts') || 'Alerts',
         className: navBtnClass,
-        badge: unreadNotifications > 0 ? unreadNotifications : null
+        badge: alertsBadgeCount > 0 ? alertsBadgeCount : null
       }
     ]
 
@@ -256,7 +284,7 @@ export default function App() {
     }
 
     return items
-  }, [showFullAppNav, lang, unreadNotifications, isAdmin])
+  }, [showFullAppNav, lang, alertsBadgeCount, isAdmin])
 
   return (
     <>
@@ -297,71 +325,65 @@ export default function App() {
               </div>
 
               {session ? (
-                <>
-                  {showFullAppNav ? (
-                    <>
-                      <div className="nav-desktop-links">
-                        {menuItems.map((item) => (
-                          <NavLink key={item.key} className={item.className} to={item.to}>
-                            {item.label}
-                            {item.badge ? (
-                              <span
-                                className="badge"
-                                style={{
-                                  marginLeft: 8,
-                                  color: '#ff751f',
-                                  borderColor: 'rgba(255, 222, 89, 0.65)',
-                                  background: 'rgba(255, 222, 89, 0.14)'
-                                }}
-                              >
-                                {item.badge}
-                              </span>
-                            ) : null}
-                          </NavLink>
-                        ))}
-
-                        <NavLink className={navBtnClass} to="/account">
-                          {t(lang, 'nav_account')}
+                showFullAppNav ? (
+                  <>
+                    <div className="nav-desktop-links">
+                      {menuItems.map((item) => (
+                        <NavLink key={item.key} className={item.className} to={item.to}>
+                          {item.label}
+                          {item.badge ? (
+                            <span
+                              className="badge"
+                              style={{
+                                marginLeft: 8,
+                                color: '#ff751f',
+                                borderColor: 'rgba(255, 222, 89, 0.65)',
+                                background: 'rgba(255, 222, 89, 0.14)'
+                              }}
+                            >
+                              {item.badge}
+                            </span>
+                          ) : null}
                         </NavLink>
+                      ))}
 
-                        <button className="btn small danger" onClick={signOut}>
-                          {t(lang, 'nav_sign_out')}
-                        </button>
-                      </div>
+                      <NavLink className={navBtnClass} to="/account">
+                        {t(lang, 'nav_account')}
+                      </NavLink>
 
-                      <div className="nav-mobile-actions">
-                        <NavLink
-                          className={({ isActive }) =>
-                            isActive
-                              ? 'btn small primary nav-icon-btn nav-link nav-link-active'
-                              : 'btn small primary nav-icon-btn nav-link'
-                          }
-                          to="/account"
-                          aria-label={t(lang, 'nav_account')}
-                          title={t(lang, 'nav_account')}
-                        >
-                          <AccountIcon />
-                        </NavLink>
+                      <button className="btn small danger" onClick={signOut}>
+                        {t(lang, 'nav_sign_out')}
+                      </button>
+                    </div>
 
-                        <button
-                          type="button"
-                          className={`btn small nav-icon-btn ${mobileMenuOpen ? 'nav-link-active' : ''}`}
-                          onClick={() => setMobileMenuOpen((prev) => !prev)}
-                          aria-expanded={mobileMenuOpen}
-                          aria-controls="surplox-mobile-menu"
-                          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-                          title={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-                        >
-                          <MenuIcon />
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <NavLink className="btn small primary nav-link" to="/onboarding">
-                      Finish Setup
-                    </NavLink>
-                  )}
-                </>
+                    <div className="nav-mobile-actions">
+                      <NavLink
+                        className={({ isActive }) =>
+                          isActive
+                            ? 'btn small primary nav-icon-btn nav-link nav-link-active'
+                            : 'btn small primary nav-icon-btn nav-link'
+                        }
+                        to="/account"
+                        aria-label={t(lang, 'nav_account')}
+                        title={t(lang, 'nav_account')}
+                      >
+                        <AccountIcon />
+                      </NavLink>
+
+                      <button
+                        type="button"
+                        className={`btn small nav-icon-btn ${mobileMenuOpen ? 'nav-link-active' : ''}`}
+                        onClick={() => setMobileMenuOpen((prev) => !prev)}
+                        aria-expanded={mobileMenuOpen}
+                        aria-controls="surplox-mobile-menu"
+                        aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+                        title={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+                      >
+                        <MenuIcon />
+                      </button>
+                    </div>
+                  </>
+                ) : null
               ) : (
                 <NavLink className="btn small primary nav-link" to="/auth?mode=signin">
                   {t(lang, 'nav_sign_in')}
@@ -423,98 +445,63 @@ export default function App() {
           <Route
             path="/feed"
             element={
-              <CoreProfileOnly
-                session={session}
-                profileChecked={profileChecked}
-                profileReady={profileReady}
-                lang={lang}
-              >
+              <AppOnly session={session} profileChecked={profileChecked} lang={lang}>
                 <Feed lang={lang} />
-              </CoreProfileOnly>
+              </AppOnly>
             }
           />
 
           <Route
             path="/channels"
             element={
-              <CoreProfileOnly
-                session={session}
-                profileChecked={profileChecked}
-                profileReady={profileReady}
-                lang={lang}
-              >
+              <AppOnly session={session} profileChecked={profileChecked} lang={lang}>
                 <Channels lang={lang} />
-              </CoreProfileOnly>
+              </AppOnly>
             }
           />
 
           <Route
             path="/new"
             element={
-              <CoreProfileOnly
-                session={session}
-                profileChecked={profileChecked}
-                profileReady={profileReady}
-                lang={lang}
-              >
+              <AppOnly session={session} profileChecked={profileChecked} lang={lang}>
                 <NewPost lang={lang} />
-              </CoreProfileOnly>
+              </AppOnly>
             }
           />
 
           <Route
             path="/notifications"
             element={
-              <CoreProfileOnly
-                session={session}
-                profileChecked={profileChecked}
-                profileReady={profileReady}
-                lang={lang}
-              >
+              <AppOnly session={session} profileChecked={profileChecked} lang={lang}>
                 <Notifications lang={lang} />
-              </CoreProfileOnly>
+              </AppOnly>
             }
           />
 
           <Route
             path="/account"
             element={
-              <CoreProfileOnly
-                session={session}
-                profileChecked={profileChecked}
-                profileReady={profileReady}
-                lang={lang}
-              >
+              <AppOnly session={session} profileChecked={profileChecked} lang={lang}>
                 <MyAccount lang={lang} setLang={updateLanguage} />
-              </CoreProfileOnly>
+              </AppOnly>
             }
           />
 
           <Route
             path="/u/:userId"
             element={
-              <CoreProfileOnly
-                session={session}
-                profileChecked={profileChecked}
-                profileReady={profileReady}
-                lang={lang}
-              >
+              <AppOnly session={session} profileChecked={profileChecked} lang={lang}>
                 <WorkerProfile lang={lang} />
-              </CoreProfileOnly>
+              </AppOnly>
             }
           />
 
           <Route
             path="/p/:id"
             element={
-              <CoreProfileOnly
-                session={session}
-                profileChecked={profileChecked}
-                profileReady={profileReady}
-                lang={lang}
-              >
+              <AppOnly session={session} profileChecked={profileChecked} lang={lang}>
                 <PostDetail lang={lang} />
-              </CoreProfileOnly>
+              </AppOnly>
             }
           />
 
@@ -524,7 +511,6 @@ export default function App() {
               <AdminOnly
                 session={session}
                 profileChecked={profileChecked}
-                profileReady={profileReady}
                 isAdmin={isAdmin}
                 adminChecked={adminChecked}
                 lang={lang}

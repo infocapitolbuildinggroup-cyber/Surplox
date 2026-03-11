@@ -63,7 +63,8 @@ const COPY = {
     completionBio: 'Add experience and certifications in your bio',
     completionPhone: 'Add phone number',
     completionCity: 'Add city',
-    completionFirstLast: 'Add first and last name'
+    completionFirstLast: 'Add first and last name',
+    completionRole: 'Add primary role'
   },
   es: {
     loading: 'Cargando tu cuenta…',
@@ -119,7 +120,8 @@ const COPY = {
     completionBio: 'Agregar experiencia y certificaciones en tu biografía',
     completionPhone: 'Agregar número de teléfono',
     completionCity: 'Agregar ciudad',
-    completionFirstLast: 'Agregar nombre y apellido'
+    completionFirstLast: 'Agregar nombre y apellido',
+    completionRole: 'Agregar rol principal'
   }
 }
 
@@ -309,6 +311,10 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
       items.push(copy.completionFirstLast)
     }
 
+    if (!String(form.role || '').trim()) {
+      items.push(copy.completionRole)
+    }
+
     if (!Number(form.crew_size || 0) || Number(form.crew_size || 0) <= 1) {
       items.push(copy.completionCrew)
     }
@@ -346,7 +352,6 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
       const phoneDigits = normalizePhone(form.phone)
       if (form.phone.trim() && phoneDigits.length < 10) throw new Error(activeCopy.phoneInvalid)
       if (form.email.trim() && !isValidEmail(form.email)) throw new Error(activeCopy.emailInvalid)
-
       if (!['en', 'es'].includes(form.preferred_language)) {
         throw new Error(activeCopy.languageInvalid)
       }
@@ -359,7 +364,7 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
         display_name: displayName,
         first_name: firstName,
         last_name: form.last_name.trim(),
-        role: form.role,
+        role: form.role || 'laborer',
         trade_id: Number(form.trade_id),
         travel_radius_miles: Number(form.travel_radius_miles || 50),
         crew_size: Number(form.crew_size || 1),
@@ -483,20 +488,12 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
       <div className="grid two">
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.displayName}</div>
-          <input
-            className="input"
-            value={form.display_name}
-            onChange={(e) => setField('display_name', e.target.value)}
-          />
+          <input className="input" value={form.display_name} onChange={(e) => setField('display_name', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.primaryRole}</div>
-          <select
-            className="input"
-            value={form.role}
-            onChange={(e) => setField('role', e.target.value)}
-          >
+          <select className="input" value={form.role} onChange={(e) => setField('role', e.target.value)}>
             {ROLE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {roleLabel(option)}
@@ -507,11 +504,7 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.trade}</div>
-          <select
-            className="input"
-            value={form.trade_id}
-            onChange={(e) => setField('trade_id', e.target.value)}
-          >
+          <select className="input" value={form.trade_id} onChange={(e) => setField('trade_id', e.target.value)}>
             <option value="">{copy.selectTrade}</option>
             {trades.map((trade) => (
               <option key={trade.id} value={trade.id}>
@@ -523,77 +516,42 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.zip}</div>
-          <input
-            className="input"
-            value={form.home_zip}
-            onChange={(e) => setField('home_zip', e.target.value)}
-          />
+          <input className="input" value={form.home_zip} onChange={(e) => setField('home_zip', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.firstName}</div>
-          <input
-            className="input"
-            value={form.first_name}
-            onChange={(e) => setField('first_name', e.target.value)}
-          />
+          <input className="input" value={form.first_name} onChange={(e) => setField('first_name', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.lastName}</div>
-          <input
-            className="input"
-            value={form.last_name}
-            onChange={(e) => setField('last_name', e.target.value)}
-          />
+          <input className="input" value={form.last_name} onChange={(e) => setField('last_name', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.email}</div>
-          <input
-            className="input"
-            type="email"
-            value={form.email}
-            onChange={(e) => setField('email', e.target.value)}
-          />
+          <input className="input" type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.phone}</div>
-          <input
-            className="input"
-            value={form.phone}
-            onChange={(e) => setField('phone', e.target.value)}
-          />
+          <input className="input" value={form.phone} onChange={(e) => setField('phone', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.city}</div>
-          <input
-            className="input"
-            value={form.city}
-            onChange={(e) => setField('city', e.target.value)}
-          />
+          <input className="input" value={form.city} onChange={(e) => setField('city', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.radius}</div>
-          <input
-            className="input"
-            type="number"
-            value={form.travel_radius_miles}
-            onChange={(e) => setField('travel_radius_miles', e.target.value)}
-          />
+          <input className="input" type="number" value={form.travel_radius_miles} onChange={(e) => setField('travel_radius_miles', e.target.value)} />
         </div>
 
         <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.crewSize}</div>
-          <input
-            className="input"
-            type="number"
-            value={form.crew_size}
-            onChange={(e) => setField('crew_size', e.target.value)}
-          />
+          <input className="input" type="number" value={form.crew_size} onChange={(e) => setField('crew_size', e.target.value)} />
         </div>
 
         <div>
