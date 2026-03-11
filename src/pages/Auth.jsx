@@ -6,32 +6,30 @@ const COPY = {
   en: {
     formLabel: 'Surplox Access',
     signInTitle: 'Sign in to your local trade network',
-    signUpTitle: 'Create your Surplox account',
+    signUpTitle: 'Create your Surplox account in 3 quick steps',
     signInIntro:
       'Get back to nearby opportunities, crew activity, alerts, profile visibility, and local construction connections.',
     signUpIntro:
-      'Join Surplox to post crew needs, discover nearby work, stay visible in your trade, and build stronger local connections.',
-    previewTitle: 'Join the Surplox Trades Network',
+      'Fast signup for workers, crews, and local trade connections. Get into the app first and finish the rest later.',
+    previewTitle: 'Fast Entry',
     previewBody:
-      'Built for construction workers, subcontractors, contractors, and suppliers.',
-    previewBullet1: 'Find crews and workers near your jobsite',
-    previewBullet2: 'Post work opportunities',
-    previewBullet3: 'Connect with local trades instantly',
+      'Surplox now gets workers in fast: name, trade, ZIP, then straight into the feed.',
+    previewBullet1: 'Join in a few taps',
+    previewBullet2: 'Find crews and nearby work',
+    previewBullet3: 'Finish the rest later',
     previewFree: 'Free for workers.',
-    previewTexas: 'Early access for construction workers in Texas.',
+    previewTexas: 'Built for local construction networks.',
     languageLabel: 'Language',
     languageEnglish: 'English',
     languageSpanish: 'Español',
     email: 'Email',
     password: 'Password',
     emailPlaceholder: 'you@email.com',
-    passwordPlaceholder: 'Enter your password',
+    passwordPlaceholder: 'Create a password',
     signInButton: 'Sign In',
-    signUpButton: 'Create Account',
     wait: 'Please wait…',
     switchToSignUp: 'Need an account? Sign up',
     switchToSignIn: 'Already have an account? Sign in',
-    checkEmail: 'Check your email to confirm your account.',
     authError: 'Unable to complete authentication right now.',
     sideBadge: 'Why Surplox',
     sideTitle: 'Construction moves through people. Surplox keeps them connected.',
@@ -45,41 +43,54 @@ const COPY = {
       'Post labor needs, discover available workers, and move faster when it is time to fill jobs.',
     point3Title: 'Profiles that carry weight',
     point3Body:
-      'Show your role, trade, travel radius, and availability so the right people can find you.',
+      'Show your trade and area so the right people can find you.',
     point4Title: 'Alerts and repeat connections',
     point4Body:
       'Stay on top of replies, joins, hires, and local activity that can turn into future work.',
-    footer: 'Built for laborers, subcontractors, contractors, and suppliers.'
+    footer: 'Built for laborers, subcontractors, contractors, and suppliers.',
+    step: 'Step',
+    next: 'Next',
+    back: 'Back',
+    finish: 'Enter Surplox',
+    nameLabel: 'What’s your name?',
+    namePlaceholder: 'Juan Martinez',
+    tradeLabel: 'What trade do you work in?',
+    zipLabel: 'What ZIP do you usually work in?',
+    zipPlaceholder: '76102',
+    tradeRequired: 'Select your trade.',
+    zipRequired: 'Enter a valid 5-digit ZIP code.',
+    nameRequired: 'Enter your name.',
+    emailRequired: 'Enter a valid email address.',
+    passwordRequired: 'Password must be at least 6 characters.',
+    signUpSuccess: 'Your account is ready.'
   },
   es: {
     formLabel: 'Acceso a Surplox',
     signInTitle: 'Inicia sesión en tu red local del oficio',
-    signUpTitle: 'Crea tu cuenta de Surplox',
+    signUpTitle: 'Crea tu cuenta de Surplox en 3 pasos rápidos',
     signInIntro:
       'Vuelve a oportunidades cercanas, actividad de cuadrillas, alertas, visibilidad de perfil y conexiones locales de construcción.',
     signUpIntro:
-      'Únete a Surplox para publicar necesidades de cuadrilla, descubrir trabajo cercano, mantenerte visible en tu oficio y construir conexiones locales más fuertes.',
-    previewTitle: 'Únete a la red de oficios Surplox',
+      'Registro rápido para trabajadores, cuadrillas y conexiones locales del oficio. Entra a la app primero y completa lo demás después.',
+    previewTitle: 'Entrada rápida',
     previewBody:
-      'Hecho para trabajadores de construcción, subcontratistas, contratistas y proveedores.',
-    previewBullet1: 'Encuentra cuadrillas y trabajadores cerca de tu obra',
-    previewBullet2: 'Publica oportunidades de trabajo',
-    previewBullet3: 'Conecta con oficios locales al instante',
+      'Surplox ahora deja entrar rápido a los trabajadores: nombre, oficio, ZIP y directo al feed.',
+    previewBullet1: 'Únete en pocos toques',
+    previewBullet2: 'Encuentra cuadrillas y trabajo cercano',
+    previewBullet3: 'Completa lo demás después',
     previewFree: 'Gratis para trabajadores.',
-    previewTexas: 'Acceso temprano para trabajadores de construcción en Texas.',
+    previewTexas: 'Hecho para redes locales de construcción.',
     languageLabel: 'Idioma',
     languageEnglish: 'English',
     languageSpanish: 'Español',
     email: 'Correo electrónico',
     password: 'Contraseña',
     emailPlaceholder: 'tu@email.com',
-    passwordPlaceholder: 'Ingresa tu contraseña',
+    passwordPlaceholder: 'Crea una contraseña',
     signInButton: 'Iniciar sesión',
-    signUpButton: 'Crear cuenta',
     wait: 'Espera…',
     switchToSignUp: '¿Necesitas cuenta? Regístrate',
     switchToSignIn: '¿Ya tienes cuenta? Inicia sesión',
-    checkEmail: 'Revisa tu correo para confirmar tu cuenta.',
     authError: 'No se pudo completar la autenticación en este momento.',
     sideBadge: 'Por qué Surplox',
     sideTitle: 'La construcción se mueve por personas. Surplox las mantiene conectadas.',
@@ -93,11 +104,26 @@ const COPY = {
       'Publica necesidades de personal, descubre trabajadores disponibles y avanza más rápido al llenar puestos.',
     point3Title: 'Perfiles con peso',
     point3Body:
-      'Muestra tu rol, oficio, radio de trabajo y disponibilidad para que la gente correcta te encuentre.',
+      'Muestra tu oficio y tu zona para que la gente correcta te encuentre.',
     point4Title: 'Alertas y conexiones repetidas',
     point4Body:
       'Mantente al tanto de respuestas, uniones, contrataciones y actividad local que puede convertirse en trabajo futuro.',
-    footer: 'Hecho para trabajadores, subcontratistas, contratistas y proveedores.'
+    footer: 'Hecho para trabajadores, subcontratistas, contratistas y proveedores.',
+    step: 'Paso',
+    next: 'Siguiente',
+    back: 'Atrás',
+    finish: 'Entrar a Surplox',
+    nameLabel: '¿Cómo te llamas?',
+    namePlaceholder: 'Juan Martinez',
+    tradeLabel: '¿Qué oficio trabajas?',
+    zipLabel: '¿En qué ZIP trabajas normalmente?',
+    zipPlaceholder: '76102',
+    tradeRequired: 'Selecciona tu oficio.',
+    zipRequired: 'Ingresa un ZIP válido de 5 dígitos.',
+    nameRequired: 'Ingresa tu nombre.',
+    emailRequired: 'Ingresa un correo válido.',
+    passwordRequired: 'La contraseña debe tener al menos 6 caracteres.',
+    signUpSuccess: 'Tu cuenta está lista.'
   }
 }
 
@@ -110,16 +136,42 @@ export default function Auth({ lang = 'en', setLang }) {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [mode, setMode] = useState(normalizeMode(searchParams.get('mode')))
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [step, setStep] = useState(1)
   const [msg, setMsg] = useState('')
   const [loading, setLoading] = useState(false)
+  const [trades, setTrades] = useState([])
+
+  const [signInForm, setSignInForm] = useState({
+    email: '',
+    password: ''
+  })
+
+  const [signUpForm, setSignUpForm] = useState({
+    display_name: '',
+    trade_id: '',
+    home_zip: '',
+    email: '',
+    password: ''
+  })
 
   const copy = COPY[lang] || COPY.en
 
   useEffect(() => {
     setMode(normalizeMode(searchParams.get('mode')))
   }, [searchParams])
+
+  useEffect(() => {
+    async function loadTrades() {
+      const { data, error } = await supabase.from('trades').select('id,name').order('name')
+      if (error) {
+        console.error(error)
+        return
+      }
+      setTrades(data || [])
+    }
+
+    loadTrades()
+  }, [])
 
   const points = useMemo(
     () => [
@@ -135,41 +187,8 @@ export default function Auth({ lang = 'en', setLang }) {
     const normalized = normalizeMode(nextMode)
     setMode(normalized)
     setMsg('')
+    setStep(1)
     setSearchParams({ mode: normalized }, { replace: true })
-  }
-
-  async function handleAuth(e) {
-    e.preventDefault()
-    setMsg('')
-    setLoading(true)
-
-    try {
-      if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/auth?mode=signin`
-          }
-        })
-
-        if (error) throw error
-        setMsg(copy.checkEmail)
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        })
-
-        if (error) throw error
-
-        navigate('/feed', { replace: true })
-      }
-    } catch (err) {
-      setMsg(err.message || copy.authError)
-    } finally {
-      setLoading(false)
-    }
   }
 
   function handleLanguageChange(e) {
@@ -179,9 +198,157 @@ export default function Auth({ lang = 'en', setLang }) {
     }
   }
 
+  function validateStep(nextStep = step) {
+    if (mode !== 'signup') return true
+
+    if (nextStep === 1) {
+      if (!signUpForm.display_name.trim()) {
+        setMsg(copy.nameRequired)
+        return false
+      }
+    }
+
+    if (nextStep === 2) {
+      if (!signUpForm.trade_id) {
+        setMsg(copy.tradeRequired)
+        return false
+      }
+    }
+
+    if (nextStep === 3) {
+      if (!/^[0-9]{5}$/.test(signUpForm.home_zip)) {
+        setMsg(copy.zipRequired)
+        return false
+      }
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signUpForm.email.trim())) {
+        setMsg(copy.emailRequired)
+        return false
+      }
+
+      if (String(signUpForm.password || '').length < 6) {
+        setMsg(copy.passwordRequired)
+        return false
+      }
+    }
+
+    setMsg('')
+    return true
+  }
+
+  function goNext() {
+    if (!validateStep(step)) return
+    setStep((prev) => Math.min(prev + 1, 3))
+  }
+
+  function goBack() {
+    setMsg('')
+    setStep((prev) => Math.max(prev - 1, 1))
+  }
+
+  function setSignUpField(key, value) {
+    setSignUpForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function setSignInField(key, value) {
+    setSignInForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  async function handleSignIn(e) {
+    e.preventDefault()
+    setMsg('')
+    setLoading(true)
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: signInForm.email.trim(),
+        password: signInForm.password
+      })
+
+      if (error) throw error
+
+      navigate('/feed', { replace: true })
+    } catch (err) {
+      console.error(err)
+      setMsg(err.message || copy.authError)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleSignUpSubmit(e) {
+    e.preventDefault()
+    if (!validateStep(3)) return
+
+    setMsg('')
+    setLoading(true)
+
+    try {
+      const signupEmail = signUpForm.email.trim().toLowerCase()
+
+      const { data: signupData, error: signUpError } = await supabase.auth.signUp({
+        email: signupEmail,
+        password: signUpForm.password
+      })
+
+      if (signUpError) throw signUpError
+
+      let user = signupData.user
+
+      if (!signupData.session) {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: signupEmail,
+          password: signUpForm.password
+        })
+
+        if (signInError) throw signInError
+        user = signInData.user
+      }
+
+      if (!user?.id) {
+        throw new Error(copy.authError)
+      }
+
+      const rawName = signUpForm.display_name.trim()
+      const nameParts = rawName.split(/\s+/).filter(Boolean)
+      const firstName = nameParts[0] || rawName
+      const lastName = nameParts.slice(1).join(' ')
+
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        user_id: user.id,
+        display_name: rawName,
+        first_name: firstName,
+        last_name: lastName,
+        role: 'laborer',
+        trade_id: Number(signUpForm.trade_id),
+        travel_radius_miles: 50,
+        crew_size: 1,
+        bio: '',
+        preferred_language: lang
+      })
+
+      if (profileError) throw profileError
+
+      const { error: zipErr } = await supabase.rpc('set_my_home_zip', {
+        p_zip: signUpForm.home_zip
+      })
+
+      if (zipErr) throw zipErr
+
+      localStorage.setItem('surplox_lang', lang)
+      setMsg(copy.signUpSuccess)
+      navigate('/feed', { replace: true })
+    } catch (err) {
+      console.error(err)
+      setMsg(err.message || copy.authError)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="grid" style={{ gap: 16 }}>
-      <div className="card" style={{ maxWidth: 560, width: '100%', margin: '0 auto' }}>
+      <div className="card" style={{ maxWidth: 620, width: '100%', margin: '0 auto' }}>
         <div
           className="badge"
           style={{
@@ -230,9 +397,7 @@ export default function Auth({ lang = 'en', setLang }) {
         </p>
 
         <div style={{ marginTop: 14 }}>
-          <div className="muted" style={{ marginBottom: 6 }}>
-            {copy.languageLabel}
-          </div>
+          <div className="muted" style={{ marginBottom: 6 }}>{copy.languageLabel}</div>
           <select className="input" value={lang} onChange={handleLanguageChange}>
             <option value="en">{copy.languageEnglish}</option>
             <option value="es">{copy.languageSpanish}</option>
@@ -240,106 +405,197 @@ export default function Auth({ lang = 'en', setLang }) {
         </div>
 
         {msg ? (
-          <div className="card card-message" style={{ marginTop: 14, marginBottom: 14 }}>
+          <div className="card card-message" style={{ marginTop: 14 }}>
             {msg}
           </div>
         ) : null}
 
-        <form onSubmit={handleAuth} className="grid" style={{ gap: 12, marginTop: 14 }}>
-          <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{copy.email}</div>
-            <input
-              className="input"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={copy.emailPlaceholder}
-              autoComplete="email"
-            />
-          </div>
+        {mode === 'signin' ? (
+          <form onSubmit={handleSignIn} style={{ marginTop: 16 }}>
+            <div className="grid" style={{ gap: 12 }}>
+              <div>
+                <div className="muted" style={{ marginBottom: 6 }}>{copy.email}</div>
+                <input
+                  className="input"
+                  type="email"
+                  placeholder={copy.emailPlaceholder}
+                  value={signInForm.email}
+                  onChange={(e) => setSignInField('email', e.target.value)}
+                />
+              </div>
 
-          <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{copy.password}</div>
-            <input
-              className="input"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={copy.passwordPlaceholder}
-              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-            />
-          </div>
+              <div>
+                <div className="muted" style={{ marginBottom: 6 }}>{copy.password}</div>
+                <input
+                  className="input"
+                  type="password"
+                  placeholder={copy.passwordPlaceholder}
+                  value={signInForm.password}
+                  onChange={(e) => setSignInField('password', e.target.value)}
+                />
+              </div>
+            </div>
 
-          <button className="btn primary" disabled={loading}>
-            {loading
-              ? copy.wait
-              : mode === 'signup'
-                ? copy.signUpButton
-                : copy.signInButton}
-          </button>
-        </form>
+            <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button className="btn primary" type="submit" disabled={loading}>
+                {loading ? copy.wait : copy.signInButton}
+              </button>
 
-        <hr />
+              <button
+                className="btn"
+                type="button"
+                onClick={() => switchMode('signup')}
+                disabled={loading}
+              >
+                {copy.switchToSignUp}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form onSubmit={handleSignUpSubmit} style={{ marginTop: 16 }}>
+            <div className="badge" style={{ marginBottom: 12 }}>
+              {copy.step} {step} / 3
+            </div>
 
-        <button
-          type="button"
-          className="btn"
-          onClick={() => switchMode(mode === 'signup' ? 'signin' : 'signup')}
-        >
-          {mode === 'signup' ? copy.switchToSignIn : copy.switchToSignUp}
-        </button>
+            {step === 1 ? (
+              <div className="grid" style={{ gap: 12 }}>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>{copy.nameLabel}</div>
+                  <input
+                    className="input"
+                    placeholder={copy.namePlaceholder}
+                    value={signUpForm.display_name}
+                    onChange={(e) => setSignUpField('display_name', e.target.value)}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {step === 2 ? (
+              <div className="grid" style={{ gap: 12 }}>
+                <div className="muted" style={{ marginBottom: 2 }}>{copy.tradeLabel}</div>
+
+                <div className="grid two" style={{ gap: 10 }}>
+                  {trades.map((trade) => {
+                    const selected = String(signUpForm.trade_id) === String(trade.id)
+                    return (
+                      <button
+                        key={trade.id}
+                        type="button"
+                        className={selected ? 'btn primary' : 'btn'}
+                        onClick={() => setSignUpField('trade_id', String(trade.id))}
+                        style={{ justifyContent: 'flex-start', minHeight: 48 }}
+                      >
+                        {trade.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            {step === 3 ? (
+              <div className="grid" style={{ gap: 12 }}>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>{copy.zipLabel}</div>
+                  <input
+                    className="input"
+                    inputMode="numeric"
+                    placeholder={copy.zipPlaceholder}
+                    value={signUpForm.home_zip}
+                    onChange={(e) => setSignUpField('home_zip', e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>{copy.email}</div>
+                  <input
+                    className="input"
+                    type="email"
+                    placeholder={copy.emailPlaceholder}
+                    value={signUpForm.email}
+                    onChange={(e) => setSignUpField('email', e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>{copy.password}</div>
+                  <input
+                    className="input"
+                    type="password"
+                    placeholder={copy.passwordPlaceholder}
+                    value={signUpForm.password}
+                    onChange={(e) => setSignUpField('password', e.target.value)}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {step > 1 ? (
+                <button className="btn" type="button" onClick={goBack} disabled={loading}>
+                  {copy.back}
+                </button>
+              ) : null}
+
+              {step < 3 ? (
+                <button className="btn primary" type="button" onClick={goNext} disabled={loading}>
+                  {copy.next}
+                </button>
+              ) : (
+                <button className="btn primary" type="submit" disabled={loading}>
+                  {loading ? copy.wait : copy.finish}
+                </button>
+              )}
+
+              <button
+                className="btn"
+                type="button"
+                onClick={() => switchMode('signin')}
+                disabled={loading}
+              >
+                {copy.switchToSignIn}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
-      <div
-        className="card"
-        style={{
-          borderColor: 'rgba(255, 222, 89, 0.3)',
-          background:
-            'linear-gradient(180deg, rgba(10,14,24,0.98) 0%, rgba(8,11,18,0.98) 100%)',
-          boxShadow: '0 0 30px rgba(255, 222, 89, 0.07)'
-        }}
-      >
+      <div className="card" style={{ maxWidth: 920, margin: '0 auto', width: '100%' }}>
         <div
           className="badge"
           style={{
-            marginBottom: 14,
+            marginBottom: 12,
             color: '#ff751f',
-            borderColor: 'rgba(255, 222, 89, 0.55)',
-            background: 'rgba(255, 222, 89, 0.12)'
+            borderColor: 'rgba(255, 222, 89, 0.45)',
+            background: 'rgba(255, 222, 89, 0.08)'
           }}
         >
           {copy.sideBadge}
         </div>
 
-        <div className="h1" style={{ maxWidth: 680 }}>
+        <div className="h2" style={{ fontSize: 28, marginBottom: 12 }}>
           {copy.sideTitle}
         </div>
 
-        <p className="muted" style={{ marginTop: 12, maxWidth: 720 }}>
+        <p className="muted" style={{ maxWidth: 860 }}>
           {copy.sideBody}
         </p>
 
-        <div className="grid" style={{ gap: 10, marginTop: 18 }}>
-          {points.map((item) => (
-            <div
-              key={item.title}
-              className="card card-soft"
-              style={{
-                borderColor: 'rgba(255, 222, 89, 0.2)',
-                background: 'rgba(255, 222, 89, 0.04)'
-              }}
-            >
-              <div className="card-section-title">{item.title}</div>
+        <div className="grid two" style={{ marginTop: 16 }}>
+          {points.map((point) => (
+            <div key={point.title} className="card card-soft">
+              <div className="card-section-title">{point.title}</div>
               <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-                {item.body}
+                {point.body}
               </p>
             </div>
           ))}
         </div>
 
-        <p className="muted" style={{ marginTop: 16, marginBottom: 0 }}>
+        <div className="muted" style={{ marginTop: 16 }}>
           {copy.footer}
-        </p>
+        </div>
       </div>
     </div>
   )

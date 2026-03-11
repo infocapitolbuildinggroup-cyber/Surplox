@@ -14,10 +14,10 @@ const COPY = {
     loading: 'Loading account setup…',
     title: 'Complete Your Surplox Account',
     intro:
-      'Set up your profile once so you can join local trade discussions, post opportunities, and appear in the Surplox network.',
-    noticeTitle: 'Account Setup',
+      'You are already in Surplox. Add the rest of your details when you are ready so contractors, crews, and nearby members can trust your profile more.',
+    noticeTitle: 'Finish Setup Later-Friendly',
     noticeBody:
-      'Your primary role helps Surplox organize laborers, subcontractors, contractors, and suppliers without locking anyone into one use case forever.',
+      'Only your name, trade, and ZIP are needed to get inside. Everything else can be completed now or later.',
     displayName: 'Display Name',
     primaryRole: 'Primary Role',
     trade: 'Trade',
@@ -31,33 +31,31 @@ const COPY = {
     travelRadius: 'Travel Radius (Miles)',
     crewSize: 'Crew Size',
     preferredLanguage: 'Preferred Language',
-    bio: 'Bio',
-    bioPlaceholder: 'Tell nearby crews and contractors what kind of work you do.',
-    save: 'Complete Setup',
+    bio: 'Bio / Experience / Certifications',
+    bioPlaceholder:
+      'Tell nearby crews and contractors what kind of work you do, your experience, and any certifications you want visible.',
+    save: 'Save Account Details',
     saving: 'Saving…',
-    success: 'Your account has been set up.',
+    success: 'Your account details have been saved.',
     errSignedIn: 'You must be signed in to continue.',
     errDisplayName: 'Display name is required.',
-    errFirstName: 'First name is required.',
-    errLastName: 'Last name is required.',
-    errRole: 'Select your primary role.',
     errTrade: 'Select your trade.',
-    errCity: 'City is required.',
     errZip: 'Enter a valid 5-digit ZIP code.',
-    errPhone: 'Enter a valid phone number.',
-    errEmailRequired: 'Email is required.',
     errEmailValid: 'Enter a valid email address.',
+    errPhone: 'Enter a valid phone number.',
     errLanguage: 'Select a valid language.',
-    errGeneric: 'Unable to complete account setup.'
+    errGeneric: 'Unable to save account setup.',
+    skip: 'Do This Later',
+    goFeed: 'Go to Feed'
   },
   es: {
     loading: 'Cargando configuración de cuenta…',
     title: 'Completa tu cuenta de Surplox',
     intro:
-      'Configura tu perfil una sola vez para unirte a conversaciones locales del oficio, publicar oportunidades y aparecer dentro de la red de Surplox.',
-    noticeTitle: 'Configuración de cuenta',
+      'Ya estás dentro de Surplox. Agrega el resto de tus datos cuando quieras para que contratistas, cuadrillas y miembros cercanos confíen más en tu perfil.',
+    noticeTitle: 'Configuración flexible',
     noticeBody:
-      'Tu rol principal ayuda a Surplox a organizar trabajadores, subcontratistas, contratistas y proveedores sin encerrarte en un solo uso para siempre.',
+      'Solo tu nombre, oficio y ZIP se necesitan para entrar. Todo lo demás lo puedes completar ahora o después.',
     displayName: 'Nombre visible',
     primaryRole: 'Rol principal',
     trade: 'Oficio',
@@ -71,24 +69,22 @@ const COPY = {
     travelRadius: 'Radio de viaje (millas)',
     crewSize: 'Tamaño de cuadrilla',
     preferredLanguage: 'Idioma preferido',
-    bio: 'Biografía',
-    bioPlaceholder: 'Cuéntales a cuadrillas y contratistas cercanos qué tipo de trabajo haces.',
-    save: 'Completar configuración',
+    bio: 'Biografía / Experiencia / Certificaciones',
+    bioPlaceholder:
+      'Cuéntales a cuadrillas y contratistas cercanos qué tipo de trabajo haces, tu experiencia y cualquier certificación que quieras mostrar.',
+    save: 'Guardar detalles de cuenta',
     saving: 'Guardando…',
-    success: 'Tu cuenta ha sido configurada.',
+    success: 'Los detalles de tu cuenta fueron guardados.',
     errSignedIn: 'Debes iniciar sesión para continuar.',
     errDisplayName: 'El nombre visible es obligatorio.',
-    errFirstName: 'El nombre es obligatorio.',
-    errLastName: 'El apellido es obligatorio.',
-    errRole: 'Selecciona tu rol principal.',
     errTrade: 'Selecciona tu oficio.',
-    errCity: 'La ciudad es obligatoria.',
     errZip: 'Ingresa un código postal válido de 5 dígitos.',
+    errEmailValid: 'Ingresa un correo válido.',
     errPhone: 'Ingresa un número de teléfono válido.',
-    errEmailRequired: 'El correo electrónico es obligatorio.',
-    errEmailValid: 'Ingresa un correo electrónico válido.',
     errLanguage: 'Selecciona un idioma válido.',
-    errGeneric: 'No se pudo completar la configuración de la cuenta.'
+    errGeneric: 'No se pudo guardar la configuración de la cuenta.',
+    skip: 'Hacer esto después',
+    goFeed: 'Ir al Feed'
   }
 }
 
@@ -117,6 +113,14 @@ export default function Onboarding({ lang = 'en', setLang }) {
 
   const copy = COPY[form.preferred_language] || COPY.en
 
+  const languageOptions = useMemo(
+    () => [
+      { value: 'en', label: 'English' },
+      { value: 'es', label: 'Español' }
+    ],
+    []
+  )
+
   function setField(k, v) {
     setForm((f) => ({ ...f, [k]: v }))
   }
@@ -132,14 +136,6 @@ export default function Onboarding({ lang = 'en', setLang }) {
   function roleLabel(option) {
     return option.label[form.preferred_language] || option.label.en
   }
-
-  const languageOptions = useMemo(
-    () => [
-      { value: 'en', label: 'English' },
-      { value: 'es', label: 'Español' }
-    ],
-    []
-  )
 
   useEffect(() => {
     async function load() {
@@ -178,7 +174,8 @@ export default function Onboarding({ lang = 'en', setLang }) {
 
       if (cpErr) console.error(cpErr)
 
-      const preferredLanguage = prof?.preferred_language || localStorage.getItem('surplox_lang') || lang || 'en'
+      const preferredLanguage =
+        prof?.preferred_language || localStorage.getItem('surplox_lang') || lang || 'en'
 
       setForm({
         display_name: prof?.display_name || '',
@@ -216,31 +213,29 @@ export default function Onboarding({ lang = 'en', setLang }) {
 
       if (!user) throw new Error(copy.errSignedIn)
       if (!form.display_name.trim()) throw new Error(copy.errDisplayName)
-      if (!form.first_name.trim()) throw new Error(copy.errFirstName)
-      if (!form.last_name.trim()) throw new Error(copy.errLastName)
-      if (!ROLE_OPTIONS.some((x) => x.value === form.role)) throw new Error(copy.errRole)
       if (!form.trade_id) throw new Error(copy.errTrade)
-      if (!form.city.trim()) throw new Error(copy.errCity)
       if (!/^[0-9]{5}$/.test(form.home_zip)) throw new Error(copy.errZip)
 
       const phoneDigits = normalizePhone(form.phone)
-      if (phoneDigits.length < 10) throw new Error(copy.errPhone)
+      if (form.phone.trim() && phoneDigits.length < 10) throw new Error(copy.errPhone)
 
-      if (!form.email.trim()) throw new Error(copy.errEmailRequired)
-      if (!isValidEmail(form.email)) throw new Error(copy.errEmailValid)
+      if (form.email.trim() && !isValidEmail(form.email)) throw new Error(copy.errEmailValid)
       if (!['en', 'es'].includes(form.preferred_language)) throw new Error(copy.errLanguage)
+
+      const rawName = form.display_name.trim()
+      const firstName = form.first_name.trim() || rawName.split(/\s+/)[0] || rawName
 
       const { error: profErr } = await supabase
         .from('profiles')
         .upsert({
           user_id: user.id,
-          display_name: form.display_name.trim(),
-          first_name: form.first_name.trim(),
+          display_name: rawName,
+          first_name: firstName,
           last_name: form.last_name.trim(),
           role: form.role,
           trade_id: Number(form.trade_id),
-          travel_radius_miles: Number(form.travel_radius_miles),
-          crew_size: Number(form.crew_size),
+          travel_radius_miles: Number(form.travel_radius_miles || 50),
+          crew_size: Number(form.crew_size || 1),
           bio: form.bio.trim(),
           preferred_language: form.preferred_language
         })
@@ -257,9 +252,9 @@ export default function Onboarding({ lang = 'en', setLang }) {
         .from('contact_private')
         .upsert({
           user_id: user.id,
-          phone: phoneDigits,
-          city: form.city.trim(),
-          email: form.email.trim().toLowerCase()
+          phone: phoneDigits || null,
+          city: form.city.trim() || null,
+          email: form.email.trim() ? form.email.trim().toLowerCase() : null
         })
 
       if (cpErr) throw cpErr
@@ -285,22 +280,18 @@ export default function Onboarding({ lang = 'en', setLang }) {
     <div className="card" style={{ maxWidth: 860, margin: '0 auto' }}>
       <div className="h1">{copy.title}</div>
 
-      <p className="muted">
-        {copy.intro}
-      </p>
+      <p className="muted">{copy.intro}</p>
 
       <div className="card card-notice" style={{ marginBottom: 12 }}>
         <div className="card-section-title">{copy.noticeTitle}</div>
-        <p className="card-section-subtitle">
-          {copy.noticeBody}
-        </p>
+        <p className="card-section-subtitle">{copy.noticeBody}</p>
       </div>
 
-      {msg && (
+      {msg ? (
         <div className="card card-message" style={{ marginBottom: 12 }}>
           {msg}
         </div>
-      )}
+      ) : null}
 
       <div className="grid two">
         <div>
@@ -335,10 +326,21 @@ export default function Onboarding({ lang = 'en', setLang }) {
             onChange={(e) => setField('trade_id', e.target.value)}
           >
             <option value="">{copy.selectTrade}</option>
-            {trades.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
+            {trades.map((trade) => (
+              <option key={trade.id} value={trade.id}>
+                {trade.name}
+              </option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <div className="muted" style={{ marginBottom: 6 }}>{copy.homeZip}</div>
+          <input
+            className="input"
+            value={form.home_zip}
+            onChange={(e) => setField('home_zip', e.target.value)}
+          />
         </div>
 
         <div>
@@ -375,7 +377,6 @@ export default function Onboarding({ lang = 'en', setLang }) {
             className="input"
             value={form.phone}
             onChange={(e) => setField('phone', e.target.value)}
-            placeholder="(214) 555-5555"
           />
         </div>
 
@@ -385,16 +386,6 @@ export default function Onboarding({ lang = 'en', setLang }) {
             className="input"
             value={form.city}
             onChange={(e) => setField('city', e.target.value)}
-          />
-        </div>
-
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.homeZip}</div>
-          <input
-            className="input"
-            value={form.home_zip}
-            onChange={(e) => setField('home_zip', e.target.value)}
-            placeholder="76031"
           />
         </div>
 
@@ -413,7 +404,6 @@ export default function Onboarding({ lang = 'en', setLang }) {
           <input
             className="input"
             type="number"
-            min="1"
             value={form.crew_size}
             onChange={(e) => setField('crew_size', e.target.value)}
           />
@@ -424,15 +414,12 @@ export default function Onboarding({ lang = 'en', setLang }) {
           <select
             className="input"
             value={form.preferred_language}
-            onChange={(e) => {
-              const nextLang = e.target.value
-              setField('preferred_language', nextLang)
-              localStorage.setItem('surplox_lang', nextLang)
-              if (typeof setLang === 'function') setLang(nextLang)
-            }}
+            onChange={(e) => setField('preferred_language', e.target.value)}
           >
             {languageOptions.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
             ))}
           </select>
         </div>
@@ -442,16 +429,23 @@ export default function Onboarding({ lang = 'en', setLang }) {
         <div className="muted" style={{ marginBottom: 6 }}>{copy.bio}</div>
         <textarea
           className="input"
-          rows={4}
           value={form.bio}
           onChange={(e) => setField('bio', e.target.value)}
           placeholder={copy.bioPlaceholder}
         />
       </div>
 
-      <div style={{ marginTop: 14 }}>
+      <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <button className="btn primary" onClick={save} disabled={saving}>
           {saving ? copy.saving : copy.save}
+        </button>
+
+        <button className="btn" onClick={() => navigate('/feed')} disabled={saving}>
+          {copy.skip}
+        </button>
+
+        <button className="btn" onClick={() => navigate('/feed')} disabled={saving}>
+          {copy.goFeed}
         </button>
       </div>
     </div>

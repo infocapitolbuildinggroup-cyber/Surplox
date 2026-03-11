@@ -20,17 +20,17 @@ function SessionOnly({ session, children }) {
   return children
 }
 
-function ProfileCompleteOnly({ session, profileChecked, profileComplete, children, lang }) {
+function CoreProfileOnly({ session, profileChecked, profileReady, children, lang }) {
   if (!session) return <Navigate to="/auth?mode=signin" replace />
   if (!profileChecked) return <div className="card">{t(lang, 'checking_permissions')}</div>
-  if (!profileComplete) return <Navigate to="/onboarding" replace />
+  if (!profileReady) return <Navigate to="/onboarding" replace />
   return children
 }
 
-function AdminOnly({ session, profileChecked, profileComplete, isAdmin, adminChecked, children, lang }) {
+function AdminOnly({ session, profileChecked, profileReady, isAdmin, adminChecked, children, lang }) {
   if (!session) return <Navigate to="/auth?mode=signin" replace />
   if (!profileChecked) return <div className="card">{t(lang, 'checking_permissions')}</div>
-  if (!profileComplete) return <Navigate to="/onboarding" replace />
+  if (!profileReady) return <Navigate to="/onboarding" replace />
   if (!adminChecked) return <div className="card">{t(lang, 'checking_permissions')}</div>
   if (!isAdmin) return <Navigate to="/feed" replace />
   return children
@@ -66,7 +66,7 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [adminChecked, setAdminChecked] = useState(false)
   const [profileChecked, setProfileChecked] = useState(false)
-  const [profileComplete, setProfileComplete] = useState(false)
+  const [profileReady, setProfileReady] = useState(false)
   const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [savingLang, setSavingLang] = useState(false)
@@ -88,7 +88,7 @@ export default function App() {
 
       if (!sess) {
         setIsAdmin(false)
-        setProfileComplete(false)
+        setProfileReady(false)
         setUnreadNotifications(0)
         const localLang = localStorage.getItem('surplox_lang') || 'en'
         setLang(localLang)
@@ -112,9 +112,7 @@ export default function App() {
       try {
         const { data: prof, error } = await supabase
           .from('profiles')
-          .select(
-            'user_id, display_name, first_name, last_name, role, trade_id, home_zip, preferred_language'
-          )
+          .select('user_id, display_name, trade_id, home_zip, preferred_language')
           .eq('user_id', session.user.id)
           .maybeSingle()
 
@@ -122,47 +120,42 @@ export default function App() {
           console.error(error)
         }
 
-        const hasCompleteProfile = Boolean(
+        const hasCoreProfile = Boolean(
           prof &&
-            prof.display_name &&
-            prof.first_name &&
-            prof.last_name &&
-            prof.role &&
+            String(prof.display_name || '').trim() &&
             prof.trade_id &&
-            prof.home_zip
+            String(prof.home_zip || '').trim()
         )
 
-        if (!hasCompleteProfile) {
-          setProfileComplete(false)
-          setProfileChecked(true)
-          setIsAdmin(false)
-          setAdminChecked(true)
-
-          if (location.pathname !== '/onboarding') {
-            navigate('/onboarding', { replace: true })
-          }
-          return
-        }
-
-        setProfileComplete(true)
+        setProfileReady(hasCoreProfile)
+        setProfileChecked(true)
 
         const userLang = prof?.preferred_language || localStorage.getItem('surplox_lang') || 'en'
         setLang(userLang)
         localStorage.setItem('surplox_lang', userLang)
+
+        if (!hasCoreProfile) {
+          setIsAdmin(false)
+          setAdminChecked(true)
+
+          if (location.pathname !== '/onboarding' && location.pathname !== '/auth') {
+            navigate('/onboarding', { replace: true })
+          }
+          return
+        }
 
         const { data: adminFlag, error: adminErr } = await supabase.rpc('is_admin')
         if (adminErr) console.error(adminErr)
 
         setIsAdmin(Boolean(adminFlag))
         setAdminChecked(true)
-        setProfileChecked(true)
 
-        if (location.pathname === '/auth' || location.pathname === '/onboarding') {
+        if (location.pathname === '/auth') {
           navigate('/feed', { replace: true })
         }
       } catch (err) {
         console.error(err)
-        setProfileComplete(false)
+        setProfileReady(false)
         setProfileChecked(true)
       }
     }
@@ -172,7 +165,7 @@ export default function App() {
 
   useEffect(() => {
     async function loadUnreadCount() {
-      if (!session?.user?.id || !profileComplete) return
+      if (!session?.user?.id || !profileReady) return
 
       const { count, error } = await supabase
         .from('notifications')
@@ -189,7 +182,7 @@ export default function App() {
     }
 
     loadUnreadCount()
-  }, [session?.user?.id, profileComplete, location.pathname])
+  }, [session?.user?.id, profileReady, location.pathname])
 
   async function updateLanguage(newLang) {
     if (!newLang || newLang === lang) return
@@ -197,7 +190,7 @@ export default function App() {
     setLang(newLang)
     localStorage.setItem('surplox_lang', newLang)
 
-    if (!session?.user?.id || !profileComplete) return
+    if (!session?.user?.id) return
 
     try {
       setSavingLang(true)
@@ -221,7 +214,7 @@ export default function App() {
     setIsAdmin(false)
     setAdminChecked(false)
     setProfileChecked(false)
-    setProfileComplete(false)
+    setProfileReady(false)
     setUnreadNotifications(0)
     navigate('/', { replace: true })
   }
@@ -234,8 +227,8 @@ export default function App() {
     return isActive ? 'btn small primary nav-link nav-link-active' : 'btn small primary nav-link'
   }
 
-  const brandTarget = session && profileChecked && !profileComplete ? '/onboarding' : '/'
-  const showFullAppNav = Boolean(session && profileChecked && profileComplete)
+  const brandTarget = session && profileChecked && !profileReady ? '/onboarding' : '/'
+  const showFullAppNav = Boolean(session && profileChecked && profileReady)
 
   const menuItems = useMemo(() => {
     if (!showFullAppNav) return []
@@ -339,7 +332,9 @@ export default function App() {
                       <div className="nav-mobile-actions">
                         <NavLink
                           className={({ isActive }) =>
-                            isActive ? 'btn small primary nav-icon-btn nav-link nav-link-active' : 'btn small primary nav-icon-btn nav-link'
+                            isActive
+                              ? 'btn small primary nav-icon-btn nav-link nav-link-active'
+                              : 'btn small primary nav-icon-btn nav-link'
                           }
                           to="/account"
                           aria-label={t(lang, 'nav_account')}
@@ -363,7 +358,7 @@ export default function App() {
                     </>
                   ) : (
                     <NavLink className="btn small primary nav-link" to="/onboarding">
-                      Complete Profile
+                      Finish Setup
                     </NavLink>
                   )}
                 </>
@@ -420,11 +415,7 @@ export default function App() {
             path="/onboarding"
             element={
               <SessionOnly session={session}>
-                {profileChecked && profileComplete ? (
-                  <Navigate to="/feed" replace />
-                ) : (
-                  <Onboarding lang={lang} setLang={updateLanguage} />
-                )}
+                <Onboarding lang={lang} setLang={updateLanguage} />
               </SessionOnly>
             }
           />
@@ -432,98 +423,98 @@ export default function App() {
           <Route
             path="/feed"
             element={
-              <ProfileCompleteOnly
+              <CoreProfileOnly
                 session={session}
                 profileChecked={profileChecked}
-                profileComplete={profileComplete}
+                profileReady={profileReady}
                 lang={lang}
               >
                 <Feed lang={lang} />
-              </ProfileCompleteOnly>
+              </CoreProfileOnly>
             }
           />
 
           <Route
             path="/channels"
             element={
-              <ProfileCompleteOnly
+              <CoreProfileOnly
                 session={session}
                 profileChecked={profileChecked}
-                profileComplete={profileComplete}
+                profileReady={profileReady}
                 lang={lang}
               >
                 <Channels lang={lang} />
-              </ProfileCompleteOnly>
+              </CoreProfileOnly>
             }
           />
 
           <Route
             path="/new"
             element={
-              <ProfileCompleteOnly
+              <CoreProfileOnly
                 session={session}
                 profileChecked={profileChecked}
-                profileComplete={profileComplete}
+                profileReady={profileReady}
                 lang={lang}
               >
                 <NewPost lang={lang} />
-              </ProfileCompleteOnly>
+              </CoreProfileOnly>
             }
           />
 
           <Route
             path="/notifications"
             element={
-              <ProfileCompleteOnly
+              <CoreProfileOnly
                 session={session}
                 profileChecked={profileChecked}
-                profileComplete={profileComplete}
+                profileReady={profileReady}
                 lang={lang}
               >
                 <Notifications lang={lang} />
-              </ProfileCompleteOnly>
+              </CoreProfileOnly>
             }
           />
 
           <Route
             path="/account"
             element={
-              <ProfileCompleteOnly
+              <CoreProfileOnly
                 session={session}
                 profileChecked={profileChecked}
-                profileComplete={profileComplete}
+                profileReady={profileReady}
                 lang={lang}
               >
                 <MyAccount lang={lang} setLang={updateLanguage} />
-              </ProfileCompleteOnly>
+              </CoreProfileOnly>
             }
           />
 
           <Route
             path="/u/:userId"
             element={
-              <ProfileCompleteOnly
+              <CoreProfileOnly
                 session={session}
                 profileChecked={profileChecked}
-                profileComplete={profileComplete}
+                profileReady={profileReady}
                 lang={lang}
               >
                 <WorkerProfile lang={lang} />
-              </ProfileCompleteOnly>
+              </CoreProfileOnly>
             }
           />
 
           <Route
             path="/p/:id"
             element={
-              <ProfileCompleteOnly
+              <CoreProfileOnly
                 session={session}
                 profileChecked={profileChecked}
-                profileComplete={profileComplete}
+                profileReady={profileReady}
                 lang={lang}
               >
                 <PostDetail lang={lang} />
-              </ProfileCompleteOnly>
+              </CoreProfileOnly>
             }
           />
 
@@ -533,7 +524,7 @@ export default function App() {
               <AdminOnly
                 session={session}
                 profileChecked={profileChecked}
-                profileComplete={profileComplete}
+                profileReady={profileReady}
                 isAdmin={isAdmin}
                 adminChecked={adminChecked}
                 lang={lang}

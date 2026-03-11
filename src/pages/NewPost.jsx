@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { t } from '../i18n'
 
 const POST_TYPE_OPTIONS = [
@@ -101,6 +101,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [lang, setLang] = useState(langProp || localStorage.getItem('surplox_lang') || 'en')
+  const [profilePromptItems, setProfilePromptItems] = useState([])
 
   const location = useLocation()
   const navigate = useNavigate()
@@ -129,14 +130,20 @@ export default function NewPost({ lang: langProp = 'en' }) {
   }, [preselectedType])
 
   useEffect(() => {
-    async function loadTrades() {
+    async function loadTradesAndProfile() {
       const { data: sessionData } = await supabase.auth.getSession()
       const user = sessionData.session?.user
 
       if (user) {
         const { data: prof } = await supabase
           .from('profiles')
-          .select('preferred_language')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        const { data: cp } = await supabase
+          .from('contact_private')
+          .select('*')
           .eq('user_id', user.id)
           .maybeSingle()
 
@@ -148,8 +155,30 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
         setForm((prev) => ({
           ...prev,
-          source_language: prev.source_language || userLang
+          source_language: prev.source_language || userLang,
+          trade_id: prev.trade_id || (prof?.trade_id ? String(prof.trade_id) : ''),
+          center_zip: prev.center_zip || String(prof?.home_zip || '')
         }))
+
+        const prompts = []
+
+        if (!Number(prof?.crew_size || 0) || Number(prof?.crew_size || 0) <= 1) {
+          prompts.push(userLang === 'es' ? 'Agrega tamaño de cuadrilla' : 'Add crew size')
+        }
+
+        if (!String(prof?.bio || '').trim()) {
+          prompts.push(
+            userLang === 'es'
+              ? 'Agrega experiencia y certificaciones en tu biografía'
+              : 'Add experience and certifications in your bio'
+          )
+        }
+
+        if (!String(cp?.phone || '').trim()) {
+          prompts.push(userLang === 'es' ? 'Agrega número de teléfono' : 'Add phone number')
+        }
+
+        setProfilePromptItems(prompts)
       } else {
         const localLang = langProp || localStorage.getItem('surplox_lang') || 'en'
         setLang(localLang)
@@ -168,7 +197,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
       setTrades(data || [])
     }
 
-    loadTrades()
+    loadTradesAndProfile()
   }, [langProp])
 
   function setField(key, value) {
@@ -204,7 +233,11 @@ export default function NewPost({ lang: langProp = 'en' }) {
         availabilityPost: 'Publicación de disponibilidad',
         crewCompPlaceholder: '$250/día o $35/hora',
         workCompPlaceholder: '$30/hora deseado o por propuesta',
-        invalidPostLanguage: 'Selecciona un idioma válido para la publicación.'
+        invalidPostLanguage: 'Selecciona un idioma válido para la publicación.',
+        strengthenTitle: 'Fortalece tu perfil mientras publicas',
+        strengthenBody:
+          'Ya puedes publicar. Pero si completas estos detalles, tu perfil tendrá más peso cuando otros vean tu publicación.',
+        finishAccount: 'Terminar cuenta'
       }
     }
 
@@ -235,7 +268,11 @@ export default function NewPost({ lang: langProp = 'en' }) {
       availabilityPost: 'Availability Post',
       crewCompPlaceholder: '$250/day or $35/hr',
       workCompPlaceholder: '$30/hr desired or bid-based',
-      invalidPostLanguage: 'Select a valid post language.'
+      invalidPostLanguage: 'Select a valid post language.',
+      strengthenTitle: 'Strengthen your profile while you post',
+      strengthenBody:
+        'You can already post. But if you complete these details, your profile will carry more weight when people see your post.',
+      finishAccount: 'Finish Account'
     }
   }, [lang])
 
@@ -368,6 +405,34 @@ export default function NewPost({ lang: langProp = 'en' }) {
           ? t(lang, 'new_post_intro')
           : helperCopy.opportunityIntro}
       </p>
+
+      {profilePromptItems.length > 0 ? (
+        <div
+          className="card card-soft"
+          style={{
+            marginBottom: 12,
+            borderColor: 'rgba(255, 222, 89, 0.3)',
+            background: 'rgba(255, 222, 89, 0.05)'
+          }}
+        >
+          <div className="card-section-title">{helperCopy.strengthenTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+            {helperCopy.strengthenBody}
+          </p>
+
+          <div className="grid" style={{ gap: 8, marginTop: 10 }}>
+            {profilePromptItems.map((item) => (
+              <div key={item}>• {item}</div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            <Link className="btn small" to="/account">
+              {helperCopy.finishAccount}
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       <div className="card card-notice" style={{ marginBottom: 12, ...theme.notice }}>
         <div className="card-section-title">{t(lang, 'new_post_notice_title')}</div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
 
 const ROLE_OPTIONS = [
@@ -13,23 +13,18 @@ const COPY = {
     loading: 'Loading your account…',
     signedInRequired: 'You must be signed in to update your account.',
     displayNameRequired: 'Display name is required.',
-    firstNameRequired: 'First name is required.',
-    lastNameRequired: 'Last name is required.',
-    roleRequired: 'Select your primary role.',
-    cityRequired: 'City is required.',
     zipInvalid: 'Enter a valid 5-digit ZIP code.',
     tradeRequired: 'Select your trade.',
-    phoneInvalid: 'Enter a valid phone number.',
-    emailRequired: 'Email is required.',
     emailInvalid: 'Enter a valid email address.',
+    phoneInvalid: 'Enter a valid phone number.',
     languageInvalid: 'Select a valid language.',
     success: 'Your account has been updated.',
     saveError: 'Unable to save your account changes.',
     title: 'My Surplox Account',
     intro: 'Review and update your account information below.',
-    noticeTitle: 'Account Setup',
+    noticeTitle: 'Progressive Profile Completion',
     noticeBody:
-      'Your role, trade, ZIP code, and language help Surplox route local opportunities and build a better labor network over time.',
+      'You are already inside the app. Add more account details over time to improve profile strength, trust, and visibility.',
     displayName: 'Display Name',
     primaryRole: 'Primary Role',
     trade: 'Trade',
@@ -42,9 +37,9 @@ const COPY = {
     radius: 'Travel Radius (Miles)',
     crewSize: 'Crew Size',
     language: 'Preferred Language',
-    bio: 'Bio',
+    bio: 'Bio / Experience / Certifications',
     bioPlaceholder:
-      'Share what kind of work you do, where you work, and what crews or capabilities you have.',
+      'Share what kind of work you do, your experience level, and any certifications or capabilities you want people to see.',
     selectTrade: 'Select your trade',
     inviteTitle: 'Invite Your Crew',
     inviteBody:
@@ -60,29 +55,32 @@ const COPY = {
     inviteEmailError: 'Unable to open email invite right now.',
     invitePreviewLabel: 'Your invite link',
     save: 'Save Changes',
-    saving: 'Saving…'
+    saving: 'Saving…',
+    completionTitle: 'Recommended next steps',
+    completionBody:
+      'Complete these when you can so your profile is stronger when contractors, crews, or other workers look at it.',
+    completionCrew: 'Add crew size',
+    completionBio: 'Add experience and certifications in your bio',
+    completionPhone: 'Add phone number',
+    completionCity: 'Add city',
+    completionFirstLast: 'Add first and last name'
   },
   es: {
     loading: 'Cargando tu cuenta…',
     signedInRequired: 'Debes iniciar sesión para actualizar tu cuenta.',
     displayNameRequired: 'El nombre visible es obligatorio.',
-    firstNameRequired: 'El nombre es obligatorio.',
-    lastNameRequired: 'El apellido es obligatorio.',
-    roleRequired: 'Selecciona tu rol principal.',
-    cityRequired: 'La ciudad es obligatoria.',
     zipInvalid: 'Ingresa un código postal válido de 5 dígitos.',
     tradeRequired: 'Selecciona tu oficio.',
-    phoneInvalid: 'Ingresa un número de teléfono válido.',
-    emailRequired: 'El correo electrónico es obligatorio.',
     emailInvalid: 'Ingresa un correo electrónico válido.',
+    phoneInvalid: 'Ingresa un número de teléfono válido.',
     languageInvalid: 'Selecciona un idioma válido.',
     success: 'Tu cuenta ha sido actualizada.',
     saveError: 'No se pudieron guardar los cambios de tu cuenta.',
     title: 'Mi cuenta de Surplox',
     intro: 'Revisa y actualiza la información de tu cuenta abajo.',
-    noticeTitle: 'Configuración de cuenta',
+    noticeTitle: 'Perfil progresivo',
     noticeBody:
-      'Tu rol, oficio, código postal e idioma ayudan a Surplox a mostrar oportunidades locales y construir una mejor red laboral con el tiempo.',
+      'Ya estás dentro de la app. Agrega más detalles con el tiempo para mejorar la fuerza, confianza y visibilidad de tu perfil.',
     displayName: 'Nombre visible',
     primaryRole: 'Rol principal',
     trade: 'Oficio',
@@ -95,9 +93,9 @@ const COPY = {
     radius: 'Radio de viaje (millas)',
     crewSize: 'Tamaño de cuadrilla',
     language: 'Idioma preferido',
-    bio: 'Biografía',
+    bio: 'Biografía / Experiencia / Certificaciones',
     bioPlaceholder:
-      'Comparte qué tipo de trabajo haces, dónde trabajas y qué cuadrillas o capacidades tienes.',
+      'Comparte qué tipo de trabajo haces, tu nivel de experiencia y cualquier certificación o capacidad que quieras mostrar.',
     selectTrade: 'Selecciona tu oficio',
     inviteTitle: 'Invita a tu cuadrilla',
     inviteBody:
@@ -113,7 +111,15 @@ const COPY = {
     inviteEmailError: 'No se pudo abrir la invitación por correo.',
     invitePreviewLabel: 'Tu enlace de invitación',
     save: 'Guardar cambios',
-    saving: 'Guardando…'
+    saving: 'Guardando…',
+    completionTitle: 'Siguientes pasos recomendados',
+    completionBody:
+      'Completa esto cuando puedas para que tu perfil sea más fuerte cuando contratistas, cuadrillas u otros trabajadores lo vean.',
+    completionCrew: 'Agregar tamaño de cuadrilla',
+    completionBio: 'Agregar experiencia y certificaciones en tu biografía',
+    completionPhone: 'Agregar número de teléfono',
+    completionCity: 'Agregar ciudad',
+    completionFirstLast: 'Agregar nombre y apellido'
   }
 }
 
@@ -296,6 +302,32 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
     load()
   }, [langProp])
 
+  const completionItems = useMemo(() => {
+    const items = []
+
+    if (!String(form.first_name || '').trim() || !String(form.last_name || '').trim()) {
+      items.push(copy.completionFirstLast)
+    }
+
+    if (!Number(form.crew_size || 0) || Number(form.crew_size || 0) <= 1) {
+      items.push(copy.completionCrew)
+    }
+
+    if (!String(form.bio || '').trim()) {
+      items.push(copy.completionBio)
+    }
+
+    if (!String(form.phone || '').trim()) {
+      items.push(copy.completionPhone)
+    }
+
+    if (!String(form.city || '').trim()) {
+      items.push(copy.completionCity)
+    }
+
+    return items
+  }, [form, copy])
+
   async function save() {
     setSaving(true)
     setMsg('')
@@ -308,32 +340,30 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
 
       if (!user) throw new Error(activeCopy.signedInRequired)
       if (!form.display_name.trim()) throw new Error(activeCopy.displayNameRequired)
-      if (!form.first_name.trim()) throw new Error(activeCopy.firstNameRequired)
-      if (!form.last_name.trim()) throw new Error(activeCopy.lastNameRequired)
-      if (!ROLE_OPTIONS.some((x) => x.value === form.role)) throw new Error(activeCopy.roleRequired)
-      if (!form.city.trim()) throw new Error(activeCopy.cityRequired)
       if (!/^[0-9]{5}$/.test(form.home_zip)) throw new Error(activeCopy.zipInvalid)
       if (!form.trade_id) throw new Error(activeCopy.tradeRequired)
 
       const phoneDigits = normalizePhone(form.phone)
-      if (phoneDigits.length < 10) throw new Error(activeCopy.phoneInvalid)
+      if (form.phone.trim() && phoneDigits.length < 10) throw new Error(activeCopy.phoneInvalid)
+      if (form.email.trim() && !isValidEmail(form.email)) throw new Error(activeCopy.emailInvalid)
 
-      if (!form.email.trim()) throw new Error(activeCopy.emailRequired)
-      if (!isValidEmail(form.email)) throw new Error(activeCopy.emailInvalid)
       if (!['en', 'es'].includes(form.preferred_language)) {
         throw new Error(activeCopy.languageInvalid)
       }
 
+      const displayName = form.display_name.trim()
+      const firstName = form.first_name.trim() || displayName.split(/\s+/)[0] || displayName
+
       const { error: profErr } = await supabase.from('profiles').upsert({
         user_id: user.id,
-        display_name: form.display_name.trim(),
-        first_name: form.first_name.trim(),
+        display_name: displayName,
+        first_name: firstName,
         last_name: form.last_name.trim(),
         role: form.role,
         trade_id: Number(form.trade_id),
-        travel_radius_miles: Number(form.travel_radius_miles),
-        crew_size: Number(form.crew_size),
-        bio: form.bio,
+        travel_radius_miles: Number(form.travel_radius_miles || 50),
+        crew_size: Number(form.crew_size || 1),
+        bio: form.bio.trim(),
         preferred_language: form.preferred_language
       })
 
@@ -347,9 +377,9 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
 
       const { error: cpErr } = await supabase.from('contact_private').upsert({
         user_id: user.id,
-        phone: phoneDigits,
-        city: form.city.trim(),
-        email: form.email.trim().toLowerCase()
+        phone: phoneDigits || null,
+        city: form.city.trim() || null,
+        email: form.email.trim() ? form.email.trim().toLowerCase() : null
       })
 
       if (cpErr) throw cpErr
@@ -363,6 +393,7 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
 
       setMsg(activeCopy.success)
     } catch (err) {
+      console.error(err)
       setMsg(err.message || activeCopy.saveError)
     } finally {
       setSaving(false)
@@ -428,6 +459,21 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
         </div>
       </div>
 
+      {completionItems.length > 0 ? (
+        <div className="card card-soft" style={{ marginBottom: 12 }}>
+          <div className="card-section-title">{copy.completionTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+            {copy.completionBody}
+          </p>
+
+          <div className="grid" style={{ gap: 8, marginTop: 10 }}>
+            {completionItems.map((item) => (
+              <div key={item}>• {item}</div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {msg && (
         <div className="card card-message" style={{ marginBottom: 12 }}>
           {msg}
@@ -473,6 +519,15 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
               </option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <div className="muted" style={{ marginBottom: 6 }}>{copy.zip}</div>
+          <input
+            className="input"
+            value={form.home_zip}
+            onChange={(e) => setField('home_zip', e.target.value)}
+          />
         </div>
 
         <div>
@@ -522,15 +577,6 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
         </div>
 
         <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.zip}</div>
-          <input
-            className="input"
-            value={form.home_zip}
-            onChange={(e) => setField('home_zip', e.target.value)}
-          />
-        </div>
-
-        <div>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.radius}</div>
           <input
             className="input"
@@ -568,7 +614,7 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
         </div>
       </div>
 
-      <div style={{ marginTop: 10 }}>
+      <div style={{ marginTop: 12 }}>
         <div className="muted" style={{ marginBottom: 6 }}>{copy.bio}</div>
         <textarea
           className="input"
