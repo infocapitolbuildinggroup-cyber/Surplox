@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Routes, Route, Navigate, useNavigate, NavLink, useLocation } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 import { t } from './i18n'
@@ -36,6 +36,31 @@ function AdminOnly({ session, profileChecked, profileComplete, isAdmin, adminChe
   return children
 }
 
+function AccountIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="nav-icon-svg">
+      <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="M4 20c1.8-3.8 5-5.7 8-5.7s6.2 1.9 8 5.7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function MenuIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="nav-icon-svg">
+      <path d="M4 7h16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M4 12h16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      <path d="M4 17h16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 export default function App() {
   const [session, setSession] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -45,6 +70,7 @@ export default function App() {
   const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [savingLang, setSavingLang] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const navigate = useNavigate()
   const location = useLocation()
@@ -58,6 +84,7 @@ export default function App() {
       setSession(sess)
       setAdminChecked(false)
       setProfileChecked(false)
+      setMobileMenuOpen(false)
 
       if (!sess) {
         setIsAdmin(false)
@@ -70,6 +97,10 @@ export default function App() {
 
     return () => sub.subscription.unsubscribe()
   }, [])
+
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [location.pathname])
 
   useEffect(() => {
     async function checkProfile() {
@@ -158,7 +189,7 @@ export default function App() {
     }
 
     loadUnreadCount()
-  }, [session?.user?.id, profileComplete])
+  }, [session?.user?.id, profileComplete, location.pathname])
 
   async function updateLanguage(newLang) {
     if (!newLang || newLang === lang) return
@@ -186,6 +217,7 @@ export default function App() {
 
   async function signOut() {
     await supabase.auth.signOut()
+    setMobileMenuOpen(false)
     setIsAdmin(false)
     setAdminChecked(false)
     setProfileChecked(false)
@@ -205,136 +237,176 @@ export default function App() {
   const brandTarget = session && profileChecked && !profileComplete ? '/onboarding' : '/'
   const showFullAppNav = Boolean(session && profileChecked && profileComplete)
 
+  const menuItems = useMemo(() => {
+    if (!showFullAppNav) return []
+
+    const items = [
+      { key: 'feed', to: '/feed', label: t(lang, 'nav_feed'), className: navBtnClass },
+      { key: 'channels', to: '/channels', label: t(lang, 'nav_channels'), className: navBtnClass },
+      { key: 'new', to: '/new', label: t(lang, 'nav_new_post'), className: navBtnClass },
+      {
+        key: 'notifications',
+        to: '/notifications',
+        label: t(lang, 'nav_alerts') || 'Alerts',
+        className: navBtnClass,
+        badge: unreadNotifications > 0 ? unreadNotifications : null
+      }
+    ]
+
+    if (isAdmin) {
+      items.push({
+        key: 'admin',
+        to: '/admin',
+        label: t(lang, 'nav_admin') || 'Admin',
+        className: adminNavBtnClass
+      })
+    }
+
+    return items
+  }, [showFullAppNav, lang, unreadNotifications, isAdmin])
+
   return (
     <>
       <div className="nav">
         <div className="nav-inner">
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              flexWrap: 'wrap'
-            }}
-          >
-            <NavLink className="brand" to={brandTarget}>
-              <img src={logo} alt="Surplox logo" className="logo" />
-            </NavLink>
+          <div className="nav-brand-row">
+            <div className="nav-brand-group">
+              <NavLink className="brand" to={brandTarget}>
+                <img src={logo} alt="Surplox logo" className="logo" />
+              </NavLink>
 
-            <span
-              aria-label="Surplox beta"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '6px 10px',
-                borderRadius: 999,
-                border: '1px solid rgba(255, 222, 89, 0.65)',
-                background: 'rgba(255, 117, 31, 0.08)',
-                color: '#ff751f',
-                fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                boxShadow: '0 0 10px rgba(255, 222, 89, 0.22)',
-                userSelect: 'none',
-                pointerEvents: 'none'
-              }}
-            >
-              Beta
-            </span>
-          </div>
-
-          <div className="nav-links">
-            <div
-              style={{
-                display: 'flex',
-                gap: 6,
-                marginRight: 12,
-                alignItems: 'center',
-                flexWrap: 'wrap'
-              }}
-            >
-              <button
-                type="button"
-                className={lang === 'en' ? 'btn small primary' : 'btn small'}
-                onClick={() => updateLanguage('en')}
-                disabled={savingLang}
-                aria-pressed={lang === 'en'}
-              >
-                EN
-              </button>
-
-              <button
-                type="button"
-                className={lang === 'es' ? 'btn small primary' : 'btn small'}
-                onClick={() => updateLanguage('es')}
-                disabled={savingLang}
-                aria-pressed={lang === 'es'}
-              >
-                ES
-              </button>
+              <span aria-label="Surplox beta" className="beta-pill">
+                Beta
+              </span>
             </div>
 
-            {session ? (
-              <>
-                {showFullAppNav ? (
-                  <>
-                    <NavLink className={navBtnClass} to="/feed">
-                      {t(lang, 'nav_feed')}
-                    </NavLink>
+            <div className="nav-links">
+              <div className="nav-language-group">
+                <button
+                  type="button"
+                  className={lang === 'en' ? 'btn small primary' : 'btn small'}
+                  onClick={() => updateLanguage('en')}
+                  disabled={savingLang}
+                  aria-pressed={lang === 'en'}
+                >
+                  EN
+                </button>
 
-                    <NavLink className={navBtnClass} to="/channels">
-                      {t(lang, 'nav_channels')}
-                    </NavLink>
+                <button
+                  type="button"
+                  className={lang === 'es' ? 'btn small primary' : 'btn small'}
+                  onClick={() => updateLanguage('es')}
+                  disabled={savingLang}
+                  aria-pressed={lang === 'es'}
+                >
+                  ES
+                </button>
+              </div>
 
-                    <NavLink className={navBtnClass} to="/new">
-                      {t(lang, 'nav_new_post')}
-                    </NavLink>
+              {session ? (
+                <>
+                  {showFullAppNav ? (
+                    <>
+                      <div className="nav-desktop-links">
+                        {menuItems.map((item) => (
+                          <NavLink key={item.key} className={item.className} to={item.to}>
+                            {item.label}
+                            {item.badge ? (
+                              <span
+                                className="badge"
+                                style={{
+                                  marginLeft: 8,
+                                  color: '#ff751f',
+                                  borderColor: 'rgba(255, 222, 89, 0.65)',
+                                  background: 'rgba(255, 222, 89, 0.14)'
+                                }}
+                              >
+                                {item.badge}
+                              </span>
+                            ) : null}
+                          </NavLink>
+                        ))}
 
-                    <NavLink className={navBtnClass} to="/notifications">
-                      {t(lang, 'nav_alerts') || 'Alerts'}
-                      {unreadNotifications > 0 ? (
-                        <span
-                          className="badge"
-                          style={{
-                            marginLeft: 8,
-                            color: '#ff751f',
-                            borderColor: 'rgba(255, 222, 89, 0.65)',
-                            background: 'rgba(255, 222, 89, 0.14)'
-                          }}
+                        <NavLink className={navBtnClass} to="/account">
+                          {t(lang, 'nav_account')}
+                        </NavLink>
+
+                        <button className="btn small danger" onClick={signOut}>
+                          {t(lang, 'nav_sign_out')}
+                        </button>
+                      </div>
+
+                      <div className="nav-mobile-actions">
+                        <NavLink
+                          className={({ isActive }) =>
+                            isActive ? 'btn small primary nav-icon-btn nav-link nav-link-active' : 'btn small primary nav-icon-btn nav-link'
+                          }
+                          to="/account"
+                          aria-label={t(lang, 'nav_account')}
+                          title={t(lang, 'nav_account')}
                         >
-                          {unreadNotifications}
-                        </span>
-                      ) : null}
-                    </NavLink>
+                          <AccountIcon />
+                        </NavLink>
 
-                    <NavLink className={navBtnClass} to="/account">
-                      {t(lang, 'nav_account')}
+                        <button
+                          type="button"
+                          className={`btn small nav-icon-btn ${mobileMenuOpen ? 'nav-link-active' : ''}`}
+                          onClick={() => setMobileMenuOpen((prev) => !prev)}
+                          aria-expanded={mobileMenuOpen}
+                          aria-controls="surplox-mobile-menu"
+                          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+                          title={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+                        >
+                          <MenuIcon />
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <NavLink className="btn small primary nav-link" to="/onboarding">
+                      Complete Profile
                     </NavLink>
+                  )}
+                </>
+              ) : (
+                <NavLink className="btn small primary nav-link" to="/auth?mode=signin">
+                  {t(lang, 'nav_sign_in')}
+                </NavLink>
+              )}
+            </div>
+          </div>
 
-                    {isAdmin && (
-                      <NavLink className={adminNavBtnClass} to="/admin">
-                        {t(lang, 'nav_admin') || 'Admin'}
-                      </NavLink>
-                    )}
-                  </>
-                ) : (
-                  <NavLink className="btn small primary nav-link" to="/onboarding">
-                    Complete Profile
+          {session && showFullAppNav && mobileMenuOpen ? (
+            <div id="surplox-mobile-menu" className="nav-mobile-menu card-soft">
+              <div className="nav-mobile-menu-list">
+                {menuItems.map((item) => (
+                  <NavLink key={item.key} className={item.className} to={item.to}>
+                    {item.label}
+                    {item.badge ? (
+                      <span
+                        className="badge"
+                        style={{
+                          marginLeft: 8,
+                          color: '#ff751f',
+                          borderColor: 'rgba(255, 222, 89, 0.65)',
+                          background: 'rgba(255, 222, 89, 0.14)'
+                        }}
+                      >
+                        {item.badge}
+                      </span>
+                    ) : null}
                   </NavLink>
-                )}
+                ))}
 
-                <button className="btn small danger" onClick={signOut}>
+                <NavLink className={navBtnClass} to="/account">
+                  {t(lang, 'nav_account')}
+                </NavLink>
+
+                <button className="btn small danger nav-mobile-signout" onClick={signOut}>
                   {t(lang, 'nav_sign_out')}
                 </button>
-              </>
-            ) : (
-              <NavLink className="btn small primary nav-link" to="/auth?mode=signin">
-                {t(lang, 'nav_sign_in')}
-              </NavLink>
-            )}
-          </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -473,9 +545,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 
-        <div className="footerNote">
-          {t(lang, 'footer_note')}
-        </div>
+        <div className="footerNote">{t(lang, 'footer_note')}</div>
       </div>
     </>
   )
