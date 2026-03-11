@@ -26,14 +26,14 @@ const COPY = {
   en: {
     formLabel: 'Surplox Access',
     signInTitle: 'Sign in to your local trade network',
-    signUpTitle: 'Create your Surplox account in 3 quick steps',
+    signUpTitle: 'Create Your Surplox Account',
     signInIntro:
       'Get back to nearby opportunities, crew activity, alerts, profile visibility, and local construction connections.',
     signUpIntro:
       'Fast signup for workers, crews, and local trade connections. Get into the app first and finish the rest later.',
-    previewTitle: 'Fast Entry',
+    previewTitle: 'Quick Setup',
     previewBody:
-      'Surplox now gets workers in fast: name, trade, ZIP, then straight into the feed.',
+      'Surplox gets workers in quickly: name, trade, ZIP, then straight into the feed.',
     previewBullet1: 'Join in a few taps',
     previewBullet2: 'Find crews and nearby work',
     previewBullet3: 'Finish the rest later',
@@ -90,14 +90,14 @@ const COPY = {
   es: {
     formLabel: 'Acceso a Surplox',
     signInTitle: 'Inicia sesión en tu red local del oficio',
-    signUpTitle: 'Crea tu cuenta de Surplox en 3 pasos rápidos',
+    signUpTitle: 'Crea tu cuenta de Surplox',
     signInIntro:
       'Vuelve a oportunidades cercanas, actividad de cuadrillas, alertas, visibilidad de perfil y conexiones locales de construcción.',
     signUpIntro:
       'Registro rápido para trabajadores, cuadrillas y conexiones locales del oficio. Entra a la app primero y completa lo demás después.',
-    previewTitle: 'Entrada rápida',
+    previewTitle: 'Configuración rápida',
     previewBody:
-      'Surplox ahora deja entrar rápido a los trabajadores: nombre, oficio, ZIP y directo al feed.',
+      'Surplox permite entrar rápido: nombre, oficio, ZIP y directo al feed.',
     previewBullet1: 'Únete en pocos toques',
     previewBullet2: 'Encuentra cuadrillas y trabajo cercano',
     previewBullet3: 'Completa lo demás después',
