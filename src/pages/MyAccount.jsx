@@ -5,7 +5,9 @@ const ROLE_OPTIONS = [
   { value: 'laborer', label: { en: 'Laborer', es: 'Trabajador' } },
   { value: 'subcontractor', label: { en: 'Subcontractor', es: 'Subcontratista' } },
   { value: 'contractor', label: { en: 'Contractor', es: 'Contratista' } },
-  { value: 'supplier', label: { en: 'Supplier', es: 'Proveedor' } }
+  { value: 'supplier', label: { en: 'Supplier', es: 'Proveedor' } },
+  { value: 'driver', label: { en: 'Driver', es: 'Conductor' } },
+  { value: 'mechanic', label: { en: 'Mechanic', es: 'Mecánico' } }
 ]
 
 const CATEGORY_GROUP_OPTIONS = [
@@ -225,51 +227,30 @@ const COPY = {
     jobsiteSupportGroup: 'Soporte de obra',
     materialDeliveryType: 'Entrega de materiales / Hot Shot',
     fleetRepairType: 'Reparación de equipo / flota',
-    selectSupportType: 'Selecciona tipo de soporte'
+    selectSupportType: 'Selecciona el tipo de soporte'
   }
 }
 
-function OverviewStat({ label, value }) {
-  return (
-    <div className="card-soft" style={{ gap: 8 }}>
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 800,
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          color: 'var(--muted-soft)'
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: 18,
-          lineHeight: 1.3,
-          fontWeight: 900,
-          color: 'var(--text)'
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  )
+function formatOptionLabel(option, lang = 'en') {
+  return option?.label?.[lang] || option?.label?.en || option?.value || ''
 }
 
-function labelForOption(option, lang) {
-  return option.label?.[lang] || option.label?.en || option.value
+function detectSupportType(serviceTags = []) {
+  const repairTags = new Set([
+    'diesel_mechanic',
+    'heavy_equipment_repair',
+    'trailer_repair',
+    'emergency_repair',
+    'jobsite_service'
+  ])
+
+  return serviceTags.some((tag) => repairTags.has(tag))
+    ? 'equipment_fleet_repair'
+    : 'material_delivery'
 }
 
-function getSupportOptions(jobsiteSupportType) {
-  if (jobsiteSupportType === 'material_delivery') {
-    return {
-      serviceOptions: MATERIAL_DELIVERY_SERVICE_TAGS,
-      equipmentOptions: MATERIAL_DELIVERY_EQUIPMENT_TAGS
-    }
-  }
-
-  if (jobsiteSupportType === 'equipment_fleet_repair') {
+function getSupportOptions(type) {
+  if (type === 'equipment_fleet_repair') {
     return {
       serviceOptions: FLEET_REPAIR_SERVICE_TAGS,
       equipmentOptions: FLEET_REPAIR_EQUIPMENT_TAGS
@@ -277,44 +258,63 @@ function getSupportOptions(jobsiteSupportType) {
   }
 
   return {
-    serviceOptions: [],
-    equipmentOptions: []
+    serviceOptions: MATERIAL_DELIVERY_SERVICE_TAGS,
+    equipmentOptions: MATERIAL_DELIVERY_EQUIPMENT_TAGS
   }
 }
 
-function detectSupportType(serviceTags = []) {
-  if (
-    serviceTags.some((tag) =>
-      ['diesel_mechanic', 'heavy_equipment_repair', 'trailer_repair', 'emergency_repair', 'jobsite_service'].includes(tag)
-    )
-  ) {
-    return 'equipment_fleet_repair'
-  }
-  return 'material_delivery'
+function getProfileCompletionPercent(profile) {
+  const checks = [
+    Boolean(String(profile.display_name || '').trim()),
+    Boolean(String(profile.role || '').trim()),
+    Boolean(String(profile.home_zip || '').trim()),
+    Boolean(String(profile.first_name || '').trim()),
+    Boolean(String(profile.last_name || '').trim()),
+    Boolean(String(profile.phone || '').trim()),
+    Boolean(String(profile.city || '').trim()),
+    Boolean(String(profile.bio || '').trim()),
+    Boolean(Number(profile.crew_size || 0) > 1),
+    Boolean(String(profile.availability_status || '').trim()),
+    profile.category_group === 'trade'
+      ? Boolean(String(profile.trade_id || '').trim())
+      : Array.isArray(profile.service_tags) &&
+        profile.service_tags.length > 0 &&
+        Array.isArray(profile.equipment_tags) &&
+        profile.equipment_tags.length > 0
+  ]
+
+  const completeCount = checks.filter(Boolean).length
+  return Math.round((completeCount / checks.length) * 100)
 }
 
-export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLang }) {
+function labelForOption(option, lang) {
+  return option.label?.[lang] || option.label?.en || option.value
+}
+
+export default function MyAccount({ lang = 'en', setLang = () => {} }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [trades, setTrades] = useState([])
-  const [lang, setLang] = useState(langProp || localStorage.getItem('surplox_lang') || 'en')
-  const [inviteCode, setInviteCode] = useState('')
+  const [inviteMsg, setInviteMsg] = useState('')
+  const [inviteLink, setInviteLink] = useState('')
+  const [copyStatus, setCopyStatus] = useState('')
+  const [completionItems, setCompletionItems] = useState([])
 
   const [form, setForm] = useState({
     display_name: '',
-    first_name: '',
-    last_name: '',
     role: 'laborer',
     trade_id: '',
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    city: '',
     home_zip: '',
     travel_radius_miles: 50,
     crew_size: 1,
+    preferred_language: lang || 'en',
     bio: '',
-    phone: '',
-    city: '',
-    email: '',
-    preferred_language: 'en',
     category_group: 'trade',
     jobsite_support_type: 'material_delivery',
     service_tags: [],
@@ -323,219 +323,140 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
     contractor_verified: false
   })
 
-  const copy = COPY[lang] || COPY.en
-  const { serviceOptions, equipmentOptions } = getSupportOptions(form.jobsite_support_type)
+  const copy = COPY[form.preferred_language] || COPY.en
 
-  useEffect(() => {
-    setLang(langProp || localStorage.getItem('surplox_lang') || 'en')
-  }, [langProp])
+  const profileStrength = useMemo(() => getProfileCompletionPercent(form), [form])
+
+  const supportOptions = useMemo(
+    () => getSupportOptions(form.jobsite_support_type),
+    [form.jobsite_support_type]
+  )
+
+  const serviceOptions = supportOptions.serviceOptions
+  const equipmentOptions = supportOptions.equipmentOptions
 
   function setField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
-  function normalizePhone(raw) {
-    return String(raw || '').replace(/\D/g, '')
-  }
-
-  function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim())
-  }
-
-  function roleLabel(option) {
-    return option.label[form.preferred_language] || option.label.en
-  }
-
-  function buildInviteUrl() {
-    const base = `${window.location.origin}/join`
-    return inviteCode ? `${base}?ref=${encodeURIComponent(inviteCode)}` : base
-  }
-
-  function getInviteText() {
-    const name = form.display_name?.trim() || 'A Surplox member'
-    const message =
-      lang === 'es'
-        ? `${name} te invitó a unirte a Surplox, la red local de construcción para cuadrillas, trabajo, entregas y soporte de obra.`
-        : `${name} invited you to join Surplox, the local construction network for crews, work, delivery, and jobsite support.`
-
-    return `${message}\n\n${buildInviteUrl()}`
-  }
-
-  async function copyInviteLink() {
-    try {
-      await navigator.clipboard.writeText(buildInviteUrl())
-      setMsg(copy.inviteCopied)
-    } catch (err) {
-      console.error(err)
-      setMsg(copy.inviteCopyError)
-    }
-  }
-
-  async function shareInviteLink() {
-    try {
-      const shareData = {
-        title: 'Surplox',
-        text: getInviteText(),
-        url: buildInviteUrl()
-      }
-
-      if (navigator.share) {
-        await navigator.share(shareData)
-      } else {
-        await copyInviteLink()
-      }
-    } catch (err) {
-      if (err?.name === 'AbortError') return
-      console.error(err)
-      setMsg(copy.inviteShareError)
-    }
-  }
-
-  function textInvite() {
-    try {
-      window.open(`sms:?&body=${encodeURIComponent(getInviteText())}`, '_self')
-    } catch (err) {
-      console.error(err)
-      setMsg(copy.inviteTextError)
-    }
-  }
-
-  function emailInvite() {
-    try {
-      const subject = encodeURIComponent('Join me on Surplox')
-      const body = encodeURIComponent(getInviteText())
-      window.location.href = `mailto:?subject=${subject}&body=${body}`
-    } catch (err) {
-      console.error(err)
-      setMsg(copy.inviteEmailError)
-    }
-  }
-
-  function toggleMultiTag(field, value) {
+  function toggleMultiTag(key, value) {
     setForm((prev) => {
-      const current = Array.isArray(prev[field]) ? prev[field] : []
+      const current = Array.isArray(prev[key]) ? prev[key] : []
       const exists = current.includes(value)
       return {
         ...prev,
-        [field]: exists ? current.filter((x) => x !== value) : [...current, value]
+        [key]: exists ? current.filter((item) => item !== value) : [...current, value]
       }
     })
   }
 
-  useEffect(() => {
-    if (form.category_group !== 'jobsite_support') return
+  function buildInviteLink(userId) {
+    if (!userId) return ''
+    return `${window.location.origin}/auth?ref=${userId}`
+  }
 
-    const nextType = form.jobsite_support_type || 'material_delivery'
-    const { serviceOptions: nextServiceOptions, equipmentOptions: nextEquipmentOptions } =
-      getSupportOptions(nextType)
+  async function loadData() {
+    setLoading(true)
+    setMsg('')
+    setInviteMsg('')
 
-    const validServiceSet = new Set(nextServiceOptions.map((x) => x.value))
-    const validEquipmentSet = new Set(nextEquipmentOptions.map((x) => x.value))
+    const { data: sessionData } = await supabase.auth.getSession()
+    const user = sessionData.session?.user
 
-    setForm((prev) => ({
-      ...prev,
-      service_tags: prev.service_tags.filter((tag) => validServiceSet.has(tag)),
-      equipment_tags: prev.equipment_tags.filter((tag) => validEquipmentSet.has(tag))
-    }))
-  }, [form.category_group, form.jobsite_support_type])
-
-  useEffect(() => {
-    async function load() {
-      setLoading(true)
-      setMsg('')
-
-      try {
-        const { data: sessionData } = await supabase.auth.getSession()
-        const user = sessionData.session?.user
-
-        if (!user) {
-          setLoading(false)
-          return
-        }
-
-        const { data: tradeRows, error: tradeErr } = await supabase
-          .from('trades')
-          .select('id,name')
-          .order('name')
-
-        if (tradeErr) console.error(tradeErr)
-
-        const { data: prof, error: profErr } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle()
-
-        if (profErr) console.error(profErr)
-
-        const { data: cp, error: cpErr } = await supabase
-          .from('contact_private')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle()
-
-        if (cpErr) console.error(cpErr)
-
-        const userLang =
-          prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
-
-        const categoryGroup = prof?.category_group || 'trade'
-        const serviceTags = Array.isArray(prof?.service_tags) ? prof.service_tags : []
-        const equipmentTags = Array.isArray(prof?.equipment_tags) ? prof.equipment_tags : []
-        const supportType =
-          categoryGroup === 'jobsite_support' ? detectSupportType(serviceTags) : 'material_delivery'
-
-        setInviteCode(user.id)
-        setLang(userLang)
-        localStorage.setItem('surplox_lang', userLang)
-        setTrades(tradeRows || [])
-
-        setForm({
-          display_name: prof?.display_name || '',
-          first_name: prof?.first_name || '',
-          last_name: prof?.last_name || '',
-          role: prof?.role || 'laborer',
-          trade_id: prof?.trade_id ? String(prof.trade_id) : '',
-          home_zip: prof?.home_zip || '',
-          travel_radius_miles: prof?.travel_radius_miles ?? 50,
-          crew_size: prof?.crew_size ?? 1,
-          bio: prof?.bio || '',
-          phone: cp?.phone || '',
-          city: cp?.city || '',
-          email: cp?.email || user.email || '',
-          preferred_language: userLang,
-          category_group: categoryGroup,
-          jobsite_support_type: supportType,
-          service_tags: serviceTags,
-          equipment_tags: equipmentTags,
-          availability_status: prof?.availability_status || 'available_now',
-          contractor_verified: Boolean(prof?.contractor_verified)
-        })
-      } finally {
-        setLoading(false)
-      }
+    if (!user) {
+      setMsg(copy.signedInRequired)
+      setLoading(false)
+      return
     }
 
-    load()
-  }, [langProp])
+    const [{ data: tradesData, error: tradesError }, { data: profileData, error: profileError }, { data: privateData, error: privateError }] =
+      await Promise.all([
+        supabase.from('trades').select('id,name').order('name'),
+        supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle(),
+        supabase.from('contact_private').select('*').eq('user_id', user.id).maybeSingle()
+      ])
 
-  const completionItems = useMemo(() => {
+    if (tradesError) console.error(tradesError)
+    if (profileError) console.error(profileError)
+    if (privateError) console.error(privateError)
+
+    setTrades(tradesData || [])
+
+    const nextLang =
+      profileData?.preferred_language || lang || localStorage.getItem('surplox_lang') || 'en'
+
+    const supportType =
+      profileData?.category_group === 'jobsite_support'
+        ? detectSupportType(profileData?.service_tags || [])
+        : 'material_delivery'
+
+    const mergedForm = {
+      display_name: profileData?.display_name || '',
+      role: profileData?.role || 'laborer',
+      trade_id: profileData?.trade_id ? String(profileData.trade_id) : '',
+      first_name: profileData?.first_name || '',
+      last_name: profileData?.last_name || '',
+      email: privateData?.email || user.email || '',
+      phone: privateData?.phone || '',
+      city: privateData?.city || '',
+      home_zip: profileData?.home_zip ? String(profileData.home_zip) : '',
+      travel_radius_miles: profileData?.travel_radius_miles || 50,
+      crew_size: profileData?.crew_size || 1,
+      preferred_language: nextLang,
+      bio: profileData?.bio || '',
+      category_group: profileData?.category_group || 'trade',
+      jobsite_support_type: supportType,
+      service_tags: Array.isArray(profileData?.service_tags) ? profileData.service_tags : [],
+      equipment_tags: Array.isArray(profileData?.equipment_tags) ? profileData.equipment_tags : [],
+      availability_status: profileData?.availability_status || 'available_now',
+      contractor_verified: Boolean(profileData?.contractor_verified)
+    }
+
+    setForm(mergedForm)
+    setInviteLink(buildInviteLink(user.id))
+    setLang(nextLang)
+    localStorage.setItem('surplox_lang', nextLang)
+
+    const items = []
+
+    if (!String(mergedForm.first_name || '').trim() || !String(mergedForm.last_name || '').trim()) {
+      items.push(copy.completionFirstLast)
+    }
+
+    if (!String(mergedForm.phone || '').trim()) {
+      items.push(copy.completionPhone)
+    }
+
+    if (!String(mergedForm.city || '').trim()) {
+      items.push(copy.completionCity)
+    }
+
+    if (!String(mergedForm.role || '').trim()) {
+      items.push(copy.completionRole)
+    }
+
+    if (!String(mergedForm.bio || '').trim()) {
+      items.push(copy.completionBio)
+    }
+
+    if (!Number(mergedForm.crew_size || 0) || Number(mergedForm.crew_size || 0) <= 1) {
+      items.push(copy.completionCrew)
+    }
+
+    setCompletionItems(items)
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
     const items = []
 
     if (!String(form.first_name || '').trim() || !String(form.last_name || '').trim()) {
       items.push(copy.completionFirstLast)
-    }
-
-    if (!String(form.role || '').trim()) {
-      items.push(copy.completionRole)
-    }
-
-    if (!Number(form.crew_size || 0) || Number(form.crew_size || 0) <= 1) {
-      items.push(copy.completionCrew)
-    }
-
-    if (!String(form.bio || '').trim()) {
-      items.push(copy.completionBio)
     }
 
     if (!String(form.phone || '').trim()) {
@@ -546,187 +467,284 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
       items.push(copy.completionCity)
     }
 
-    return items
+    if (!String(form.role || '').trim()) {
+      items.push(copy.completionRole)
+    }
+
+    if (!String(form.bio || '').trim()) {
+      items.push(copy.completionBio)
+    }
+
+    if (!Number(form.crew_size || 0) || Number(form.crew_size || 0) <= 1) {
+      items.push(copy.completionCrew)
+    }
+
+    setCompletionItems(items)
   }, [form, copy])
 
-  async function save() {
-    setSaving(true)
-    setMsg('')
-
-    const activeCopy = COPY[form.preferred_language] || COPY.en
-
+  async function copyInviteLink() {
     try {
-      const { data: sessionData } = await supabase.auth.getSession()
-      const user = sessionData.session?.user
-
-      if (!user) throw new Error(activeCopy.signedInRequired)
-      if (!form.display_name.trim()) throw new Error(activeCopy.displayNameRequired)
-      if (!/^[0-9]{5}$/.test(form.home_zip)) throw new Error(activeCopy.zipInvalid)
-      if (form.category_group === 'trade' && !form.trade_id) throw new Error(activeCopy.tradeRequired)
-
-      const phoneDigits = normalizePhone(form.phone)
-      if (form.phone.trim() && phoneDigits.length < 10) throw new Error(activeCopy.phoneInvalid)
-      if (form.email.trim() && !isValidEmail(form.email)) throw new Error(activeCopy.emailInvalid)
-
-      if (!['en', 'es'].includes(form.preferred_language)) {
-        throw new Error(activeCopy.languageInvalid)
-      }
-
-      if (!['available_now', 'available_this_week', 'busy'].includes(form.availability_status)) {
-        throw new Error(activeCopy.availabilityInvalid)
-      }
-
-      if (!['trade', 'jobsite_support'].includes(form.category_group)) {
-        throw new Error(activeCopy.categoryInvalid)
-      }
-
-      const displayName = form.display_name.trim()
-      const firstName = form.first_name.trim() || displayName.split(/\s+/)[0] || displayName
-
-      const profilePayload = {
-        user_id: user.id,
-        display_name: displayName,
-        first_name: firstName,
-        last_name: form.last_name.trim(),
-        role: form.role || 'laborer',
-        trade_id: form.category_group === 'trade' ? Number(form.trade_id) : null,
-        travel_radius_miles: Number(form.travel_radius_miles || 50),
-        crew_size: Number(form.crew_size || 1),
-        bio: form.bio.trim(),
-        preferred_language: form.preferred_language,
-        category_group: form.category_group,
-        service_tags: form.category_group === 'jobsite_support' ? form.service_tags : [],
-        equipment_tags: form.category_group === 'jobsite_support' ? form.equipment_tags : [],
-        availability_status: form.availability_status
-      }
-
-      const { error: profErr } = await supabase.from('profiles').upsert(profilePayload)
-      if (profErr) throw profErr
-
-      const { error: zipErr } = await supabase.rpc('set_my_home_zip', {
-        p_zip: form.home_zip
-      })
-      if (zipErr) throw zipErr
-
-      const { error: cpErr } = await supabase.from('contact_private').upsert({
-        user_id: user.id,
-        phone: phoneDigits || null,
-        city: form.city.trim() || null,
-        email: form.email.trim() ? form.email.trim().toLowerCase() : null
-      })
-      if (cpErr) throw cpErr
-
-      localStorage.setItem('surplox_lang', form.preferred_language)
-      setLang(form.preferred_language)
-
-      if (typeof setGlobalLang === 'function') {
-        await setGlobalLang(form.preferred_language)
-      }
-
-      setMsg(activeCopy.success)
-    } catch (err) {
-      console.error(err)
-      setMsg(err.message || activeCopy.saveError)
-    } finally {
-      setSaving(false)
+      if (!inviteLink) throw new Error('Missing invite link')
+      await navigator.clipboard.writeText(inviteLink)
+      setCopyStatus(copy.inviteCopied)
+      setTimeout(() => setCopyStatus(''), 2000)
+    } catch (error) {
+      console.error(error)
+      setCopyStatus(copy.inviteCopyError)
+      setTimeout(() => setCopyStatus(''), 2500)
     }
   }
 
-  const completionPercent = Math.round(((6 - completionItems.length) / 6) * 100)
+  async function shareInvite() {
+    try {
+      if (!inviteLink) throw new Error('Missing invite link')
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Surplox Invite',
+          text: inviteLink,
+          url: inviteLink
+        })
+      } else {
+        await copyInviteLink()
+      }
+    } catch (error) {
+      console.error(error)
+      setCopyStatus(copy.inviteShareError)
+      setTimeout(() => setCopyStatus(''), 2500)
+    }
+  }
 
-  if (loading) return <div className="card">{copy.loading}</div>
+  function textInvite() {
+    try {
+      if (!inviteLink) throw new Error('Missing invite link')
+      window.location.href = `sms:?&body=${encodeURIComponent(inviteLink)}`
+    } catch (error) {
+      console.error(error)
+      setCopyStatus(copy.inviteTextError)
+      setTimeout(() => setCopyStatus(''), 2500)
+    }
+  }
+
+  function emailInvite() {
+    try {
+      if (!inviteLink) throw new Error('Missing invite link')
+      window.location.href = `mailto:?subject=${encodeURIComponent('Join me on Surplox')}&body=${encodeURIComponent(inviteLink)}`
+    } catch (error) {
+      console.error(error)
+      setCopyStatus(copy.inviteEmailError)
+      setTimeout(() => setCopyStatus(''), 2500)
+    }
+  }
+
+  function validateForm() {
+    if (!String(form.display_name || '').trim()) {
+      setMsg(copy.displayNameRequired)
+      return false
+    }
+
+    if (!/^\d{5}$/.test(String(form.home_zip || '').trim())) {
+      setMsg(copy.zipInvalid)
+      return false
+    }
+
+    if (form.category_group === 'trade' && !String(form.trade_id || '').trim()) {
+      setMsg(copy.tradeRequired)
+      return false
+    }
+
+    if (String(form.email || '').trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(form.email).trim())) {
+      setMsg(copy.emailInvalid)
+      return false
+    }
+
+    if (String(form.phone || '').trim()) {
+      const digits = String(form.phone || '').replace(/\D/g, '')
+      if (digits.length < 10) {
+        setMsg(copy.phoneInvalid)
+        return false
+      }
+    }
+
+    if (!['en', 'es'].includes(form.preferred_language)) {
+      setMsg(copy.languageInvalid)
+      return false
+    }
+
+    if (!AVAILABILITY_OPTIONS.some((option) => option.value === form.availability_status)) {
+      setMsg(copy.availabilityInvalid)
+      return false
+    }
+
+    if (!CATEGORY_GROUP_OPTIONS.some((option) => option.value === form.category_group)) {
+      setMsg(copy.categoryInvalid)
+      return false
+    }
+
+    return true
+  }
+
+  async function save() {
+    setMsg('')
+    if (!validateForm()) return
+
+    setSaving(true)
+
+    const { data: sessionData } = await supabase.auth.getSession()
+    const user = sessionData.session?.user
+
+    if (!user) {
+      setMsg(copy.signedInRequired)
+      setSaving(false)
+      return
+    }
+
+    const profilePayload = {
+      user_id: user.id,
+      display_name: form.display_name.trim(),
+      role: form.role,
+      trade_id: form.category_group === 'trade' ? Number(form.trade_id) || null : null,
+      first_name: form.first_name.trim(),
+      last_name: form.last_name.trim(),
+      home_zip: form.home_zip.trim(),
+      travel_radius_miles: Number(form.travel_radius_miles) || 50,
+      crew_size: Number(form.crew_size) || 1,
+      preferred_language: form.preferred_language,
+      bio: form.bio.trim(),
+      category_group: form.category_group,
+      availability_status: form.availability_status,
+      contractor_verified: Boolean(form.contractor_verified),
+      service_tags: form.category_group === 'jobsite_support' ? form.service_tags : [],
+      equipment_tags: form.category_group === 'jobsite_support' ? form.equipment_tags : []
+    }
+
+    const privatePayload = {
+      user_id: user.id,
+      email: form.email.trim(),
+      phone: form.phone.trim(),
+      city: form.city.trim()
+    }
+
+    const [{ error: profileError }, { error: privateError }] = await Promise.all([
+      supabase.from('profiles').upsert(profilePayload),
+      supabase.from('contact_private').upsert(privatePayload)
+    ])
+
+    if (profileError || privateError) {
+      console.error(profileError || privateError)
+      setMsg(copy.saveError)
+      setSaving(false)
+      return
+    }
+
+    setMsg(copy.success)
+    setSaving(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="card rounded-xl">
+        <div className="muted">{copy.loading}</div>
+      </div>
+    )
+  }
 
   return (
-    <div className="grid" style={{ gap: 18, maxWidth: 980, margin: '0 auto' }}>
+    <div className="grid" style={{ gap: 18 }}>
       <div
         className="card rounded-xl"
         style={{
-          padding: 28,
-          background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
+          padding: 24,
+          background: 'linear-gradient(180deg, #fff7cf 0%, #ffffff 100%)'
         }}
       >
-        <div className="h1" style={{ marginBottom: 8 }}>
-          {copy.title}
-        </div>
+        <div className="badge good">{copy.title}</div>
+        <div className="h1" style={{ marginTop: 14 }}>{copy.title}</div>
+        <p className="muted" style={{ marginTop: 8 }}>{copy.intro}</p>
 
-        <p className="muted" style={{ fontSize: 17, lineHeight: 1.7, maxWidth: 760 }}>
-          {copy.intro}
-        </p>
-
-        <div className="grid two" style={{ marginTop: 18 }}>
-          <OverviewStat label={copy.accountOverview} value={copy.accountOverviewBody} />
-          <OverviewStat
-            label={copy.profileStrength}
-            value={`${completionPercent}% · ${
-              completionItems.length === 0 ? copy.complete : copy.incomplete
-            }`}
-          />
+        <div className="grid three" style={{ marginTop: 18 }}>
+          <div className="card-soft" style={{ minHeight: 92 }}>
+            <div className="muted" style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>
+              {copy.profileStrength}
+            </div>
+            <div style={{ marginTop: 8, fontSize: 32, fontWeight: 900 }}>{profileStrength}%</div>
+          </div>
+          <div className="card-soft" style={{ minHeight: 92 }}>
+            <div className="muted" style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>
+              {copy.complete}
+            </div>
+            <div style={{ marginTop: 8, fontSize: 32, fontWeight: 900 }}>
+              {Math.max(0, 100 - (completionItems.length * 10))}
+            </div>
+          </div>
+          <div className="card-soft" style={{ minHeight: 92 }}>
+            <div className="muted" style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>
+              {copy.incomplete}
+            </div>
+            <div style={{ marginTop: 8, fontSize: 32, fontWeight: 900 }}>{completionItems.length}</div>
+          </div>
         </div>
       </div>
 
       {completionItems.length > 0 ? (
-        <div
-          className="card rounded-xl"
-          style={{
-            padding: 22,
-            background: '#fff4da'
-          }}
-        >
+        <div className="card rounded-xl" style={{ padding: 24 }}>
           <div className="card-section-title">{copy.completionTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.completionBody}
-          </p>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.completionBody}</p>
 
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
             {completionItems.map((item) => (
-              <span key={item} className="badge">
-                {item}
-              </span>
+              <span key={item} className="badge">{item}</span>
             ))}
           </div>
         </div>
       ) : null}
 
-      <div className="card rounded-xl" style={{ padding: 22 }}>
+      <div className="card rounded-xl" style={{ padding: 24 }}>
         <div className="card-section-title">{copy.inviteTitle}</div>
-        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-          {copy.inviteBody}
-        </p>
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.inviteBody}</p>
 
-        <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button className="btn small primary" onClick={copyInviteLink}>
-            {copy.copyInvite}
-          </button>
-          <button className="btn small" onClick={shareInviteLink}>
-            {copy.shareInvite}
-          </button>
-          <button className="btn small" onClick={textInvite}>
-            {copy.textInvite}
-          </button>
-          <button className="btn small" onClick={emailInvite}>
-            {copy.emailInvite}
-          </button>
-        </div>
+        <div className="grid" style={{ marginTop: 14, gap: 12 }}>
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.invitePreviewLabel}</div>
+            <div className="card-soft" style={{ minHeight: 'auto', padding: 14, wordBreak: 'break-all' }}>
+              {inviteLink || '—'}
+            </div>
+          </div>
 
-        <div className="card-soft" style={{ marginTop: 14, padding: 14 }}>
-          <div className="muted" style={{ marginBottom: 6 }}>
-            {copy.invitePreviewLabel}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button type="button" className="btn primary" onClick={copyInviteLink}>
+              {copy.copyInvite}
+            </button>
+            <button type="button" className="btn" onClick={shareInvite}>
+              {copy.shareInvite}
+            </button>
+            <button type="button" className="btn" onClick={textInvite}>
+              {copy.textInvite}
+            </button>
+            <button type="button" className="btn" onClick={emailInvite}>
+              {copy.emailInvite}
+            </button>
           </div>
-          <div style={{ wordBreak: 'break-all', fontWeight: 700 }}>
-            {buildInviteUrl()}
-          </div>
+
+          {copyStatus ? (
+            <div className="card-soft" style={{ minHeight: 'auto', padding: 14 }}>
+              {copyStatus}
+            </div>
+          ) : null}
         </div>
       </div>
 
       {msg ? (
-        <div className="card-message" style={{ padding: 14, borderRadius: 18 }}>
-          {msg}
+        <div className="card rounded-xl" style={{ padding: 18 }}>
+          <div>{msg}</div>
         </div>
       ) : null}
 
       <div className="grid two">
         <div className="card rounded-xl" style={{ padding: 24 }}>
-          <div className="grid" style={{ gap: 14 }}>
+          <div className="card-section-title">{copy.accountOverview}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.accountOverviewBody}</p>
+
+          <div className="grid" style={{ marginTop: 18, gap: 14 }}>
             <div>
               <div className="muted" style={{ marginBottom: 6 }}>{copy.displayName}</div>
               <input
@@ -745,7 +763,7 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
               >
                 {ROLE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {roleLabel(option)}
+                    {formatOptionLabel(option, form.preferred_language)}
                   </option>
                 ))}
               </select>
