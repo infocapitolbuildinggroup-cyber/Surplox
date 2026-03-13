@@ -89,6 +89,26 @@ function getProfileReminderItems(profile = {}, contact = {}, lang = 'en') {
   return items
 }
 
+function NavBadge({ count }) {
+  if (!count) return null
+
+  return (
+    <span
+      className="badge"
+      style={{
+        marginLeft: 8,
+        background: '#fff0b4',
+        color: '#111111',
+        minWidth: 26,
+        justifyContent: 'center',
+        fontWeight: 800
+      }}
+    >
+      {count}
+    </span>
+  )
+}
+
 export default function App() {
   const [session, setSession] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -331,19 +351,7 @@ export default function App() {
                       {menuItems.map((item) => (
                         <NavLink key={item.key} className={item.className} to={item.to}>
                           {item.label}
-                          {item.badge ? (
-                            <span
-                              className="badge"
-                              style={{
-                                marginLeft: 8,
-                                color: '#ff751f',
-                                borderColor: 'rgba(255, 222, 89, 0.65)',
-                                background: 'rgba(255, 222, 89, 0.14)'
-                              }}
-                            >
-                              {item.badge}
-                            </span>
-                          ) : null}
+                          <NavBadge count={item.badge} />
                         </NavLink>
                       ))}
 
@@ -393,24 +401,12 @@ export default function App() {
           </div>
 
           {session && showFullAppNav && mobileMenuOpen ? (
-            <div id="surplox-mobile-menu" className="nav-mobile-menu card-soft">
+            <div id="surplox-mobile-menu" className="nav-mobile-menu">
               <div className="nav-mobile-menu-list">
                 {menuItems.map((item) => (
                   <NavLink key={item.key} className={item.className} to={item.to}>
-                    {item.label}
-                    {item.badge ? (
-                      <span
-                        className="badge"
-                        style={{
-                          marginLeft: 8,
-                          color: '#ff751f',
-                          borderColor: 'rgba(255, 222, 89, 0.65)',
-                          background: 'rgba(255, 222, 89, 0.14)'
-                        }}
-                      >
-                        {item.badge}
-                      </span>
-                    ) : null}
+                    <span>{item.label}</span>
+                    <NavBadge count={item.badge} />
                   </NavLink>
                 ))}
 
@@ -418,7 +414,7 @@ export default function App() {
                   {t(lang, 'nav_account')}
                 </NavLink>
 
-                <button className="btn small danger nav-mobile-signout" onClick={signOut}>
+                <button className="btn danger nav-mobile-signout" onClick={signOut}>
                   {t(lang, 'nav_sign_out')}
                 </button>
               </div>
@@ -427,11 +423,15 @@ export default function App() {
         </div>
       </div>
 
-      <div className="container">
+      <main className="container">
         <Routes>
           <Route path="/" element={<Home session={session} lang={lang} />} />
           <Route path="/join" element={<Home session={session} lang={lang} variant="join" />} />
-          <Route path="/auth" element={<Auth lang={lang} setLang={updateLanguage} />} />
+
+          <Route
+            path="/auth"
+            element={<Auth lang={lang} setLang={updateLanguage} />}
+          />
 
           <Route
             path="/onboarding"
@@ -470,10 +470,10 @@ export default function App() {
           />
 
           <Route
-            path="/notifications"
+            path="/p/:id"
             element={
               <AppOnly session={session} profileChecked={profileChecked} lang={lang}>
-                <Notifications lang={lang} />
+                <PostDetail lang={lang} />
               </AppOnly>
             }
           />
@@ -488,19 +488,19 @@ export default function App() {
           />
 
           <Route
-            path="/u/:userId"
+            path="/notifications"
             element={
               <AppOnly session={session} profileChecked={profileChecked} lang={lang}>
-                <WorkerProfile lang={lang} />
+                <Notifications lang={lang} />
               </AppOnly>
             }
           />
 
           <Route
-            path="/p/:id"
+            path="/u/:userId"
             element={
               <AppOnly session={session} profileChecked={profileChecked} lang={lang}>
-                <PostDetail lang={lang} />
+                <WorkerProfile />
               </AppOnly>
             }
           />
@@ -515,16 +515,46 @@ export default function App() {
                 adminChecked={adminChecked}
                 lang={lang}
               >
-                <AdminDirectory lang={lang} />
+                <AdminDirectory />
               </AdminOnly>
             }
           />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route
+            path="*"
+            element={<Navigate to={session ? '/feed' : '/'} replace />}
+          />
         </Routes>
 
+        {session && profileChecked && !coreProfileReady ? (
+          <div
+            className="card"
+            style={{
+              marginTop: 18,
+              background: '#fff4da'
+            }}
+          >
+            <div className="card-section-title">
+              {lang === 'es'
+                ? 'Termina tu acceso básico a Surplox'
+                : 'Finish your basic Surplox access'}
+            </div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {lang === 'es'
+                ? 'Agrega tu nombre visible, oficio y ZIP para fortalecer tu cuenta y desbloquear una mejor experiencia dentro de la red.'
+                : 'Add your display name, trade, and ZIP to strengthen your account and unlock a better experience inside the network.'}
+            </p>
+
+            <div style={{ marginTop: 14 }}>
+              <NavLink className="btn primary" to="/onboarding">
+                {lang === 'es' ? 'Completar cuenta' : 'Complete Account'}
+              </NavLink>
+            </div>
+          </div>
+        ) : null}
+
         <div className="footerNote">{t(lang, 'footer_note')}</div>
-      </div>
+      </main>
     </>
   )
 }

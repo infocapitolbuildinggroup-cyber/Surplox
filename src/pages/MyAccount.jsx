@@ -61,7 +61,13 @@ const COPY = {
     completionPhone: 'Add phone number',
     completionCity: 'Add city',
     completionFirstLast: 'Add first and last name',
-    completionRole: 'Add primary role'
+    completionRole: 'Add primary role',
+    accountOverview: 'Account Overview',
+    accountOverviewBody:
+      'Keep your profile clean, credible, and ready for nearby work opportunities and crew invites.',
+    profileStrength: 'Profile Strength',
+    complete: 'Complete',
+    incomplete: 'Needs work'
   },
   es: {
     loading: 'Cargando tu cuenta…',
@@ -115,8 +121,42 @@ const COPY = {
     completionPhone: 'Agregar número de teléfono',
     completionCity: 'Agregar ciudad',
     completionFirstLast: 'Agregar nombre y apellido',
-    completionRole: 'Agregar rol principal'
+    completionRole: 'Agregar rol principal',
+    accountOverview: 'Resumen de cuenta',
+    accountOverviewBody:
+      'Mantén tu perfil limpio, creíble y listo para oportunidades cercanas e invitaciones de cuadrilla.',
+    profileStrength: 'Fuerza del perfil',
+    complete: 'Completo',
+    incomplete: 'Necesita trabajo'
   }
+}
+
+function OverviewStat({ label, value }) {
+  return (
+    <div className="card-soft" style={{ gap: 8 }}>
+      <div
+        style={{
+          fontSize: 12,
+          fontWeight: 800,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          color: 'var(--muted-soft)'
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: 18,
+          lineHeight: 1.3,
+          fontWeight: 900,
+          color: 'var(--text)'
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  )
 }
 
 export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLang }) {
@@ -400,56 +440,70 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
     }
   }
 
+  const completionPercent = Math.round(
+    ((6 - completionItems.length) / 6) * 100
+  )
+
   if (loading) return <div className="card">{copy.loading}</div>
 
   return (
-    <div className="card" style={{ maxWidth: 860, margin: '0 auto' }}>
-      <div className="h1">{copy.title}</div>
+    <div className="grid" style={{ gap: 18, maxWidth: 980, margin: '0 auto' }}>
+      <div
+        className="card rounded-xl"
+        style={{
+          padding: 28,
+          background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
+        }}
+      >
+        <div className="h1" style={{ marginBottom: 8 }}>
+          {copy.title}
+        </div>
 
-      <p className="muted">{copy.intro}</p>
+        <p className="muted" style={{ fontSize: 17, lineHeight: 1.7, maxWidth: 760 }}>
+          {copy.intro}
+        </p>
+
+        <div className="grid two" style={{ marginTop: 18 }}>
+          <OverviewStat label={copy.accountOverview} value={copy.accountOverviewBody} />
+          <OverviewStat
+            label={copy.profileStrength}
+            value={`${completionPercent}% · ${
+              completionItems.length === 0 ? copy.complete : copy.incomplete
+            }`}
+          />
+        </div>
+      </div>
 
       {completionItems.length > 0 ? (
         <div
-          className="card"
+          className="card rounded-xl"
           style={{
-            marginBottom: 12,
-            borderColor: 'rgba(255, 117, 31, 0.42)',
-            background: 'rgba(255, 117, 31, 0.06)',
-            boxShadow: '0 0 18px rgba(255, 117, 31, 0.14)'
+            padding: 22,
+            background: '#fff4da'
           }}
         >
-          <div
-            className="card-section-title"
-            style={{ color: '#ffde59' }}
-          >
-            {copy.completionTitle}
-          </div>
-          <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+          <div className="card-section-title">{copy.completionTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
             {copy.completionBody}
           </p>
 
-          <div className="grid" style={{ gap: 8, marginTop: 10 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
             {completionItems.map((item) => (
-              <div key={item}>• {item}</div>
+              <span key={item} className="badge">
+                {item}
+              </span>
             ))}
           </div>
         </div>
       ) : null}
 
-      <div
-        className="card"
-        style={{
-          marginBottom: 12,
-          borderColor: 'rgba(255, 222, 89, 0.32)',
-          background: 'rgba(255, 222, 89, 0.05)'
-        }}
-      >
+      <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{copy.inviteTitle}</div>
-        <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
           {copy.inviteBody}
         </p>
 
-        <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button className="btn small primary" onClick={copyInviteLink}>
             {copy.copyInvite}
           </button>
@@ -464,118 +518,165 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
           </button>
         </div>
 
-        <div
-          className="card card-soft"
-          style={{
-            marginTop: 10,
-            padding: 12,
-            borderColor: 'rgba(255, 222, 89, 0.18)',
-            background: 'rgba(255, 222, 89, 0.03)'
-          }}
-        >
+        <div className="card-soft" style={{ marginTop: 14, padding: 14 }}>
           <div className="muted" style={{ marginBottom: 6 }}>
             {copy.invitePreviewLabel}
           </div>
-          <div className="muted" style={{ wordBreak: 'break-all' }}>
+          <div style={{ wordBreak: 'break-all', fontWeight: 700 }}>
             {buildInviteUrl()}
           </div>
         </div>
       </div>
 
-      {msg && (
-        <div className="card card-message" style={{ marginBottom: 12 }}>
+      {msg ? (
+        <div className="card-message" style={{ padding: 14, borderRadius: 18 }}>
           {msg}
         </div>
-      )}
+      ) : null}
 
       <div className="grid two">
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.displayName}</div>
-          <input className="input" value={form.display_name} onChange={(e) => setField('display_name', e.target.value)} />
+        <div className="card rounded-xl" style={{ padding: 24 }}>
+          <div className="grid" style={{ gap: 14 }}>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.displayName}</div>
+              <input
+                className="input"
+                value={form.display_name}
+                onChange={(e) => setField('display_name', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.primaryRole}</div>
+              <select
+                className="input"
+                value={form.role}
+                onChange={(e) => setField('role', e.target.value)}
+              >
+                {ROLE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {roleLabel(option)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.trade}</div>
+              <select
+                className="input"
+                value={form.trade_id}
+                onChange={(e) => setField('trade_id', e.target.value)}
+              >
+                <option value="">{copy.selectTrade}</option>
+                {trades.map((trade) => (
+                  <option key={trade.id} value={trade.id}>
+                    {trade.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.zip}</div>
+              <input
+                className="input"
+                value={form.home_zip}
+                onChange={(e) => setField('home_zip', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.radius}</div>
+              <input
+                className="input"
+                type="number"
+                value={form.travel_radius_miles}
+                onChange={(e) => setField('travel_radius_miles', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.crewSize}</div>
+              <input
+                className="input"
+                type="number"
+                value={form.crew_size}
+                onChange={(e) => setField('crew_size', e.target.value)}
+              />
+            </div>
+          </div>
         </div>
 
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.primaryRole}</div>
-          <select className="input" value={form.role} onChange={(e) => setField('role', e.target.value)}>
-            {ROLE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {roleLabel(option)}
-              </option>
-            ))}
-          </select>
-        </div>
+        <div className="card rounded-xl" style={{ padding: 24 }}>
+          <div className="grid" style={{ gap: 14 }}>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.firstName}</div>
+              <input
+                className="input"
+                value={form.first_name}
+                onChange={(e) => setField('first_name', e.target.value)}
+              />
+            </div>
 
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.trade}</div>
-          <select className="input" value={form.trade_id} onChange={(e) => setField('trade_id', e.target.value)}>
-            <option value="">{copy.selectTrade}</option>
-            {trades.map((trade) => (
-              <option key={trade.id} value={trade.id}>
-                {trade.name}
-              </option>
-            ))}
-          </select>
-        </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.lastName}</div>
+              <input
+                className="input"
+                value={form.last_name}
+                onChange={(e) => setField('last_name', e.target.value)}
+              />
+            </div>
 
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.zip}</div>
-          <input className="input" value={form.home_zip} onChange={(e) => setField('home_zip', e.target.value)} />
-        </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.email}</div>
+              <input
+                className="input"
+                type="email"
+                value={form.email}
+                onChange={(e) => setField('email', e.target.value)}
+              />
+            </div>
 
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.firstName}</div>
-          <input className="input" value={form.first_name} onChange={(e) => setField('first_name', e.target.value)} />
-        </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.phone}</div>
+              <input
+                className="input"
+                value={form.phone}
+                onChange={(e) => setField('phone', e.target.value)}
+              />
+            </div>
 
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.lastName}</div>
-          <input className="input" value={form.last_name} onChange={(e) => setField('last_name', e.target.value)} />
-        </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.city}</div>
+              <input
+                className="input"
+                value={form.city}
+                onChange={(e) => setField('city', e.target.value)}
+              />
+            </div>
 
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.email}</div>
-          <input className="input" type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} />
-        </div>
-
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.phone}</div>
-          <input className="input" value={form.phone} onChange={(e) => setField('phone', e.target.value)} />
-        </div>
-
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.city}</div>
-          <input className="input" value={form.city} onChange={(e) => setField('city', e.target.value)} />
-        </div>
-
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.radius}</div>
-          <input className="input" type="number" value={form.travel_radius_miles} onChange={(e) => setField('travel_radius_miles', e.target.value)} />
-        </div>
-
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.crewSize}</div>
-          <input className="input" type="number" value={form.crew_size} onChange={(e) => setField('crew_size', e.target.value)} />
-        </div>
-
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.language}</div>
-          <select
-            className="input"
-            value={form.preferred_language}
-            onChange={(e) => {
-              const nextLang = e.target.value
-              setField('preferred_language', nextLang)
-              setLang(nextLang)
-              localStorage.setItem('surplox_lang', nextLang)
-            }}
-          >
-            <option value="en">English</option>
-            <option value="es">Español</option>
-          </select>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.language}</div>
+              <select
+                className="input"
+                value={form.preferred_language}
+                onChange={(e) => {
+                  const nextLang = e.target.value
+                  setField('preferred_language', nextLang)
+                  setLang(nextLang)
+                  localStorage.setItem('surplox_lang', nextLang)
+                }}
+              >
+                <option value="en">English</option>
+                <option value="es">Español</option>
+              </select>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div style={{ marginTop: 12 }}>
+      <div className="card rounded-xl" style={{ padding: 24 }}>
         <div className="muted" style={{ marginBottom: 6 }}>{copy.bio}</div>
         <textarea
           className="input"
@@ -585,7 +686,7 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
         />
       </div>
 
-      <div style={{ marginTop: 12 }}>
+      <div>
         <button className="btn primary" onClick={save} disabled={saving}>
           {saving ? copy.saving : copy.save}
         </button>
