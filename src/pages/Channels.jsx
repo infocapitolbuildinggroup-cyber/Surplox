@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { Link } from 'react-router-dom'
 import { t } from '../i18n'
@@ -8,25 +8,107 @@ const COPY = {
     needCrewBadge: 'Need Crew',
     workBadge: 'Looking for Work',
     discussionBadge: 'Trade Board',
+    supportBadge: 'Jobsite Support',
+    deliveryBadge: 'Material Delivery / Hot Shot',
+    repairBadge: 'Equipment / Fleet Repair',
     heroBadge: 'Trades + actions',
-    heroTitle: 'Move faster through the right trade channels.',
+    heroTitle: 'Move faster through the right channels.',
     heroBody:
-      'Jump directly into labor requests, availability posts, or browse trade boards to see the most relevant local activity.',
+      'Jump directly into labor requests, availability posts, trade discussions, delivery support, or fleet repair activity without digging through the wrong feed.',
     stat1: 'Quick post shortcuts',
     stat2: 'Trade-based browsing',
-    stat3: 'Cleaner channel discovery'
+    stat3: 'Cleaner jobsite support discovery',
+    title: 'Channels',
+    intro:
+      'Browse labor channels, trade boards, and the new Jobsite Support lanes built around real construction operations.',
+    quickActions: 'Quick Actions',
+    quickActionsIntro:
+      'Start the exact kind of post you need so nearby workers, runners, and repair support can find it faster.',
+    needCrewTitle: 'Need a Crew',
+    needCrewBody:
+      'Post labor demand for nearby crews, workers, and subs. Best for filling manpower needs quickly.',
+    needCrewButton: 'Create Need Crew Post',
+    workTitle: 'Looking for Work',
+    workBody:
+      'Post your availability so contractors, crews, and nearby jobsites can find you faster.',
+    workButton: 'Create Looking for Work Post',
+    supportDeliveryTitle: 'Material Delivery / Hot Shot',
+    supportDeliveryBody:
+      'Post cargo van, pickup, flatbed, or gooseneck support for local material runs, tool transport, and jobsite deliveries.',
+    supportDeliveryButton: 'Create Delivery Support Post',
+    supportRepairTitle: 'Equipment / Fleet Repair',
+    supportRepairBody:
+      'Post diesel mechanic, trailer repair, or heavy equipment support for field service and jobsite uptime.',
+    supportRepairButton: 'Create Repair Support Post',
+    allTradesTitle: 'Trade Boards',
+    allTradesIntro:
+      'Open a trade-specific feed to browse local discussion and labor activity.',
+    jobsiteSupportTitle: 'Jobsite Support Boards',
+    jobsiteSupportIntro:
+      'Browse support lanes for material movement and fleet or equipment repair around active jobsites.',
+    emptyTitle: 'No Channels Found',
+    emptyBody: 'No trade boards are available yet.',
+    viewPosts: 'Open channel',
+    viewSupportPosts: 'Browse support feed',
+    materialDeliveryTitle: 'Material Delivery / Hot Shot',
+    materialDeliveryBody:
+      'Best for cargo vans, pickups, flatbeds, goosenecks, local runs, same-day delivery, and urgent material support.',
+    fleetRepairTitle: 'Equipment / Fleet Repair',
+    fleetRepairBody:
+      'Best for diesel mechanics, trailer repair, heavy equipment repair, and emergency field support.'
   },
   es: {
     needCrewBadge: 'Se necesita cuadrilla',
     workBadge: 'Buscando trabajo',
     discussionBadge: 'Tablero de oficio',
+    supportBadge: 'Soporte de obra',
+    deliveryBadge: 'Entrega de materiales / Hot Shot',
+    repairBadge: 'Reparación de equipo / flota',
     heroBadge: 'Oficios + acciones',
-    heroTitle: 'Muévete más rápido por los canales correctos del oficio.',
+    heroTitle: 'Muévete más rápido por los canales correctos.',
     heroBody:
-      'Entra directo a solicitudes de mano de obra, publicaciones de disponibilidad o navega por oficios para ver la actividad local más relevante.',
+      'Entra directo a solicitudes de mano de obra, publicaciones de disponibilidad, discusiones del oficio, soporte de entrega o actividad de reparación de flota sin perder tiempo en el feed equivocado.',
     stat1: 'Atajos para publicar',
     stat2: 'Exploración por oficio',
-    stat3: 'Descubrimiento más limpio'
+    stat3: 'Descubrimiento más limpio de soporte de obra',
+    title: 'Canales',
+    intro:
+      'Explora canales de mano de obra, tableros de oficio y las nuevas secciones de Soporte de obra basadas en operaciones reales de construcción.',
+    quickActions: 'Acciones rápidas',
+    quickActionsIntro:
+      'Empieza exactamente el tipo de publicación que necesitas para que trabajadores, runners y soporte de reparación cercanos te encuentren más rápido.',
+    needCrewTitle: 'Necesito cuadrilla',
+    needCrewBody:
+      'Publica demanda de mano de obra para cuadrillas, trabajadores y subcontratistas cercanos. Ideal para cubrir personal rápido.',
+    needCrewButton: 'Crear publicación de cuadrilla',
+    workTitle: 'Buscando trabajo',
+    workBody:
+      'Publica tu disponibilidad para que contratistas, cuadrillas y obras cercanas te encuentren más rápido.',
+    workButton: 'Crear publicación de disponibilidad',
+    supportDeliveryTitle: 'Entrega de materiales / Hot Shot',
+    supportDeliveryBody:
+      'Publica soporte con cargo van, pickup, flatbed o gooseneck para viajes locales de materiales, transporte de herramientas y entregas en obra.',
+    supportDeliveryButton: 'Crear publicación de entrega',
+    supportRepairTitle: 'Reparación de equipo / flota',
+    supportRepairBody:
+      'Publica soporte de mecánico diésel, reparación de remolques o equipo pesado para servicio de campo y continuidad en obra.',
+    supportRepairButton: 'Crear publicación de reparación',
+    allTradesTitle: 'Tableros de oficio',
+    allTradesIntro:
+      'Abre un feed específico por oficio para ver discusión local y actividad de mano de obra.',
+    jobsiteSupportTitle: 'Tableros de soporte de obra',
+    jobsiteSupportIntro:
+      'Explora secciones de soporte para movimiento de materiales y reparación de flota o equipo alrededor de obras activas.',
+    emptyTitle: 'No se encontraron canales',
+    emptyBody: 'Todavía no hay tableros de oficio disponibles.',
+    viewPosts: 'Abrir canal',
+    viewSupportPosts: 'Explorar soporte',
+    materialDeliveryTitle: 'Entrega de materiales / Hot Shot',
+    materialDeliveryBody:
+      'Ideal para cargo vans, pickups, flatbeds, goosenecks, viajes locales, entregas el mismo día y soporte urgente de materiales.',
+    fleetRepairTitle: 'Reparación de equipo / flota',
+    fleetRepairBody:
+      'Ideal para mecánicos diésel, reparación de remolques, reparación de equipo pesado y soporte de emergencia en campo.'
   }
 }
 
@@ -55,6 +137,8 @@ export default function Channels({ lang: langProp = 'en' }) {
         const { data: sessionData } = await supabase.auth.getSession()
         const user = sessionData.session?.user
 
+        let activeLang = langProp || localStorage.getItem('surplox_lang') || 'en'
+
         if (user) {
           const { data: prof } = await supabase
             .from('profiles')
@@ -62,17 +146,11 @@ export default function Channels({ lang: langProp = 'en' }) {
             .eq('user_id', user.id)
             .maybeSingle()
 
-          const userLang =
-            prof?.preferred_language ||
-            langProp ||
-            localStorage.getItem('surplox_lang') ||
-            'en'
-
-          setLang(userLang)
-          localStorage.setItem('surplox_lang', userLang)
-        } else {
-          setLang(langProp || localStorage.getItem('surplox_lang') || 'en')
+          activeLang = prof?.preferred_language || activeLang
         }
+
+        setLang(activeLang)
+        localStorage.setItem('surplox_lang', activeLang)
 
         const { data, error } = await supabase
           .from('trades')
@@ -81,7 +159,7 @@ export default function Channels({ lang: langProp = 'en' }) {
 
         if (error) {
           console.error(error)
-          setMsg(t(langProp || 'en', 'channels_error'))
+          setMsg(t(activeLang, 'channels_error'))
         } else {
           setTrades(data || [])
         }
@@ -92,6 +170,13 @@ export default function Channels({ lang: langProp = 'en' }) {
 
     load()
   }, [langProp])
+
+  const tradeLinks = useMemo(() => {
+    return trades.map((trade) => ({
+      ...trade,
+      href: `/feed?trade=${encodeURIComponent(trade.name)}`
+    }))
+  }, [trades])
 
   if (loading) {
     return <div className="card">{t(lang, 'channels_loading')}</div>
@@ -139,19 +224,19 @@ export default function Channels({ lang: langProp = 'en' }) {
       </div>
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
-        <div className="h1">{t(lang, 'channels_title')}</div>
+        <div className="h1">{copy.title}</div>
         <p className="muted" style={{ marginTop: 8 }}>
-          {t(lang, 'channels_intro')}
+          {copy.intro}
         </p>
       </div>
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">
-          {t(lang, 'channels_quick_actions')}
+          {copy.quickActions}
         </div>
 
         <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-          {t(lang, 'channels_quick_actions_intro')}
+          {copy.quickActionsIntro}
         </p>
 
         <div className="grid two" style={{ marginTop: 14 }}>
@@ -168,16 +253,16 @@ export default function Channels({ lang: langProp = 'en' }) {
             </div>
 
             <div style={{ fontWeight: 900, fontSize: 22, marginTop: 14, lineHeight: 1.15 }}>
-              {t(lang, 'channels_need_crew_title')}
+              {copy.needCrewTitle}
             </div>
 
             <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-              {t(lang, 'channels_need_crew_body')}
+              {copy.needCrewBody}
             </div>
 
             <div style={{ marginTop: 16 }}>
               <span className="btn small primary">
-                {t(lang, 'channels_need_crew_button')}
+                {copy.needCrewButton}
               </span>
             </div>
           </Link>
@@ -195,16 +280,70 @@ export default function Channels({ lang: langProp = 'en' }) {
             </div>
 
             <div style={{ fontWeight: 900, fontSize: 22, marginTop: 14, lineHeight: 1.15 }}>
-              {t(lang, 'channels_work_title')}
+              {copy.workTitle}
             </div>
 
             <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-              {t(lang, 'channels_work_body')}
+              {copy.workBody}
             </div>
 
             <div style={{ marginTop: 16 }}>
               <span className="btn small">
-                {t(lang, 'channels_work_button')}
+                {copy.workButton}
+              </span>
+            </div>
+          </Link>
+
+          <Link
+            className="card rounded-xl"
+            to="/new?type=discussion&group=jobsite_support&support=material_delivery"
+            style={{
+              padding: 22,
+              background: 'linear-gradient(180deg, #fff4da 0%, #ffffff 100%)'
+            }}
+          >
+            <div className="badge" style={{ background: '#111111', color: '#ffffff' }}>
+              {copy.deliveryBadge}
+            </div>
+
+            <div style={{ fontWeight: 900, fontSize: 22, marginTop: 14, lineHeight: 1.15 }}>
+              {copy.supportDeliveryTitle}
+            </div>
+
+            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
+              {copy.supportDeliveryBody}
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <span className="btn small primary">
+                {copy.supportDeliveryButton}
+              </span>
+            </div>
+          </Link>
+
+          <Link
+            className="card rounded-xl"
+            to="/new?type=discussion&group=jobsite_support&support=equipment_fleet_repair"
+            style={{
+              padding: 22,
+              background: 'linear-gradient(180deg, #f3f1e8 0%, #ffffff 100%)'
+            }}
+          >
+            <div className="badge" style={{ background: '#f1e7a8', color: '#111111' }}>
+              {copy.repairBadge}
+            </div>
+
+            <div style={{ fontWeight: 900, fontSize: 22, marginTop: 14, lineHeight: 1.15 }}>
+              {copy.supportRepairTitle}
+            </div>
+
+            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
+              {copy.supportRepairBody}
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <span className="btn small">
+                {copy.supportRepairButton}
               </span>
             </div>
           </Link>
@@ -213,30 +352,106 @@ export default function Channels({ lang: langProp = 'en' }) {
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">
-          {t(lang, 'channels_all_trades_title')}
+          {copy.jobsiteSupportTitle}
         </div>
 
         <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-          {t(lang, 'channels_all_trades_intro')}
+          {copy.jobsiteSupportIntro}
         </p>
 
-        {trades.length === 0 ? (
+        <div className="grid two" style={{ marginTop: 14 }}>
+          <Link
+            className="card rounded-xl"
+            to="/feed?category=jobsite_support&support=material_delivery"
+            style={{
+              padding: 20,
+              background: '#ffffff'
+            }}
+          >
+            <div className="badge" style={{ background: '#111111', color: '#ffffff' }}>
+              {copy.deliveryBadge}
+            </div>
+
+            <div
+              style={{
+                fontWeight: 900,
+                fontSize: 20,
+                marginTop: 14,
+                lineHeight: 1.15
+              }}
+            >
+              {copy.materialDeliveryTitle}
+            </div>
+
+            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
+              {copy.materialDeliveryBody}
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <span className="btn small">{copy.viewSupportPosts}</span>
+            </div>
+          </Link>
+
+          <Link
+            className="card rounded-xl"
+            to="/feed?category=jobsite_support&support=equipment_fleet_repair"
+            style={{
+              padding: 20,
+              background: '#ffffff'
+            }}
+          >
+            <div className="badge" style={{ background: '#f1e7a8', color: '#111111' }}>
+              {copy.repairBadge}
+            </div>
+
+            <div
+              style={{
+                fontWeight: 900,
+                fontSize: 20,
+                marginTop: 14,
+                lineHeight: 1.15
+              }}
+            >
+              {copy.fleetRepairTitle}
+            </div>
+
+            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
+              {copy.fleetRepairBody}
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <span className="btn small">{copy.viewSupportPosts}</span>
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">
+          {copy.allTradesTitle}
+        </div>
+
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+          {copy.allTradesIntro}
+        </p>
+
+        {tradeLinks.length === 0 ? (
           <div className="card-soft" style={{ marginTop: 14 }}>
             <div className="card-section-title">
-              {t(lang, 'channels_empty_title')}
+              {copy.emptyTitle}
             </div>
 
             <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-              {t(lang, 'channels_empty_body')}
+              {copy.emptyBody}
             </p>
           </div>
         ) : (
           <div className="grid two" style={{ marginTop: 14 }}>
-            {trades.map((trade) => (
+            {tradeLinks.map((trade) => (
               <Link
                 key={trade.id}
                 className="card rounded-xl"
-                to={`/feed?trade=${trade.id}`}
+                to={trade.href}
                 style={{
                   padding: 20,
                   background: '#ffffff'
@@ -258,7 +473,7 @@ export default function Channels({ lang: langProp = 'en' }) {
                 </div>
 
                 <div className="muted" style={{ marginTop: 8 }}>
-                  {t(lang, 'channels_view_posts')}
+                  {copy.viewPosts}
                 </div>
               </Link>
             ))}
