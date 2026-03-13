@@ -57,12 +57,7 @@ function AppShell({ lang, setLang }) {
   }, [])
 
   const navItems = useMemo(() => {
-    if (!session) {
-      return [
-        { to: '/', label: lang === 'es' ? 'Inicio' : 'Home' },
-        { to: '/auth', label: lang === 'es' ? 'Entrar' : 'Sign In' }
-      ]
-    }
+    if (!session) return []
 
     return [
       { to: '/feed', label: 'Feed' },
@@ -100,6 +95,8 @@ function AppShell({ lang, setLang }) {
     )
   }
 
+  const showNav = navItems.length > 0 || !!session
+
   return (
     <div className="page-shell">
       <header
@@ -125,11 +122,12 @@ function AppShell({ lang, setLang }) {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
             <Link
-              to={session ? '/feed' : '/'}
+              to="/"
+              aria-label={lang === 'es' ? 'Ir al inicio de Surplox' : 'Go to Surplox home'}
               style={{
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                gap: 12,
+                justifyContent: 'center',
                 textDecoration: 'none',
                 color: 'var(--text)'
               }}
@@ -139,8 +137,8 @@ function AppShell({ lang, setLang }) {
                   src="/logo.png"
                   alt="Surplox"
                   style={{
-                    width: 34,
-                    height: 34,
+                    width: 42,
+                    height: 42,
                     objectFit: 'contain',
                     display: 'block'
                   }}
@@ -149,44 +147,20 @@ function AppShell({ lang, setLang }) {
               ) : (
                 <div
                   style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 10,
+                    width: 42,
+                    height: 42,
+                    borderRadius: 12,
                     background: '#111111',
                     color: '#ffffff',
                     display: 'grid',
                     placeItems: 'center',
                     fontWeight: 900,
-                    fontSize: 14
+                    fontSize: 16
                   }}
                 >
                   S
                 </div>
               )}
-
-              <div>
-                <div
-                  style={{
-                    fontWeight: 900,
-                    fontSize: 20,
-                    letterSpacing: '-0.04em',
-                    lineHeight: 1
-                  }}
-                >
-                  Surplox
-                </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: 'var(--muted-soft)',
-                    marginTop: 3
-                  }}
-                >
-                  {lang === 'es'
-                    ? 'Red de operaciones de obra'
-                    : 'Jobsite operations network'}
-                </div>
-              </div>
             </Link>
 
             {session ? (
@@ -239,69 +213,76 @@ function AppShell({ lang, setLang }) {
                 {lang === 'es' ? 'Salir' : 'Sign Out'}
               </button>
             ) : (
-              <Link className="btn primary" to="/auth">
-                {lang === 'es' ? 'Entrar' : 'Sign In'}
-              </Link>
+              <>
+                <Link className="btn" to="/auth?mode=signin">
+                  {lang === 'es' ? 'Entrar' : 'Sign In'}
+                </Link>
+                <Link className="btn primary" to="/auth?mode=signup">
+                  {lang === 'es' ? 'Únete' : 'Join'}
+                </Link>
+              </>
             )}
           </div>
         </div>
 
-        <div className="container" style={{ paddingBottom: 12 }}>
-          <nav
-            style={{
-              display: 'flex',
-              gap: 10,
-              flexWrap: 'wrap'
-            }}
-          >
-            {navItems.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={isActive(item.to) ? 'btn primary small' : 'btn small'}
-                style={{ textDecoration: 'none' }}
-              >
-                {item.label}
-              </Link>
-            ))}
-
-            {session ? (
-              <>
+        {showNav ? (
+          <div className="container" style={{ paddingBottom: 12 }}>
+            <nav
+              style={{
+                display: 'flex',
+                gap: 10,
+                flexWrap: 'wrap'
+              }}
+            >
+              {navItems.map((item) => (
                 <Link
-                  to="/feed?category=jobsite_support&support=material_delivery"
-                  className={
-                    location.search.includes('support=material_delivery')
-                      ? 'btn primary small'
-                      : 'btn small'
-                  }
+                  key={item.to}
+                  to={item.to}
+                  className={isActive(item.to) ? 'btn primary small' : 'btn small'}
                   style={{ textDecoration: 'none' }}
                 >
-                  {lang === 'es' ? 'Hot Shot / Entrega' : 'Hot Shot / Delivery'}
+                  {item.label}
                 </Link>
+              ))}
 
-                <Link
-                  to="/feed?category=jobsite_support&support=equipment_fleet_repair"
-                  className={
-                    location.search.includes('support=equipment_fleet_repair')
-                      ? 'btn primary small'
-                      : 'btn small'
-                  }
-                  style={{ textDecoration: 'none' }}
-                >
-                  {lang === 'es' ? 'Reparación de flota' : 'Fleet Repair'}
-                </Link>
+              {session ? (
+                <>
+                  <Link
+                    to="/feed?category=jobsite_support&support=material_delivery"
+                    className={
+                      location.search.includes('support=material_delivery')
+                        ? 'btn primary small'
+                        : 'btn small'
+                    }
+                    style={{ textDecoration: 'none' }}
+                  >
+                    {lang === 'es' ? 'Hot Shot / Entrega' : 'Hot Shot / Delivery'}
+                  </Link>
 
-                <Link
-                  to="/admin"
-                  className={isActive('/admin') ? 'btn primary small' : 'btn small'}
-                  style={{ textDecoration: 'none' }}
-                >
-                  Admin
-                </Link>
-              </>
-            ) : null}
-          </nav>
-        </div>
+                  <Link
+                    to="/feed?category=jobsite_support&support=equipment_fleet_repair"
+                    className={
+                      location.search.includes('support=equipment_fleet_repair')
+                        ? 'btn primary small'
+                        : 'btn small'
+                    }
+                    style={{ textDecoration: 'none' }}
+                  >
+                    {lang === 'es' ? 'Reparación de flota' : 'Fleet Repair'}
+                  </Link>
+
+                  <Link
+                    to="/admin"
+                    className={isActive('/admin') ? 'btn primary small' : 'btn small'}
+                    style={{ textDecoration: 'none' }}
+                  >
+                    Admin
+                  </Link>
+                </>
+              ) : null}
+            </nav>
+          </div>
+        ) : null}
       </header>
 
       <main>
@@ -311,19 +292,19 @@ function AppShell({ lang, setLang }) {
             <Route path="/auth" element={<Auth lang={lang} setLang={setLang} />} />
             <Route
               path="/feed"
-              element={session ? <Feed lang={lang} /> : <Navigate to="/auth" replace />}
+              element={session ? <Feed lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
             />
             <Route
               path="/new"
-              element={session ? <NewPost lang={lang} /> : <Navigate to="/auth" replace />}
+              element={session ? <NewPost lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
             />
             <Route
               path="/p/:id"
-              element={session ? <PostDetail lang={lang} /> : <Navigate to="/auth" replace />}
+              element={session ? <PostDetail lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
             />
             <Route
               path="/u/:userId"
-              element={session ? <WorkerProfile lang={lang} /> : <Navigate to="/auth" replace />}
+              element={session ? <WorkerProfile lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
             />
             <Route
               path="/account"
@@ -331,17 +312,17 @@ function AppShell({ lang, setLang }) {
                 session ? (
                   <MyAccount lang={lang} setLang={setLang} />
                 ) : (
-                  <Navigate to="/auth" replace />
+                  <Navigate to="/auth?mode=signin" replace />
                 )
               }
             />
             <Route
               path="/notifications"
-              element={session ? <Notifications lang={lang} /> : <Navigate to="/auth" replace />}
+              element={session ? <Notifications lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
             />
             <Route
               path="/channels"
-              element={session ? <Channels lang={lang} /> : <Navigate to="/auth" replace />}
+              element={session ? <Channels lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
             />
             <Route
               path="/onboarding"
@@ -349,13 +330,13 @@ function AppShell({ lang, setLang }) {
                 session ? (
                   <Onboarding lang={lang} setLang={setLang} />
                 ) : (
-                  <Navigate to="/auth" replace />
+                  <Navigate to="/auth?mode=signin" replace />
                 )
               }
             />
             <Route
               path="/admin"
-              element={session ? <AdminDirectory lang={lang} /> : <Navigate to="/auth" replace />}
+              element={session ? <AdminDirectory lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
             />
             <Route path="*" element={<Navigate to={session ? '/feed' : '/'} replace />} />
           </Routes>
