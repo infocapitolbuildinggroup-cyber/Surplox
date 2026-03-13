@@ -9,13 +9,18 @@
   --muted-soft: #7a7a72;
   --border: #e6e5dc;
   --border-strong: #d9d7cc;
+
   --accent: #ffde59;
-  --accent-strong: #ffcf33;
-  --orange: #ff8a2a;
+  --accent-strong: #d4b21f;
+  --accent-soft: #fff0b4;
+  --accent-soft-2: #f1e7a8;
+
   --danger: #d64545;
   --success: #177245;
+
   --shadow-sm: 0 1px 2px rgba(17, 17, 17, 0.04);
   --shadow-md: 0 10px 28px rgba(17, 17, 17, 0.06);
+
   --radius-xs: 10px;
   --radius-sm: 14px;
   --radius-md: 18px;
@@ -135,7 +140,7 @@ img {
   padding: 7px 12px;
   border-radius: 999px;
   border: none;
-  background: #f2e7ae;
+  background: var(--accent-soft-2);
   color: var(--text);
   font-size: 11px;
   font-weight: 800;
@@ -286,7 +291,7 @@ img {
 }
 
 .card-notice {
-  background: #fff6cf;
+  background: var(--accent-soft);
 }
 
 .card-message {
@@ -470,7 +475,7 @@ textarea {
 
 .badge.good {
   color: var(--text);
-  background: #fff2a8;
+  background: var(--accent-soft);
 }
 
 .voteBox {
@@ -509,10 +514,10 @@ hr {
   justify-content: space-between;
 }
 
-/* HELPERS FOR THE NEW CLEANER UI */
+/* HELPERS */
 
 .surface-warm {
-  background: #f3f0cf;
+  background: var(--accent-soft);
 }
 
 .surface-muted {
@@ -520,7 +525,7 @@ hr {
 }
 
 .surface-accent {
-  background: #fff2a8;
+  background: var(--accent-soft);
 }
 
 .surface-dark {
