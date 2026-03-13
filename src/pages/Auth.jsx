@@ -77,7 +77,8 @@ const COPY = {
     tradePlaceholder: 'Select your trade',
     generalConstruction: 'General Construction',
     tradesLoading: 'Loading trades…',
-    tradesUnavailable: 'Trades unavailable right now. Showing Surplox default trades.',
+    tradesUnavailable:
+      'Trades unavailable right now. Showing Surplox default trades.',
     zipLabel: 'What ZIP do you usually work in?',
     zipPlaceholder: '76102',
     tradeRequired: 'Select your trade.',
@@ -85,7 +86,19 @@ const COPY = {
     nameRequired: 'Enter your name.',
     emailRequired: 'Enter a valid email address.',
     passwordRequired: 'Password must be at least 6 characters.',
-    signUpSuccess: 'Your account is ready.'
+    signUpSuccess: 'Your account is ready.',
+    stageTitle1: 'Your identity',
+    stageTitle2: 'Your trade',
+    stageTitle3: 'Your area and login',
+    stageBody1: 'Start with your name so people know who is entering the network.',
+    stageBody2: 'Choose the trade that best matches the work you do most often.',
+    stageBody3:
+      'Finish with your ZIP, email, and password so Surplox can place you into the right local feed.',
+    alreadyInside: 'Already in Surplox?',
+    createAccess: 'Create access in under a minute',
+    signInCardTitle: 'Welcome back',
+    signInCardBody:
+      'Sign in to get back to nearby activity, posts, crews, and alerts.'
   },
   es: {
     formLabel: 'Acceso a Surplox',
@@ -141,7 +154,8 @@ const COPY = {
     tradePlaceholder: 'Selecciona tu oficio',
     generalConstruction: 'Construcción general',
     tradesLoading: 'Cargando oficios…',
-    tradesUnavailable: 'Los oficios no están disponibles en este momento. Mostrando oficios predeterminados de Surplox.',
+    tradesUnavailable:
+      'Los oficios no están disponibles en este momento. Mostrando oficios predeterminados de Surplox.',
     zipLabel: '¿En qué ZIP trabajas normalmente?',
     zipPlaceholder: '76102',
     tradeRequired: 'Selecciona tu oficio.',
@@ -149,7 +163,21 @@ const COPY = {
     nameRequired: 'Ingresa tu nombre.',
     emailRequired: 'Ingresa un correo válido.',
     passwordRequired: 'La contraseña debe tener al menos 6 caracteres.',
-    signUpSuccess: 'Tu cuenta está lista.'
+    signUpSuccess: 'Tu cuenta está lista.',
+    stageTitle1: 'Tu identidad',
+    stageTitle2: 'Tu oficio',
+    stageTitle3: 'Tu zona y acceso',
+    stageBody1:
+      'Empieza con tu nombre para que la gente sepa quién está entrando a la red.',
+    stageBody2:
+      'Elige el oficio que mejor representa el trabajo que haces más seguido.',
+    stageBody3:
+      'Termina con tu ZIP, correo y contraseña para que Surplox te coloque en el feed local correcto.',
+    alreadyInside: '¿Ya estás en Surplox?',
+    createAccess: 'Crea acceso en menos de un minuto',
+    signInCardTitle: 'Bienvenido de nuevo',
+    signInCardBody:
+      'Inicia sesión para volver a actividad cercana, publicaciones, cuadrillas y alertas.'
   }
 }
 
@@ -185,6 +213,35 @@ function dedupeTradeOptions(dynamicTrades) {
   })
 
   return result
+}
+
+function StepPill({ active, complete, number, label }) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        minWidth: 110,
+        padding: 12,
+        borderRadius: 22,
+        background: active ? '#111111' : complete ? '#fff2a8' : 'var(--card-soft)',
+        color: active ? '#ffffff' : 'var(--text)',
+        transition: 'all 0.2s ease'
+      }}
+    >
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 800,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          opacity: active ? 0.76 : 0.72
+        }}
+      >
+        {complete ? 'Done' : `0${number}`}
+      </div>
+      <div style={{ marginTop: 6, fontWeight: 800, lineHeight: 1.2 }}>{label}</div>
+    </div>
+  )
 }
 
 export default function Auth({ lang = 'en', setLang }) {
@@ -224,10 +281,7 @@ export default function Auth({ lang = 'en', setLang }) {
       setTradesError('')
 
       try {
-        const { data, error } = await supabase
-          .from('trades')
-          .select('id,name')
-          .order('name')
+        const { data, error } = await supabase.from('trades').select('id,name').order('name')
 
         if (error) {
           console.error(error)
@@ -269,9 +323,7 @@ export default function Auth({ lang = 'en', setLang }) {
 
   function handleLanguageChange(e) {
     const nextLang = e.target.value
-    if (typeof setLang === 'function') {
-      setLang(nextLang)
-    }
+    if (typeof setLang === 'function') setLang(nextLang)
   }
 
   function validateStep(nextStep = step) {
@@ -342,7 +394,6 @@ export default function Auth({ lang = 'en', setLang }) {
       })
 
       if (error) throw error
-
       navigate('/feed', { replace: true })
     } catch (err) {
       console.error(err)
@@ -381,9 +432,7 @@ export default function Auth({ lang = 'en', setLang }) {
     if (error) throw error
 
     const resolvedTrade = data?.[0]
-    if (!resolvedTrade?.id) {
-      throw new Error(copy.tradeRequired)
-    }
+    if (!resolvedTrade?.id) throw new Error(copy.tradeRequired)
 
     return {
       tradeId: Number(resolvedTrade.id),
@@ -420,9 +469,7 @@ export default function Auth({ lang = 'en', setLang }) {
         user = signInData.user
       }
 
-      if (!user?.id) {
-        throw new Error(copy.authError)
-      }
+      if (!user?.id) throw new Error(copy.authError)
 
       const rawName = signUpForm.display_name.trim()
       const nameParts = rawName.split(/\s+/).filter(Boolean)
@@ -463,263 +510,367 @@ export default function Auth({ lang = 'en', setLang }) {
     }
   }
 
+  const currentStageTitle =
+    step === 1 ? copy.stageTitle1 : step === 2 ? copy.stageTitle2 : copy.stageTitle3
+
+  const currentStageBody =
+    step === 1 ? copy.stageBody1 : step === 2 ? copy.stageBody2 : copy.stageBody3
+
   return (
-    <div className="grid" style={{ gap: 16 }}>
-      <div className="card" style={{ maxWidth: 620, width: '100%', margin: '0 auto' }}>
+    <div className="grid" style={{ gap: 18 }}>
+      <div className="grid two" style={{ alignItems: 'stretch' }}>
         <div
-          className="badge"
+          className="card rounded-xl"
           style={{
-            marginBottom: 12,
-            color: '#ff751f',
-            borderColor: 'rgba(255, 222, 89, 0.45)',
-            background: 'rgba(255, 222, 89, 0.08)'
+            padding: 28,
+            background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
           }}
         >
-          {copy.formLabel}
-        </div>
-
-        <div className="h1">
-          {mode === 'signup' ? copy.signUpTitle : copy.signInTitle}
-        </div>
-
-        <p className="muted" style={{ marginTop: 10 }}>
-          {mode === 'signup' ? copy.signUpIntro : copy.signInIntro}
-        </p>
-
-        <div style={{ marginTop: 14 }}>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.languageLabel}</div>
-          <select className="input" value={lang} onChange={handleLanguageChange}>
-            <option value="en">{copy.languageEnglish}</option>
-            <option value="es">{copy.languageSpanish}</option>
-          </select>
-        </div>
-
-        {msg ? (
-          <div className="card card-message" style={{ marginTop: 14 }}>
-            {msg}
+          <div
+            className="badge"
+            style={{
+              marginBottom: 16,
+              background: '#f1e7a8'
+            }}
+          >
+            {copy.sideBadge}
           </div>
-        ) : null}
 
-        {mode === 'signin' ? (
-          <form onSubmit={handleSignIn} style={{ marginTop: 16 }}>
-            <div className="grid" style={{ gap: 12 }}>
-              <div>
-                <div className="muted" style={{ marginBottom: 6 }}>{copy.email}</div>
-                <input
-                  className="input"
-                  type="email"
-                  placeholder={copy.emailPlaceholder}
-                  value={signInForm.email}
-                  onChange={(e) => setSignInField('email', e.target.value)}
-                />
-              </div>
+          <div className="h1" style={{ maxWidth: 640 }}>
+            {copy.sideTitle}
+          </div>
 
-              <div>
-                <div className="muted" style={{ marginBottom: 6 }}>{copy.password}</div>
-                <input
-                  className="input"
-                  type="password"
-                  placeholder={copy.passwordPlaceholder}
-                  value={signInForm.password}
-                  onChange={(e) => setSignInField('password', e.target.value)}
-                />
-              </div>
-            </div>
+          <p className="muted" style={{ marginTop: 14, fontSize: 17, lineHeight: 1.7 }}>
+            {copy.sideBody}
+          </p>
 
-            <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <button className="btn primary" type="submit" disabled={loading}>
-                {loading ? copy.wait : copy.signInButton}
-              </button>
-
-              <button
-                className="btn"
-                type="button"
-                onClick={() => switchMode('signup')}
-                disabled={loading}
+          <div className="grid" style={{ marginTop: 18 }}>
+            {points.map((point) => (
+              <div
+                key={point.title}
+                className="card-soft"
+                style={{
+                  padding: 18,
+                  background: 'rgba(255,255,255,0.58)'
+                }}
               >
-                {copy.switchToSignUp}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <form onSubmit={handleSignUpSubmit} style={{ marginTop: 16 }}>
-            <div className="badge" style={{ marginBottom: 12 }}>
-              {copy.step} {step} / 3
-            </div>
+                <div className="card-section-title" style={{ fontSize: 17 }}>
+                  {point.title}
+                </div>
+                <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+                  {point.body}
+                </p>
+              </div>
+            ))}
+          </div>
 
-            {step === 1 ? (
-              <div className="grid" style={{ gap: 12 }}>
+          <div
+            className="card surface-dark rounded-xl"
+            style={{
+              marginTop: 18,
+              padding: 20
+            }}
+          >
+            <div className="card-section-title" style={{ color: '#ffffff' }}>
+              {copy.previewTitle}
+            </div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {copy.previewBody}
+            </p>
+
+            <div className="grid two" style={{ marginTop: 14 }}>
+              <div className="card-soft" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                <div style={{ fontWeight: 800 }}>{copy.previewBullet1}</div>
+              </div>
+              <div className="card-soft" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                <div style={{ fontWeight: 800 }}>{copy.previewBullet2}</div>
+              </div>
+              <div className="card-soft" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                <div style={{ fontWeight: 800 }}>{copy.previewBullet3}</div>
+              </div>
+              <div className="card-soft" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                <div style={{ fontWeight: 800 }}>
+                  {copy.previewFree} {copy.previewTexas}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p className="footerNote" style={{ textAlign: 'left', marginTop: 18 }}>
+            {copy.footer}
+          </p>
+        </div>
+
+        <div className="grid" style={{ gap: 16 }}>
+          <div className="card rounded-xl" style={{ padding: 24 }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: 12,
+                flexWrap: 'wrap',
+                alignItems: 'center'
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 800,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: 'var(--muted-soft)'
+                  }}
+                >
+                  {copy.formLabel}
+                </div>
+                <div className="h2" style={{ marginTop: 8, marginBottom: 0 }}>
+                  {mode === 'signin' ? copy.signInCardTitle : copy.createAccess}
+                </div>
+              </div>
+
+              <div style={{ minWidth: 160 }}>
+                <div className="muted" style={{ marginBottom: 6 }}>
+                  {copy.languageLabel}
+                </div>
+                <select className="input" value={lang} onChange={handleLanguageChange}>
+                  <option value="en">{copy.languageEnglish}</option>
+                  <option value="es">{copy.languageSpanish}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {mode === 'signin' ? (
+            <form className="card rounded-xl" onSubmit={handleSignIn} style={{ padding: 24 }}>
+              <div className="h1" style={{ fontSize: 'clamp(1.9rem, 4vw, 2.7rem)' }}>
+                {copy.signInTitle}
+              </div>
+
+              <p className="muted" style={{ marginTop: 10 }}>
+                {copy.signInIntro}
+              </p>
+
+              <div className="grid" style={{ marginTop: 16 }}>
                 <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>{copy.nameLabel}</div>
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {copy.email}
+                  </div>
                   <input
                     className="input"
-                    placeholder={copy.namePlaceholder}
-                    value={signUpForm.display_name}
-                    onChange={(e) => setSignUpField('display_name', e.target.value)}
+                    type="email"
+                    value={signInForm.email}
+                    placeholder={copy.emailPlaceholder}
+                    onChange={(e) => setSignInField('email', e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {copy.password}
+                  </div>
+                  <input
+                    className="input"
+                    type="password"
+                    value={signInForm.password}
+                    placeholder={copy.passwordPlaceholder}
+                    onChange={(e) => setSignInField('password', e.target.value)}
                   />
                 </div>
               </div>
-            ) : null}
 
-            {step === 2 ? (
-              <div className="grid" style={{ gap: 12 }}>
-                <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>{copy.tradeLabel}</div>
+              {msg ? (
+                <div className="card-message" style={{ marginTop: 14, padding: 14, borderRadius: 18 }}>
+                  {msg}
+                </div>
+              ) : null}
 
-                  {tradesLoading ? (
-                    <div className="card card-soft">{copy.tradesLoading}</div>
-                  ) : (
-                    <select
-                      className="input"
-                      value={signUpForm.trade_id}
-                      onChange={(e) => setSignUpField('trade_id', e.target.value)}
-                    >
-                      <option value="">{copy.tradePlaceholder}</option>
-                      {tradeOptions.map((trade) => (
-                        <option key={trade.id} value={trade.id}>
-                          {trade.id === GENERAL_CONSTRUCTION_OPTION.id
-                            ? copy.generalConstruction
-                            : trade.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+              <div className="row" style={{ marginTop: 16 }}>
+                <button className="btn primary" type="submit" disabled={loading}>
+                  {loading ? copy.wait : copy.signInButton}
+                </button>
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() => switchMode('signup')}
+                  disabled={loading}
+                >
+                  {copy.switchToSignUp}
+                </button>
+              </div>
+
+              <div className="card-soft" style={{ marginTop: 18 }}>
+                <div className="card-section-title" style={{ fontSize: 16 }}>
+                  {copy.alreadyInside}
+                </div>
+                <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+                  {copy.signInCardBody}
+                </p>
+              </div>
+            </form>
+          ) : (
+            <form className="card rounded-xl" onSubmit={handleSignUpSubmit} style={{ padding: 24 }}>
+              <div className="h1" style={{ fontSize: 'clamp(1.9rem, 4vw, 2.7rem)' }}>
+                {copy.signUpTitle}
+              </div>
+
+              <p className="muted" style={{ marginTop: 10 }}>
+                {copy.signUpIntro}
+              </p>
+
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 10,
+                  flexWrap: 'wrap',
+                  marginTop: 18
+                }}
+              >
+                <StepPill active={step === 1} complete={step > 1} number={1} label={copy.stageTitle1} />
+                <StepPill active={step === 2} complete={step > 2} number={2} label={copy.stageTitle2} />
+                <StepPill active={step === 3} complete={false} number={3} label={copy.stageTitle3} />
+              </div>
+
+              <div
+                className="card-soft"
+                style={{
+                  marginTop: 16,
+                  background: '#f5f3e7'
+                }}
+              >
+                <div className="card-section-title" style={{ fontSize: 16 }}>
+                  {copy.step} {step}: {currentStageTitle}
+                </div>
+                <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+                  {currentStageBody}
+                </p>
+              </div>
+
+              {step === 1 ? (
+                <div style={{ marginTop: 16 }}>
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {copy.nameLabel}
+                  </div>
+                  <input
+                    className="input"
+                    value={signUpForm.display_name}
+                    placeholder={copy.namePlaceholder}
+                    onChange={(e) => setSignUpField('display_name', e.target.value)}
+                  />
+                </div>
+              ) : null}
+
+              {step === 2 ? (
+                <div style={{ marginTop: 16 }}>
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {copy.tradeLabel}
+                  </div>
+                  <select
+                    className="input"
+                    value={signUpForm.trade_id}
+                    onChange={(e) => setSignUpField('trade_id', e.target.value)}
+                    disabled={tradesLoading}
+                  >
+                    <option value="">
+                      {tradesLoading ? copy.tradesLoading : copy.tradePlaceholder}
+                    </option>
+                    {tradeOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {String(option.id) === GENERAL_CONSTRUCTION_OPTION.id
+                          ? copy.generalConstruction
+                          : option.name}
+                      </option>
+                    ))}
+                  </select>
 
                   {tradesError ? (
-                    <div className="muted" style={{ marginTop: 8 }}>
+                    <div
+                      className="card-message"
+                      style={{ marginTop: 12, padding: 14, borderRadius: 18 }}
+                    >
                       {tradesError}
                     </div>
                   ) : null}
                 </div>
-              </div>
-            ) : null}
-
-            {step === 3 ? (
-              <div className="grid" style={{ gap: 12 }}>
-                <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>{copy.zipLabel}</div>
-                  <input
-                    className="input"
-                    inputMode="numeric"
-                    placeholder={copy.zipPlaceholder}
-                    value={signUpForm.home_zip}
-                    onChange={(e) => setSignUpField('home_zip', e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>{copy.email}</div>
-                  <input
-                    className="input"
-                    type="email"
-                    placeholder={copy.emailPlaceholder}
-                    value={signUpForm.email}
-                    onChange={(e) => setSignUpField('email', e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>{copy.password}</div>
-                  <input
-                    className="input"
-                    type="password"
-                    placeholder={copy.passwordPlaceholder}
-                    value={signUpForm.password}
-                    onChange={(e) => setSignUpField('password', e.target.value)}
-                  />
-                </div>
-              </div>
-            ) : null}
-
-            <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {step > 1 ? (
-                <button className="btn" type="button" onClick={goBack} disabled={loading}>
-                  {copy.back}
-                </button>
               ) : null}
 
-              {step < 3 ? (
-                <button className="btn primary" type="button" onClick={goNext} disabled={loading}>
-                  {copy.next}
-                </button>
-              ) : (
-                <button className="btn primary" type="submit" disabled={loading}>
-                  {loading ? copy.wait : copy.finish}
-                </button>
-              )}
+              {step === 3 ? (
+                <div className="grid" style={{ marginTop: 16 }}>
+                  <div>
+                    <div className="muted" style={{ marginBottom: 6 }}>
+                      {copy.zipLabel}
+                    </div>
+                    <input
+                      className="input"
+                      value={signUpForm.home_zip}
+                      placeholder={copy.zipPlaceholder}
+                      onChange={(e) => setSignUpField('home_zip', e.target.value)}
+                      inputMode="numeric"
+                    />
+                  </div>
 
-              <button
-                className="btn"
-                type="button"
-                onClick={() => switchMode('signin')}
-                disabled={loading}
-              >
-                {copy.switchToSignIn}
-              </button>
-            </div>
+                  <div>
+                    <div className="muted" style={{ marginBottom: 6 }}>
+                      {copy.email}
+                    </div>
+                    <input
+                      className="input"
+                      type="email"
+                      value={signUpForm.email}
+                      placeholder={copy.emailPlaceholder}
+                      onChange={(e) => setSignUpField('email', e.target.value)}
+                    />
+                  </div>
 
-            <div
-              className="card card-soft"
-              style={{
-                marginTop: 16,
-                borderColor: 'rgba(255, 222, 89, 0.28)',
-                background: 'rgba(255, 222, 89, 0.05)'
-              }}
-            >
-              <div className="card-section-title">{copy.previewTitle}</div>
-              <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-                {copy.previewBody}
-              </p>
+                  <div>
+                    <div className="muted" style={{ marginBottom: 6 }}>
+                      {copy.password}
+                    </div>
+                    <input
+                      className="input"
+                      type="password"
+                      value={signUpForm.password}
+                      placeholder={copy.passwordPlaceholder}
+                      onChange={(e) => setSignUpField('password', e.target.value)}
+                    />
+                  </div>
+                </div>
+              ) : null}
 
-              <div className="grid" style={{ gap: 8, marginTop: 10 }}>
-                <div>{copy.previewBullet1}</div>
-                <div>{copy.previewBullet2}</div>
-                <div>{copy.previewBullet3}</div>
+              {msg ? (
+                <div className="card-message" style={{ marginTop: 14, padding: 14, borderRadius: 18 }}>
+                  {msg}
+                </div>
+              ) : null}
+
+              <div className="row" style={{ marginTop: 16 }}>
+                {step > 1 ? (
+                  <button className="btn" type="button" onClick={goBack} disabled={loading}>
+                    {copy.back}
+                  </button>
+                ) : (
+                  <button
+                    className="btn"
+                    type="button"
+                    onClick={() => switchMode('signin')}
+                    disabled={loading}
+                  >
+                    {copy.switchToSignIn}
+                  </button>
+                )}
+
+                {step < 3 ? (
+                  <button className="btn primary" type="button" onClick={goNext} disabled={loading}>
+                    {copy.next}
+                  </button>
+                ) : (
+                  <button className="btn primary" type="submit" disabled={loading}>
+                    {loading ? copy.wait : copy.finish}
+                  </button>
+                )}
               </div>
-
-              <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <span className="badge">{copy.previewFree}</span>
-                <span className="badge">{copy.previewTexas}</span>
-              </div>
-            </div>
-          </form>
-        )}
-      </div>
-
-      <div className="card" style={{ maxWidth: 920, margin: '0 auto', width: '100%' }}>
-        <div
-          className="badge"
-          style={{
-            marginBottom: 12,
-            color: '#ff751f',
-            borderColor: 'rgba(255, 222, 89, 0.45)',
-            background: 'rgba(255, 222, 89, 0.08)'
-          }}
-        >
-          {copy.sideBadge}
-        </div>
-
-        <div className="h2" style={{ fontSize: 28, marginBottom: 12 }}>
-          {copy.sideTitle}
-        </div>
-
-        <p className="muted" style={{ maxWidth: 860 }}>
-          {copy.sideBody}
-        </p>
-
-        <div className="grid two" style={{ marginTop: 16 }}>
-          {points.map((point) => (
-            <div key={point.title} className="card card-soft">
-              <div className="card-section-title">{point.title}</div>
-              <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-                {point.body}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <div className="muted" style={{ marginTop: 16 }}>
-          {copy.footer}
+            </form>
+          )}
         </div>
       </div>
     </div>
