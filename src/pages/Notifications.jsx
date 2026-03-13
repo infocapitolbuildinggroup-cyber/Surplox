@@ -9,12 +9,13 @@ const COPY = {
     markAllError: 'Unable to mark alerts as read.',
     markOneError: 'Unable to mark this alert as read.',
     title: 'Alerts',
-    intro: 'Replies, crew joins, hired updates, and profile reminders show up here.',
+    intro:
+      'Replies, crew joins, hired updates, jobsite support activity, and profile reminders show up here.',
     markAllRead: 'Mark All Read',
     refresh: 'Refresh',
     emptyTitle: 'No Alerts Yet',
     emptyBody:
-      'Once people reply to your posts, join your crew requests, or mark you as hired, those alerts will appear here.',
+      'Once people reply to your posts, join your crew requests, or interact with your jobsite support posts, those alerts will appear here.',
     read: 'Read',
     unread: 'Unread',
     openPost: 'Open Post',
@@ -22,6 +23,7 @@ const COPY = {
     typeReply: 'Reply',
     typeCrewJoined: 'Crew Joined',
     typeMarkedHired: 'Marked Hired',
+    typeJobsiteSupport: 'Jobsite Support',
     reminderTitle: 'Complete your profile to unlock more value',
     reminderBody:
       'You can already use Surplox, but finishing these details will make your profile stronger and unlock more posting use cases.',
@@ -32,10 +34,16 @@ const COPY = {
     addRole: 'Add primary role',
     addBio: 'Add bio / experience',
     addCrewSize: 'Add crew size',
+    addAvailabilityStatus: 'Add availability status',
+    addTrade: 'Add trade',
+    addServiceTags: 'Add service tags',
+    addEquipmentTags: 'Add equipment tags',
+    jobsiteSupportReminder:
+      'Jobsite Support profiles should include service tags and equipment tags so contractors know exactly what you can do.',
     heroBadge: 'Alerts center',
     heroTitle: 'Stay on top of real network activity.',
     heroBody:
-      'Replies, crew joins, hires, and account reminders all surface here in one cleaner alerts view.',
+      'Replies, crew joins, hires, support activity, and account reminders all surface here in one cleaner alerts view.',
     statUnread: 'Unread alerts',
     statTotal: 'Total alerts',
     statProfile: 'Profile reminders'
@@ -46,12 +54,13 @@ const COPY = {
     markAllError: 'No se pudieron marcar las alertas como leídas.',
     markOneError: 'No se pudo marcar esta alerta como leída.',
     title: 'Alertas',
-    intro: 'Las respuestas, uniones a cuadrillas, contrataciones y recordatorios de perfil aparecen aquí.',
+    intro:
+      'Las respuestas, uniones a cuadrillas, contrataciones, actividad de soporte de obra y recordatorios de perfil aparecen aquí.',
     markAllRead: 'Marcar todas como leídas',
     refresh: 'Actualizar',
     emptyTitle: 'Todavía no hay alertas',
     emptyBody:
-      'Cuando alguien responda a tus publicaciones, se una a tus solicitudes de cuadrilla o te marque como contratado, esas alertas aparecerán aquí.',
+      'Cuando alguien responda a tus publicaciones, se una a tus solicitudes de cuadrilla o interactúe con tus publicaciones de soporte de obra, esas alertas aparecerán aquí.',
     read: 'Leída',
     unread: 'No leída',
     openPost: 'Abrir publicación',
@@ -59,6 +68,7 @@ const COPY = {
     typeReply: 'Respuesta',
     typeCrewJoined: 'Se unió a la cuadrilla',
     typeMarkedHired: 'Marcado como contratado',
+    typeJobsiteSupport: 'Soporte de obra',
     reminderTitle: 'Completa tu perfil para desbloquear más valor',
     reminderBody:
       'Ya puedes usar Surplox, pero completar estos detalles hará tu perfil más fuerte y desbloqueará más usos al publicar.',
@@ -69,10 +79,16 @@ const COPY = {
     addRole: 'Agregar rol principal',
     addBio: 'Agregar biografía / experiencia',
     addCrewSize: 'Agregar tamaño de cuadrilla',
+    addAvailabilityStatus: 'Agregar estado de disponibilidad',
+    addTrade: 'Agregar oficio',
+    addServiceTags: 'Agregar etiquetas de servicio',
+    addEquipmentTags: 'Agregar etiquetas de equipo',
+    jobsiteSupportReminder:
+      'Los perfiles de Soporte de obra deben incluir etiquetas de servicio y equipo para que los contratistas sepan exactamente lo que puedes hacer.',
     heroBadge: 'Centro de alertas',
     heroTitle: 'Mantente al tanto de la actividad real de la red.',
     heroBody:
-      'Las respuestas, uniones a cuadrillas, contrataciones y recordatorios de cuenta aparecen aquí en una vista más limpia.',
+      'Las respuestas, uniones a cuadrillas, contrataciones, actividad de soporte y recordatorios de cuenta aparecen aquí en una vista más limpia.',
     statUnread: 'Alertas sin leer',
     statTotal: 'Alertas totales',
     statProfile: 'Recordatorios de perfil'
@@ -111,6 +127,13 @@ function notificationTypeStyle(type) {
     }
   }
 
+  if (type === 'jobsite_support') {
+    return {
+      background: '#f1e7a8',
+      color: '#111111'
+    }
+  }
+
   return {
     background: '#ecebe3',
     color: '#111111'
@@ -121,6 +144,7 @@ function notificationTypeLabel(type, lang = 'en') {
   const copy = COPY[lang] || COPY.en
   if (type === 'crew_hired') return copy.typeMarkedHired
   if (type === 'crew_join') return copy.typeCrewJoined
+  if (type === 'jobsite_support') return copy.typeJobsiteSupport
   return copy.typeReply
 }
 
@@ -150,6 +174,28 @@ function getReminderItems(profile = {}, contact = {}, lang = 'en') {
 
   if (!Number(profile.crew_size || 0) || Number(profile.crew_size || 0) <= 1) {
     items.push(copy.addCrewSize)
+  }
+
+  if (!String(profile.availability_status || '').trim()) {
+    items.push(copy.addAvailabilityStatus)
+  }
+
+  const categoryGroup = profile.category_group || 'trade'
+
+  if (categoryGroup === 'trade') {
+    if (!profile.trade_id) {
+      items.push(copy.addTrade)
+    }
+  }
+
+  if (categoryGroup === 'jobsite_support') {
+    if (!Array.isArray(profile.service_tags) || profile.service_tags.length === 0) {
+      items.push(copy.addServiceTags)
+    }
+
+    if (!Array.isArray(profile.equipment_tags) || profile.equipment_tags.length === 0) {
+      items.push(copy.addEquipmentTags)
+    }
   }
 
   return items
@@ -186,6 +232,7 @@ export default function Notifications({ lang: langProp = 'en' }) {
   const [notifications, setNotifications] = useState([])
   const [lang, setLang] = useState(langProp || localStorage.getItem('surplox_lang') || 'en')
   const [profileReminderItems, setProfileReminderItems] = useState([])
+  const [profileCategoryGroup, setProfileCategoryGroup] = useState('trade')
 
   const copy = COPY[lang] || COPY.en
 
@@ -223,6 +270,8 @@ export default function Notifications({ lang: langProp = 'en' }) {
 
       setLang(userLang)
       localStorage.setItem('surplox_lang', userLang)
+
+      setProfileCategoryGroup(prof?.category_group || 'trade')
 
       const reminders = getReminderItems(prof || {}, cp || {}, userLang)
       setProfileReminderItems(reminders)
@@ -364,6 +413,12 @@ export default function Notifications({ lang: langProp = 'en' }) {
           <p className="card-section-subtitle" style={{ marginTop: 8 }}>
             {copy.reminderBody}
           </p>
+
+          {profileCategoryGroup === 'jobsite_support' ? (
+            <p className="card-section-subtitle" style={{ marginTop: 10 }}>
+              {copy.jobsiteSupportReminder}
+            </p>
+          ) : null}
 
           <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {profileReminderItems.map((item) => (
