@@ -45,7 +45,14 @@ const COPY = {
     errLanguage: 'Select a valid language.',
     errGeneric: 'Unable to save account setup.',
     doLater: 'Do This Later',
-    goFeed: 'Go to Feed'
+    goFeed: 'Go to Feed',
+    heroBadge: 'Finish setup',
+    heroTitle: 'Get your profile into stronger shape.',
+    heroBody:
+      'You are already in Surplox. Finish the rest of your profile to carry more weight with nearby workers, crews, and contractors.',
+    stat1: 'Display name + trade + ZIP',
+    stat2: 'Everything else can be completed now',
+    stat3: 'Stronger profile = more trust'
   },
   es: {
     loading: 'Cargando configuración de cuenta…',
@@ -82,8 +89,23 @@ const COPY = {
     errLanguage: 'Selecciona un idioma válido.',
     errGeneric: 'No se pudieron guardar los detalles de la cuenta.',
     doLater: 'Hacer esto después',
-    goFeed: 'Ir al feed'
+    goFeed: 'Ir al feed',
+    heroBadge: 'Terminar configuración',
+    heroTitle: 'Haz que tu perfil se vea más fuerte.',
+    heroBody:
+      'Ya estás dentro de Surplox. Termina el resto de tu perfil para tener más peso con trabajadores, cuadrillas y contratistas cercanos.',
+    stat1: 'Nombre visible + oficio + ZIP',
+    stat2: 'Todo lo demás se puede completar ahora',
+    stat3: 'Perfil más fuerte = más confianza'
   }
+}
+
+function MiniTile({ value }) {
+  return (
+    <div className="card-soft" style={{ minHeight: 90 }}>
+      <div style={{ fontWeight: 800, fontSize: 16, lineHeight: 1.35 }}>{value}</div>
+    </div>
+  )
 }
 
 export default function Onboarding({ lang = 'en', setLang }) {
@@ -270,125 +292,218 @@ export default function Onboarding({ lang = 'en', setLang }) {
   if (loading) return <div className="card">{copy.loading}</div>
 
   return (
-    <div className="card" style={{ maxWidth: 860, margin: '0 auto' }}>
-      <div className="h1">{copy.title}</div>
-
-      <p className="muted">{copy.intro}</p>
-
-      <div className="card card-notice" style={{ marginBottom: 12 }}>
-        <div className="card-section-title">{copy.noticeTitle}</div>
-        <p className="card-section-subtitle">{copy.noticeBody}</p>
-      </div>
-
-      {msg && (
-        <div className="card card-message" style={{ marginBottom: 12 }}>
-          {msg}
-        </div>
-      )}
-
-      <div className="grid two">
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.displayName}</div>
-          <input className="input" value={form.display_name} onChange={(e) => setField('display_name', e.target.value)} />
+    <div className="grid" style={{ gap: 18, maxWidth: 980, margin: '0 auto' }}>
+      <div
+        className="card rounded-xl"
+        style={{
+          padding: 28,
+          background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
+        }}
+      >
+        <div className="badge" style={{ marginBottom: 14, background: '#f1e7a8' }}>
+          {copy.heroBadge}
         </div>
 
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.primaryRole}</div>
-          <select className="input" value={form.role} onChange={(e) => setField('role', e.target.value)}>
-            {ROLE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {roleLabel(option)}
-              </option>
-            ))}
-          </select>
+        <div className="h1" style={{ maxWidth: 760 }}>
+          {copy.heroTitle}
         </div>
 
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.trade}</div>
-          <select className="input" value={form.trade_id} onChange={(e) => setField('trade_id', e.target.value)}>
-            <option value="">{copy.selectTrade}</option>
-            {trades.map((trade) => (
-              <option key={trade.id} value={trade.id}>
-                {trade.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <p className="muted" style={{ marginTop: 12, maxWidth: 820, fontSize: 17, lineHeight: 1.7 }}>
+          {copy.heroBody}
+        </p>
 
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.homeZip}</div>
-          <input className="input" value={form.home_zip} onChange={(e) => setField('home_zip', e.target.value)} />
-        </div>
-
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.firstName}</div>
-          <input className="input" value={form.first_name} onChange={(e) => setField('first_name', e.target.value)} />
-        </div>
-
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.lastName}</div>
-          <input className="input" value={form.last_name} onChange={(e) => setField('last_name', e.target.value)} />
-        </div>
-
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.email}</div>
-          <input className="input" type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} />
-        </div>
-
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.phone}</div>
-          <input className="input" value={form.phone} onChange={(e) => setField('phone', e.target.value)} />
-        </div>
-
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.city}</div>
-          <input className="input" value={form.city} onChange={(e) => setField('city', e.target.value)} />
-        </div>
-
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.travelRadius}</div>
-          <input className="input" type="number" value={form.travel_radius_miles} onChange={(e) => setField('travel_radius_miles', e.target.value)} />
-        </div>
-
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.crewSize}</div>
-          <input className="input" type="number" value={form.crew_size} onChange={(e) => setField('crew_size', e.target.value)} />
-        </div>
-
-        <div>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.preferredLanguage}</div>
-          <select className="input" value={form.preferred_language} onChange={(e) => setField('preferred_language', e.target.value)}>
-            {languageOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+        <div className="grid two" style={{ marginTop: 18 }}>
+          <MiniTile value={copy.stat1} />
+          <MiniTile value={copy.stat2} />
+          <MiniTile value={copy.stat3} />
         </div>
       </div>
 
-      <div style={{ marginTop: 12 }}>
-        <div className="muted" style={{ marginBottom: 6 }}>{copy.bio}</div>
-        <textarea
-          className="input"
-          value={form.bio}
-          onChange={(e) => setField('bio', e.target.value)}
-          placeholder={copy.bioPlaceholder}
-        />
-      </div>
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="h1" style={{ fontSize: 'clamp(1.9rem, 4vw, 2.7rem)' }}>
+          {copy.title}
+        </div>
 
-      <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <button className="btn primary" onClick={save} disabled={saving}>
-          {saving ? copy.saving : copy.save}
-        </button>
+        <p className="muted" style={{ marginTop: 10 }}>
+          {copy.intro}
+        </p>
 
-        <button className="btn" onClick={() => navigate('/feed')} disabled={saving}>
-          {copy.doLater}
-        </button>
+        <div
+          className="card-soft"
+          style={{
+            marginTop: 16,
+            background: '#fff4da'
+          }}
+        >
+          <div className="card-section-title">{copy.noticeTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {copy.noticeBody}
+          </p>
+        </div>
 
-        <button className="btn" onClick={() => navigate('/feed')} disabled={saving}>
-          {copy.goFeed}
-        </button>
+        {msg ? (
+          <div className="card-message" style={{ marginTop: 14, padding: 14, borderRadius: 18 }}>
+            {msg}
+          </div>
+        ) : null}
+
+        <div className="grid two" style={{ marginTop: 16 }}>
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.displayName}</div>
+            <input
+              className="input"
+              value={form.display_name}
+              onChange={(e) => setField('display_name', e.target.value)}
+            />
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.primaryRole}</div>
+            <select
+              className="input"
+              value={form.role}
+              onChange={(e) => setField('role', e.target.value)}
+            >
+              {ROLE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {roleLabel(option)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.trade}</div>
+            <select
+              className="input"
+              value={form.trade_id}
+              onChange={(e) => setField('trade_id', e.target.value)}
+            >
+              <option value="">{copy.selectTrade}</option>
+              {trades.map((trade) => (
+                <option key={trade.id} value={trade.id}>
+                  {trade.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.homeZip}</div>
+            <input
+              className="input"
+              value={form.home_zip}
+              onChange={(e) => setField('home_zip', e.target.value)}
+            />
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.firstName}</div>
+            <input
+              className="input"
+              value={form.first_name}
+              onChange={(e) => setField('first_name', e.target.value)}
+            />
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.lastName}</div>
+            <input
+              className="input"
+              value={form.last_name}
+              onChange={(e) => setField('last_name', e.target.value)}
+            />
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.email}</div>
+            <input
+              className="input"
+              type="email"
+              value={form.email}
+              onChange={(e) => setField('email', e.target.value)}
+            />
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.phone}</div>
+            <input
+              className="input"
+              value={form.phone}
+              onChange={(e) => setField('phone', e.target.value)}
+            />
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.city}</div>
+            <input
+              className="input"
+              value={form.city}
+              onChange={(e) => setField('city', e.target.value)}
+            />
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.travelRadius}</div>
+            <input
+              className="input"
+              type="number"
+              value={form.travel_radius_miles}
+              onChange={(e) => setField('travel_radius_miles', e.target.value)}
+            />
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.crewSize}</div>
+            <input
+              className="input"
+              type="number"
+              value={form.crew_size}
+              onChange={(e) => setField('crew_size', e.target.value)}
+            />
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.preferredLanguage}</div>
+            <select
+              className="input"
+              value={form.preferred_language}
+              onChange={(e) => {
+                const nextLang = e.target.value
+                setField('preferred_language', nextLang)
+                if (typeof setLang === 'function') {
+                  setLang(nextLang)
+                }
+              }}
+            >
+              {languageOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <div className="muted" style={{ marginBottom: 6 }}>{copy.bio}</div>
+          <textarea
+            className="input"
+            value={form.bio}
+            placeholder={copy.bioPlaceholder}
+            onChange={(e) => setField('bio', e.target.value)}
+          />
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
+          <button className="btn primary" onClick={save} disabled={saving}>
+            {saving ? copy.saving : copy.save}
+          </button>
+
+          <button className="btn" onClick={() => navigate('/feed')} disabled={saving}>
+            {copy.goFeed}
+          </button>
+        </div>
       </div>
     </div>
   )

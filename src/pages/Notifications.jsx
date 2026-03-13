@@ -31,7 +31,14 @@ const COPY = {
     addCity: 'Add city',
     addRole: 'Add primary role',
     addBio: 'Add bio / experience',
-    addCrewSize: 'Add crew size'
+    addCrewSize: 'Add crew size',
+    heroBadge: 'Alerts center',
+    heroTitle: 'Stay on top of real network activity.',
+    heroBody:
+      'Replies, crew joins, hires, and account reminders all surface here in one cleaner alerts view.',
+    statUnread: 'Unread alerts',
+    statTotal: 'Total alerts',
+    statProfile: 'Profile reminders'
   },
   es: {
     loading: 'Cargando alertas…',
@@ -61,7 +68,14 @@ const COPY = {
     addCity: 'Agregar ciudad',
     addRole: 'Agregar rol principal',
     addBio: 'Agregar biografía / experiencia',
-    addCrewSize: 'Agregar tamaño de cuadrilla'
+    addCrewSize: 'Agregar tamaño de cuadrilla',
+    heroBadge: 'Centro de alertas',
+    heroTitle: 'Mantente al tanto de la actividad real de la red.',
+    heroBody:
+      'Las respuestas, uniones a cuadrillas, contrataciones y recordatorios de cuenta aparecen aquí en una vista más limpia.',
+    statUnread: 'Alertas sin leer',
+    statTotal: 'Alertas totales',
+    statProfile: 'Recordatorios de perfil'
   }
 }
 
@@ -85,24 +99,21 @@ function timeAgo(ts, lang = 'en') {
 function notificationTypeStyle(type) {
   if (type === 'crew_hired') {
     return {
-      color: '#ffde59',
-      borderColor: 'rgba(255, 117, 31, 0.55)',
-      background: 'rgba(255, 117, 31, 0.12)'
+      background: '#111111',
+      color: '#ffffff'
     }
   }
 
   if (type === 'crew_join') {
     return {
-      color: '#ff751f',
-      borderColor: 'rgba(255, 222, 89, 0.65)',
-      background: 'rgba(255, 222, 89, 0.14)'
+      background: '#fff0b4',
+      color: '#111111'
     }
   }
 
   return {
-    color: '#ff751f',
-    borderColor: 'rgba(255, 222, 89, 0.4)',
-    background: 'rgba(255, 222, 89, 0.06)'
+    background: '#ecebe3',
+    color: '#111111'
   }
 }
 
@@ -144,6 +155,31 @@ function getReminderItems(profile = {}, contact = {}, lang = 'en') {
   return items
 }
 
+function StatCard({ label, value, dark = false }) {
+  return (
+    <div
+      className={dark ? 'card surface-dark rounded-xl' : 'card-soft'}
+      style={{ padding: 18, minHeight: 110 }}
+    >
+      <div
+        style={{
+          fontSize: 12,
+          fontWeight: 800,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          opacity: dark ? 0.72 : 1,
+          color: dark ? 'rgba(255,255,255,0.72)' : 'var(--muted-soft)'
+        }}
+      >
+        {label}
+      </div>
+      <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900, lineHeight: 1 }}>
+        {value}
+      </div>
+    </div>
+  )
+}
+
 export default function Notifications({ lang: langProp = 'en' }) {
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
@@ -182,7 +218,9 @@ export default function Notifications({ lang: langProp = 'en' }) {
         .eq('user_id', uid)
         .maybeSingle()
 
-      const userLang = prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
+      const userLang =
+        prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
+
       setLang(userLang)
       localStorage.setItem('surplox_lang', userLang)
 
@@ -259,40 +297,79 @@ export default function Notifications({ lang: langProp = 'en' }) {
   if (loading) return <div className="card">{copy.loading}</div>
 
   return (
-    <div className="grid" style={{ gap: 12 }}>
-      <div className="card">
-        <div className="h1" style={{ fontSize: 22 }}>{copy.title}</div>
-        <p className="muted">{copy.intro}</p>
+    <div className="grid" style={{ gap: 18 }}>
+      <div
+        className="card rounded-xl"
+        style={{
+          padding: 28,
+          background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
+        }}
+      >
+        <div className="badge" style={{ marginBottom: 14, background: '#f1e7a8' }}>
+          {copy.heroBadge}
+        </div>
 
-        <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button className="btn primary" onClick={markAllRead} disabled={unreadCount === 0}>
-            {copy.markAllRead}
-          </button>
-          <button className="btn" onClick={loadNotifications}>
-            {copy.refresh}
-          </button>
-          <span className="badge">
-            {unreadCount} {copy.unread}
-          </span>
+        <div className="h1" style={{ maxWidth: 760 }}>
+          {copy.heroTitle}
+        </div>
+
+        <p className="muted" style={{ marginTop: 12, maxWidth: 820, fontSize: 17, lineHeight: 1.7 }}>
+          {copy.heroBody}
+        </p>
+
+        <div className="grid two" style={{ marginTop: 18 }}>
+          <StatCard label={copy.statUnread} value={unreadCount} dark />
+          <StatCard label={copy.statTotal} value={notifications.length} />
+          <StatCard label={copy.statProfile} value={profileReminderItems.length} />
+        </div>
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: 12,
+            flexWrap: 'wrap',
+            alignItems: 'center'
+          }}
+        >
+          <div>
+            <div className="card-section-title">{copy.title}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {copy.intro}
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button className="btn primary" onClick={markAllRead} disabled={unreadCount === 0}>
+              {copy.markAllRead}
+            </button>
+            <button className="btn" onClick={loadNotifications}>
+              {copy.refresh}
+            </button>
+          </div>
         </div>
       </div>
 
       {profileReminderItems.length > 0 ? (
         <div
-          className="card"
+          className="card rounded-xl"
           style={{
-            borderColor: 'rgba(255, 222, 89, 0.36)',
-            background: 'rgba(255, 222, 89, 0.06)'
+            padding: 22,
+            background: '#fff4da'
           }}
         >
           <div className="card-section-title">{copy.reminderTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
             {copy.reminderBody}
           </p>
 
-          <div className="grid" style={{ gap: 8, marginTop: 12 }}>
+          <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {profileReminderItems.map((item) => (
-              <div key={item}>• {item}</div>
+              <span key={item} className="badge">
+                {item}
+              </span>
             ))}
           </div>
 
@@ -305,15 +382,15 @@ export default function Notifications({ lang: langProp = 'en' }) {
       ) : null}
 
       {msg ? (
-        <div className="card card-message">
+        <div className="card-message" style={{ padding: 14, borderRadius: 18 }}>
           {msg}
         </div>
       ) : null}
 
       {notifications.length === 0 && profileReminderItems.length === 0 ? (
-        <div className="card card-soft">
+        <div className="card rounded-xl" style={{ padding: 24 }}>
           <div className="card-section-title">{copy.emptyTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
             {copy.emptyBody}
           </p>
         </div>
@@ -324,29 +401,35 @@ export default function Notifications({ lang: langProp = 'en' }) {
           {notifications.map((note) => (
             <div
               key={note.id}
-              className="card"
+              className="card rounded-xl"
               style={{
-                borderColor: note.is_read
-                  ? 'rgba(255, 222, 89, 0.14)'
-                  : 'rgba(255, 222, 89, 0.35)',
-                background: note.is_read
-                  ? 'var(--card)'
-                  : 'rgba(255, 222, 89, 0.04)'
+                padding: 22,
+                background: note.is_read ? '#ffffff' : 'linear-gradient(180deg, #fffaf0 0%, #ffffff 100%)'
               }}
             >
-              <div className="postMeta" style={{ marginBottom: 10 }}>
+              <div className="postMeta" style={{ marginBottom: 12 }}>
                 <span className="badge" style={notificationTypeStyle(note.type)}>
                   {notificationTypeLabel(note.type, lang)}
                 </span>
+
                 <span className="badge">
                   {note.is_read ? copy.read : copy.unread}
                 </span>
+
                 <span className="badge">{timeAgo(note.created_at, lang)}</span>
               </div>
 
-              <div style={{ lineHeight: 1.55 }}>{note.message}</div>
+              <div
+                style={{
+                  lineHeight: 1.65,
+                  fontSize: 15,
+                  color: 'var(--text)'
+                }}
+              >
+                {note.message}
+              </div>
 
-              <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {note.post_id ? (
                   <Link className="btn small primary" to={`/p/${note.post_id}`}>
                     {copy.openPost}
