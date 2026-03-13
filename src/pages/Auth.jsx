@@ -8,50 +8,62 @@ const GENERAL_CONSTRUCTION_OPTION = {
   section: 'trade'
 }
 
+const SUPPLIER_SIGNUP_OPTION = {
+  id: 'supplier-account',
+  name: 'Supplier',
+  section: 'supplier',
+  role: 'supplier',
+  category_group: 'trade',
+  trade_id: null,
+  service_tags: [],
+  equipment_tags: [],
+  bio: {
+    en: 'Supplier account for construction materials, tools, equipment, and jobsite support inventory.',
+    es: 'Cuenta de proveedor para materiales de construcción, herramientas, equipo e inventario de soporte de obra.'
+  }
+}
+
 const JOBSITE_SUPPORT_SIGNUP_OPTIONS = [
   {
     id: 'support:material_delivery',
-    section: 'jobsite_support',
-    label: {
-      en: 'Material Delivery / Hot Shot',
-      es: 'Entrega de materiales / Hot Shot'
-    },
-    default_role: 'supplier',
+    name: 'Material Delivery / Hot Shot',
+    section: 'service',
+    role: 'driver',
+    category_group: 'jobsite_support',
+    trade_id: null,
     service_tags: ['material_delivery', 'hot_shot'],
     equipment_tags: [],
     bio: {
-      en: 'Material delivery and hot shot support.',
-      es: 'Soporte de entrega de materiales y hot shot.'
+      en: 'Material delivery and hot shot support for active jobsites.',
+      es: 'Soporte de entrega de materiales y hot shot para obras activas.'
     }
   },
   {
     id: 'support:cargo_van',
-    section: 'jobsite_support',
-    label: {
-      en: 'Cargo Van / Local Delivery',
-      es: 'Cargo van / entrega local'
-    },
-    default_role: 'supplier',
+    name: 'Cargo Van / Local Delivery',
+    section: 'service',
+    role: 'driver',
+    category_group: 'jobsite_support',
+    trade_id: null,
     service_tags: ['material_delivery', 'last_mile_delivery', 'local_runs'],
     equipment_tags: ['cargo_van'],
     bio: {
-      en: 'Cargo van delivery support for local material runs and pickups.',
-      es: 'Soporte con cargo van para entregas locales y recogidas de materiales.'
+      en: 'Cargo van and local delivery support for material runs, pickups, and jobsite deliveries.',
+      es: 'Soporte con cargo van y entrega local para viajes de materiales, recogidas y entregas en obra.'
     }
   },
   {
     id: 'support:equipment_fleet_repair',
-    section: 'jobsite_support',
-    label: {
-      en: 'Equipment / Fleet Repair',
-      es: 'Reparación de equipo / flota'
-    },
-    default_role: 'subcontractor',
+    name: 'Equipment / Fleet Repair',
+    section: 'service',
+    role: 'mechanic',
+    category_group: 'jobsite_support',
+    trade_id: null,
     service_tags: ['diesel_mechanic', 'jobsite_service'],
     equipment_tags: ['mobile_repair_truck'],
     bio: {
-      en: 'Field equipment and fleet repair support.',
-      es: 'Soporte de reparación de equipo y flota en campo.'
+      en: 'Equipment and fleet repair support for field service and jobsite uptime.',
+      es: 'Soporte de reparación de equipo y flota para servicio en campo y continuidad de obra.'
     }
   }
 ]
@@ -79,10 +91,10 @@ const COPY = {
     signInIntro:
       'Get back to nearby opportunities, crew activity, alerts, profile visibility, and local construction connections.',
     signUpIntro:
-      'Fast signup for workers, crews, trade pros, delivery support, and repair support. Get into the app first and finish the rest later.',
+      'Fast signup for workers, services, suppliers, and local construction connections. Get into the app first and finish the rest later.',
     previewTitle: 'Quick Setup',
     previewBody:
-      'Surplox gets workers in quickly: name, trade or service, ZIP, then straight into the feed.',
+      'Surplox gets people in quickly: name, trade, service, or supplier lane, ZIP, then straight into the feed.',
     previewBullet1: 'Join in a few taps',
     previewBullet2: 'Find crews and nearby work',
     previewBullet3: 'Finish the rest later',
@@ -111,44 +123,46 @@ const COPY = {
     point2Body:
       'Post labor needs, discover available workers, and move faster when it is time to fill jobs.',
     point3Title: 'Profiles that carry weight',
-    point3Body: 'Show your trade or service and area so the right people can find you.',
+    point3Body: 'Show your trade, service, or supplier lane and area so the right people can find you.',
     point4Title: 'Alerts and repeat connections',
     point4Body:
       'Stay on top of replies, joins, hires, and local activity that can turn into future work.',
-    footer:
-      'Built for laborers, subcontractors, contractors, suppliers, delivery support, and repair support.',
+    footer: 'Built for laborers, subcontractors, contractors, drivers, mechanics, and suppliers.',
     step: 'Step',
     next: 'Next',
     back: 'Back',
     finish: 'Enter Surplox',
     nameLabel: 'What’s your name?',
     namePlaceholder: 'Juan Martinez',
-    tradeLabel: 'What trade or service do you do?',
-    tradePlaceholder: 'Select your trade or service',
+    tradeLabel: 'What trade, service, or supplier lane fits you best?',
+    tradePlaceholder: 'Select your trade, service, or supplier lane',
     generalConstruction: 'General Construction',
+    supplierOption: 'Supplier',
+    tradesGroup: 'Trades',
+    servicesGroup: 'Services',
+    suppliersGroup: 'Suppliers',
     tradesLoading: 'Loading trades…',
     tradesUnavailable:
       'Trades unavailable right now. Showing Surplox default trades.',
-    tradesGroup: 'Trades',
-    jobsiteSupportGroup: 'Jobsite Support',
     supportAccountsHint:
-      'Delivery and repair operators can sign up here too. Pick the trade or service that best matches your work.',
+      'Workers, service operators, and suppliers can all sign up here. Choose the lane that best matches the work you do most often.',
     zipLabel: 'What ZIP do you usually work in?',
     zipPlaceholder: '76102',
-    tradeRequired: 'Select your trade or service.',
+    tradeRequired: 'Select your trade, service, or supplier lane.',
     zipRequired: 'Enter a valid 5-digit ZIP code.',
     nameRequired: 'Enter your name.',
     emailRequired: 'Enter a valid email address.',
     passwordRequired: 'Password must be at least 6 characters.',
     signUpSuccess: 'Your account is ready.',
     stageTitle1: 'Your Name',
-    stageTitle2: 'Your Trade/Service',
+    stageTitle2: 'Your Trade/Service/Supplier',
     stageTitle3: 'Your Area and Login',
     stageBody1: 'Start with your name so people know who is entering the network.',
     stageBody2:
-      'Choose the trade or service that best matches the work you do most often, including delivery and repair support.',
+      'Choose the trade, service, or supplier lane that best matches the work you do most often.',
     stageBody3:
       'Finish with your ZIP, email, and password so Surplox can place you into the right local feed.',
+    alreadyInside: 'Already in Surplox?',
     signInCardTitle: 'Welcome back',
     signInCardBody:
       'Sign in to get back to nearby activity, posts, crews, and alerts.'
@@ -160,10 +174,10 @@ const COPY = {
     signInIntro:
       'Vuelve a oportunidades cercanas, actividad de cuadrillas, alertas, visibilidad de perfil y conexiones locales de construcción.',
     signUpIntro:
-      'Registro rápido para trabajadores, cuadrillas, oficios, soporte de entrega y soporte de reparación. Entra a la app primero y completa lo demás después.',
+      'Registro rápido para trabajadores, servicios, proveedores y conexiones locales de construcción. Entra a la app primero y completa lo demás después.',
     previewTitle: 'Configuración rápida',
     previewBody:
-      'Surplox permite entrar rápido: nombre, oficio o servicio, ZIP y directo al feed.',
+      'Surplox permite entrar rápido: nombre, oficio, servicio o categoría de proveedor, ZIP y directo al feed.',
     previewBullet1: 'Únete en pocos toques',
     previewBullet2: 'Encuentra cuadrillas y trabajo cercano',
     previewBullet3: 'Completa lo demás después',
@@ -192,45 +206,47 @@ const COPY = {
     point2Body:
       'Publica necesidades de personal, descubre trabajadores disponibles y avanza más rápido al llenar puestos.',
     point3Title: 'Perfiles con peso',
-    point3Body: 'Muestra tu oficio o servicio y tu zona para que la gente correcta te encuentre.',
+    point3Body: 'Muestra tu oficio, servicio o categoría de proveedor y tu zona para que la gente correcta te encuentre.',
     point4Title: 'Alertas y conexiones repetidas',
     point4Body:
       'Mantente al tanto de respuestas, uniones, contrataciones y actividad local que puede convertirse en trabajo futuro.',
-    footer:
-      'Hecho para trabajadores, subcontratistas, contratistas, proveedores, soporte de entrega y soporte de reparación.',
+    footer: 'Hecho para trabajadores, subcontratistas, contratistas, conductores, mecánicos y proveedores.',
     step: 'Paso',
     next: 'Siguiente',
     back: 'Atrás',
     finish: 'Entrar a Surplox',
     nameLabel: '¿Cómo te llamas?',
     namePlaceholder: 'Juan Martinez',
-    tradeLabel: '¿Qué oficio o servicio haces?',
-    tradePlaceholder: 'Selecciona tu oficio o servicio',
+    tradeLabel: '¿Qué oficio, servicio o categoría de proveedor te representa mejor?',
+    tradePlaceholder: 'Selecciona tu oficio, servicio o categoría de proveedor',
     generalConstruction: 'Construcción general',
+    supplierOption: 'Proveedor',
+    tradesGroup: 'Oficios',
+    servicesGroup: 'Servicios',
+    suppliersGroup: 'Proveedores',
     tradesLoading: 'Cargando oficios…',
     tradesUnavailable:
       'Los oficios no están disponibles en este momento. Mostrando oficios predeterminados de Surplox.',
-    tradesGroup: 'Oficios',
-    jobsiteSupportGroup: 'Soporte de obra',
     supportAccountsHint:
-      'Los operadores de entrega y reparación también pueden registrarse aquí. Elige el oficio o servicio que mejor coincida con tu trabajo.',
+      'Trabajadores, operadores de servicio y proveedores pueden registrarse aquí. Elige la categoría que mejor coincida con el trabajo que haces más seguido.',
     zipLabel: '¿En qué ZIP trabajas normalmente?',
     zipPlaceholder: '76102',
-    tradeRequired: 'Selecciona tu oficio o servicio.',
+    tradeRequired: 'Selecciona tu oficio, servicio o categoría de proveedor.',
     zipRequired: 'Ingresa un ZIP válido de 5 dígitos.',
     nameRequired: 'Ingresa tu nombre.',
     emailRequired: 'Ingresa un correo válido.',
     passwordRequired: 'La contraseña debe tener al menos 6 caracteres.',
     signUpSuccess: 'Tu cuenta está lista.',
     stageTitle1: 'Tu Nombre',
-    stageTitle2: 'Tu Oficio/Servicio',
+    stageTitle2: 'Tu Oficio/Servicio/Proveedor',
     stageTitle3: 'Tu Zona y Acceso',
     stageBody1:
       'Empieza con tu nombre para que la gente sepa quién está entrando a la red.',
     stageBody2:
-      'Elige el oficio o servicio que mejor representa el trabajo que haces más seguido, incluyendo entrega y reparación.',
+      'Elige el oficio, servicio o categoría de proveedor que mejor representa el trabajo que haces más seguido.',
     stageBody3:
       'Termina con tu ZIP, correo y contraseña para que Surplox te coloque en el feed local correcto.',
+    alreadyInside: '¿Ya estás en Surplox?',
     signInCardTitle: 'Bienvenido de nuevo',
     signInCardBody:
       'Inicia sesión para volver a actividad cercana, publicaciones, cuadrillas y alertas.'
@@ -241,14 +257,12 @@ function normalizeMode(value) {
   return value === 'signin' ? 'signin' : 'signup'
 }
 
-function buildTradeOptions(dynamicTrades) {
+function dedupeTradeOptions(dynamicTrades) {
   const seen = new Set()
   const result = []
 
   const addOption = (option) => {
-    const label =
-      option.name || option.label?.en || option.label?.es || option.id || Math.random().toString(36)
-    const key = String(label).trim().toLowerCase()
+    const key = String(option.name || '').trim().toLowerCase()
     if (!key || seen.has(key)) return
     seen.add(key)
     result.push(option)
@@ -273,13 +287,9 @@ function buildTradeOptions(dynamicTrades) {
   })
 
   JOBSITE_SUPPORT_SIGNUP_OPTIONS.forEach((option) => addOption(option))
+  addOption(SUPPLIER_SIGNUP_OPTION)
 
   return result
-}
-
-function getOptionLabel(option, lang, copy) {
-  if (String(option.id) === GENERAL_CONSTRUCTION_OPTION.id) return copy.generalConstruction
-  return option.label?.[lang] || option.label?.en || option.name
 }
 
 function StepPill({ active, complete, number, label }) {
@@ -341,6 +351,12 @@ function LanguageSlider({ lang, setLang, copy }) {
   )
 }
 
+function getOptionLabel(option, copy) {
+  if (option.id === GENERAL_CONSTRUCTION_OPTION.id) return copy.generalConstruction
+  if (option.id === SUPPLIER_SIGNUP_OPTION.id) return copy.supplierOption
+  return option.name
+}
+
 export default function Auth({ lang = 'en', setLang }) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -389,15 +405,15 @@ export default function Auth({ lang = 'en', setLang }) {
         if (error) {
           console.error(error)
           setTradesError(copy.tradesUnavailable)
-          setTradeOptions(buildTradeOptions([]))
+          setTradeOptions(dedupeTradeOptions([]))
           return
         }
 
-        setTradeOptions(buildTradeOptions(data || []))
+        setTradeOptions(dedupeTradeOptions(data || []))
       } catch (err) {
         console.error(err)
         setTradesError(copy.tradesUnavailable)
-        setTradeOptions(buildTradeOptions([]))
+        setTradeOptions(dedupeTradeOptions([]))
       } finally {
         setTradesLoading(false)
       }
@@ -419,7 +435,8 @@ export default function Auth({ lang = 'en', setLang }) {
   const groupedTradeOptions = useMemo(
     () => ({
       trade: tradeOptions.filter((option) => option.section === 'trade'),
-      jobsite_support: tradeOptions.filter((option) => option.section === 'jobsite_support')
+      service: tradeOptions.filter((option) => option.section === 'service'),
+      supplier: tradeOptions.filter((option) => option.section === 'supplier')
     }),
     [tradeOptions]
   )
@@ -513,49 +530,58 @@ export default function Auth({ lang = 'en', setLang }) {
     }
   }
 
-  async function resolveTradeSelection(selectedTradeValue) {
-    if (selectedTradeValue === GENERAL_CONSTRUCTION_OPTION.id) {
+  async function resolveSignupSelection(selectedValue) {
+    if (selectedValue === GENERAL_CONSTRUCTION_OPTION.id) {
       return {
         tradeId: null,
-        categoryGroup: 'trade',
         role: 'laborer',
+        categoryGroup: 'trade',
         serviceTags: [],
         equipmentTags: [],
         bio: copy.generalConstruction
       }
     }
 
-    const exactOption = tradeOptions.find(
-      (option) => String(option.id) === String(selectedTradeValue)
-    )
+    if (selectedValue === SUPPLIER_SIGNUP_OPTION.id) {
+      return {
+        tradeId: null,
+        role: 'supplier',
+        categoryGroup: SUPPLIER_SIGNUP_OPTION.category_group,
+        serviceTags: SUPPLIER_SIGNUP_OPTION.service_tags,
+        equipmentTags: SUPPLIER_SIGNUP_OPTION.equipment_tags,
+        bio: SUPPLIER_SIGNUP_OPTION.bio[lang] || SUPPLIER_SIGNUP_OPTION.bio.en
+      }
+    }
+
+    const exactOption = tradeOptions.find((option) => String(option.id) === String(selectedValue))
 
     if (!exactOption) {
       return {
         tradeId: null,
-        categoryGroup: 'trade',
         role: 'laborer',
+        categoryGroup: 'trade',
         serviceTags: [],
         equipmentTags: [],
         bio: ''
       }
     }
 
-    if (exactOption.section === 'jobsite_support') {
+    if (exactOption.section === 'service') {
       return {
-        tradeId: null,
-        categoryGroup: 'jobsite_support',
-        role: exactOption.default_role || 'supplier',
-        serviceTags: exactOption.service_tags || [],
-        equipmentTags: exactOption.equipment_tags || [],
-        bio: exactOption.bio?.[lang] || exactOption.bio?.en || ''
+        tradeId: exactOption.trade_id,
+        role: exactOption.role,
+        categoryGroup: exactOption.category_group,
+        serviceTags: exactOption.service_tags,
+        equipmentTags: exactOption.equipment_tags,
+        bio: exactOption.bio[lang] || exactOption.bio.en
       }
     }
 
     if (!String(exactOption.id).startsWith('fallback:')) {
       return {
         tradeId: Number(exactOption.id),
-        categoryGroup: 'trade',
         role: 'laborer',
+        categoryGroup: 'trade',
         serviceTags: [],
         equipmentTags: [],
         bio: ''
@@ -575,8 +601,8 @@ export default function Auth({ lang = 'en', setLang }) {
 
     return {
       tradeId: Number(resolvedTrade.id),
-      categoryGroup: 'trade',
       role: 'laborer',
+      categoryGroup: 'trade',
       serviceTags: [],
       equipmentTags: [],
       bio: ''
@@ -619,14 +645,8 @@ export default function Auth({ lang = 'en', setLang }) {
       const firstName = nameParts[0] || rawName
       const lastName = nameParts.slice(1).join(' ')
 
-      const {
-        tradeId,
-        categoryGroup,
-        role,
-        serviceTags,
-        equipmentTags,
-        bio
-      } = await resolveTradeSelection(signUpForm.trade_id)
+      const { tradeId, role, categoryGroup, serviceTags, equipmentTags, bio } =
+        await resolveSignupSelection(signUpForm.trade_id)
 
       const { error: profileError } = await supabase.from('profiles').upsert({
         user_id: user.id,
@@ -672,42 +692,245 @@ export default function Auth({ lang = 'en', setLang }) {
   const authPanel = (
     <div className="grid" style={{ gap: 16 }}>
       {mode === 'signin' ? (
-        <>
-          <form className="card rounded-xl" onSubmit={handleSignIn} style={{ padding: 24 }}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: 12,
-                flexWrap: 'wrap',
-                alignItems: 'center'
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    color: 'var(--muted-soft)'
-                  }}
-                >
-                  {copy.formLabel}
-                </div>
-                <div className="h1" style={{ marginTop: 8, fontSize: 'clamp(1.9rem, 4vw, 2.7rem)' }}>
-                  {copy.signInTitle}
-                </div>
+        <form className="card rounded-xl" onSubmit={handleSignIn} style={{ padding: 24 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap',
+              alignItems: 'center'
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: 'var(--muted-soft)'
+                }}
+              >
+                {copy.formLabel}
               </div>
-
-              <LanguageSlider lang={lang} setLang={handleLanguageChange} copy={copy} />
+              <div className="h1" style={{ marginTop: 8, fontSize: 'clamp(1.9rem, 4vw, 2.7rem)' }}>
+                {copy.signInTitle}
+              </div>
             </div>
 
-            <p className="muted" style={{ marginTop: 10 }}>
-              {copy.signInIntro}
-            </p>
+            <LanguageSlider lang={lang} setLang={handleLanguageChange} copy={copy} />
+          </div>
 
+          <p className="muted" style={{ marginTop: 10 }}>
+            {copy.signInIntro}
+          </p>
+
+          <div className="grid" style={{ marginTop: 16 }}>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>
+                {copy.email}
+              </div>
+              <input
+                className="input"
+                type="email"
+                value={signInForm.email}
+                placeholder={copy.emailPlaceholder}
+                onChange={(e) => setSignInField('email', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>
+                {copy.password}
+              </div>
+              <input
+                className="input"
+                type="password"
+                value={signInForm.password}
+                placeholder={copy.passwordPlaceholder}
+                onChange={(e) => setSignInField('password', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {msg ? (
+            <div className="card-message" style={{ marginTop: 14, padding: 14, borderRadius: 18 }}>
+              {msg}
+            </div>
+          ) : null}
+
+          <div className="row" style={{ marginTop: 16 }}>
+            <button className="btn primary" type="submit" disabled={loading}>
+              {loading ? copy.wait : copy.signInButton}
+            </button>
+            <button
+              className="btn"
+              type="button"
+              onClick={() => switchMode('signup')}
+              disabled={loading}
+            >
+              {copy.switchToSignUp}
+            </button>
+          </div>
+
+          <div className="card-soft" style={{ marginTop: 18 }}>
+            <div className="card-section-title" style={{ fontSize: 16 }}>
+              {copy.alreadyInside}
+            </div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {copy.signInCardBody}
+            </p>
+          </div>
+        </form>
+      ) : (
+        <form className="card rounded-xl" onSubmit={handleSignUpSubmit} style={{ padding: 24 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap',
+              alignItems: 'center'
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: 'var(--muted-soft)'
+                }}
+              >
+                {copy.formLabel}
+              </div>
+              <div className="h1" style={{ marginTop: 8, fontSize: 'clamp(1.9rem, 4vw, 2.7rem)' }}>
+                {copy.signUpTitle}
+              </div>
+            </div>
+
+            <LanguageSlider lang={lang} setLang={handleLanguageChange} copy={copy} />
+          </div>
+
+          <p className="muted" style={{ marginTop: 10 }}>
+            {copy.signUpIntro}
+          </p>
+
+          <div
+            style={{
+              display: 'flex',
+              gap: 10,
+              flexWrap: 'wrap',
+              marginTop: 18
+            }}
+          >
+            <StepPill active={step === 1} complete={step > 1} number={1} label={copy.stageTitle1} />
+            <StepPill active={step === 2} complete={step > 2} number={2} label={copy.stageTitle2} />
+            <StepPill active={step === 3} complete={false} number={3} label={copy.stageTitle3} />
+          </div>
+
+          <div
+            className="card-soft"
+            style={{
+              marginTop: 16,
+              background: '#f5f3e7'
+            }}
+          >
+            <div className="card-section-title" style={{ fontSize: 16 }}>
+              {copy.step} {step}: {currentStageTitle}
+            </div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {currentStageBody}
+            </p>
+          </div>
+
+          {step === 1 ? (
+            <div style={{ marginTop: 16 }}>
+              <div className="muted" style={{ marginBottom: 6 }}>
+                {copy.nameLabel}
+              </div>
+              <input
+                className="input"
+                value={signUpForm.display_name}
+                placeholder={copy.namePlaceholder}
+                onChange={(e) => setSignUpField('display_name', e.target.value)}
+              />
+            </div>
+          ) : null}
+
+          {step === 2 ? (
+            <div style={{ marginTop: 16 }}>
+              <div className="muted" style={{ marginBottom: 6 }}>
+                {copy.tradeLabel}
+              </div>
+              <select
+                className="input"
+                value={signUpForm.trade_id}
+                onChange={(e) => setSignUpField('trade_id', e.target.value)}
+                disabled={tradesLoading}
+              >
+                <option value="">{tradesLoading ? copy.tradesLoading : copy.tradePlaceholder}</option>
+
+                {groupedTradeOptions.trade.length > 0 ? (
+                  <optgroup label={copy.tradesGroup}>
+                    {groupedTradeOptions.trade.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {getOptionLabel(option, copy)}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+
+                {groupedTradeOptions.service.length > 0 ? (
+                  <optgroup label={copy.servicesGroup}>
+                    {groupedTradeOptions.service.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {getOptionLabel(option, copy)}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+
+                {groupedTradeOptions.supplier.length > 0 ? (
+                  <optgroup label={copy.suppliersGroup}>
+                    {groupedTradeOptions.supplier.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {getOptionLabel(option, copy)}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+              </select>
+
+              <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
+                {copy.supportAccountsHint}
+              </div>
+
+              {tradesError ? (
+                <div className="card-message" style={{ marginTop: 12, padding: 14, borderRadius: 18 }}>
+                  {tradesError}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+
+          {step === 3 ? (
             <div className="grid" style={{ marginTop: 16 }}>
+              <div>
+                <div className="muted" style={{ marginBottom: 6 }}>
+                  {copy.zipLabel}
+                </div>
+                <input
+                  className="input"
+                  value={signUpForm.home_zip}
+                  placeholder={copy.zipPlaceholder}
+                  onChange={(e) => setSignUpField('home_zip', e.target.value.replace(/\D/g, '').slice(0, 5))}
+                  inputMode="numeric"
+                />
+              </div>
+
               <div>
                 <div className="muted" style={{ marginBottom: 6 }}>
                   {copy.email}
@@ -715,9 +938,9 @@ export default function Auth({ lang = 'en', setLang }) {
                 <input
                   className="input"
                   type="email"
-                  value={signInForm.email}
+                  value={signUpForm.email}
                   placeholder={copy.emailPlaceholder}
-                  onChange={(e) => setSignInField('email', e.target.value)}
+                  onChange={(e) => setSignUpField('email', e.target.value)}
                 />
               </div>
 
@@ -728,358 +951,141 @@ export default function Auth({ lang = 'en', setLang }) {
                 <input
                   className="input"
                   type="password"
-                  value={signInForm.password}
+                  value={signUpForm.password}
                   placeholder={copy.passwordPlaceholder}
-                  onChange={(e) => setSignInField('password', e.target.value)}
+                  onChange={(e) => setSignUpField('password', e.target.value)}
                 />
               </div>
             </div>
+          ) : null}
 
-            {msg ? (
-              <div className="card-message" style={{ marginTop: 14, padding: 14, borderRadius: 18 }}>
-                {msg}
-              </div>
-            ) : null}
+          {msg ? (
+            <div className="card-message" style={{ marginTop: 14, padding: 14, borderRadius: 18 }}>
+              {msg}
+            </div>
+          ) : null}
 
-            <div className="row" style={{ marginTop: 16 }}>
-              <button className="btn primary" type="submit" disabled={loading}>
-                {loading ? copy.wait : copy.signInButton}
+          <div className="row" style={{ marginTop: 16 }}>
+            {step > 1 ? (
+              <button className="btn" type="button" onClick={goBack} disabled={loading}>
+                {copy.back}
               </button>
+            ) : (
               <button
                 className="btn"
                 type="button"
-                onClick={() => switchMode('signup')}
+                onClick={() => switchMode('signin')}
                 disabled={loading}
               >
-                {copy.switchToSignUp}
+                {copy.switchToSignIn}
               </button>
-            </div>
+            )}
 
-            <div className="card-soft" style={{ marginTop: 18 }}>
-              <div className="card-section-title" style={{ fontSize: 16 }}>
-                {copy.signInCardTitle}
-              </div>
-              <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-                {copy.signInCardBody}
-              </p>
-            </div>
-          </form>
-
-          <div
-            className="card rounded-xl surface-dark"
-            style={{
-              padding: 28,
-              minHeight: 240
-            }}
-          >
-            <div className="badge" style={{ background: 'rgba(255,255,255,0.14)', color: '#ffffff' }}>
-              {copy.sideBadge}
-            </div>
-
-            <div className="h1" style={{ marginTop: 18, color: '#ffffff' }}>
-              {copy.sideTitle}
-            </div>
-
-            <p style={{ color: 'rgba(255,255,255,0.76)', lineHeight: 1.75, fontSize: 16 }}>
-              {copy.sideBody}
-            </p>
+            {step < 3 ? (
+              <button className="btn primary" type="button" onClick={goNext} disabled={loading}>
+                {copy.next}
+              </button>
+            ) : (
+              <button className="btn primary" type="submit" disabled={loading}>
+                {loading ? copy.wait : copy.finish}
+              </button>
+            )}
           </div>
-
-          <div className="grid two">
-            {points.map((point) => (
-              <div key={point.title} className="card-soft rounded-lg" style={{ minHeight: 148 }}>
-                <div className="card-section-title">{point.title}</div>
-                <p className="card-section-subtitle">{point.body}</p>
-              </div>
-            ))}
-          </div>
-
-          <div
-            className="card rounded-xl"
-            style={{
-              padding: 28,
-              background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
-            }}
-          >
-            <div className="badge good">{copy.previewTitle}</div>
-            <div className="h2" style={{ marginTop: 18 }}>
-              {copy.previewBody}
-            </div>
-
-            <div className="grid" style={{ marginTop: 16 }}>
-              <div className="card-soft rounded-lg">{copy.previewBullet1}</div>
-              <div className="card-soft rounded-lg">{copy.previewBullet2}</div>
-              <div className="card-soft rounded-lg">{copy.previewBullet3}</div>
-            </div>
-
-            <div className="row" style={{ marginTop: 18 }}>
-              <div className="badge">{copy.previewFree}</div>
-              <div className="badge">{copy.previewTexas}</div>
-            </div>
-          </div>
-
-          <div className="footerNote">{copy.footer}</div>
-        </>
-      ) : (
-        <>
-          <form className="card rounded-xl" onSubmit={handleSignUpSubmit} style={{ padding: 24 }}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: 12,
-                flexWrap: 'wrap',
-                alignItems: 'center'
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    color: 'var(--muted-soft)'
-                  }}
-                >
-                  {copy.formLabel}
-                </div>
-                <div className="h1" style={{ marginTop: 8, fontSize: 'clamp(1.9rem, 4vw, 2.7rem)' }}>
-                  {copy.signUpTitle}
-                </div>
-              </div>
-
-              <LanguageSlider lang={lang} setLang={handleLanguageChange} copy={copy} />
-            </div>
-
-            <p className="muted" style={{ marginTop: 10 }}>
-              {copy.signUpIntro}
-            </p>
-
-            <div
-              style={{
-                display: 'flex',
-                gap: 10,
-                flexWrap: 'wrap',
-                marginTop: 18
-              }}
-            >
-              <StepPill active={step === 1} complete={step > 1} number={1} label={copy.stageTitle1} />
-              <StepPill active={step === 2} complete={step > 2} number={2} label={copy.stageTitle2} />
-              <StepPill active={step === 3} complete={false} number={3} label={copy.stageTitle3} />
-            </div>
-
-            <div
-              className="card-soft"
-              style={{
-                marginTop: 16,
-                background: '#f5f3e7'
-              }}
-            >
-              <div className="card-section-title" style={{ fontSize: 16 }}>
-                {copy.step} {step}: {currentStageTitle}
-              </div>
-              <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-                {currentStageBody}
-              </p>
-            </div>
-
-            {step === 1 ? (
-              <div style={{ marginTop: 16 }}>
-                <div className="muted" style={{ marginBottom: 6 }}>
-                  {copy.nameLabel}
-                </div>
-                <input
-                  className="input"
-                  value={signUpForm.display_name}
-                  placeholder={copy.namePlaceholder}
-                  onChange={(e) => setSignUpField('display_name', e.target.value)}
-                />
-              </div>
-            ) : null}
-
-            {step === 2 ? (
-              <div style={{ marginTop: 16 }}>
-                <div className="muted" style={{ marginBottom: 6 }}>
-                  {copy.tradeLabel}
-                </div>
-                <select
-                  className="input"
-                  value={signUpForm.trade_id}
-                  onChange={(e) => setSignUpField('trade_id', e.target.value)}
-                  disabled={tradesLoading}
-                >
-                  <option value="">{tradesLoading ? copy.tradesLoading : copy.tradePlaceholder}</option>
-
-                  {groupedTradeOptions.trade.length > 0 ? (
-                    <optgroup label={copy.tradesGroup}>
-                      {groupedTradeOptions.trade.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {getOptionLabel(option, lang, copy)}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ) : null}
-
-                  {groupedTradeOptions.jobsite_support.length > 0 ? (
-                    <optgroup label={copy.jobsiteSupportGroup}>
-                      {groupedTradeOptions.jobsite_support.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {getOptionLabel(option, lang, copy)}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ) : null}
-                </select>
-
-                <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
-                  {copy.supportAccountsHint}
-                </div>
-
-                {tradesError ? (
-                  <div className="card-message" style={{ marginTop: 12, padding: 14, borderRadius: 18 }}>
-                    {tradesError}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-
-            {step === 3 ? (
-              <div className="grid" style={{ marginTop: 16 }}>
-                <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>
-                    {copy.zipLabel}
-                  </div>
-                  <input
-                    className="input"
-                    inputMode="numeric"
-                    value={signUpForm.home_zip}
-                    placeholder={copy.zipPlaceholder}
-                    onChange={(e) =>
-                      setSignUpField('home_zip', e.target.value.replace(/\D/g, '').slice(0, 5))
-                    }
-                  />
-                </div>
-
-                <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>
-                    {copy.email}
-                  </div>
-                  <input
-                    className="input"
-                    type="email"
-                    value={signUpForm.email}
-                    placeholder={copy.emailPlaceholder}
-                    onChange={(e) => setSignUpField('email', e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>
-                    {copy.password}
-                  </div>
-                  <input
-                    className="input"
-                    type="password"
-                    value={signUpForm.password}
-                    placeholder={copy.passwordPlaceholder}
-                    onChange={(e) => setSignUpField('password', e.target.value)}
-                  />
-                </div>
-              </div>
-            ) : null}
-
-            {msg ? (
-              <div className="card-message" style={{ marginTop: 14, padding: 14, borderRadius: 18 }}>
-                {msg}
-              </div>
-            ) : null}
-
-            <div className="row" style={{ marginTop: 18 }}>
-              {step > 1 ? (
-                <button className="btn" type="button" onClick={goBack} disabled={loading}>
-                  {copy.back}
-                </button>
-              ) : (
-                <button className="btn" type="button" onClick={() => switchMode('signin')} disabled={loading}>
-                  {copy.switchToSignIn}
-                </button>
-              )}
-
-              {step < 3 ? (
-                <button className="btn primary" type="button" onClick={goNext} disabled={loading}>
-                  {copy.next}
-                </button>
-              ) : (
-                <button className="btn primary" type="submit" disabled={loading}>
-                  {loading ? copy.wait : copy.finish}
-                </button>
-              )}
-            </div>
-          </form>
-
-          <div
-            className="card rounded-xl surface-dark"
-            style={{
-              padding: 28,
-              minHeight: 240
-            }}
-          >
-            <div className="badge" style={{ background: 'rgba(255,255,255,0.14)', color: '#ffffff' }}>
-              {copy.sideBadge}
-            </div>
-
-            <div className="h1" style={{ marginTop: 18, color: '#ffffff' }}>
-              {copy.sideTitle}
-            </div>
-
-            <p style={{ color: 'rgba(255,255,255,0.76)', lineHeight: 1.75, fontSize: 16 }}>
-              {copy.sideBody}
-            </p>
-          </div>
-
-          <div className="grid two">
-            {points.map((point) => (
-              <div key={point.title} className="card-soft rounded-lg" style={{ minHeight: 148 }}>
-                <div className="card-section-title">{point.title}</div>
-                <p className="card-section-subtitle">{point.body}</p>
-              </div>
-            ))}
-          </div>
-
-          <div
-            className="card rounded-xl"
-            style={{
-              padding: 28,
-              background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
-            }}
-          >
-            <div className="badge good">{copy.previewTitle}</div>
-            <div className="h2" style={{ marginTop: 18 }}>
-              {copy.previewBody}
-            </div>
-
-            <div className="grid" style={{ marginTop: 16 }}>
-              <div className="card-soft rounded-lg">{copy.previewBullet1}</div>
-              <div className="card-soft rounded-lg">{copy.previewBullet2}</div>
-              <div className="card-soft rounded-lg">{copy.previewBullet3}</div>
-            </div>
-
-            <div className="row" style={{ marginTop: 18 }}>
-              <div className="badge">{copy.previewFree}</div>
-              <div className="badge">{copy.previewTexas}</div>
-            </div>
-          </div>
-
-          <div className="footerNote">{copy.footer}</div>
-        </>
+        </form>
       )}
     </div>
   )
 
+  const marketingPanel = (
+    <div
+      className="card rounded-xl"
+      style={{
+        padding: 28,
+        background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
+      }}
+    >
+      <div
+        className="badge"
+        style={{
+          marginBottom: 16,
+          background: '#f1e7a8'
+        }}
+      >
+        {copy.sideBadge}
+      </div>
+
+      <div className="h1" style={{ maxWidth: 640 }}>
+        {copy.sideTitle}
+      </div>
+
+      <p className="muted" style={{ marginTop: 14, fontSize: 17, lineHeight: 1.7 }}>
+        {copy.sideBody}
+      </p>
+
+      <div className="grid" style={{ marginTop: 18 }}>
+        {points.map((point) => (
+          <div
+            key={point.title}
+            className="card-soft"
+            style={{
+              padding: 18,
+              background: 'rgba(255,255,255,0.58)'
+            }}
+          >
+            <div className="card-section-title" style={{ fontSize: 17 }}>
+              {point.title}
+            </div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {point.body}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div
+        className="card surface-dark rounded-xl"
+        style={{
+          marginTop: 18,
+          padding: 20
+        }}
+      >
+        <div className="card-section-title" style={{ color: '#ffffff' }}>
+          {copy.previewTitle}
+        </div>
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+          {copy.previewBody}
+        </p>
+
+        <div className="grid two" style={{ marginTop: 14 }}>
+          <div className="card-soft" style={{ background: 'rgba(255,255,255,0.1)' }}>
+            <div style={{ fontWeight: 800 }}>{copy.previewBullet1}</div>
+          </div>
+          <div className="card-soft" style={{ background: 'rgba(255,255,255,0.1)' }}>
+            <div style={{ fontWeight: 800 }}>{copy.previewBullet2}</div>
+          </div>
+          <div className="card-soft" style={{ background: 'rgba(255,255,255,0.1)' }}>
+            <div style={{ fontWeight: 800 }}>{copy.previewBullet3}</div>
+          </div>
+          <div className="card-soft" style={{ background: 'rgba(255,255,255,0.1)' }}>
+            <div style={{ fontWeight: 800 }}>
+              {copy.previewFree} {copy.previewTexas}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p className="footerNote" style={{ textAlign: 'left', marginTop: 18 }}>
+        {copy.footer}
+      </p>
+    </div>
+  )
+
   return (
-    <div className="grid two auth-layout" style={{ alignItems: 'start' }}>
-      <div>{authPanel}</div>
+    <div className="grid" style={{ gap: 18 }}>
+      <div className="grid two" style={{ alignItems: 'start' }}>
+        {authPanel}
+        {marketingPanel}
+      </div>
     </div>
   )
 }
