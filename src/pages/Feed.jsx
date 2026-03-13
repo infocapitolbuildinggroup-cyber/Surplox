@@ -56,7 +56,7 @@ const COPY = {
     quickNeedCrew: 'Need Crew',
     quickWork: 'Looking for Work',
     quickDiscuss: 'Start Discussion',
-    premiumTitle: 'Apple-level UI upgrade',
+    premiumTitle: 'Premium Surplox Feed',
     premiumBody:
       'Cleaner cards, stronger hierarchy, easier scanning, and faster trust for first-time users.'
   },
@@ -106,7 +106,7 @@ const COPY = {
     quickNeedCrew: 'Se necesita cuadrilla',
     quickWork: 'Buscando trabajo',
     quickDiscuss: 'Iniciar discusión',
-    premiumTitle: 'Mejora UI estilo Apple',
+    premiumTitle: 'Feed premium de Surplox',
     premiumBody:
       'Tarjetas más limpias, jerarquía más fuerte, lectura más rápida y más confianza para usuarios nuevos.'
   }
@@ -185,13 +185,13 @@ function getPostTypeStyles(type) {
   if (type === 'looking_for_work') {
     return {
       shell: {
-        background: 'linear-gradient(180deg, #fff5eb 0%, #ffffff 100%)'
+        background: 'linear-gradient(180deg, #f8f7ef 0%, #ffffff 100%)'
       },
       badge: {
-        background: '#ffd7b0',
+        background: '#fff0b4',
         color: '#111111'
       },
-      accent: '#ffb067'
+      accent: '#d4b21f'
     }
   }
 
@@ -203,7 +203,7 @@ function getPostTypeStyles(type) {
       background: '#ecebe3',
       color: '#111111'
     },
-    accent: '#d8d6cb'
+    accent: '#d9d7cc'
   }
 }
 
@@ -231,7 +231,7 @@ function roleBadgeStyle(role) {
 
   if (role === 'supplier') {
     return {
-      background: '#ffd7b0',
+      background: '#f1e7a8',
       color: '#111111'
     }
   }
@@ -615,7 +615,14 @@ export default function Feed({ lang: langProp = 'en' }) {
                 color: '#ffffff'
               }}
             >
-              <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.7 }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  opacity: 0.7
+                }}
+              >
                 {copy.showing}
               </div>
               <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>
