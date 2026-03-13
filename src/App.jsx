@@ -16,6 +16,8 @@ import AdminDirectory from './pages/AdminDirectory'
 
 import './styles.css'
 
+const ADMIN_EMAIL = 'davd@capitolbuildinggroup.com'
+
 function usePreferredLanguage() {
   const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
 
@@ -28,47 +30,13 @@ function usePreferredLanguage() {
 
 function LanguageSlider({ lang, setLang }) {
   return (
-    <div
-      style={{
-        position: 'relative',
-        display: 'inline-grid',
-        gridTemplateColumns: '1fr 1fr',
-        alignItems: 'center',
-        width: 148,
-        padding: 4,
-        borderRadius: 999,
-        background: '#ecebe6',
-        border: '1px solid rgba(17,17,17,0.05)'
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          top: 4,
-          left: lang === 'en' ? 4 : 'calc(50% + 0px)',
-          width: 'calc(50% - 4px)',
-          height: 'calc(100% - 8px)',
-          borderRadius: 999,
-          background: 'var(--accent)',
-          transition: 'left 0.22s ease'
-        }}
-      />
+    <div className="lang-toggle" aria-label="Language switcher">
+      <div className={`lang-toggle-thumb ${lang === 'es' ? 'is-es' : 'is-en'}`} />
 
       <button
         type="button"
         onClick={() => setLang('en')}
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          border: 'none',
-          background: 'transparent',
-          padding: '10px 14px',
-          borderRadius: 999,
-          fontWeight: 800,
-          fontSize: 14,
-          color: '#111111',
-          cursor: 'pointer'
-        }}
+        className={`lang-toggle-btn ${lang === 'en' ? 'is-active' : ''}`}
       >
         EN
       </button>
@@ -76,18 +44,7 @@ function LanguageSlider({ lang, setLang }) {
       <button
         type="button"
         onClick={() => setLang('es')}
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          border: 'none',
-          background: 'transparent',
-          padding: '10px 14px',
-          borderRadius: 999,
-          fontWeight: 800,
-          fontSize: 14,
-          color: '#111111',
-          cursor: 'pointer'
-        }}
+        className={`lang-toggle-btn ${lang === 'es' ? 'is-active' : ''}`}
       >
         ES
       </button>
@@ -146,17 +103,39 @@ function AppShell({ lang, setLang }) {
     setMobileMenuOpen(false)
   }, [location.pathname, location.search])
 
+  const currentEmail = session?.user?.email?.toLowerCase?.() || ''
+  const isAdmin = currentEmail === ADMIN_EMAIL
+
   const navItems = useMemo(() => {
     if (!session) return []
 
-    return [
+    const items = [
       { to: '/feed', label: 'Feed' },
       { to: '/channels', label: lang === 'es' ? 'Canales' : 'Channels' },
       { to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
       { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
-      { to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' }
+      { to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' },
+      {
+        to: '/feed?category=jobsite_support&support=material_delivery',
+        label: lang === 'es' ? 'Hot Shot / Entrega' : 'Hot Shot / Delivery',
+        isSearchActive: 'support=material_delivery'
+      },
+      {
+        to: '/feed?category=jobsite_support&support=equipment_fleet_repair',
+        label: lang === 'es' ? 'Equipo / Reparación de flota' : 'Equipment / Fleet Repair',
+        isSearchActive: 'support=equipment_fleet_repair'
+      }
     ]
-  }, [session, lang])
+
+    if (isAdmin) {
+      items.push({
+        to: '/admin',
+        label: 'Admin'
+      })
+    }
+
+    return items
+  }, [session, lang, isAdmin])
 
   const homeCtaLinks = useMemo(() => {
     return {
@@ -176,34 +155,12 @@ function AppShell({ lang, setLang }) {
     ]
   }, [homeCtaLinks, lang, session])
 
-  const extendedNavItems = useMemo(() => {
-    if (!session) return []
-
-    return [
-      ...navItems,
-      {
-        to: '/feed?category=jobsite_support&support=material_delivery',
-        label: lang === 'es' ? 'Hot Shot / Entrega' : 'Hot Shot / Delivery',
-        isActive: location.pathname === '/feed' && location.search.includes('support=material_delivery')
-      },
-      {
-        to: '/feed?category=jobsite_support&support=equipment_fleet_repair',
-        label: lang === 'es' ? 'Reparación de flota' : 'Fleet Repair',
-        isActive:
-          location.pathname === '/feed' &&
-          location.search.includes('support=equipment_fleet_repair')
-      },
-      {
-        to: '/admin',
-        label: 'Admin',
-        isActive: location.pathname.startsWith('/admin')
-      }
-    ]
-  }, [lang, location.pathname, location.search, navItems, session])
-
-  const isActive = (to) => {
-    if (to === '/') return location.pathname === '/'
-    return location.pathname.startsWith(to)
+  const isActive = (item) => {
+    if (item.isSearchActive) {
+      return location.pathname === '/feed' && location.search.includes(item.isSearchActive)
+    }
+    if (item.to === '/') return location.pathname === '/'
+    return location.pathname.startsWith(item.to)
   }
 
   async function handleSignOut() {
@@ -234,65 +191,29 @@ function AppShell({ lang, setLang }) {
           borderBottom: '1px solid rgba(17,17,17,0.06)'
         }}
       >
-        <div
-          className="container"
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            gap: 16,
-            paddingTop: 10,
-            paddingBottom: 10
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
+        <div className="container nav-shell">
+          <div className="nav-shell-left">
             <Link
               to="/"
               aria-label={lang === 'es' ? 'Ir al inicio de Surplox' : 'Go to Surplox home'}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'flex-start',
-                justifyContent: 'flex-start',
-                textDecoration: 'none',
-                color: 'var(--text)',
-                marginTop: -2
-              }}
+              className="nav-logo-link"
             >
               {!logoError ? (
                 <img
                   src="/logo.png"
                   alt="Surplox"
-                  style={{
-                    width: 58,
-                    height: 58,
-                    objectFit: 'contain',
-                    display: 'block'
-                  }}
+                  className="nav-logo-image"
                   onError={() => setLogoError(true)}
                 />
               ) : (
-                <div
-                  style={{
-                    width: 58,
-                    height: 58,
-                    borderRadius: 16,
-                    background: '#111111',
-                    color: '#ffffff',
-                    display: 'grid',
-                    placeItems: 'center',
-                    fontWeight: 900,
-                    fontSize: 20
-                  }}
-                >
-                  S
-                </div>
+                <div className="nav-logo-fallback">S</div>
               )}
             </Link>
 
             {session ? (
               <div className="nav-session-shortcuts">
                 {quickLinks.map((item) => (
-                  <Link key={item.to} className="badge" to={item.to} style={{ textDecoration: 'none' }}>
+                  <Link key={item.to} className="badge" to={item.to}>
                     {item.label}
                   </Link>
                 ))}
@@ -341,11 +262,11 @@ function AppShell({ lang, setLang }) {
                 flexWrap: 'wrap'
               }}
             >
-              {extendedNavItems.map((item) => (
+              {navItems.map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={item.isActive || isActive(item.to) ? 'btn primary small' : 'btn small'}
+                  className={isActive(item) ? 'btn primary small' : 'btn small'}
                   style={{ textDecoration: 'none' }}
                 >
                   {item.label}
@@ -369,11 +290,11 @@ function AppShell({ lang, setLang }) {
 
             <div className="nav-mobile-menu-list">
               {session
-                ? extendedNavItems.map((item) => (
+                ? navItems.map((item) => (
                     <Link
                       key={item.to}
                       to={item.to}
-                      className={item.isActive || isActive(item.to) ? 'btn primary small' : 'btn small'}
+                      className={isActive(item) ? 'btn primary small' : 'btn small'}
                     >
                       {item.label}
                     </Link>
@@ -450,7 +371,13 @@ function AppShell({ lang, setLang }) {
             />
             <Route
               path="/admin"
-              element={session ? <AdminDirectory lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
+              element={
+                session && isAdmin ? (
+                  <AdminDirectory lang={lang} />
+                ) : (
+                  <Navigate to="/feed" replace />
+                )
+              }
             />
             <Route path="*" element={<Navigate to={session ? '/feed' : '/'} replace />} />
           </Routes>

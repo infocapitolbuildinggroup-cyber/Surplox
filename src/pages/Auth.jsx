@@ -80,14 +80,6 @@ const COPY = {
       'Get back to nearby opportunities, crew activity, alerts, profile visibility, and local construction connections.',
     signUpIntro:
       'Fast signup for workers, crews, trade pros, delivery support, and repair support. Get into the app first and finish the rest later.',
-    previewTitle: 'Quick Setup',
-    previewBody:
-      'Surplox gets workers in quickly: name, trade or support lane, ZIP, then straight into the feed.',
-    previewBullet1: 'Join in a few taps',
-    previewBullet2: 'Find crews and nearby work',
-    previewBullet3: 'Finish the rest later',
-    previewFree: 'Free for workers.',
-    previewTexas: 'Built for local construction networks.',
     languageLabel: 'Language',
     languageEnglish: 'EN',
     languageSpanish: 'ES',
@@ -111,19 +103,20 @@ const COPY = {
     point2Body:
       'Post labor needs, discover available workers, and move faster when it is time to fill jobs.',
     point3Title: 'Profiles that carry weight',
-    point3Body: 'Show your trade or support lane and area so the right people can find you.',
+    point3Body: 'Show your trade or service and area so the right people can find you.',
     point4Title: 'Alerts and repeat connections',
     point4Body:
       'Stay on top of replies, joins, hires, and local activity that can turn into future work.',
-    footer: 'Built for laborers, subcontractors, contractors, suppliers, delivery support, and repair support.',
+    footer:
+      'Built for laborers, subcontractors, contractors, suppliers, delivery support, and repair support.',
     step: 'Step',
     next: 'Next',
     back: 'Back',
     finish: 'Enter Surplox',
     nameLabel: 'What’s your name?',
     namePlaceholder: 'Juan Martinez',
-    tradeLabel: 'What trade or support work do you do?',
-    tradePlaceholder: 'Select your trade or support lane',
+    tradeLabel: 'What trade or service do you do?',
+    tradePlaceholder: 'Select your trade or service',
     generalConstruction: 'General Construction',
     tradesLoading: 'Loading trades…',
     tradesUnavailable:
@@ -131,25 +124,23 @@ const COPY = {
     tradesGroup: 'Trades',
     jobsiteSupportGroup: 'Jobsite Support',
     supportAccountsHint:
-      'Delivery and repair operators can sign up here too. Pick the support lane that matches your work.',
+      'Delivery and repair operators can sign up here too. Pick the trade or service that best matches your work.',
     zipLabel: 'What ZIP do you usually work in?',
     zipPlaceholder: '76102',
-    tradeRequired: 'Select your trade or support lane.',
+    tradeRequired: 'Select your trade or service.',
     zipRequired: 'Enter a valid 5-digit ZIP code.',
     nameRequired: 'Enter your name.',
     emailRequired: 'Enter a valid email address.',
     passwordRequired: 'Password must be at least 6 characters.',
     signUpSuccess: 'Your account is ready.',
     stageTitle1: 'Your Name',
-    stageTitle2: 'Your Trade',
+    stageTitle2: 'Your Trade/Service',
     stageTitle3: 'Your Area and Login',
     stageBody1: 'Start with your name so people know who is entering the network.',
     stageBody2:
-      'Choose the trade or support lane that best matches the work you do most often, including delivery and repair support.',
+      'Choose the trade or service that best matches the work you do most often, including delivery and repair support.',
     stageBody3:
       'Finish with your ZIP, email, and password so Surplox can place you into the right local feed.',
-    alreadyInside: 'Already in Surplox?',
-    createAccess: 'Create access in under a minute',
     signInCardTitle: 'Welcome back',
     signInCardBody:
       'Sign in to get back to nearby activity, posts, crews, and alerts.'
@@ -162,14 +153,6 @@ const COPY = {
       'Vuelve a oportunidades cercanas, actividad de cuadrillas, alertas, visibilidad de perfil y conexiones locales de construcción.',
     signUpIntro:
       'Registro rápido para trabajadores, cuadrillas, oficios, soporte de entrega y soporte de reparación. Entra a la app primero y completa lo demás después.',
-    previewTitle: 'Configuración rápida',
-    previewBody:
-      'Surplox permite entrar rápido: nombre, oficio o tipo de soporte, ZIP y directo al feed.',
-    previewBullet1: 'Únete en pocos toques',
-    previewBullet2: 'Encuentra cuadrillas y trabajo cercano',
-    previewBullet3: 'Completa lo demás después',
-    previewFree: 'Gratis para trabajadores.',
-    previewTexas: 'Hecho para redes locales de construcción.',
     languageLabel: 'Idioma',
     languageEnglish: 'EN',
     languageSpanish: 'ES',
@@ -193,19 +176,20 @@ const COPY = {
     point2Body:
       'Publica necesidades de personal, descubre trabajadores disponibles y avanza más rápido al llenar puestos.',
     point3Title: 'Perfiles con peso',
-    point3Body: 'Muestra tu oficio o tipo de soporte y tu zona para que la gente correcta te encuentre.',
+    point3Body: 'Muestra tu oficio o servicio y tu zona para que la gente correcta te encuentre.',
     point4Title: 'Alertas y conexiones repetidas',
     point4Body:
       'Mantente al tanto de respuestas, uniones, contrataciones y actividad local que puede convertirse en trabajo futuro.',
-    footer: 'Hecho para trabajadores, subcontratistas, contratistas, proveedores, soporte de entrega y soporte de reparación.',
+    footer:
+      'Hecho para trabajadores, subcontratistas, contratistas, proveedores, soporte de entrega y soporte de reparación.',
     step: 'Paso',
     next: 'Siguiente',
     back: 'Atrás',
     finish: 'Entrar a Surplox',
     nameLabel: '¿Cómo te llamas?',
     namePlaceholder: 'Juan Martinez',
-    tradeLabel: '¿Qué oficio o trabajo de soporte haces?',
-    tradePlaceholder: 'Selecciona tu oficio o tipo de soporte',
+    tradeLabel: '¿Qué oficio o servicio haces?',
+    tradePlaceholder: 'Selecciona tu oficio o servicio',
     generalConstruction: 'Construcción general',
     tradesLoading: 'Cargando oficios…',
     tradesUnavailable:
@@ -213,26 +197,24 @@ const COPY = {
     tradesGroup: 'Oficios',
     jobsiteSupportGroup: 'Soporte de obra',
     supportAccountsHint:
-      'Los operadores de entrega y reparación también pueden registrarse aquí. Elige el tipo de soporte que mejor coincida con tu trabajo.',
+      'Los operadores de entrega y reparación también pueden registrarse aquí. Elige el oficio o servicio que mejor coincida con tu trabajo.',
     zipLabel: '¿En qué ZIP trabajas normalmente?',
     zipPlaceholder: '76102',
-    tradeRequired: 'Selecciona tu oficio o tipo de soporte.',
+    tradeRequired: 'Selecciona tu oficio o servicio.',
     zipRequired: 'Ingresa un ZIP válido de 5 dígitos.',
     nameRequired: 'Ingresa tu nombre.',
     emailRequired: 'Ingresa un correo válido.',
     passwordRequired: 'La contraseña debe tener al menos 6 caracteres.',
     signUpSuccess: 'Tu cuenta está lista.',
     stageTitle1: 'Tu Nombre',
-    stageTitle2: 'Tu Oficio',
+    stageTitle2: 'Tu Oficio/Servicio',
     stageTitle3: 'Tu Zona y Acceso',
     stageBody1:
       'Empieza con tu nombre para que la gente sepa quién está entrando a la red.',
     stageBody2:
-      'Elige el oficio o tipo de soporte que mejor representa el trabajo que haces más seguido, incluyendo entrega y reparación.',
+      'Elige el oficio o servicio que mejor representa el trabajo que haces más seguido, incluyendo entrega y reparación.',
     stageBody3:
       'Termina con tu ZIP, correo y contraseña para que Surplox te coloque en el feed local correcto.',
-    alreadyInside: '¿Ya estás en Surplox?',
-    createAccess: 'Crea acceso en menos de un minuto',
     signInCardTitle: 'Bienvenido de nuevo',
     signInCardBody:
       'Inicia sesión para volver a actividad cercana, publicaciones, cuadrillas y alertas.'
@@ -320,47 +302,13 @@ function LanguageSlider({ lang, setLang, copy }) {
         {copy.languageLabel}
       </div>
 
-      <div
-        style={{
-          position: 'relative',
-          display: 'inline-grid',
-          gridTemplateColumns: '1fr 1fr',
-          alignItems: 'center',
-          width: 132,
-          padding: 4,
-          borderRadius: 999,
-          background: '#ecebe6',
-          border: '1px solid rgba(17,17,17,0.05)'
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            top: 4,
-            left: lang === 'en' ? 4 : 'calc(50% + 0px)',
-            width: 'calc(50% - 4px)',
-            height: 'calc(100% - 8px)',
-            borderRadius: 999,
-            background: 'var(--accent)',
-            transition: 'left 0.22s ease'
-          }}
-        />
+      <div className="lang-toggle" aria-label={copy.languageLabel}>
+        <div className={`lang-toggle-thumb ${lang === 'es' ? 'is-es' : 'is-en'}`} />
 
         <button
           type="button"
           onClick={() => setLang('en')}
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            border: 'none',
-            background: 'transparent',
-            padding: '10px 12px',
-            borderRadius: 999,
-            fontWeight: 800,
-            fontSize: 14,
-            color: '#111111',
-            cursor: 'pointer'
-          }}
+          className={`lang-toggle-btn ${lang === 'en' ? 'is-active' : ''}`}
         >
           {copy.languageEnglish}
         </button>
@@ -368,18 +316,7 @@ function LanguageSlider({ lang, setLang, copy }) {
         <button
           type="button"
           onClick={() => setLang('es')}
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            border: 'none',
-            background: 'transparent',
-            padding: '10px 12px',
-            borderRadius: 999,
-            fontWeight: 800,
-            fontSize: 14,
-            color: '#111111',
-            cursor: 'pointer'
-          }}
+          className={`lang-toggle-btn ${lang === 'es' ? 'is-active' : ''}`}
         >
           {copy.languageSpanish}
         </button>
@@ -564,7 +501,6 @@ export default function Auth({ lang = 'en', setLang }) {
     if (selectedTradeValue === GENERAL_CONSTRUCTION_OPTION.id) {
       return {
         tradeId: null,
-        isGeneralConstruction: true,
         categoryGroup: 'trade',
         role: 'laborer',
         serviceTags: [],
@@ -580,7 +516,6 @@ export default function Auth({ lang = 'en', setLang }) {
     if (!exactOption) {
       return {
         tradeId: null,
-        isGeneralConstruction: false,
         categoryGroup: 'trade',
         role: 'laborer',
         serviceTags: [],
@@ -592,7 +527,6 @@ export default function Auth({ lang = 'en', setLang }) {
     if (exactOption.section === 'jobsite_support') {
       return {
         tradeId: null,
-        isGeneralConstruction: false,
         categoryGroup: 'jobsite_support',
         role: exactOption.default_role || 'supplier',
         serviceTags: exactOption.service_tags || [],
@@ -604,7 +538,6 @@ export default function Auth({ lang = 'en', setLang }) {
     if (!String(exactOption.id).startsWith('fallback:')) {
       return {
         tradeId: Number(exactOption.id),
-        isGeneralConstruction: false,
         categoryGroup: 'trade',
         role: 'laborer',
         serviceTags: [],
@@ -626,7 +559,6 @@ export default function Auth({ lang = 'en', setLang }) {
 
     return {
       tradeId: Number(resolvedTrade.id),
-      isGeneralConstruction: false,
       categoryGroup: 'trade',
       role: 'laborer',
       serviceTags: [],
@@ -723,41 +655,35 @@ export default function Auth({ lang = 'en', setLang }) {
 
   const authPanel = (
     <div className="grid" style={{ gap: 16 }}>
-      <div className="card rounded-xl" style={{ padding: 24 }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: 12,
-            flexWrap: 'wrap',
-            alignItems: 'center'
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: 'var(--muted-soft)'
-              }}
-            >
-              {copy.formLabel}
-            </div>
-            <div className="h2" style={{ marginTop: 8, marginBottom: 0 }}>
-              {mode === 'signin' ? copy.signInCardTitle : copy.createAccess}
-            </div>
-          </div>
-
-          <LanguageSlider lang={lang} setLang={handleLanguageChange} copy={copy} />
-        </div>
-      </div>
-
       {mode === 'signin' ? (
         <form className="card rounded-xl" onSubmit={handleSignIn} style={{ padding: 24 }}>
-          <div className="h1" style={{ fontSize: 'clamp(1.9rem, 4vw, 2.7rem)' }}>
-            {copy.signInTitle}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap',
+              alignItems: 'center'
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: 'var(--muted-soft)'
+                }}
+              >
+                {copy.formLabel}
+              </div>
+              <div className="h1" style={{ marginTop: 8, fontSize: 'clamp(1.9rem, 4vw, 2.7rem)' }}>
+                {copy.signInTitle}
+              </div>
+            </div>
+
+            <LanguageSlider lang={lang} setLang={handleLanguageChange} copy={copy} />
           </div>
 
           <p className="muted" style={{ marginTop: 10 }}>
@@ -814,7 +740,7 @@ export default function Auth({ lang = 'en', setLang }) {
 
           <div className="card-soft" style={{ marginTop: 18 }}>
             <div className="card-section-title" style={{ fontSize: 16 }}>
-              {copy.alreadyInside}
+              {copy.signInCardTitle}
             </div>
             <p className="card-section-subtitle" style={{ marginTop: 8 }}>
               {copy.signInCardBody}
@@ -823,8 +749,33 @@ export default function Auth({ lang = 'en', setLang }) {
         </form>
       ) : (
         <form className="card rounded-xl" onSubmit={handleSignUpSubmit} style={{ padding: 24 }}>
-          <div className="h1" style={{ fontSize: 'clamp(1.9rem, 4vw, 2.7rem)' }}>
-            {copy.signUpTitle}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap',
+              alignItems: 'center'
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: 'var(--muted-soft)'
+                }}
+              >
+                {copy.formLabel}
+              </div>
+              <div className="h1" style={{ marginTop: 8, fontSize: 'clamp(1.9rem, 4vw, 2.7rem)' }}>
+                {copy.signUpTitle}
+              </div>
+            </div>
+
+            <LanguageSlider lang={lang} setLang={handleLanguageChange} copy={copy} />
           </div>
 
           <p className="muted" style={{ marginTop: 10 }}>
@@ -995,10 +946,10 @@ export default function Auth({ lang = 'en', setLang }) {
   )
 
   return (
-    <div className="grid two" style={{ alignItems: 'start' }}>
+    <div className="grid two auth-layout" style={{ alignItems: 'start' }}>
       <div>{authPanel}</div>
 
-      <div className="grid" style={{ gap: 16 }}>
+      <div className="grid auth-side-column" style={{ gap: 16 }}>
         <div
           className="card rounded-xl surface-dark"
           style={{
@@ -1026,30 +977,6 @@ export default function Auth({ lang = 'en', setLang }) {
               <p className="card-section-subtitle">{point.body}</p>
             </div>
           ))}
-        </div>
-
-        <div
-          className="card rounded-xl"
-          style={{
-            padding: 28,
-            background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
-          }}
-        >
-          <div className="badge good">{copy.previewTitle}</div>
-          <div className="h1" style={{ marginTop: 18 }}>
-            {copy.previewBody}
-          </div>
-
-          <div className="grid" style={{ marginTop: 16 }}>
-            <div className="card-soft rounded-lg">{copy.previewBullet1}</div>
-            <div className="card-soft rounded-lg">{copy.previewBullet2}</div>
-            <div className="card-soft rounded-lg">{copy.previewBullet3}</div>
-          </div>
-
-          <div className="row" style={{ marginTop: 18 }}>
-            <div className="badge">{copy.previewFree}</div>
-            <div className="badge">{copy.previewTexas}</div>
-          </div>
         </div>
 
         <div className="footerNote">{copy.footer}</div>
