@@ -9,20 +9,51 @@ const POST_TYPE_PRIORITY = {
   discussion: 2
 }
 
+const CATEGORY_GROUP_OPTIONS = [
+  { value: 'all', en: 'All Categories', es: 'Todas las categorías' },
+  { value: 'trade', en: 'Trades', es: 'Oficios' },
+  { value: 'jobsite_support', en: 'Jobsite Support', es: 'Soporte de obra' }
+]
+
+const JOBSITE_SUPPORT_OPTIONS = [
+  {
+    value: 'material_delivery',
+    en: 'Material Delivery / Hot Shot',
+    es: 'Entrega de materiales / Hot Shot'
+  },
+  {
+    value: 'equipment_fleet_repair',
+    en: 'Equipment / Fleet Repair',
+    es: 'Reparación de equipo / flota'
+  }
+]
+
+const AVAILABILITY_STATUS_LABELS = {
+  available_now: { en: 'Available Now', es: 'Disponible ahora' },
+  available_this_week: { en: 'Available This Week', es: 'Disponible esta semana' },
+  busy: { en: 'Busy', es: 'Ocupado' }
+}
+
 const COPY = {
   en: {
     unknownMember: 'Unknown Member',
     loadError: 'Something went wrong while loading your feed.',
     filtersTitle: 'Feed Filters',
-    filtersIntro: 'Narrow posts by type, role, crew status, or keyword.',
+    filtersIntro: 'Narrow posts by type, category, role, urgency, or keyword.',
     postType: 'Post Type',
     allPostTypes: 'All Post Types',
     posterRole: 'Poster Role',
     allRoles: 'All Roles',
     crewStatus: 'Crew Status',
     allStatuses: 'All Statuses',
+    categoryGroup: 'Category',
+    supportType: 'Support Type',
+    allSupportTypes: 'All Support Types',
+    urgency: 'Urgency',
+    allUrgency: 'All Posts',
+    urgentOnly: 'Urgent Only',
     search: 'Search',
-    searchPlaceholder: 'Search title, body, trade, role, ZIP...',
+    searchPlaceholder: 'Search title, body, trade, service tags, role, ZIP...',
     clearFilters: 'Clear Filters',
     showing: 'Showing',
     of: 'of',
@@ -42,37 +73,54 @@ const COPY = {
     unknownDate: 'Unknown date',
     welcomeTitle: 'Welcome to Surplox',
     welcomeBody:
-      'This is the construction worker network for local crews, laborers, subcontractors, and opportunities.',
+      'This is the construction worker network for local crews, laborers, subcontractors, delivery support, and jobsite operations.',
     welcomeBullet1: 'Post work opportunities',
     welcomeBullet2: 'Find crews near your jobsite',
-    welcomeBullet3: 'Ask trade questions',
+    welcomeBullet3: 'Find runners and repair support',
     welcomeBullet4: 'Connect with local subs and workers',
     welcomeCta: 'Create Your First Post',
     emptyBetter: 'Be the first to post in your area.',
     heroBadge: 'Local feed',
     heroTitle: 'Field activity built for your area.',
     heroBody:
-      'Your feed is organized around ZIP code, radius, and trade relevance so the most useful local activity surfaces first.',
+      'Your feed is organized around ZIP code, radius, trade relevance, and now jobsite support so the most useful local activity surfaces first.',
     quickNeedCrew: 'Need Crew',
     quickWork: 'Looking for Work',
     quickDiscuss: 'Start Discussion',
+    quickSupportDelivery: 'Post Delivery Support',
+    quickSupportRepair: 'Post Repair Support',
     premiumTitle: 'Premium Surplox Feed',
     premiumBody:
-      'Cleaner cards, stronger hierarchy, easier scanning, and faster trust for first-time users.'
+      'Cleaner cards, stronger hierarchy, easier scanning, faster trust, and support for labor plus jobsite operations.',
+    zip: 'ZIP',
+    radius: 'mi radius',
+    urgent: 'Urgent',
+    serviceTags: 'Services',
+    equipmentTags: 'Equipment',
+    jobsiteSupport: 'Jobsite Support',
+    trades: 'Trades',
+    materialDelivery: 'Material Delivery / Hot Shot',
+    fleetRepair: 'Equipment / Fleet Repair'
   },
   es: {
     unknownMember: 'Miembro desconocido',
     loadError: 'Ocurrió un problema al cargar tu feed.',
     filtersTitle: 'Filtros del feed',
-    filtersIntro: 'Reduce publicaciones por tipo, rol, estado de cuadrilla o palabra clave.',
+    filtersIntro: 'Reduce publicaciones por tipo, categoría, rol, urgencia o palabra clave.',
     postType: 'Tipo de publicación',
     allPostTypes: 'Todos los tipos',
     posterRole: 'Rol del autor',
     allRoles: 'Todos los roles',
     crewStatus: 'Estado de cuadrilla',
     allStatuses: 'Todos los estados',
+    categoryGroup: 'Categoría',
+    supportType: 'Tipo de soporte',
+    allSupportTypes: 'Todos los tipos de soporte',
+    urgency: 'Urgencia',
+    allUrgency: 'Todas las publicaciones',
+    urgentOnly: 'Solo urgentes',
     search: 'Buscar',
-    searchPlaceholder: 'Buscar por título, texto, oficio, rol, ZIP...',
+    searchPlaceholder: 'Buscar por título, texto, oficio, servicios, rol, ZIP...',
     clearFilters: 'Limpiar filtros',
     showing: 'Mostrando',
     of: 'de',
@@ -92,23 +140,34 @@ const COPY = {
     unknownDate: 'Fecha desconocida',
     welcomeTitle: 'Bienvenido a Surplox',
     welcomeBody:
-      'Esta es la red de construcción para cuadrillas locales, trabajadores, subcontratistas y oportunidades.',
+      'Esta es la red de construcción para cuadrillas locales, trabajadores, subcontratistas, soporte de entrega y operaciones de obra.',
     welcomeBullet1: 'Publica oportunidades de trabajo',
     welcomeBullet2: 'Encuentra cuadrillas cerca de tu obra',
-    welcomeBullet3: 'Haz preguntas del oficio',
+    welcomeBullet3: 'Encuentra runners y soporte de reparación',
     welcomeBullet4: 'Conecta con subcontratistas y trabajadores locales',
     welcomeCta: 'Crea tu primera publicación',
     emptyBetter: 'Sé el primero en publicar en tu área.',
     heroBadge: 'Feed local',
     heroTitle: 'Actividad de campo pensada para tu zona.',
     heroBody:
-      'Tu feed está organizado por ZIP, radio y relevancia del oficio para que la actividad local más útil aparezca primero.',
+      'Tu feed está organizado por ZIP, radio, relevancia del oficio y ahora soporte de obra para que la actividad local más útil aparezca primero.',
     quickNeedCrew: 'Se necesita cuadrilla',
     quickWork: 'Buscando trabajo',
     quickDiscuss: 'Iniciar discusión',
+    quickSupportDelivery: 'Publicar soporte de entrega',
+    quickSupportRepair: 'Publicar soporte de reparación',
     premiumTitle: 'Feed premium de Surplox',
     premiumBody:
-      'Tarjetas más limpias, jerarquía más fuerte, lectura más rápida y más confianza para usuarios nuevos.'
+      'Tarjetas más limpias, jerarquía más fuerte, lectura más rápida y soporte para mano de obra más operaciones de obra.',
+    zip: 'ZIP',
+    radius: 'mi de radio',
+    urgent: 'Urgente',
+    serviceTags: 'Servicios',
+    equipmentTags: 'Equipo',
+    jobsiteSupport: 'Soporte de obra',
+    trades: 'Oficios',
+    materialDelivery: 'Entrega de materiales / Hot Shot',
+    fleetRepair: 'Reparación de equipo / flota'
   }
 }
 
@@ -133,6 +192,34 @@ function roleLabel(role, lang) {
     supplier: { en: 'Supplier', es: 'Proveedor' }
   }
   return map[role]?.[lang] || map[role]?.en || role
+}
+
+function availabilityStatusLabel(status, lang) {
+  return AVAILABILITY_STATUS_LABELS[status]?.[lang] || AVAILABILITY_STATUS_LABELS[status]?.en || status
+}
+
+function categoryGroupLabel(value, lang) {
+  const found = CATEGORY_GROUP_OPTIONS.find((x) => x.value === value)
+  return found ? (lang === 'es' ? found.es : found.en) : value
+}
+
+function supportTypeLabel(value, lang) {
+  const found = JOBSITE_SUPPORT_OPTIONS.find((x) => x.value === value)
+  return found ? (lang === 'es' ? found.es : found.en) : value
+}
+
+function detectSupportType(serviceTags = []) {
+  const repairTags = new Set([
+    'diesel_mechanic',
+    'heavy_equipment_repair',
+    'trailer_repair',
+    'emergency_repair',
+    'jobsite_service'
+  ])
+
+  return serviceTags.some((tag) => repairTags.has(tag))
+    ? 'equipment_fleet_repair'
+    : 'material_delivery'
 }
 
 function crewStatusLabel(status, lang) {
@@ -168,7 +255,22 @@ function crewStatusBadgeStyle(status) {
   }
 }
 
-function getPostTypeStyles(type) {
+function getPostTypeStyles(type, categoryGroup, isUrgent) {
+  if (categoryGroup === 'jobsite_support') {
+    return {
+      shell: {
+        background: isUrgent
+          ? 'linear-gradient(180deg, #fff4da 0%, #ffffff 100%)'
+          : 'linear-gradient(180deg, #f8f7ef 0%, #ffffff 100%)'
+      },
+      badge: {
+        background: isUrgent ? '#ffde59' : '#f1e7a8',
+        color: '#111111'
+      },
+      accent: isUrgent ? '#d4b21f' : '#111111'
+    }
+  }
+
   if (type === 'need_crew') {
     return {
       shell: {
@@ -254,6 +356,13 @@ function availabilityBadgeStyle(isAvailable) {
   }
 }
 
+function urgentBadgeStyle() {
+  return {
+    background: '#111111',
+    color: '#ffffff'
+  }
+}
+
 function haversineMiles(lat1, lon1, lat2, lon2) {
   const toRad = (v) => (v * Math.PI) / 180
   const R = 3958.8
@@ -277,6 +386,9 @@ export default function Feed({ lang: langProp = 'en' }) {
   const [typeFilter, setTypeFilter] = useState('all')
   const [roleFilter, setRoleFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [supportTypeFilter, setSupportTypeFilter] = useState('all')
+  const [urgencyFilter, setUrgencyFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [msg, setMsg] = useState('')
 
@@ -381,8 +493,15 @@ export default function Feed({ lang: langProp = 'en' }) {
             compensation,
             start_date,
             author_id,
+            category_group,
+            service_tags,
+            equipment_tags,
+            is_urgent,
+            boosted_at,
+            boost_count,
+            image_urls,
             trades(name),
-            profiles!posts_author_id_fkey(display_name, role, is_available)
+            profiles!posts_author_id_fkey(display_name, role, is_available, availability_status)
           `)
           .order('created_at', { ascending: false })
 
@@ -465,19 +584,37 @@ export default function Feed({ lang: langProp = 'en' }) {
         }
 
         filtered = (filtered || [])
-          .map((post) => ({
-            ...post,
-            trade_name: post.trades?.name || '',
-            author_name: post.profiles?.display_name || copy.unknownMember,
-            author_role: post.profiles?.role || '',
-            author_available: Boolean(post.profiles?.is_available),
-            crew_joined_count: crewCountMap.get(post.id) || 0,
-            crew_hired_count: hiredCountMap.get(post.id) || 0
-          }))
+          .map((post) => {
+            const serviceTags = Array.isArray(post.service_tags) ? post.service_tags : []
+            const equipmentTags = Array.isArray(post.equipment_tags) ? post.equipment_tags : []
+            const categoryGroup = post.category_group || 'trade'
+
+            return {
+              ...post,
+              category_group: categoryGroup,
+              service_tags: serviceTags,
+              equipment_tags: equipmentTags,
+              support_type: categoryGroup === 'jobsite_support' ? detectSupportType(serviceTags) : null,
+              trade_name: post.trades?.name || '',
+              author_name: post.profiles?.display_name || copy.unknownMember,
+              author_role: post.profiles?.role || '',
+              author_available: Boolean(post.profiles?.is_available),
+              author_availability_status: post.profiles?.availability_status || '',
+              crew_joined_count: crewCountMap.get(post.id) || 0,
+              crew_hired_count: hiredCountMap.get(post.id) || 0
+            }
+          })
           .sort((a, b) => {
+            if (a.is_urgent !== b.is_urgent) return a.is_urgent ? -1 : 1
+
+            const aBoost = a.boosted_at ? new Date(a.boosted_at).getTime() : 0
+            const bBoost = b.boosted_at ? new Date(b.boosted_at).getTime() : 0
+            if (aBoost !== bBoost) return bBoost - aBoost
+
             const pa = POST_TYPE_PRIORITY[a.post_type || 'discussion'] ?? 99
             const pb = POST_TYPE_PRIORITY[b.post_type || 'discussion'] ?? 99
             if (pa !== pb) return pa - pb
+
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           })
 
@@ -503,6 +640,9 @@ export default function Feed({ lang: langProp = 'en' }) {
     return posts.filter((post) => {
       if (typeFilter !== 'all' && post.post_type !== typeFilter) return false
       if (roleFilter !== 'all' && post.author_role !== roleFilter) return false
+      if (categoryFilter !== 'all' && post.category_group !== categoryFilter) return false
+      if (supportTypeFilter !== 'all' && post.support_type !== supportTypeFilter) return false
+      if (urgencyFilter === 'urgent' && !post.is_urgent) return false
 
       if (statusFilter !== 'all') {
         if (post.post_type !== 'need_crew') return false
@@ -517,7 +657,9 @@ export default function Feed({ lang: langProp = 'en' }) {
           post.trade_name,
           post.author_role,
           post.center_zip,
-          post.author_name
+          post.author_name,
+          ...(post.service_tags || []),
+          ...(post.equipment_tags || [])
         ]
           .join(' ')
           .toLowerCase()
@@ -527,7 +669,16 @@ export default function Feed({ lang: langProp = 'en' }) {
 
       return true
     })
-  }, [posts, typeFilter, roleFilter, statusFilter, searchQuery])
+  }, [
+    posts,
+    typeFilter,
+    roleFilter,
+    statusFilter,
+    categoryFilter,
+    supportTypeFilter,
+    urgencyFilter,
+    searchQuery
+  ])
 
   const showWelcomeCard = !loading && !err && posts.length === 0
 
@@ -594,6 +745,12 @@ export default function Feed({ lang: langProp = 'en' }) {
               </Link>
               <Link className="btn" to="/new?type=discussion">
                 {copy.quickDiscuss}
+              </Link>
+              <Link className="btn" to="/new?type=discussion&group=jobsite_support&support=material_delivery">
+                {copy.quickSupportDelivery}
+              </Link>
+              <Link className="btn" to="/new?type=discussion&group=jobsite_support&support=equipment_fleet_repair">
+                {copy.quickSupportRepair}
               </Link>
             </div>
           </div>
@@ -670,6 +827,33 @@ export default function Feed({ lang: langProp = 'en' }) {
 
           <div>
             <div className="muted" style={{ marginBottom: 6 }}>
+              {copy.categoryGroup}
+            </div>
+            <select className="input" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+              {CATEGORY_GROUP_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {lang === 'es' ? option.es : option.en}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>
+              {copy.supportType}
+            </div>
+            <select className="input" value={supportTypeFilter} onChange={(e) => setSupportTypeFilter(e.target.value)}>
+              <option value="all">{copy.allSupportTypes}</option>
+              {JOBSITE_SUPPORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {lang === 'es' ? option.es : option.en}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>
               {copy.posterRole}
             </div>
             <select className="input" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
@@ -695,6 +879,16 @@ export default function Feed({ lang: langProp = 'en' }) {
 
           <div>
             <div className="muted" style={{ marginBottom: 6 }}>
+              {copy.urgency}
+            </div>
+            <select className="input" value={urgencyFilter} onChange={(e) => setUrgencyFilter(e.target.value)}>
+              <option value="all">{copy.allUrgency}</option>
+              <option value="urgent">{copy.urgentOnly}</option>
+            </select>
+          </div>
+
+          <div style={{ gridColumn: '1 / -1' }}>
+            <div className="muted" style={{ marginBottom: 6 }}>
               {copy.search}
             </div>
             <input
@@ -713,6 +907,9 @@ export default function Feed({ lang: langProp = 'en' }) {
               setTypeFilter('all')
               setRoleFilter('all')
               setStatusFilter('all')
+              setCategoryFilter('all')
+              setSupportTypeFilter('all')
+              setUrgencyFilter('all')
               setSearchQuery('')
             }}
           >
@@ -731,6 +928,9 @@ export default function Feed({ lang: langProp = 'en' }) {
                 setTypeFilter('all')
                 setRoleFilter('all')
                 setStatusFilter('all')
+                setCategoryFilter('all')
+                setSupportTypeFilter('all')
+                setUrgencyFilter('all')
                 setSearchQuery('')
               }}
             >
@@ -770,9 +970,10 @@ export default function Feed({ lang: langProp = 'en' }) {
       {!showWelcomeCard ? (
         <div className="list">
           {filteredPosts.map((p) => {
-            const typeStyles = getPostTypeStyles(p.post_type || 'discussion')
+            const typeStyles = getPostTypeStyles(p.post_type || 'discussion', p.category_group, p.is_urgent)
             const isOpportunity =
               p.post_type === 'need_crew' || p.post_type === 'looking_for_work'
+            const isSupport = p.category_group === 'jobsite_support'
 
             return (
               <div
@@ -797,18 +998,32 @@ export default function Feed({ lang: langProp = 'en' }) {
                       {postTypeLabel(p.post_type || 'discussion', lang)}
                     </span>
 
+                    <span className="badge" style={tradeBadgeStyle()}>
+                      {p.category_group === 'jobsite_support'
+                        ? copy.jobsiteSupport
+                        : copy.trades}
+                    </span>
+
                     {p.trade_name ? (
                       <span className="badge" style={tradeBadgeStyle()}>
                         {p.trade_name}
                       </span>
                     ) : null}
 
-                    <span className="badge">
-                      {t(lang, 'feed_zip')} {p.center_zip}
-                    </span>
+                    {isSupport ? (
+                      <span className="badge" style={tradeBadgeStyle()}>
+                        {supportTypeLabel(p.support_type, lang)}
+                      </span>
+                    ) : null}
+
+                    {p.center_zip ? (
+                      <span className="badge">
+                        {copy.zip} {p.center_zip}
+                      </span>
+                    ) : null}
 
                     <span className="badge">
-                      {p.radius_miles} {t(lang, 'feed_radius')}
+                      {p.radius_miles} {copy.radius}
                     </span>
 
                     {p.author_role ? (
@@ -819,7 +1034,15 @@ export default function Feed({ lang: langProp = 'en' }) {
 
                     {p.author_available ? (
                       <span className="badge" style={availabilityBadgeStyle(true)}>
-                        {copy.available}
+                        {p.author_availability_status
+                          ? availabilityStatusLabel(p.author_availability_status, lang)
+                          : copy.available}
+                      </span>
+                    ) : null}
+
+                    {p.is_urgent ? (
+                      <span className="badge" style={urgentBadgeStyle()}>
+                        ⚡ {copy.urgent}
                       </span>
                     ) : null}
 
@@ -901,6 +1124,36 @@ export default function Feed({ lang: langProp = 'en' }) {
                         <span className="badge">
                           {copy.start}: {new Date(p.start_date).toLocaleDateString()}
                         </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {isSupport && (p.service_tags?.length > 0 || p.equipment_tags?.length > 0) ? (
+                    <div style={{ marginTop: 14 }}>
+                      {p.service_tags?.length > 0 ? (
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                          <span className="badge" style={{ background: '#111111', color: '#ffffff' }}>
+                            {copy.serviceTags}
+                          </span>
+                          {p.service_tags.map((tag) => (
+                            <span key={`${p.id}-service-${tag}`} className="badge">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      {p.equipment_tags?.length > 0 ? (
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          <span className="badge" style={{ background: '#f1e7a8', color: '#111111' }}>
+                            {copy.equipmentTags}
+                          </span>
+                          {p.equipment_tags.map((tag) => (
+                            <span key={`${p.id}-equip-${tag}`} className="badge">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
                       ) : null}
                     </div>
                   ) : null}
