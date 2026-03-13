@@ -87,9 +87,9 @@ const COPY = {
     emailRequired: 'Enter a valid email address.',
     passwordRequired: 'Password must be at least 6 characters.',
     signUpSuccess: 'Your account is ready.',
-    stageTitle1: 'Your identity',
-    stageTitle2: 'Your trade',
-    stageTitle3: 'Your area and login',
+    stageTitle1: 'Your Name',
+    stageTitle2: 'Your Trade',
+    stageTitle3: 'Your Area and Login',
     stageBody1: 'Start with your name so people know who is entering the network.',
     stageBody2: 'Choose the trade that best matches the work you do most often.',
     stageBody3:
@@ -164,9 +164,9 @@ const COPY = {
     emailRequired: 'Ingresa un correo válido.',
     passwordRequired: 'La contraseña debe tener al menos 6 caracteres.',
     signUpSuccess: 'Tu cuenta está lista.',
-    stageTitle1: 'Tu identidad',
-    stageTitle2: 'Tu oficio',
-    stageTitle3: 'Tu zona y acceso',
+    stageTitle1: 'Tu Nombre',
+    stageTitle2: 'Tu Oficio',
+    stageTitle3: 'Tu Zona y Acceso',
     stageBody1:
       'Empieza con tu nombre para que la gente sepa quién está entrando a la red.',
     stageBody2:
@@ -240,6 +240,27 @@ function StepPill({ active, complete, number, label }) {
         {complete ? 'Done' : `0${number}`}
       </div>
       <div style={{ marginTop: 6, fontWeight: 800, lineHeight: 1.2 }}>{label}</div>
+    </div>
+  )
+}
+
+function LanguageToggle({ lang, setLang, copy }) {
+  return (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <button
+        type="button"
+        className={lang === 'en' ? 'btn primary small' : 'btn small'}
+        onClick={() => setLang('en')}
+      >
+        {copy.languageEnglish}
+      </button>
+      <button
+        type="button"
+        className={lang === 'es' ? 'btn primary small' : 'btn small'}
+        onClick={() => setLang('es')}
+      >
+        {copy.languageSpanish}
+      </button>
     </div>
   )
 }
@@ -327,8 +348,7 @@ export default function Auth({ lang = 'en', setLang }) {
     setSearchParams({ mode: normalized }, { replace: true })
   }
 
-  function handleLanguageChange(e) {
-    const nextLang = e.target.value
+  function handleLanguageChange(nextLang) {
     if (typeof setLang === 'function') setLang(nextLang)
   }
 
@@ -551,14 +571,11 @@ export default function Auth({ lang = 'en', setLang }) {
             </div>
           </div>
 
-          <div style={{ minWidth: 160 }}>
-            <div className="muted" style={{ marginBottom: 6 }}>
+          <div>
+            <div className="muted" style={{ marginBottom: 8 }}>
               {copy.languageLabel}
             </div>
-            <select className="input" value={lang} onChange={handleLanguageChange}>
-              <option value="en">{copy.languageEnglish}</option>
-              <option value="es">{copy.languageSpanish}</option>
-            </select>
+            <LanguageToggle lang={lang} setLang={handleLanguageChange} copy={copy} />
           </div>
         </div>
       </div>

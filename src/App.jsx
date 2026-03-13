@@ -26,6 +26,34 @@ function usePreferredLanguage() {
   return [lang, setLang]
 }
 
+function LanguageToggle({ lang, setLang }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        gap: 8,
+        alignItems: 'center',
+        flexWrap: 'wrap'
+      }}
+    >
+      <button
+        type="button"
+        className={lang === 'en' ? 'btn primary small' : 'btn small'}
+        onClick={() => setLang('en')}
+      >
+        English
+      </button>
+      <button
+        type="button"
+        className={lang === 'es' ? 'btn primary small' : 'btn small'}
+        onClick={() => setLang('es')}
+      >
+        Español
+      </button>
+    </div>
+  )
+}
+
 function AppShell({ lang, setLang }) {
   const location = useLocation()
   const [session, setSession] = useState(null)
@@ -193,20 +221,7 @@ function AppShell({ lang, setLang }) {
               justifyContent: 'flex-end'
             }}
           >
-            <select
-              className="input"
-              value={lang}
-              onChange={(e) => setLang(e.target.value)}
-              style={{
-                width: 112,
-                minWidth: 112,
-                paddingTop: 10,
-                paddingBottom: 10
-              }}
-            >
-              <option value="en">English</option>
-              <option value="es">Español</option>
-            </select>
+            <LanguageToggle lang={lang} setLang={setLang} />
 
             {session ? (
               <button className="btn" onClick={handleSignOut}>
