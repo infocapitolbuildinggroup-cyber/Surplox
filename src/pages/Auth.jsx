@@ -4,8 +4,57 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 
 const GENERAL_CONSTRUCTION_OPTION = {
   id: 'general-construction',
-  name: 'General Construction'
+  name: 'General Construction',
+  section: 'trade'
 }
+
+const JOBSITE_SUPPORT_SIGNUP_OPTIONS = [
+  {
+    id: 'support:material_delivery',
+    section: 'jobsite_support',
+    label: {
+      en: 'Material Delivery / Hot Shot',
+      es: 'Entrega de materiales / Hot Shot'
+    },
+    default_role: 'supplier',
+    service_tags: ['material_delivery', 'hot_shot'],
+    equipment_tags: [],
+    bio: {
+      en: 'Material delivery and hot shot support.',
+      es: 'Soporte de entrega de materiales y hot shot.'
+    }
+  },
+  {
+    id: 'support:cargo_van',
+    section: 'jobsite_support',
+    label: {
+      en: 'Cargo Van / Local Delivery',
+      es: 'Cargo van / entrega local'
+    },
+    default_role: 'supplier',
+    service_tags: ['material_delivery', 'last_mile_delivery', 'local_runs'],
+    equipment_tags: ['cargo_van'],
+    bio: {
+      en: 'Cargo van delivery support for local material runs and pickups.',
+      es: 'Soporte con cargo van para entregas locales y recogidas de materiales.'
+    }
+  },
+  {
+    id: 'support:equipment_fleet_repair',
+    section: 'jobsite_support',
+    label: {
+      en: 'Equipment / Fleet Repair',
+      es: 'Reparación de equipo / flota'
+    },
+    default_role: 'subcontractor',
+    service_tags: ['diesel_mechanic', 'jobsite_service'],
+    equipment_tags: ['mobile_repair_truck'],
+    bio: {
+      en: 'Field equipment and fleet repair support.',
+      es: 'Soporte de reparación de equipo y flota en campo.'
+    }
+  }
+]
 
 const CHANNEL_TRADE_FALLBACKS = [
   'Concrete & Flatwork',
@@ -30,10 +79,10 @@ const COPY = {
     signInIntro:
       'Get back to nearby opportunities, crew activity, alerts, profile visibility, and local construction connections.',
     signUpIntro:
-      'Fast signup for workers, crews, and local trade connections. Get into the app first and finish the rest later.',
+      'Fast signup for workers, crews, trade pros, delivery support, and repair support. Get into the app first and finish the rest later.',
     previewTitle: 'Quick Setup',
     previewBody:
-      'Surplox gets workers in quickly: name, trade, ZIP, then straight into the feed.',
+      'Surplox gets workers in quickly: name, trade or support lane, ZIP, then straight into the feed.',
     previewBullet1: 'Join in a few taps',
     previewBullet2: 'Find crews and nearby work',
     previewBullet3: 'Finish the rest later',
@@ -62,26 +111,30 @@ const COPY = {
     point2Body:
       'Post labor needs, discover available workers, and move faster when it is time to fill jobs.',
     point3Title: 'Profiles that carry weight',
-    point3Body: 'Show your trade and area so the right people can find you.',
+    point3Body: 'Show your trade or support lane and area so the right people can find you.',
     point4Title: 'Alerts and repeat connections',
     point4Body:
       'Stay on top of replies, joins, hires, and local activity that can turn into future work.',
-    footer: 'Built for laborers, subcontractors, contractors, and suppliers.',
+    footer: 'Built for laborers, subcontractors, contractors, suppliers, delivery support, and repair support.',
     step: 'Step',
     next: 'Next',
     back: 'Back',
     finish: 'Enter Surplox',
     nameLabel: 'What’s your name?',
     namePlaceholder: 'Juan Martinez',
-    tradeLabel: 'What trade do you work in?',
-    tradePlaceholder: 'Select your trade',
+    tradeLabel: 'What trade or support work do you do?',
+    tradePlaceholder: 'Select your trade or support lane',
     generalConstruction: 'General Construction',
     tradesLoading: 'Loading trades…',
     tradesUnavailable:
       'Trades unavailable right now. Showing Surplox default trades.',
+    tradesGroup: 'Trades',
+    jobsiteSupportGroup: 'Jobsite Support',
+    supportAccountsHint:
+      'Delivery and repair operators can sign up here too. Pick the support lane that matches your work.',
     zipLabel: 'What ZIP do you usually work in?',
     zipPlaceholder: '76102',
-    tradeRequired: 'Select your trade.',
+    tradeRequired: 'Select your trade or support lane.',
     zipRequired: 'Enter a valid 5-digit ZIP code.',
     nameRequired: 'Enter your name.',
     emailRequired: 'Enter a valid email address.',
@@ -91,7 +144,8 @@ const COPY = {
     stageTitle2: 'Your Trade',
     stageTitle3: 'Your Area and Login',
     stageBody1: 'Start with your name so people know who is entering the network.',
-    stageBody2: 'Choose the trade that best matches the work you do most often.',
+    stageBody2:
+      'Choose the trade or support lane that best matches the work you do most often, including delivery and repair support.',
     stageBody3:
       'Finish with your ZIP, email, and password so Surplox can place you into the right local feed.',
     alreadyInside: 'Already in Surplox?',
@@ -107,10 +161,10 @@ const COPY = {
     signInIntro:
       'Vuelve a oportunidades cercanas, actividad de cuadrillas, alertas, visibilidad de perfil y conexiones locales de construcción.',
     signUpIntro:
-      'Registro rápido para trabajadores, cuadrillas y conexiones locales del oficio. Entra a la app primero y completa lo demás después.',
+      'Registro rápido para trabajadores, cuadrillas, oficios, soporte de entrega y soporte de reparación. Entra a la app primero y completa lo demás después.',
     previewTitle: 'Configuración rápida',
     previewBody:
-      'Surplox permite entrar rápido: nombre, oficio, ZIP y directo al feed.',
+      'Surplox permite entrar rápido: nombre, oficio o tipo de soporte, ZIP y directo al feed.',
     previewBullet1: 'Únete en pocos toques',
     previewBullet2: 'Encuentra cuadrillas y trabajo cercano',
     previewBullet3: 'Completa lo demás después',
@@ -139,26 +193,30 @@ const COPY = {
     point2Body:
       'Publica necesidades de personal, descubre trabajadores disponibles y avanza más rápido al llenar puestos.',
     point3Title: 'Perfiles con peso',
-    point3Body: 'Muestra tu oficio y tu zona para que la gente correcta te encuentre.',
+    point3Body: 'Muestra tu oficio o tipo de soporte y tu zona para que la gente correcta te encuentre.',
     point4Title: 'Alertas y conexiones repetidas',
     point4Body:
       'Mantente al tanto de respuestas, uniones, contrataciones y actividad local que puede convertirse en trabajo futuro.',
-    footer: 'Hecho para trabajadores, subcontratistas, contratistas y proveedores.',
+    footer: 'Hecho para trabajadores, subcontratistas, contratistas, proveedores, soporte de entrega y soporte de reparación.',
     step: 'Paso',
     next: 'Siguiente',
     back: 'Atrás',
     finish: 'Entrar a Surplox',
     nameLabel: '¿Cómo te llamas?',
     namePlaceholder: 'Juan Martinez',
-    tradeLabel: '¿Qué oficio trabajas?',
-    tradePlaceholder: 'Selecciona tu oficio',
+    tradeLabel: '¿Qué oficio o trabajo de soporte haces?',
+    tradePlaceholder: 'Selecciona tu oficio o tipo de soporte',
     generalConstruction: 'Construcción general',
     tradesLoading: 'Cargando oficios…',
     tradesUnavailable:
       'Los oficios no están disponibles en este momento. Mostrando oficios predeterminados de Surplox.',
+    tradesGroup: 'Oficios',
+    jobsiteSupportGroup: 'Soporte de obra',
+    supportAccountsHint:
+      'Los operadores de entrega y reparación también pueden registrarse aquí. Elige el tipo de soporte que mejor coincida con tu trabajo.',
     zipLabel: '¿En qué ZIP trabajas normalmente?',
     zipPlaceholder: '76102',
-    tradeRequired: 'Selecciona tu oficio.',
+    tradeRequired: 'Selecciona tu oficio o tipo de soporte.',
     zipRequired: 'Ingresa un ZIP válido de 5 dígitos.',
     nameRequired: 'Ingresa tu nombre.',
     emailRequired: 'Ingresa un correo válido.',
@@ -170,7 +228,7 @@ const COPY = {
     stageBody1:
       'Empieza con tu nombre para que la gente sepa quién está entrando a la red.',
     stageBody2:
-      'Elige el oficio que mejor representa el trabajo que haces más seguido.',
+      'Elige el oficio o tipo de soporte que mejor representa el trabajo que haces más seguido, incluyendo entrega y reparación.',
     stageBody3:
       'Termina con tu ZIP, correo y contraseña para que Surplox te coloque en el feed local correcto.',
     alreadyInside: '¿Ya estás en Surplox?',
@@ -185,12 +243,14 @@ function normalizeMode(value) {
   return value === 'signin' ? 'signin' : 'signup'
 }
 
-function dedupeTradeOptions(dynamicTrades) {
+function buildTradeOptions(dynamicTrades) {
   const seen = new Set()
   const result = []
 
   const addOption = (option) => {
-    const key = String(option.name || '').trim().toLowerCase()
+    const label =
+      option.name || option.label?.en || option.label?.es || option.id || Math.random().toString(36)
+    const key = String(label).trim().toLowerCase()
     if (!key || seen.has(key)) return
     seen.add(key)
     result.push(option)
@@ -201,18 +261,27 @@ function dedupeTradeOptions(dynamicTrades) {
   ;(dynamicTrades || []).forEach((trade) => {
     addOption({
       id: trade.id,
-      name: trade.name
+      name: trade.name,
+      section: 'trade'
     })
   })
 
   CHANNEL_TRADE_FALLBACKS.forEach((name) => {
     addOption({
       id: `fallback:${name}`,
-      name
+      name,
+      section: 'trade'
     })
   })
 
+  JOBSITE_SUPPORT_SIGNUP_OPTIONS.forEach((option) => addOption(option))
+
   return result
+}
+
+function getOptionLabel(option, lang, copy) {
+  if (String(option.id) === GENERAL_CONSTRUCTION_OPTION.id) return copy.generalConstruction
+  return option.label?.[lang] || option.label?.en || option.name
 }
 
 function StepPill({ active, complete, number, label }) {
@@ -367,15 +436,15 @@ export default function Auth({ lang = 'en', setLang }) {
         if (error) {
           console.error(error)
           setTradesError(copy.tradesUnavailable)
-          setTradeOptions(dedupeTradeOptions([]))
+          setTradeOptions(buildTradeOptions([]))
           return
         }
 
-        setTradeOptions(dedupeTradeOptions(data || []))
+        setTradeOptions(buildTradeOptions(data || []))
       } catch (err) {
         console.error(err)
         setTradesError(copy.tradesUnavailable)
-        setTradeOptions(dedupeTradeOptions([]))
+        setTradeOptions(buildTradeOptions([]))
       } finally {
         setTradesLoading(false)
       }
@@ -392,6 +461,14 @@ export default function Auth({ lang = 'en', setLang }) {
       { title: copy.point4Title, body: copy.point4Body }
     ],
     [copy]
+  )
+
+  const groupedTradeOptions = useMemo(
+    () => ({
+      trade: tradeOptions.filter((option) => option.section === 'trade'),
+      jobsite_support: tradeOptions.filter((option) => option.section === 'jobsite_support')
+    }),
+    [tradeOptions]
   )
 
   function switchMode(nextMode) {
@@ -483,9 +560,17 @@ export default function Auth({ lang = 'en', setLang }) {
     }
   }
 
-  async function resolveTradeId(selectedTradeValue) {
+  async function resolveTradeSelection(selectedTradeValue) {
     if (selectedTradeValue === GENERAL_CONSTRUCTION_OPTION.id) {
-      return { tradeId: null, isGeneralConstruction: true }
+      return {
+        tradeId: null,
+        isGeneralConstruction: true,
+        categoryGroup: 'trade',
+        role: 'laborer',
+        serviceTags: [],
+        equipmentTags: [],
+        bio: copy.generalConstruction
+      }
     }
 
     const exactOption = tradeOptions.find(
@@ -493,13 +578,38 @@ export default function Auth({ lang = 'en', setLang }) {
     )
 
     if (!exactOption) {
-      return { tradeId: null, isGeneralConstruction: false }
+      return {
+        tradeId: null,
+        isGeneralConstruction: false,
+        categoryGroup: 'trade',
+        role: 'laborer',
+        serviceTags: [],
+        equipmentTags: [],
+        bio: ''
+      }
+    }
+
+    if (exactOption.section === 'jobsite_support') {
+      return {
+        tradeId: null,
+        isGeneralConstruction: false,
+        categoryGroup: 'jobsite_support',
+        role: exactOption.default_role || 'supplier',
+        serviceTags: exactOption.service_tags || [],
+        equipmentTags: exactOption.equipment_tags || [],
+        bio: exactOption.bio?.[lang] || exactOption.bio?.en || ''
+      }
     }
 
     if (!String(exactOption.id).startsWith('fallback:')) {
       return {
         tradeId: Number(exactOption.id),
-        isGeneralConstruction: false
+        isGeneralConstruction: false,
+        categoryGroup: 'trade',
+        role: 'laborer',
+        serviceTags: [],
+        equipmentTags: [],
+        bio: ''
       }
     }
 
@@ -516,7 +626,12 @@ export default function Auth({ lang = 'en', setLang }) {
 
     return {
       tradeId: Number(resolvedTrade.id),
-      isGeneralConstruction: false
+      isGeneralConstruction: false,
+      categoryGroup: 'trade',
+      role: 'laborer',
+      serviceTags: [],
+      equipmentTags: [],
+      bio: ''
     }
   }
 
@@ -556,19 +671,29 @@ export default function Auth({ lang = 'en', setLang }) {
       const firstName = nameParts[0] || rawName
       const lastName = nameParts.slice(1).join(' ')
 
-      const { tradeId, isGeneralConstruction } = await resolveTradeId(signUpForm.trade_id)
+      const {
+        tradeId,
+        categoryGroup,
+        role,
+        serviceTags,
+        equipmentTags,
+        bio
+      } = await resolveTradeSelection(signUpForm.trade_id)
 
       const { error: profileError } = await supabase.from('profiles').upsert({
         user_id: user.id,
         display_name: rawName,
         first_name: firstName,
         last_name: lastName,
-        role: 'laborer',
+        role,
         trade_id: tradeId,
         travel_radius_miles: 50,
         crew_size: 1,
-        bio: isGeneralConstruction ? copy.generalConstruction : '',
-        preferred_language: lang
+        bio,
+        preferred_language: lang,
+        category_group: categoryGroup,
+        service_tags: serviceTags,
+        equipment_tags: equipmentTags
       })
 
       if (profileError) throw profileError
@@ -760,14 +885,31 @@ export default function Auth({ lang = 'en', setLang }) {
                 disabled={tradesLoading}
               >
                 <option value="">{tradesLoading ? copy.tradesLoading : copy.tradePlaceholder}</option>
-                {tradeOptions.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {String(option.id) === GENERAL_CONSTRUCTION_OPTION.id
-                      ? copy.generalConstruction
-                      : option.name}
-                  </option>
-                ))}
+
+                {groupedTradeOptions.trade.length > 0 ? (
+                  <optgroup label={copy.tradesGroup}>
+                    {groupedTradeOptions.trade.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {getOptionLabel(option, lang, copy)}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+
+                {groupedTradeOptions.jobsite_support.length > 0 ? (
+                  <optgroup label={copy.jobsiteSupportGroup}>
+                    {groupedTradeOptions.jobsite_support.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {getOptionLabel(option, lang, copy)}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
               </select>
+
+              <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
+                {copy.supportAccountsHint}
+              </div>
 
               {tradesError ? (
                 <div className="card-message" style={{ marginTop: 12, padding: 14, borderRadius: 18 }}>
@@ -785,10 +927,10 @@ export default function Auth({ lang = 'en', setLang }) {
                 </div>
                 <input
                   className="input"
+                  inputMode="numeric"
                   value={signUpForm.home_zip}
                   placeholder={copy.zipPlaceholder}
-                  onChange={(e) => setSignUpField('home_zip', e.target.value)}
-                  inputMode="numeric"
+                  onChange={(e) => setSignUpField('home_zip', e.target.value.replace(/\D/g, '').slice(0, 5))}
                 />
               </div>
 
@@ -826,18 +968,13 @@ export default function Auth({ lang = 'en', setLang }) {
             </div>
           ) : null}
 
-          <div className="row" style={{ marginTop: 16 }}>
+          <div className="row" style={{ marginTop: 18 }}>
             {step > 1 ? (
               <button className="btn" type="button" onClick={goBack} disabled={loading}>
                 {copy.back}
               </button>
             ) : (
-              <button
-                className="btn"
-                type="button"
-                onClick={() => switchMode('signin')}
-                disabled={loading}
-              >
+              <button className="btn" type="button" onClick={() => switchMode('signin')} disabled={loading}>
                 {copy.switchToSignIn}
               </button>
             )}
@@ -857,95 +994,65 @@ export default function Auth({ lang = 'en', setLang }) {
     </div>
   )
 
-  const marketingPanel = (
-    <div
-      className="card rounded-xl"
-      style={{
-        padding: 28,
-        background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
-      }}
-    >
-      <div
-        className="badge"
-        style={{
-          marginBottom: 16,
-          background: '#f1e7a8'
-        }}
-      >
-        {copy.sideBadge}
-      </div>
-
-      <div className="h1" style={{ maxWidth: 640 }}>
-        {copy.sideTitle}
-      </div>
-
-      <p className="muted" style={{ marginTop: 14, fontSize: 17, lineHeight: 1.7 }}>
-        {copy.sideBody}
-      </p>
-
-      <div className="grid" style={{ marginTop: 18 }}>
-        {points.map((point) => (
-          <div
-            key={point.title}
-            className="card-soft"
-            style={{
-              padding: 18,
-              background: 'rgba(255,255,255,0.58)'
-            }}
-          >
-            <div className="card-section-title" style={{ fontSize: 17 }}>
-              {point.title}
-            </div>
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-              {point.body}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <div
-        className="card surface-dark rounded-xl"
-        style={{
-          marginTop: 18,
-          padding: 20
-        }}
-      >
-        <div className="card-section-title" style={{ color: '#ffffff' }}>
-          {copy.previewTitle}
-        </div>
-        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-          {copy.previewBody}
-        </p>
-
-        <div className="grid two" style={{ marginTop: 14 }}>
-          <div className="card-soft" style={{ background: 'rgba(255,255,255,0.1)' }}>
-            <div style={{ fontWeight: 800 }}>{copy.previewBullet1}</div>
-          </div>
-          <div className="card-soft" style={{ background: 'rgba(255,255,255,0.1)' }}>
-            <div style={{ fontWeight: 800 }}>{copy.previewBullet2}</div>
-          </div>
-          <div className="card-soft" style={{ background: 'rgba(255,255,255,0.1)' }}>
-            <div style={{ fontWeight: 800 }}>{copy.previewBullet3}</div>
-          </div>
-          <div className="card-soft" style={{ background: 'rgba(255,255,255,0.1)' }}>
-            <div style={{ fontWeight: 800 }}>
-              {copy.previewFree} {copy.previewTexas}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <p className="footerNote" style={{ textAlign: 'left', marginTop: 18 }}>
-        {copy.footer}
-      </p>
-    </div>
-  )
-
   return (
-    <div className="grid" style={{ gap: 18 }}>
-      <div className="grid two" style={{ alignItems: 'start' }}>
-        {authPanel}
-        {marketingPanel}
+    <div className="grid two" style={{ alignItems: 'start' }}>
+      <div>{authPanel}</div>
+
+      <div className="grid" style={{ gap: 16 }}>
+        <div
+          className="card rounded-xl surface-dark"
+          style={{
+            padding: 28,
+            minHeight: 240
+          }}
+        >
+          <div className="badge" style={{ background: 'rgba(255,255,255,0.14)', color: '#ffffff' }}>
+            {copy.sideBadge}
+          </div>
+
+          <div className="h1" style={{ marginTop: 18, color: '#ffffff' }}>
+            {copy.sideTitle}
+          </div>
+
+          <p style={{ color: 'rgba(255,255,255,0.76)', lineHeight: 1.75, fontSize: 16, maxWidth: 620 }}>
+            {copy.sideBody}
+          </p>
+        </div>
+
+        <div className="grid two">
+          {points.map((point) => (
+            <div key={point.title} className="card-soft rounded-lg" style={{ minHeight: 148 }}>
+              <div className="card-section-title">{point.title}</div>
+              <p className="card-section-subtitle">{point.body}</p>
+            </div>
+          ))}
+        </div>
+
+        <div
+          className="card rounded-xl"
+          style={{
+            padding: 28,
+            background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
+          }}
+        >
+          <div className="badge good">{copy.previewTitle}</div>
+          <div className="h1" style={{ marginTop: 18 }}>
+            {copy.previewBody}
+          </div>
+
+          <div className="grid" style={{ marginTop: 16 }}>
+            <div className="card-soft rounded-lg">{copy.previewBullet1}</div>
+            <div className="card-soft rounded-lg">{copy.previewBullet2}</div>
+            <div className="card-soft rounded-lg">{copy.previewBullet3}</div>
+          </div>
+
+          <div className="row" style={{ marginTop: 18 }}>
+            <div className="badge">{copy.previewFree}</div>
+            <div className="badge">{copy.previewTexas}</div>
+          </div>
+        </div>
+
+        <div className="footerNote">{copy.footer}</div>
       </div>
     </div>
   )
