@@ -13,48 +13,16 @@ function roleLabel(role) {
 }
 
 function roleBadgeStyle(role) {
-  if (role === 'contractor') {
-    return {
-      color: '#ffde59',
-      borderColor: 'rgba(255, 117, 31, 0.55)',
-      background: 'rgba(255, 117, 31, 0.12)'
-    }
-  }
-
-  if (role === 'subcontractor') {
-    return {
-      color: '#ff751f',
-      borderColor: 'rgba(255, 222, 89, 0.55)',
-      background: 'rgba(255, 222, 89, 0.12)'
-    }
-  }
-
-  if (role === 'laborer') {
-    return {
-      color: '#ffde59',
-      borderColor: 'rgba(255, 222, 89, 0.35)',
-      background: 'rgba(255, 222, 89, 0.05)'
-    }
-  }
-
-  if (role === 'supplier') {
-    return {
-      color: '#ffd6b5',
-      borderColor: 'rgba(255, 117, 31, 0.4)',
-      background: 'rgba(255, 117, 31, 0.08)'
-    }
-  }
-
+  if (role === 'contractor') return { background: '#111111', color: '#ffffff' }
+  if (role === 'subcontractor') return { background: '#fff0b4', color: '#111111' }
+  if (role === 'laborer') return { background: '#ecebe3', color: '#111111' }
+  if (role === 'supplier') return { background: '#ffd7b0', color: '#111111' }
   return {}
 }
 
 function availabilityBadgeStyle(isAvailable) {
   if (!isAvailable) return {}
-  return {
-    color: '#ff751f',
-    borderColor: 'rgba(255, 222, 89, 0.65)',
-    background: 'rgba(255, 222, 89, 0.14)'
-  }
+  return { background: '#dcf4e5', color: '#177245' }
 }
 
 function postTypeLabel(type) {
@@ -68,6 +36,30 @@ function relationshipLabel(type) {
   if (type === 'joined_crew_post') return 'Joined Crew'
   if (type === 'replied_to_post') return 'Replied to Post'
   return 'Connected'
+}
+
+function StatCard({ label, value, dark = false }) {
+  return (
+    <div
+      className={dark ? 'card surface-dark rounded-xl' : 'card-soft'}
+      style={{ minHeight: 112, padding: 18 }}
+    >
+      <div
+        style={{
+          fontSize: 12,
+          fontWeight: 800,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          color: dark ? 'rgba(255,255,255,0.72)' : 'var(--muted-soft)'
+        }}
+      >
+        {label}
+      </div>
+      <div style={{ marginTop: 10, fontSize: 30, fontWeight: 900, lineHeight: 1 }}>
+        {value}
+      </div>
+    </div>
+  )
 }
 
 export default function WorkerProfile() {
@@ -273,9 +265,25 @@ export default function WorkerProfile() {
   }
 
   return (
-    <div className="grid" style={{ gap: 12 }}>
-      <div className="card">
-        <div className="postMeta" style={{ marginBottom: 10 }}>
+    <div className="grid" style={{ gap: 18 }}>
+      {msg ? (
+        <div className="card-message" style={{ padding: 14, borderRadius: 18 }}>
+          {msg}
+        </div>
+      ) : null}
+
+      <div
+        className="card rounded-xl"
+        style={{
+          padding: 28,
+          background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
+        }}
+      >
+        <div className="badge" style={{ marginBottom: 14, background: '#f1e7a8' }}>
+          Worker profile
+        </div>
+
+        <div className="postMeta" style={{ marginBottom: 12 }}>
           <span className="badge" style={roleBadgeStyle(profile.role)}>
             {roleLabel(profile.role)}
           </span>
@@ -289,15 +297,21 @@ export default function WorkerProfile() {
           )}
         </div>
 
-        <div className="h1" style={{ marginTop: 0 }}>{profile.display_name || 'Unknown Member'}</div>
+        <div className="h1" style={{ marginTop: 0 }}>
+          {profile.display_name || 'Unknown Member'}
+        </div>
 
-        <div className="grid two" style={{ marginTop: 10 }}>
-          <div className="card card-soft">
+        <p className="muted" style={{ marginTop: 10, maxWidth: 760, fontSize: 17, lineHeight: 1.7 }}>
+          A cleaner reputation-first Surplox profile view built for rehiring, crew decisions, and trusted repeat connections.
+        </p>
+
+        <div className="grid two" style={{ marginTop: 18 }}>
+          <div className="card-soft">
             <div className="card-section-title" style={{ fontSize: 15 }}>Home ZIP</div>
             <div className="muted" style={{ marginTop: 6 }}>{profile.home_zip || 'Not set'}</div>
           </div>
 
-          <div className="card card-soft">
+          <div className="card-soft">
             <div className="card-section-title" style={{ fontSize: 15 }}>Travel Radius</div>
             <div className="muted" style={{ marginTop: 6 }}>
               {profile.travel_radius_miles ? `${profile.travel_radius_miles} miles` : 'Not set'}
@@ -305,7 +319,7 @@ export default function WorkerProfile() {
           </div>
         </div>
 
-        <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {isOwnProfile ? (
             <button className="btn primary" onClick={toggleAvailability} disabled={savingAvailability}>
               {savingAvailability
@@ -322,55 +336,40 @@ export default function WorkerProfile() {
         </div>
 
         {copyMsg ? (
-          <div className="card card-soft" style={{ marginTop: 12 }}>
+          <div className="card-soft" style={{ marginTop: 14 }}>
             {copyMsg}
           </div>
         ) : null}
       </div>
 
-      <div className="card">
+      <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">Reputation Graph</div>
-        <p className="card-section-subtitle">
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
           These stats build from crew joins, hires, replies, and network connections.
         </p>
 
-        <div className="grid two" style={{ marginTop: 12 }}>
-          <div className="card card-soft">
-            <div className="card-section-title" style={{ fontSize: 15 }}>Crews Joined</div>
-            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{stats.crewsJoined}</div>
-          </div>
-
-          <div className="card card-soft">
-            <div className="card-section-title" style={{ fontSize: 15 }}>Marked Hired</div>
-            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{stats.hiredCount}</div>
-          </div>
-
-          <div className="card card-soft">
-            <div className="card-section-title" style={{ fontSize: 15 }}>Replies Made</div>
-            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{stats.repliesMade}</div>
-          </div>
-
-          <div className="card card-soft">
-            <div className="card-section-title" style={{ fontSize: 15 }}>Network Connections</div>
-            <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>{stats.networkCount}</div>
-          </div>
+        <div className="grid two" style={{ marginTop: 14 }}>
+          <StatCard label="Crews Joined" value={stats.crewsJoined} dark />
+          <StatCard label="Marked Hired" value={stats.hiredCount} />
+          <StatCard label="Replies Made" value={stats.repliesMade} />
+          <StatCard label="Network Connections" value={stats.networkCount} />
         </div>
       </div>
 
-      <div className="card">
+      <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">Worked With</div>
-        <p className="card-section-subtitle">
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
           These are people connected through crew joins, hiring, and post activity.
         </p>
 
         {workedWith.length === 0 ? (
-          <div className="card card-soft" style={{ marginTop: 12 }}>
+          <div className="card-soft" style={{ marginTop: 14 }}>
             <div className="muted">No worked-with connections yet.</div>
           </div>
         ) : (
-          <div className="list" style={{ marginTop: 12 }}>
+          <div className="list" style={{ marginTop: 14 }}>
             {workedWith.map((person) => (
-              <div key={person.user_id} className="card card-soft">
+              <div key={person.user_id} className="card-soft" style={{ background: '#ffffff' }}>
                 <div
                   style={{
                     display: 'flex',
@@ -382,7 +381,9 @@ export default function WorkerProfile() {
                 >
                   <div>
                     <div className="postMeta">
-                      <Link to={`/u/${person.user_id}`}>{person.display_name}</Link>
+                      <Link to={`/u/${person.user_id}`} style={{ fontWeight: 800, color: 'var(--text)' }}>
+                        {person.display_name}
+                      </Link>
 
                       {person.role ? (
                         <span className="badge" style={roleBadgeStyle(person.role)}>
@@ -424,20 +425,20 @@ export default function WorkerProfile() {
         )}
       </div>
 
-      <div className="card">
+      <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">Recent Activity</div>
-        <p className="card-section-subtitle">
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
           Most recent posts from this worker profile.
         </p>
 
         {recentPosts.length === 0 ? (
-          <div className="card card-soft" style={{ marginTop: 12 }}>
+          <div className="card-soft" style={{ marginTop: 14 }}>
             <div className="muted">No recent posts yet.</div>
           </div>
         ) : (
-          <div className="list" style={{ marginTop: 12 }}>
+          <div className="list" style={{ marginTop: 14 }}>
             {recentPosts.map((post) => (
-              <Link key={post.id} to={`/p/${post.id}`} className="card card-soft">
+              <Link key={post.id} to={`/p/${post.id}`} className="card-soft" style={{ background: '#ffffff' }}>
                 <div className="postMeta">
                   <span className="badge">{postTypeLabel(post.post_type)}</span>
                   {post.post_type === 'need_crew' ? (
@@ -446,7 +447,7 @@ export default function WorkerProfile() {
                   <span>{new Date(post.created_at).toLocaleString()}</span>
                 </div>
 
-                <div className="postTitle" style={{ marginTop: 8 }}>
+                <div style={{ marginTop: 10, fontWeight: 900, fontSize: 18, lineHeight: 1.2 }}>
                   {post.title}
                 </div>
               </Link>
@@ -454,8 +455,6 @@ export default function WorkerProfile() {
           </div>
         )}
       </div>
-
-      {msg ? <div className="card card-message">{msg}</div> : null}
     </div>
   )
 }

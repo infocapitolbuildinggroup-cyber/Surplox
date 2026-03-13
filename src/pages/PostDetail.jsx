@@ -57,114 +57,60 @@ function crewStatusLabel(status, lang) {
 }
 
 function crewStatusBadgeStyle(status) {
-  if (status === 'full') {
-    return {
-      color: '#ff751f',
-      borderColor: 'rgba(255, 222, 89, 0.65)',
-      background: 'rgba(255, 222, 89, 0.14)'
-    }
-  }
-
-  if (status === 'closed') {
-    return {
-      color: '#ffde59',
-      borderColor: 'rgba(255, 117, 31, 0.55)',
-      background: 'rgba(255, 117, 31, 0.12)'
-    }
-  }
-
-  return {
-    color: '#ff751f',
-    borderColor: 'rgba(255, 222, 89, 0.4)',
-    background: 'rgba(255, 222, 89, 0.06)'
-  }
+  if (status === 'full') return { background: '#fff0b4', color: '#111111' }
+  if (status === 'closed') return { background: '#111111', color: '#ffffff' }
+  return { background: '#ecebe3', color: '#111111' }
 }
 
 function getPostTypeStyles(type) {
   if (type === 'need_crew') {
     return {
-      card: {
-        borderColor: 'rgba(255, 222, 89, 0.55)',
-        background: 'rgba(255, 222, 89, 0.08)',
-        boxShadow: '0 0 16px rgba(255, 222, 89, 0.12)'
+      shell: {
+        background: 'linear-gradient(180deg, #fff7cf 0%, #ffffff 100%)'
       },
       badge: {
-        color: '#ff751f',
-        borderColor: 'rgba(255, 222, 89, 0.65)',
-        background: 'rgba(255, 222, 89, 0.14)',
-        boxShadow: '0 0 10px rgba(255, 222, 89, 0.18)'
-      }
+        background: '#ffde59',
+        color: '#111111'
+      },
+      accent: '#ffde59'
     }
   }
 
   if (type === 'looking_for_work') {
     return {
-      card: {
-        borderColor: 'rgba(255, 117, 31, 0.42)',
-        background: 'rgba(255, 117, 31, 0.06)',
-        boxShadow: '0 0 14px rgba(255, 117, 31, 0.08)'
+      shell: {
+        background: 'linear-gradient(180deg, #fff1e6 0%, #ffffff 100%)'
       },
       badge: {
-        color: '#ffde59',
-        borderColor: 'rgba(255, 117, 31, 0.55)',
-        background: 'rgba(255, 117, 31, 0.12)',
-        boxShadow: '0 0 10px rgba(255, 117, 31, 0.14)'
-      }
+        background: '#ffd7b0',
+        color: '#111111'
+      },
+      accent: '#ffb067'
     }
   }
 
   return {
-    card: {},
+    shell: {
+      background: '#ffffff'
+    },
     badge: {
-      color: '#ff751f',
-      borderColor: 'rgba(255, 222, 89, 0.35)',
-      background: 'rgba(255, 222, 89, 0.05)'
-    }
+      background: '#ecebe3',
+      color: '#111111'
+    },
+    accent: '#d9d7cc'
   }
 }
 
 function roleBadgeStyle(role) {
-  if (role === 'contractor') {
-    return {
-      color: '#ffde59',
-      borderColor: 'rgba(255, 117, 31, 0.55)',
-      background: 'rgba(255, 117, 31, 0.12)'
-    }
-  }
-
-  if (role === 'subcontractor') {
-    return {
-      color: '#ff751f',
-      borderColor: 'rgba(255, 222, 89, 0.55)',
-      background: 'rgba(255, 222, 89, 0.12)'
-    }
-  }
-
-  if (role === 'laborer') {
-    return {
-      color: '#ffde59',
-      borderColor: 'rgba(255, 222, 89, 0.35)',
-      background: 'rgba(255, 222, 89, 0.05)'
-    }
-  }
-
-  if (role === 'supplier') {
-    return {
-      color: '#ffd6b5',
-      borderColor: 'rgba(255, 117, 31, 0.4)',
-      background: 'rgba(255, 117, 31, 0.08)'
-    }
-  }
-
+  if (role === 'contractor') return { background: '#111111', color: '#ffffff' }
+  if (role === 'subcontractor') return { background: '#fff0b4', color: '#111111' }
+  if (role === 'laborer') return { background: '#ecebe3', color: '#111111' }
+  if (role === 'supplier') return { background: '#ffd7b0', color: '#111111' }
   return {}
 }
 
 function tradeBadgeStyle() {
-  return {
-    color: '#ffde59',
-    borderColor: 'rgba(255, 222, 89, 0.4)',
-    background: 'rgba(255, 222, 89, 0.05)'
-  }
+  return { background: '#f1f1eb', color: '#111111' }
 }
 
 function memberStatusLabel(status, lang) {
@@ -175,19 +121,8 @@ function memberStatusLabel(status, lang) {
 }
 
 function memberStatusBadgeStyle(status) {
-  if (status === 'hired') {
-    return {
-      color: '#ff751f',
-      borderColor: 'rgba(255, 222, 89, 0.65)',
-      background: 'rgba(255, 222, 89, 0.14)'
-    }
-  }
-
-  return {
-    color: '#ffde59',
-    borderColor: 'rgba(255, 222, 89, 0.35)',
-    background: 'rgba(255, 222, 89, 0.05)'
-  }
+  if (status === 'hired') return { background: '#fff0b4', color: '#111111' }
+  return { background: '#ecebe3', color: '#111111' }
 }
 
 function formatPhone(phone) {
@@ -200,11 +135,7 @@ function formatPhone(phone) {
 
 function availabilityBadgeStyle(isAvailable) {
   if (!isAvailable) return null
-  return {
-    color: '#ff751f',
-    borderColor: 'rgba(255, 222, 89, 0.65)',
-    background: 'rgba(255, 222, 89, 0.14)'
-  }
+  return { background: '#dcf4e5', color: '#177245' }
 }
 
 const UI = {
@@ -282,7 +213,18 @@ const UI = {
     translating: 'Translating…',
     showOriginal: 'Show original',
     translate: 'Translate',
-    translatedVersion: 'Translated version'
+    translatedVersion: 'Translated version',
+    heroBadge: 'Post detail',
+    heroTitle: 'A cleaner post view built for action.',
+    heroBody:
+      'See the full post, reply faster, review the crew roster, and move from conversation to work without the clutter.',
+    replies: 'Replies',
+    addReply: 'Add Reply',
+    replyPlaceholder: 'Share your advice, experience, or answer here.',
+    postReply: 'Post Reply',
+    noReplies: 'No replies yet.',
+    discussionThread: 'Discussion Thread',
+    backToFeed: 'Back to Feed'
   },
   es: {
     unknownMember: 'Miembro desconocido',
@@ -306,7 +248,7 @@ const UI = {
     crewNotOpen: 'Esta solicitud de cuadrilla no está abierta.',
     crewAlreadyFull: 'Esta solicitud de cuadrilla ya está llena.',
     unableJoinCrew: 'No se pudo unir a esta cuadrilla.',
-    unableLeaveCrew: 'No se pudo salir a esta cuadrilla.',
+    unableLeaveCrew: 'No se pudo salir de esta cuadrilla.',
     unableTranslatePost: 'No se pudo traducir esta publicación.',
     unableTranslateReply: 'No se pudo traducir esta respuesta.',
     trade: 'Oficio',
@@ -358,8 +300,38 @@ const UI = {
     translating: 'Traduciendo…',
     showOriginal: 'Ver original',
     translate: 'Traducir',
-    translatedVersion: 'Versión traducida'
+    translatedVersion: 'Versión traducida',
+    heroBadge: 'Detalle de publicación',
+    heroTitle: 'Una vista más limpia para tomar acción.',
+    heroBody:
+      'Ve la publicación completa, responde más rápido, revisa la cuadrilla y pasa de conversación a trabajo sin tanto ruido.',
+    replies: 'Respuestas',
+    addReply: 'Agregar respuesta',
+    replyPlaceholder: 'Comparte tu consejo, experiencia o respuesta aquí.',
+    postReply: 'Publicar respuesta',
+    noReplies: 'Todavía no hay respuestas.',
+    discussionThread: 'Hilo de discusión',
+    backToFeed: 'Volver al feed'
   }
+}
+
+function MetaStat({ label, value }) {
+  return (
+    <div className="card-soft" style={{ minHeight: 92 }}>
+      <div
+        style={{
+          fontSize: 12,
+          fontWeight: 800,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          color: 'var(--muted-soft)'
+        }}
+      >
+        {label}
+      </div>
+      <div style={{ marginTop: 8, fontSize: 18, fontWeight: 900 }}>{value}</div>
+    </div>
+  )
 }
 
 export default function PostDetail({ lang: langProp = 'en' }) {
@@ -426,7 +398,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
         : ''
       const payPart = post.compensation ? `${copy.pay}: ${post.compensation}. ` : ''
 
-      return `Mira esta publicación de cuadrilla en Surplox: ${post.title}. ${tradePart}${zipPart}${startPart}${payPart}${getInviteUrl()}`
+      return `Mira esta publicación de Surplox: ${post.title}. ${tradePart}${zipPart}${startPart}${payPart}${getInviteUrl()}`
     }
 
     const tradePart = post.trade_name ? `Trade: ${post.trade_name}. ` : ''
@@ -436,7 +408,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
       : ''
     const payPart = post.compensation ? `Pay: ${post.compensation}. ` : ''
 
-    return `Check out this Surplox crew post: ${post.title}. ${tradePart}${zipPart}${startPart}${payPart}${getInviteUrl()}`
+    return `Check out this Surplox post: ${post.title}. ${tradePart}${zipPart}${startPart}${payPart}${getInviteUrl()}`
   }
 
   async function copyInviteLink() {
@@ -1037,7 +1009,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
     }
   }
 
-  async function handleTranslatePost() {
+  async function togglePostTranslation() {
     if (!post) return
 
     if (showTranslatedPost) {
@@ -1045,19 +1017,18 @@ export default function PostDetail({ lang: langProp = 'en' }) {
       return
     }
 
-    if (translatedPostBody) {
-      setShowTranslatedPost(true)
-      return
-    }
-
     try {
       setTranslatingPost(true)
-      const translated = await translateText({
-        text: post.body || '',
-        from: post.source_language || 'en',
-        to: lang
-      })
-      setTranslatedPostBody(translated)
+
+      if (!translatedPostBody) {
+        const translated = await translateText({
+          text: post.body || '',
+          from: post.source_language || detectLikelyLanguage(post.body || ''),
+          to: lang
+        })
+        setTranslatedPostBody(translated)
+      }
+
       setShowTranslatedPost(true)
     } catch (err) {
       console.error(err)
@@ -1067,41 +1038,34 @@ export default function PostDetail({ lang: langProp = 'en' }) {
     }
   }
 
-  async function handleTranslateComment(comment) {
-    const currentVisible = visibleTranslatedComments[comment.id]
+  async function toggleCommentTranslation(commentId) {
+    const comment = comments.find((x) => x.id === commentId)
+    if (!comment) return
 
-    if (currentVisible) {
-      setVisibleTranslatedComments((prev) => ({
-        ...prev,
-        [comment.id]: false
-      }))
-      return
-    }
-
-    if (translatedComments[comment.id]) {
-      setVisibleTranslatedComments((prev) => ({
-        ...prev,
-        [comment.id]: true
-      }))
+    if (visibleTranslatedComments[commentId]) {
+      setVisibleTranslatedComments((prev) => ({ ...prev, [commentId]: false }))
       return
     }
 
     try {
-      setTranslatingCommentId(comment.id)
-      const translated = await translateText({
-        text: comment.body || '',
-        from: comment.source_language || 'en',
-        to: lang
-      })
+      setTranslatingCommentId(commentId)
 
-      setTranslatedComments((prev) => ({
-        ...prev,
-        [comment.id]: translated
-      }))
+      if (!translatedComments[commentId]) {
+        const translated = await translateText({
+          text: comment.body || '',
+          from: comment.source_language || detectLikelyLanguage(comment.body || ''),
+          to: lang
+        })
+
+        setTranslatedComments((prev) => ({
+          ...prev,
+          [commentId]: translated
+        }))
+      }
 
       setVisibleTranslatedComments((prev) => ({
         ...prev,
-        [comment.id]: true
+        [commentId]: true
       }))
     } catch (err) {
       console.error(err)
@@ -1111,9 +1075,9 @@ export default function PostDetail({ lang: langProp = 'en' }) {
     }
   }
 
-  const shouldOfferPostTranslation = useMemo(() => {
-    return post?.body && post?.source_language !== lang
-  }, [post, lang])
+  const isOwner = useMemo(() => currentUserId && post?.author_id === currentUserId, [currentUserId, post])
+  const typeStyles = getPostTypeStyles(post?.post_type || 'discussion')
+  const postBodyToRender = showTranslatedPost ? translatedPostBody : post?.body || ''
 
   if (loading) {
     return <div className="card">{t(lang, 'detail_loading')}</div>
@@ -1121,527 +1085,478 @@ export default function PostDetail({ lang: langProp = 'en' }) {
 
   if (!post) {
     return (
-      <div className="card card-message">
+      <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{t(lang, 'detail_not_found')}</div>
-        <p className="card-section-subtitle">
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
           {msg || t(lang, 'detail_not_found_body')}
         </p>
-        <div style={{ marginTop: 12 }}>
-          <Link className="btn primary" to="/feed">{t(lang, 'detail_return_feed')}</Link>
+        <div style={{ marginTop: 14 }}>
+          <Link className="btn primary" to="/feed">
+            {t(lang, 'detail_return_feed')}
+          </Link>
         </div>
       </div>
     )
   }
 
-  const isOpportunity = post.post_type === 'need_crew' || post.post_type === 'looking_for_work'
-  const typeStyles = getPostTypeStyles(post.post_type || 'discussion')
-  const isPostOwner = currentUserId && post.author_id === currentUserId
-  const crewFilled = crewMembers.length
-  const hiredCount = crewMembers.filter((member) => member.status === 'hired').length
-  const crewStatus = post.crew_status || 'open'
-  const crewOpen = crewStatus === 'open'
-  const crewFull = crewStatus === 'full'
-  const crewClosed = crewStatus === 'closed'
-
   return (
-    <div className="grid" style={{ gap: 12 }}>
-      <div className="card" style={typeStyles.card}>
-        <div className="postMeta">
-          <span className="badge" style={typeStyles.badge}>
-            {postTypeLabel(post.post_type || 'discussion', lang)}
-          </span>
+    <div className="grid" style={{ gap: 18 }}>
+      {msg ? (
+        <div className="card-message" style={{ padding: 14, borderRadius: 18 }}>
+          {msg}
+        </div>
+      ) : null}
 
-          <span className="badge" style={tradeBadgeStyle()}>
-            {post.trade_name}
-          </span>
-
-          <span className="badge">{copy.zip} {post.center_zip}</span>
-          <span className="badge">{post.radius_miles} mi</span>
-
-          {post.author_role ? (
-            <span className="badge" style={roleBadgeStyle(post.author_role)}>
-              {roleLabel(post.author_role, lang)}
-            </span>
-          ) : null}
-
-          {post.author_available ? (
-            <span className="badge" style={availabilityBadgeStyle(true)}>
-              {copy.available}
-            </span>
-          ) : null}
-
-          {post.post_type === 'need_crew' ? (
-            <span className="badge" style={crewStatusBadgeStyle(crewStatus)}>
-              {crewStatusLabel(crewStatus, lang)}
-            </span>
-          ) : null}
-
-          <Link to={`/u/${post.author_id}`} className="badge">
-            {copy.viewProfile}
-          </Link>
-
-          <span>{t(lang, 'detail_posted_by')} {post.author_name}</span>
-          <span>•</span>
-          <span>{timeAgo(post.created_at, lang)}</span>
+      <div
+        className="card rounded-xl"
+        style={{
+          padding: 28,
+          ...typeStyles.shell
+        }}
+      >
+        <div className="badge" style={{ ...typeStyles.badge, marginBottom: 14 }}>
+          {copy.heroBadge}
         </div>
 
-        <h2 className="h2" style={{ marginTop: 10 }}>{post.title}</h2>
+        <div className="h1" style={{ maxWidth: 760 }}>
+          {copy.heroTitle}
+        </div>
 
-        {isOpportunity && (
+        <p className="muted" style={{ marginTop: 12, maxWidth: 820, fontSize: 17, lineHeight: 1.7 }}>
+          {copy.heroBody}
+        </p>
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 0, overflow: 'hidden', ...typeStyles.shell }}>
+        <div style={{ height: 6, background: typeStyles.accent }} />
+        <div style={{ padding: 24 }}>
+          <div className="postMeta" style={{ marginBottom: 12 }}>
+            <span className="badge" style={typeStyles.badge}>
+              {postTypeLabel(post.post_type || 'discussion', lang)}
+            </span>
+
+            {post.trade_name ? (
+              <span className="badge" style={tradeBadgeStyle()}>
+                {post.trade_name}
+              </span>
+            ) : null}
+
+            {post.center_zip ? (
+              <span className="badge">
+                {copy.zip} {post.center_zip}
+              </span>
+            ) : null}
+
+            {post.author_role ? (
+              <span className="badge" style={roleBadgeStyle(post.author_role)}>
+                {roleLabel(post.author_role, lang)}
+              </span>
+            ) : null}
+
+            {post.author_available ? (
+              <span className="badge" style={availabilityBadgeStyle(true)}>
+                {copy.available}
+              </span>
+            ) : null}
+
+            {post.post_type === 'need_crew' ? (
+              <span className="badge" style={crewStatusBadgeStyle(post.crew_status || 'open')}>
+                {crewStatusLabel(post.crew_status || 'open', lang)}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="h1" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', marginTop: 0 }}>
+            {post.title}
+          </div>
+
           <div
-            className="card card-soft"
             style={{
-              marginBottom: 12,
-              borderColor: post.post_type === 'need_crew'
-                ? 'rgba(255, 222, 89, 0.35)'
-                : 'rgba(255, 117, 31, 0.35)',
-              background: post.post_type === 'need_crew'
-                ? 'rgba(255, 222, 89, 0.06)'
-                : 'rgba(255, 117, 31, 0.06)'
+              display: 'flex',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              marginTop: 10
             }}
           >
-            <div className="card-section-title">
-              {post.post_type === 'need_crew' ? copy.opportunityDetails : copy.availabilityDetails}
+            <div className="postMeta">
+              <span>{t(lang, 'detail_posted_by')}</span>
+              <Link to={`/u/${post.author_id}`} style={{ fontWeight: 800, color: 'var(--text)' }}>
+                {post.author_name}
+              </Link>
+              <span>•</span>
+              <span>{timeAgo(post.created_at, lang)}</span>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-              {post.post_type === 'need_crew' && post.needed_crew_size ? (
-                <>
-                  <span className="badge">{copy.crewNeeded}: {post.needed_crew_size}</span>
-                  <span className="badge">{copy.filled}: {crewFilled}/{post.needed_crew_size}</span>
-                  <span className="badge">{copy.hired}: {hiredCount}</span>
-                </>
-              ) : null}
-
-              {post.compensation ? (
-                <span className="badge">{copy.payRate}: {post.compensation}</span>
-              ) : null}
-
-              {post.start_date ? (
-                <span className="badge">
-                  {copy.start}: {new Date(post.start_date).toLocaleDateString()}
-                </span>
-              ) : null}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Link className="btn small" to="/feed">
+                {copy.backToFeed}
+              </Link>
+              <button className="btn small" onClick={copyInviteLink}>
+                {copy.copyInviteLink}
+              </button>
+              <button className="btn small" onClick={shareInviteLink}>
+                {copy.share}
+              </button>
             </div>
-
-            {post.post_type === 'need_crew' && (
-              <div style={{ marginTop: 14 }}>
-                <div className="card-section-title" style={{ fontSize: 16 }}>
-                  {copy.crewBuilder}
-                </div>
-
-                <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-                  {copy.crewBuilderBody}
-                </p>
-
-                <div
-                  className="card"
-                  style={{
-                    marginTop: 12,
-                    borderColor: 'rgba(255, 222, 89, 0.32)',
-                    background: 'rgba(255, 222, 89, 0.05)'
-                  }}
-                >
-                  <div className="card-section-title" style={{ fontSize: 15 }}>
-                    {copy.inviteCrew}
-                  </div>
-                  <p className="card-section-subtitle" style={{ marginTop: 6 }}>
-                    {copy.inviteCrewBody}
-                  </p>
-
-                  <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    <button className="btn small primary" onClick={copyInviteLink}>
-                      {copy.copyInviteLink}
-                    </button>
-                    <button className="btn small" onClick={shareInviteLink}>
-                      {copy.share}
-                    </button>
-                    <button className="btn small" onClick={openTextInvite}>
-                      {copy.textInvite}
-                    </button>
-                    <button className="btn small" onClick={openEmailInvite}>
-                      {copy.emailInvite}
-                    </button>
-                  </div>
-
-                  <div
-                    className="card card-soft"
-                    style={{
-                      marginTop: 10,
-                      padding: 12,
-                      borderColor: 'rgba(255, 222, 89, 0.18)',
-                      background: 'rgba(255, 222, 89, 0.03)'
-                    }}
-                  >
-                    <div className="muted" style={{ wordBreak: 'break-all' }}>
-                      {getInviteUrl()}
-                    </div>
-                  </div>
-                </div>
-
-                {isPostOwner && (
-                  <div style={{ marginTop: 12 }}>
-                    <div className="card-section-title" style={{ fontSize: 15 }}>
-                      {copy.contractorControls}
-                    </div>
-
-                    <div style={{ marginTop: 10, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                      <button
-                        className="btn primary"
-                        onClick={() => updateCrewStatus('open')}
-                        disabled={crewActionLoading || crewOpen}
-                      >
-                        {crewActionLoading && crewOpen ? copy.saving : copy.markOpen}
-                      </button>
-
-                      <button
-                        className="btn"
-                        onClick={() => updateCrewStatus('full')}
-                        disabled={crewActionLoading || crewFull}
-                      >
-                        {crewActionLoading && crewFull ? copy.saving : copy.markCrewFull}
-                      </button>
-
-                      <button
-                        className="btn"
-                        onClick={() => updateCrewStatus('closed')}
-                        disabled={crewActionLoading || crewClosed}
-                      >
-                        {crewActionLoading && crewClosed ? copy.saving : copy.closePost}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  {!isPostOwner && !myCrewMembership && crewOpen && (
-                    <button className="btn primary" onClick={joinCrew} disabled={crewActionLoading}>
-                      {crewActionLoading ? copy.joining : copy.joinCrew}
-                    </button>
-                  )}
-
-                  {!isPostOwner && myCrewMembership && (
-                    <button className="btn" onClick={leaveCrew} disabled={crewActionLoading}>
-                      {crewActionLoading ? copy.leaving : copy.leaveCrew}
-                    </button>
-                  )}
-
-                  {isPostOwner && (
-                    <span className="badge">{copy.youPostedThis}</span>
-                  )}
-
-                  {crewFull && (
-                    <span className="badge">{copy.crewFull}</span>
-                  )}
-
-                  {crewClosed && (
-                    <span className="badge">{copy.postClosed}</span>
-                  )}
-                </div>
-
-                <div style={{ marginTop: 16 }}>
-                  <div className="card-section-title" style={{ fontSize: 16 }}>
-                    {copy.crewRoster}
-                  </div>
-
-                  {crewMembers.length === 0 ? (
-                    <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-                      {copy.noOneJoined}
-                    </p>
-                  ) : (
-                    <div className="list" style={{ marginTop: 10 }}>
-                      {crewMembers.map((member) => {
-                        const workedBefore = workedBeforeMap[member.user_id]
-
-                        return (
-                          <div key={member.user_id} className="card card-soft">
-                            <div
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                gap: 10,
-                                flexWrap: 'wrap',
-                                alignItems: 'flex-start'
-                              }}
-                            >
-                              <div style={{ flex: 1, minWidth: 240 }}>
-                                <div className="postMeta">
-                                  <Link to={`/u/${member.user_id}`}>{member.display_name}</Link>
-
-                                  {member.role ? (
-                                    <span className="badge" style={roleBadgeStyle(member.role)}>
-                                      {roleLabel(member.role, lang)}
-                                    </span>
-                                  ) : null}
-
-                                  {member.is_available ? (
-                                    <span className="badge" style={availabilityBadgeStyle(true)}>
-                                      {copy.available}
-                                    </span>
-                                  ) : null}
-
-                                  <span className="badge" style={memberStatusBadgeStyle(member.status)}>
-                                    {memberStatusLabel(member.status, lang)}
-                                  </span>
-
-                                  <span>{copy.joinedAt} {timeAgo(member.created_at, lang)}</span>
-                                </div>
-
-                                {workedBefore ? (
-                                  <div style={{ marginTop: 10 }}>
-                                    <span
-                                      className="badge"
-                                      style={{
-                                        color: '#ff751f',
-                                        borderColor: 'rgba(255, 222, 89, 0.65)',
-                                        background: 'rgba(255, 222, 89, 0.14)'
-                                      }}
-                                    >
-                                      {copy.workedBefore} • {workedBefore.count}
-                                    </span>
-                                  </div>
-                                ) : null}
-
-                                {isPostOwner && (
-                                  <div
-                                    className="card"
-                                    style={{
-                                      marginTop: 10,
-                                      padding: 12,
-                                      borderColor: 'rgba(255, 222, 89, 0.22)',
-                                      background: 'rgba(255, 222, 89, 0.04)'
-                                    }}
-                                  >
-                                    <div className="card-section-title" style={{ fontSize: 14, marginBottom: 8 }}>
-                                      {copy.contactCard}
-                                    </div>
-
-                                    <div className="stack-sm">
-                                      {member.phone ? (
-                                        <div className="muted">
-                                          {copy.phone}: <a href={`tel:${member.phone}`}>{formatPhone(member.phone)}</a>
-                                        </div>
-                                      ) : (
-                                        <div className="muted">{copy.phone}: {copy.notAvailable}</div>
-                                      )}
-
-                                      {member.email ? (
-                                        <div className="muted">
-                                          {copy.email}: <a href={`mailto:${member.email}`}>{member.email}</a>
-                                        </div>
-                                      ) : (
-                                        <div className="muted">{copy.email}: {copy.notAvailable}</div>
-                                      )}
-
-                                      {member.city ? (
-                                        <div className="muted">{copy.city}: {member.city}</div>
-                                      ) : (
-                                        <div className="muted">{copy.city}: {copy.notAvailable}</div>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-
-                              {isPostOwner && (
-                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                  <Link className="btn small" to={`/u/${member.user_id}`}>
-                                    {copy.viewProfile}
-                                  </Link>
-
-                                  <button
-                                    className="btn small"
-                                    onClick={() => copyWorkerProfile(member.user_id)}
-                                  >
-                                    {copy.rehireShare}
-                                  </button>
-
-                                  {member.status !== 'hired' ? (
-                                    <button
-                                      className="btn small primary"
-                                      onClick={() => updateMemberStatus(member.user_id, 'hired')}
-                                      disabled={crewActionLoading}
-                                    >
-                                      {copy.markHired}
-                                    </button>
-                                  ) : (
-                                    <button
-                                      className="btn small"
-                                      onClick={() => updateMemberStatus(member.user_id, 'joined')}
-                                      disabled={crewActionLoading}
-                                    >
-                                      {copy.moveBackToJoined}
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
-        )}
 
-        <p className="muted" style={{ whiteSpace: 'pre-wrap' }}>
-          {post.body}
-        </p>
-
-        {shouldOfferPostTranslation && (
-          <div style={{ marginTop: 10 }}>
-            <button className="btn small" onClick={handleTranslatePost} disabled={translatingPost}>
-              {translatingPost
-                ? copy.translating
-                : (showTranslatedPost ? copy.showOriginal : copy.translate)}
-            </button>
+          <div className="grid two" style={{ marginTop: 18 }}>
+            <MetaStat label="Score" value={score} />
+            <MetaStat label="Radius" value={`${post.radius_miles || 0} mi`} />
+            {post.compensation ? <MetaStat label={copy.payRate} value={post.compensation} /> : null}
+            {post.start_date ? (
+              <MetaStat
+                label={copy.start}
+                value={new Date(post.start_date).toLocaleDateString()}
+              />
+            ) : null}
+            {post.post_type === 'need_crew' && post.needed_crew_size ? (
+              <MetaStat label={copy.crewNeeded} value={post.needed_crew_size} />
+            ) : null}
+            {post.post_type === 'need_crew' ? (
+              <MetaStat label={copy.filled} value={`${crewMembers.length}`} />
+            ) : null}
           </div>
-        )}
 
-        {showTranslatedPost && translatedPostBody && (
-          <div className="card card-soft" style={{ marginTop: 12 }}>
-            <div className="card-section-title">
-              {copy.translatedVersion}
-            </div>
-            <p className="card-section-subtitle" style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>
-              {translatedPostBody}
-            </p>
-          </div>
-        )}
-
-        <hr />
-
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: 10,
-            flexWrap: 'wrap',
-            alignItems: 'center'
-          }}
-        >
-          <div className="voteBox">
-            <button className="btn small" onClick={() => vote(1)}>
+          <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button
+              className={myVote === 1 ? 'btn primary' : 'btn'}
+              onClick={() => vote(1)}
+            >
               {myVote === 1 ? t(lang, 'detail_upvoted') : t(lang, 'detail_upvote')}
             </button>
 
-            <div className="score">{score}</div>
-
-            <button className="btn small" onClick={() => vote(-1)}>
+            <button
+              className={myVote === -1 ? 'btn primary' : 'btn'}
+              onClick={() => vote(-1)}
+            >
               {myVote === -1 ? t(lang, 'detail_downvoted') : t(lang, 'detail_downvote')}
+            </button>
+
+            <button className="btn" onClick={togglePostTranslation} disabled={translatingPost}>
+              {translatingPost
+                ? copy.translating
+                : showTranslatedPost
+                  ? copy.showOriginal
+                  : copy.translate}
             </button>
           </div>
 
-          <Link className="btn small" to="/feed">
-            {t(lang, 'detail_back_feed')}
-          </Link>
-        </div>
-
-        {msg && (
-          <div className="card card-message" style={{ marginTop: 12 }}>
-            {msg}
+          <div
+            style={{
+              marginTop: 18,
+              fontSize: 15,
+              lineHeight: 1.75,
+              whiteSpace: 'pre-wrap'
+            }}
+          >
+            {postBodyToRender}
           </div>
-        )}
+
+          {showTranslatedPost ? (
+            <div className="card-soft" style={{ marginTop: 14 }}>
+              <div className="card-section-title" style={{ fontSize: 15 }}>
+                {copy.translatedVersion}
+              </div>
+            </div>
+          ) : null}
+
+          {post.post_type === 'need_crew' ? (
+            <div className="grid two" style={{ marginTop: 20 }}>
+              <div className="card-soft" style={{ background: '#fffaf0' }}>
+                <div className="card-section-title" style={{ fontSize: 16 }}>
+                  {copy.crewBuilder}
+                </div>
+                <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+                  {copy.crewBuilderBody}
+                </p>
+
+                <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {isOwner ? (
+                    <span className="badge" style={{ background: '#111111', color: '#ffffff' }}>
+                      {copy.youPostedThis}
+                    </span>
+                  ) : null}
+
+                  {!isOwner && !myCrewMembership && (post.crew_status || 'open') === 'open' ? (
+                    <button className="btn primary" onClick={joinCrew} disabled={crewActionLoading}>
+                      {crewActionLoading ? copy.joining : copy.joinCrew}
+                    </button>
+                  ) : null}
+
+                  {!isOwner && myCrewMembership ? (
+                    <button className="btn" onClick={leaveCrew} disabled={crewActionLoading}>
+                      {crewActionLoading ? copy.leaving : copy.leaveCrew}
+                    </button>
+                  ) : null}
+
+                  {(post.crew_status || 'open') === 'full' ? (
+                    <span className="badge" style={{ background: '#fff0b4', color: '#111111' }}>
+                      {copy.crewFull}
+                    </span>
+                  ) : null}
+
+                  {(post.crew_status || 'open') === 'closed' ? (
+                    <span className="badge" style={{ background: '#111111', color: '#ffffff' }}>
+                      {copy.postClosed}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="card-soft" style={{ background: '#f8f8f4' }}>
+                <div className="card-section-title" style={{ fontSize: 16 }}>
+                  {copy.inviteCrew}
+                </div>
+                <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+                  {copy.inviteCrewBody}
+                </p>
+
+                <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <button className="btn small primary" onClick={copyInviteLink}>
+                    {copy.copyInviteLink}
+                  </button>
+                  <button className="btn small" onClick={shareInviteLink}>
+                    {copy.share}
+                  </button>
+                  <button className="btn small" onClick={openTextInvite}>
+                    {copy.textInvite}
+                  </button>
+                  <button className="btn small" onClick={openEmailInvite}>
+                    {copy.emailInvite}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {isOwner && post.post_type === 'need_crew' ? (
+            <div className="card rounded-xl" style={{ marginTop: 18, padding: 22 }}>
+              <div className="card-section-title">{copy.contractorControls}</div>
+              <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button className="btn" onClick={() => updateCrewStatus('open')} disabled={crewActionLoading}>
+                  {crewActionLoading ? copy.saving : copy.markOpen}
+                </button>
+                <button className="btn" onClick={() => updateCrewStatus('full')} disabled={crewActionLoading}>
+                  {crewActionLoading ? copy.saving : copy.markCrewFull}
+                </button>
+                <button className="btn danger" onClick={() => updateCrewStatus('closed')} disabled={crewActionLoading}>
+                  {crewActionLoading ? copy.saving : copy.closePost}
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
 
-      <div className="card">
-        <div className="h1" style={{ fontSize: 20, marginTop: 0 }}>
-          {t(lang, 'detail_discussion')}
-        </div>
+      {post.post_type === 'need_crew' ? (
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.crewRoster}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {crewMembers.length === 0 ? copy.noOneJoined : ''}
+          </p>
 
-        <p className="muted">
-          {t(lang, 'detail_discussion_intro')}
+          {crewMembers.length > 0 ? (
+            <div className="list" style={{ marginTop: 14 }}>
+              {crewMembers.map((member) => {
+                const workedBefore = workedBeforeMap[member.user_id]
+
+                return (
+                  <div key={member.user_id} className="card-soft" style={{ background: '#ffffff' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        gap: 12,
+                        flexWrap: 'wrap',
+                        alignItems: 'flex-start'
+                      }}
+                    >
+                      <div style={{ flex: '1 1 360px' }}>
+                        <div className="postMeta">
+                          <Link to={`/u/${member.user_id}`} style={{ fontWeight: 800, color: 'var(--text)' }}>
+                            {member.display_name}
+                          </Link>
+
+                          {member.role ? (
+                            <span className="badge" style={roleBadgeStyle(member.role)}>
+                              {roleLabel(member.role, lang)}
+                            </span>
+                          ) : null}
+
+                          {member.is_available ? (
+                            <span className="badge" style={availabilityBadgeStyle(true)}>
+                              {copy.available}
+                            </span>
+                          ) : (
+                            <span className="badge">{copy.notAvailable}</span>
+                          )}
+
+                          <span className="badge" style={memberStatusBadgeStyle(member.status)}>
+                            {memberStatusLabel(member.status, lang)}
+                          </span>
+                        </div>
+
+                        <div className="muted" style={{ marginTop: 10 }}>
+                          {copy.joinedAt}: {new Date(member.created_at).toLocaleString()}
+                        </div>
+
+                        {workedBefore ? (
+                          <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            <span className="badge">
+                              {copy.workedBefore}: {workedBefore.count}
+                            </span>
+                            <span className="badge">{workedBefore.latest_type}</span>
+                          </div>
+                        ) : null}
+
+                        {isOwner ? (
+                          <div className="grid two" style={{ marginTop: 12 }}>
+                            {member.phone ? (
+                              <div className="card-soft">
+                                <div className="card-section-title" style={{ fontSize: 14 }}>
+                                  {copy.phone}
+                                </div>
+                                <div style={{ marginTop: 6 }}>{formatPhone(member.phone)}</div>
+                              </div>
+                            ) : null}
+
+                            {member.email ? (
+                              <div className="card-soft">
+                                <div className="card-section-title" style={{ fontSize: 14 }}>
+                                  {copy.email}
+                                </div>
+                                <div style={{ marginTop: 6 }}>{member.email}</div>
+                              </div>
+                            ) : null}
+
+                            {member.city ? (
+                              <div className="card-soft">
+                                <div className="card-section-title" style={{ fontSize: 14 }}>
+                                  {copy.city}
+                                </div>
+                                <div style={{ marginTop: 6 }}>{member.city}</div>
+                              </div>
+                            ) : null}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <Link className="btn small primary" to={`/u/${member.user_id}`}>
+                          {copy.viewProfile}
+                        </Link>
+
+                        <button className="btn small" onClick={() => copyWorkerProfile(member.user_id)}>
+                          {copy.rehireShare}
+                        </button>
+
+                        {isOwner && member.status !== 'hired' ? (
+                          <button
+                            className="btn small"
+                            onClick={() => updateMemberStatus(member.user_id, 'hired')}
+                            disabled={crewActionLoading}
+                          >
+                            {copy.markHired}
+                          </button>
+                        ) : null}
+
+                        {isOwner && member.status === 'hired' ? (
+                          <button
+                            className="btn small"
+                            onClick={() => updateMemberStatus(member.user_id, 'joined')}
+                            disabled={crewActionLoading}
+                          >
+                            {copy.moveBackToJoined}
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">{copy.discussionThread}</div>
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+          {comments.length === 0 ? copy.noReplies : `${copy.replies}: ${comments.length}`}
         </p>
 
-        <div className="list" style={{ marginTop: 12 }}>
-          {comments.length === 0 ? (
-            <div className="card card-soft">
-              <div className="card-section-title">{t(lang, 'detail_no_replies')}</div>
-              <p className="card-section-subtitle">
-                {t(lang, 'detail_no_replies_body')}
-              </p>
-            </div>
-          ) : (
-            comments.map((c) => {
-              const canTranslate = c.source_language !== lang
-              const showTranslated = visibleTranslatedComments[c.id]
-              const translated = translatedComments[c.id]
+        <div className="card-soft" style={{ marginTop: 14 }}>
+          <div className="card-section-title" style={{ fontSize: 16 }}>
+            {copy.addReply}
+          </div>
+          <textarea
+            className="input"
+            style={{ marginTop: 12 }}
+            value={newComment}
+            placeholder={copy.replyPlaceholder}
+            onChange={(e) => setNewComment(e.target.value)}
+          />
 
-              return (
-                <div key={c.id} className="card card-soft">
-                  <div className="postMeta">
-                    <Link to={`/u/${c.author_id}`}>{c.author_name}</Link>
+          <div style={{ marginTop: 12 }}>
+            <button className="btn primary" onClick={addComment}>
+              {copy.postReply}
+            </button>
+          </div>
+        </div>
 
-                    {c.author_role ? (
-                      <span className="badge" style={roleBadgeStyle(c.author_role)}>
-                        {roleLabel(c.author_role, lang)}
-                      </span>
-                    ) : null}
+        {comments.length > 0 ? (
+          <div className="list" style={{ marginTop: 14 }}>
+            {comments.map((comment) => (
+              <div key={comment.id} className="card-soft" style={{ background: '#ffffff' }}>
+                <div className="postMeta">
+                  <Link to={`/u/${comment.author_id}`} style={{ fontWeight: 800, color: 'var(--text)' }}>
+                    {comment.author_name}
+                  </Link>
 
-                    {c.author_available ? (
-                      <span className="badge" style={availabilityBadgeStyle(true)}>
-                        {copy.available}
-                      </span>
-                    ) : null}
+                  {comment.author_role ? (
+                    <span className="badge" style={roleBadgeStyle(comment.author_role)}>
+                      {roleLabel(comment.author_role, lang)}
+                    </span>
+                  ) : null}
 
-                    <span>{timeAgo(c.created_at, lang)}</span>
-                  </div>
+                  {comment.author_available ? (
+                    <span className="badge" style={availabilityBadgeStyle(true)}>
+                      {copy.available}
+                    </span>
+                  ) : null}
 
-                  <div style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>
-                    {c.body}
-                  </div>
-
-                  {canTranslate && (
-                    <div style={{ marginTop: 10 }}>
-                      <button
-                        className="btn small"
-                        onClick={() => handleTranslateComment(c)}
-                        disabled={translatingCommentId === c.id}
-                      >
-                        {translatingCommentId === c.id
-                          ? copy.translating
-                          : (showTranslated ? copy.showOriginal : copy.translate)}
-                      </button>
-                    </div>
-                  )}
-
-                  {showTranslated && translated && (
-                    <div className="card" style={{ marginTop: 12 }}>
-                      <div className="card-section-title">
-                        {copy.translatedVersion}
-                      </div>
-                      <p className="card-section-subtitle" style={{ whiteSpace: 'pre-wrap', marginTop: 8 }}>
-                        {translated}
-                      </p>
-                    </div>
-                  )}
+                  <span>{timeAgo(comment.created_at, lang)}</span>
                 </div>
-              )
-            })
-          )}
-        </div>
 
-        <hr />
+                <div style={{ marginTop: 12, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                  {visibleTranslatedComments[comment.id]
+                    ? translatedComments[comment.id]
+                    : comment.body}
+                </div>
 
-        <div className="muted" style={{ marginBottom: 6 }}>
-          {t(lang, 'detail_add_reply')}
-        </div>
-
-        <textarea
-          className="input"
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder={t(lang, 'detail_reply_placeholder')}
-        />
-
-        <div style={{ marginTop: 12 }}>
-          <button className="btn primary" onClick={addComment}>
-            {t(lang, 'detail_post_reply')}
-          </button>
-        </div>
+                <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <Link className="btn small" to={`/u/${comment.author_id}`}>
+                    {copy.viewProfile}
+                  </Link>
+                  <button
+                    className="btn small"
+                    onClick={() => toggleCommentTranslation(comment.id)}
+                    disabled={translatingCommentId === comment.id}
+                  >
+                    {translatingCommentId === comment.id
+                      ? copy.translating
+                      : visibleTranslatedComments[comment.id]
+                        ? copy.showOriginal
+                        : copy.translate}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </div>
     </div>
   )
