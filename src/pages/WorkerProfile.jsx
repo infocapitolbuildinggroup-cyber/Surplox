@@ -25,6 +25,15 @@ function availabilityBadgeStyle(isAvailable) {
   return { background: '#dcf4e5', color: '#177245' }
 }
 
+function availabilityStatusLabel(status) {
+  const map = {
+    available_now: 'Available Now',
+    available_this_week: 'Available This Week',
+    busy: 'Busy'
+  }
+  return map[status] || status || 'Unknown'
+}
+
 function postTypeLabel(type) {
   if (type === 'need_crew') return '🚧 Need Crew'
   if (type === 'looking_for_work') return '🛠️ Looking for Work'
@@ -36,6 +45,57 @@ function relationshipLabel(type) {
   if (type === 'joined_crew_post') return 'Joined Crew'
   if (type === 'replied_to_post') return 'Replied to Post'
   return 'Connected'
+}
+
+function categoryGroupLabel(value) {
+  if (value === 'jobsite_support') return 'Jobsite Support'
+  return 'Trades'
+}
+
+function detectSupportType(serviceTags = []) {
+  const repairTags = new Set([
+    'diesel_mechanic',
+    'heavy_equipment_repair',
+    'trailer_repair',
+    'emergency_repair',
+    'jobsite_service'
+  ])
+
+  return serviceTags.some((tag) => repairTags.has(tag))
+    ? 'equipment_fleet_repair'
+    : 'material_delivery'
+}
+
+function supportTypeLabel(value) {
+  const map = {
+    material_delivery: 'Material Delivery / Hot Shot',
+    equipment_fleet_repair: 'Equipment / Fleet Repair'
+  }
+  return map[value] || value
+}
+
+function formatTagLabel(tag) {
+  const map = {
+    material_delivery: 'Material Delivery',
+    hot_shot: 'Hot Shot',
+    last_mile_delivery: 'Last Mile Delivery',
+    local_runs: 'Local Runs',
+    same_day_delivery: 'Same Day Delivery',
+    long_distance: 'Long Distance',
+    pickup_truck: 'Pickup Truck',
+    cargo_van: 'Cargo Van',
+    flatbed_trailer: 'Flatbed Trailer',
+    gooseneck_trailer: 'Gooseneck Trailer',
+    diesel_mechanic: 'Diesel Mechanic',
+    heavy_equipment_repair: 'Heavy Equipment Repair',
+    trailer_repair: 'Trailer Repair',
+    emergency_repair: 'Emergency Repair',
+    jobsite_service: 'Jobsite Service',
+    mobile_repair_truck: 'Mobile Repair Truck',
+    diesel_diagnostics: 'Diesel Diagnostics',
+    trailer_brake_tools: 'Trailer Brake Tools'
+  }
+  return map[tag] || tag
 }
 
 function StatCard({ label, value, dark = false }) {
@@ -79,6 +139,10 @@ export default function WorkerProfile() {
   const [savingAvailability, setSavingAvailability] = useState(false)
   const [workedWith, setWorkedWith] = useState([])
   const [copyMsg, setCopyMsg] = useState('')
+  const [saveContactBusy, setSaveContactBusy] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
+  const [endorsementCounts, setEndorsementCounts] = useState({})
+  const [myEndorsements, setMyEndorsements] = useState([])
 
   useEffect(() => {
     async function load() {
@@ -93,14 +157,41 @@ export default function WorkerProfile() {
 
         const { data: prof, error: profErr } = await supabase
           .from('profiles')
-          .select('user_id, display_name, role, home_zip, travel_radius_miles, is_available')
+          .select(`
+            user_id,
+            display_name,
+            role,
+            home_zip,
+            travel_radius_miles,
+            is_available,
+            availability_status,
+            bio,
+            trade_id,
+            category_group,
+            service_tags,
+            equipment_tags,
+            contractor_verified,
+            trades(name)
+          `)
           .eq('user_id', userId)
           .maybeSingle()
 
         if (profErr) throw profErr
         if (!prof) throw new Error('Worker profile not found.')
 
-        setProfile(prof)
+        const serviceTags = Array.isArray(prof.service_tags) ? prof.service_tags : []
+        const equipmentTags = Array.isArray(prof.equipment_tags) ? prof.equipment_tags : []
+
+        setProfile({
+          ...prof,
+          trade_name: prof.trades?.name || '',
+          category_group: prof.category_group || 'trade',
+          service_tags: serviceTags,
+          equipment_tags: equipmentTags,
+          support_type: (prof.category_group || 'trade') === 'jobsite_support'
+            ? detectSupportType(serviceTags)
+            : null
+        })
 
         const { count: crewsJoinedCount } = await supabase
           .from('user_relationships')
@@ -159,7 +250,7 @@ export default function WorkerProfile() {
         if (counterpartIds.length > 0) {
           const { data: wp, error: wpErr } = await supabase
             .from('profiles')
-            .select('user_id, display_name, role, is_available')
+            .select('user_id, display_name, role, is_available, availability_status')
             .in('user_id', counterpartIds)
 
           if (wpErr) throw wpErr
@@ -185,7 +276,8 @@ export default function WorkerProfile() {
               user_id: counterpartId,
               display_name: 'Unknown Member',
               role: '',
-              is_available: false
+              is_available: false,
+              availability_status: ''
             }),
             connection_count: rels.length,
             latest_type: latest?.relationship_type || '',
@@ -202,13 +294,70 @@ export default function WorkerProfile() {
 
         const { data: postsData, error: postsErr } = await supabase
           .from('posts')
-          .select('id, title, post_type, created_at, crew_status')
+          .select(`
+            id,
+            title,
+            post_type,
+            created_at,
+            crew_status,
+            category_group,
+            service_tags,
+            equipment_tags,
+            is_urgent
+          `)
           .eq('author_id', userId)
           .order('created_at', { ascending: false })
           .limit(10)
 
         if (postsErr) throw postsErr
-        setRecentPosts(postsData || [])
+
+        setRecentPosts(
+          (postsData || []).map((post) => ({
+            ...post,
+            category_group: post.category_group || 'trade',
+            service_tags: Array.isArray(post.service_tags) ? post.service_tags : [],
+            equipment_tags: Array.isArray(post.equipment_tags) ? post.equipment_tags : [],
+            support_type:
+              (post.category_group || 'trade') === 'jobsite_support'
+                ? detectSupportType(Array.isArray(post.service_tags) ? post.service_tags : [])
+                : null
+          }))
+        )
+
+        const { data: endorsementRows, error: endorseErr } = await supabase
+          .from('endorsements')
+          .select('id, endorsement_tag, endorser_user_id')
+          .eq('endorsed_user_id', userId)
+
+        if (endorseErr) throw endorseErr
+
+        const counts = {}
+        for (const row of endorsementRows || []) {
+          counts[row.endorsement_tag] = (counts[row.endorsement_tag] || 0) + 1
+        }
+        setEndorsementCounts(counts)
+
+        if (uid) {
+          const mine = (endorsementRows || [])
+            .filter((row) => row.endorser_user_id === uid)
+            .map((row) => row.endorsement_tag)
+          setMyEndorsements(mine)
+
+          if (uid !== userId) {
+            const { data: savedRow, error: savedErr } = await supabase
+              .from('saved_contacts')
+              .select('id')
+              .eq('owner_user_id', uid)
+              .eq('saved_user_id', userId)
+              .maybeSingle()
+
+            if (savedErr) {
+              console.error(savedErr)
+            } else {
+              setIsSaved(Boolean(savedRow?.id))
+            }
+          }
+        }
       } catch (err) {
         console.error(err)
         setMsg(err.message || 'Unable to load worker profile right now.')
@@ -226,15 +375,23 @@ export default function WorkerProfile() {
     try {
       setSavingAvailability(true)
       const nextValue = !profile.is_available
+      const nextStatus = nextValue ? 'available_now' : 'busy'
 
       const { error } = await supabase
         .from('profiles')
-        .update({ is_available: nextValue })
+        .update({
+          is_available: nextValue,
+          availability_status: nextStatus
+        })
         .eq('user_id', profile.user_id)
 
       if (error) throw error
 
-      setProfile((prev) => ({ ...prev, is_available: nextValue }))
+      setProfile((prev) => ({
+        ...prev,
+        is_available: nextValue,
+        availability_status: nextStatus
+      }))
     } catch (err) {
       console.error(err)
       setMsg(err.message || 'Unable to update availability.')
@@ -251,6 +408,88 @@ export default function WorkerProfile() {
     } catch (err) {
       console.error(err)
       setCopyMsg('Unable to copy profile link.')
+    }
+  }
+
+  async function toggleSavedContact() {
+    if (!currentUserId || currentUserId === userId) return
+
+    try {
+      setSaveContactBusy(true)
+      setMsg('')
+
+      if (isSaved) {
+        const { error } = await supabase
+          .from('saved_contacts')
+          .delete()
+          .eq('owner_user_id', currentUserId)
+          .eq('saved_user_id', userId)
+
+        if (error) throw error
+        setIsSaved(false)
+        setCopyMsg('Removed from saved contacts.')
+      } else {
+        const { error } = await supabase
+          .from('saved_contacts')
+          .insert({
+            owner_user_id: currentUserId,
+            saved_user_id: userId
+          })
+
+        if (error) throw error
+        setIsSaved(true)
+        setCopyMsg('Saved to your contacts.')
+      }
+    } catch (err) {
+      console.error(err)
+      setMsg(err.message || 'Unable to update saved contacts.')
+    } finally {
+      setSaveContactBusy(false)
+    }
+  }
+
+  async function toggleEndorsement(tag) {
+    if (!currentUserId || currentUserId === userId) return
+
+    try {
+      setMsg('')
+      const already = myEndorsements.includes(tag)
+
+      if (already) {
+        const { error } = await supabase
+          .from('endorsements')
+          .delete()
+          .eq('endorser_user_id', currentUserId)
+          .eq('endorsed_user_id', userId)
+          .eq('endorsement_tag', tag)
+
+        if (error) throw error
+
+        setMyEndorsements((prev) => prev.filter((x) => x !== tag))
+        setEndorsementCounts((prev) => ({
+          ...prev,
+          [tag]: Math.max((prev[tag] || 1) - 1, 0)
+        }))
+      } else {
+        const { error } = await supabase
+          .from('endorsements')
+          .insert({
+            endorser_user_id: currentUserId,
+            endorsed_user_id: userId,
+            endorsement_tag: tag
+          })
+
+        if (error) throw error
+
+        setMyEndorsements((prev) => [...prev, tag])
+        setEndorsementCounts((prev) => ({
+          ...prev,
+          [tag]: (prev[tag] || 0) + 1
+        }))
+      }
+    } catch (err) {
+      console.error(err)
+      setMsg(err.message || 'Unable to update endorsement.')
     }
   }
 
@@ -288,9 +527,25 @@ export default function WorkerProfile() {
             {roleLabel(profile.role)}
           </span>
 
+          <span className="badge">{categoryGroupLabel(profile.category_group)}</span>
+
+          {profile.trade_name ? (
+            <span className="badge">{profile.trade_name}</span>
+          ) : null}
+
+          {profile.category_group === 'jobsite_support' && profile.support_type ? (
+            <span className="badge">{supportTypeLabel(profile.support_type)}</span>
+          ) : null}
+
+          {profile.contractor_verified ? (
+            <span className="badge" style={{ background: '#111111', color: '#ffffff' }}>
+              Verified Contractor
+            </span>
+          ) : null}
+
           {profile.is_available ? (
             <span className="badge" style={availabilityBadgeStyle(true)}>
-              Available for Work
+              {availabilityStatusLabel(profile.availability_status)}
             </span>
           ) : (
             <span className="badge">Not Marked Available</span>
@@ -302,7 +557,7 @@ export default function WorkerProfile() {
         </div>
 
         <p className="muted" style={{ marginTop: 10, maxWidth: 760, fontSize: 17, lineHeight: 1.7 }}>
-          A cleaner reputation-first Surplox profile view built for rehiring, crew decisions, and trusted repeat connections.
+          A cleaner reputation-first Surplox profile view built for rehiring, crew decisions, material delivery support, and trusted repeat connections.
         </p>
 
         <div className="grid two" style={{ marginTop: 18 }}>
@@ -319,6 +574,44 @@ export default function WorkerProfile() {
           </div>
         </div>
 
+        {profile.bio ? (
+          <div className="card-soft" style={{ marginTop: 16, background: '#ffffff' }}>
+            <div className="card-section-title" style={{ fontSize: 15 }}>Bio / Experience</div>
+            <div style={{ marginTop: 8, lineHeight: 1.7 }}>{profile.bio}</div>
+          </div>
+        ) : null}
+
+        {profile.category_group === 'jobsite_support' &&
+        (profile.service_tags.length > 0 || profile.equipment_tags.length > 0) ? (
+          <div className="grid two" style={{ marginTop: 16 }}>
+            {profile.service_tags.length > 0 ? (
+              <div className="card-soft" style={{ background: '#fffaf0' }}>
+                <div className="card-section-title" style={{ fontSize: 15 }}>Service Tags</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  {profile.service_tags.map((tag) => (
+                    <span key={tag} className="badge">
+                      {formatTagLabel(tag)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {profile.equipment_tags.length > 0 ? (
+              <div className="card-soft" style={{ background: '#f8f7ef' }}>
+                <div className="card-section-title" style={{ fontSize: 15 }}>Equipment Tags</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  {profile.equipment_tags.map((tag) => (
+                    <span key={tag} className="badge">
+                      {formatTagLabel(tag)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {isOwnProfile ? (
             <button className="btn primary" onClick={toggleAvailability} disabled={savingAvailability}>
@@ -333,6 +626,12 @@ export default function WorkerProfile() {
           <button className="btn" onClick={copyProfileInvite}>
             Rehire / Share Profile
           </button>
+
+          {!isOwnProfile && currentUserId ? (
+            <button className={isSaved ? 'btn primary' : 'btn'} onClick={toggleSavedContact} disabled={saveContactBusy}>
+              {saveContactBusy ? 'Saving…' : isSaved ? 'Saved Contact' : 'Save Contact'}
+            </button>
+          ) : null}
         </div>
 
         {copyMsg ? (
@@ -353,6 +652,36 @@ export default function WorkerProfile() {
           <StatCard label="Marked Hired" value={stats.hiredCount} />
           <StatCard label="Replies Made" value={stats.repliesMade} />
           <StatCard label="Network Connections" value={stats.networkCount} />
+        </div>
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">Endorsements</div>
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+          Lightweight trust signals from people who have worked with this member.
+        </p>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+          {[
+            { key: 'reliable', label: 'Reliable' },
+            { key: 'on_time', label: 'On Time' },
+            { key: 'good_communication', label: 'Good Communication' },
+            { key: 'solid_work', label: 'Solid Work' },
+            { key: 'would_rehire', label: 'Would Rehire' }
+          ].map((item) => {
+            const active = myEndorsements.includes(item.key)
+            return (
+              <button
+                key={item.key}
+                type="button"
+                className={active ? 'btn primary small' : 'btn small'}
+                onClick={() => toggleEndorsement(item.key)}
+                disabled={!currentUserId || isOwnProfile}
+              >
+                {item.label} ({endorsementCounts[item.key] || 0})
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -393,7 +722,7 @@ export default function WorkerProfile() {
 
                       {person.is_available ? (
                         <span className="badge" style={availabilityBadgeStyle(true)}>
-                          Available
+                          {availabilityStatusLabel(person.availability_status)}
                         </span>
                       ) : null}
 
@@ -441,15 +770,43 @@ export default function WorkerProfile() {
               <Link key={post.id} to={`/p/${post.id}`} className="card-soft" style={{ background: '#ffffff' }}>
                 <div className="postMeta">
                   <span className="badge">{postTypeLabel(post.post_type)}</span>
+                  <span className="badge">{categoryGroupLabel(post.category_group)}</span>
+
+                  {post.category_group === 'jobsite_support' && post.support_type ? (
+                    <span className="badge">{supportTypeLabel(post.support_type)}</span>
+                  ) : null}
+
+                  {post.is_urgent ? (
+                    <span className="badge" style={{ background: '#111111', color: '#ffffff' }}>
+                      Urgent
+                    </span>
+                  ) : null}
+
                   {post.post_type === 'need_crew' ? (
                     <span className="badge">{post.crew_status || 'open'}</span>
                   ) : null}
+
                   <span>{new Date(post.created_at).toLocaleString()}</span>
                 </div>
 
                 <div style={{ marginTop: 10, fontWeight: 900, fontSize: 18, lineHeight: 1.2 }}>
                   {post.title}
                 </div>
+
+                {(post.service_tags?.length > 0 || post.equipment_tags?.length > 0) ? (
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                    {post.service_tags?.slice(0, 3).map((tag) => (
+                      <span key={`${post.id}-service-${tag}`} className="badge">
+                        {formatTagLabel(tag)}
+                      </span>
+                    ))}
+                    {post.equipment_tags?.slice(0, 2).map((tag) => (
+                      <span key={`${post.id}-equipment-${tag}`} className="badge">
+                        {formatTagLabel(tag)}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </Link>
             ))}
           </div>
