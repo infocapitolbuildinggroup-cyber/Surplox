@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 
 import Home from './pages/Home'
@@ -65,7 +65,7 @@ function AppShell({ lang, setLang }) {
     }
 
     return [
-      { to: '/feed', label: lang === 'es' ? 'Feed' : 'Feed' },
+      { to: '/feed', label: 'Feed' },
       { to: '/channels', label: lang === 'es' ? 'Canales' : 'Channels' },
       { to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
       { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
@@ -136,7 +136,7 @@ function AppShell({ lang, setLang }) {
             >
               {!logoError ? (
                 <img
-                  src="/src/assets/logo.png"
+                  src="/logo.png"
                   alt="Surplox"
                   style={{
                     width: 34,
@@ -197,25 +197,13 @@ function AppShell({ lang, setLang }) {
                   flexWrap: 'wrap'
                 }}
               >
-                <Link
-                  className="badge"
-                  to={homeCtaLinks.labor}
-                  style={{ textDecoration: 'none' }}
-                >
+                <Link className="badge" to={homeCtaLinks.labor} style={{ textDecoration: 'none' }}>
                   {lang === 'es' ? 'Labor' : 'Labor'}
                 </Link>
-                <Link
-                  className="badge"
-                  to={homeCtaLinks.delivery}
-                  style={{ textDecoration: 'none' }}
-                >
+                <Link className="badge" to={homeCtaLinks.delivery} style={{ textDecoration: 'none' }}>
                   {lang === 'es' ? 'Entrega' : 'Delivery'}
                 </Link>
-                <Link
-                  className="badge"
-                  to={homeCtaLinks.repair}
-                  style={{ textDecoration: 'none' }}
-                >
+                <Link className="badge" to={homeCtaLinks.repair} style={{ textDecoration: 'none' }}>
                   {lang === 'es' ? 'Reparación' : 'Repair'}
                 </Link>
               </div>
@@ -308,7 +296,7 @@ function AppShell({ lang, setLang }) {
                   className={isActive('/admin') ? 'btn primary small' : 'btn small'}
                   style={{ textDecoration: 'none' }}
                 >
-                  {lang === 'es' ? 'Admin' : 'Admin'}
+                  Admin
                 </Link>
               </>
             ) : null}
@@ -379,10 +367,5 @@ function AppShell({ lang, setLang }) {
 
 export default function App() {
   const [lang, setLang] = usePreferredLanguage()
-
-  return (
-    <BrowserRouter>
-      <AppShell lang={lang} setLang={setLang} />
-    </BrowserRouter>
-  )
+  return <AppShell lang={lang} setLang={setLang} />
 }
