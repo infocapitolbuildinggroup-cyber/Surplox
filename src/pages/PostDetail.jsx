@@ -62,7 +62,60 @@ function crewStatusBadgeStyle(status) {
   return { background: '#ecebe3', color: '#111111' }
 }
 
-function getPostTypeStyles(type) {
+function availabilityStatusLabel(status, lang) {
+  const map = {
+    available_now: { en: 'Available Now', es: 'Disponible ahora' },
+    available_this_week: { en: 'Available This Week', es: 'Disponible esta semana' },
+    busy: { en: 'Busy', es: 'Ocupado' }
+  }
+  return map[status]?.[lang] || map[status]?.en || status
+}
+
+function detectSupportType(serviceTags = []) {
+  const repairTags = new Set([
+    'diesel_mechanic',
+    'heavy_equipment_repair',
+    'trailer_repair',
+    'emergency_repair',
+    'jobsite_service'
+  ])
+
+  return serviceTags.some((tag) => repairTags.has(tag))
+    ? 'equipment_fleet_repair'
+    : 'material_delivery'
+}
+
+function supportTypeLabel(value, lang) {
+  const map = {
+    material_delivery: {
+      en: 'Material Delivery / Hot Shot',
+      es: 'Entrega de materiales / Hot Shot'
+    },
+    equipment_fleet_repair: {
+      en: 'Equipment / Fleet Repair',
+      es: 'Reparación de equipo / flota'
+    }
+  }
+  return map[value]?.[lang] || map[value]?.en || value
+}
+
+function getPostTypeStyles(type, categoryGroup, isUrgent) {
+  if (categoryGroup === 'jobsite_support') {
+    return {
+      shell: {
+        background: isUrgent
+          ? 'linear-gradient(180deg, #fff4da 0%, #ffffff 100%)'
+          : 'linear-gradient(180deg, #f8f7ef 0%, #ffffff 100%)'
+      },
+      badge: {
+        background: isUrgent ? '#ffde59' : '#f1e7a8',
+        color: '#111111'
+      },
+      accent: isUrgent ? '#d4b21f' : '#111111',
+      softPanel: isUrgent ? '#fff4da' : '#f8f7ef'
+    }
+  }
+
   if (type === 'need_crew') {
     return {
       shell: {
@@ -116,6 +169,10 @@ function tradeBadgeStyle() {
   return { background: '#f1f1eb', color: '#111111' }
 }
 
+function urgentBadgeStyle() {
+  return { background: '#111111', color: '#ffffff' }
+}
+
 function memberStatusLabel(status, lang) {
   if (lang === 'es') {
     return status === 'hired' ? 'Contratado' : 'Unido'
@@ -139,6 +196,30 @@ function formatPhone(phone) {
 function availabilityBadgeStyle(isAvailable) {
   if (!isAvailable) return null
   return { background: '#dcf4e5', color: '#177245' }
+}
+
+function formatTagLabel(tag) {
+  const map = {
+    material_delivery: 'Material Delivery',
+    hot_shot: 'Hot Shot',
+    last_mile_delivery: 'Last Mile Delivery',
+    local_runs: 'Local Runs',
+    same_day_delivery: 'Same Day Delivery',
+    long_distance: 'Long Distance',
+    pickup_truck: 'Pickup Truck',
+    cargo_van: 'Cargo Van',
+    flatbed_trailer: 'Flatbed Trailer',
+    gooseneck_trailer: 'Gooseneck Trailer',
+    diesel_mechanic: 'Diesel Mechanic',
+    heavy_equipment_repair: 'Heavy Equipment Repair',
+    trailer_repair: 'Trailer Repair',
+    emergency_repair: 'Emergency Repair',
+    jobsite_service: 'Jobsite Service',
+    mobile_repair_truck: 'Mobile Repair Truck',
+    diesel_diagnostics: 'Diesel Diagnostics',
+    trailer_brake_tools: 'Trailer Brake Tools'
+  }
+  return map[tag] || tag
 }
 
 const UI = {
@@ -167,12 +248,19 @@ const UI = {
     unableLeaveCrew: 'Unable to leave this crew right now.',
     unableTranslatePost: 'Unable to translate this post right now.',
     unableTranslateReply: 'Unable to translate this reply right now.',
+    unableLoadImage: 'Unable to load image.',
     trade: 'Trade',
     zip: 'ZIP',
     start: 'Start',
     pay: 'Pay',
     viewProfile: 'View Profile',
     available: 'Available',
+    category: 'Category',
+    supportType: 'Support Type',
+    serviceTags: 'Services',
+    equipmentTags: 'Equipment',
+    photos: 'Photos',
+    urgent: 'Urgent',
     opportunityDetails: 'Opportunity Details',
     availabilityDetails: 'Availability Details',
     crewNeeded: 'Crew Needed',
@@ -184,7 +272,7 @@ const UI = {
       'Build a crew directly from this post. Workers can join the roster, and the post owner can control whether the crew request is open, full, or closed.',
     inviteCrew: 'Invite Crew',
     inviteCrewBody:
-      'Share this crew post with workers, subs, or people already in your network.',
+      'Share this post with workers, runners, repair support, subs, or people already in your network.',
     copyInviteLink: 'Copy Invite Link',
     share: 'Share',
     textInvite: 'Text Invite',
@@ -227,7 +315,9 @@ const UI = {
     postReply: 'Post Reply',
     noReplies: 'No replies yet.',
     discussionThread: 'Discussion Thread',
-    backToFeed: 'Back to Feed'
+    backToFeed: 'Back to Feed',
+    jobsiteSupport: 'Jobsite Support',
+    trades: 'Trades'
   },
   es: {
     unknownMember: 'Miembro desconocido',
@@ -254,12 +344,19 @@ const UI = {
     unableLeaveCrew: 'No se pudo salir de esta cuadrilla.',
     unableTranslatePost: 'No se pudo traducir esta publicación.',
     unableTranslateReply: 'No se pudo traducir esta respuesta.',
+    unableLoadImage: 'No se pudo cargar la imagen.',
     trade: 'Oficio',
     zip: 'Código postal',
     start: 'Inicio',
     pay: 'Pago',
     viewProfile: 'Ver perfil',
     available: 'Disponible',
+    category: 'Categoría',
+    supportType: 'Tipo de soporte',
+    serviceTags: 'Servicios',
+    equipmentTags: 'Equipo',
+    photos: 'Fotos',
+    urgent: 'Urgente',
     opportunityDetails: 'Detalles de la oportunidad',
     availabilityDetails: 'Detalles de disponibilidad',
     crewNeeded: 'Cuadrilla necesaria',
@@ -271,7 +368,7 @@ const UI = {
       'Construye una cuadrilla directamente desde esta publicación. Los trabajadores pueden unirse y el dueño puede controlar si la solicitud está abierta, llena o cerrada.',
     inviteCrew: 'Invitar cuadrilla',
     inviteCrewBody:
-      'Comparte esta publicación con trabajadores, subcontratistas o gente de tu red.',
+      'Comparte esta publicación con trabajadores, runners, soporte de reparación, subcontratistas o gente de tu red.',
     copyInviteLink: 'Copiar enlace',
     share: 'Compartir',
     textInvite: 'Invitar por texto',
@@ -314,7 +411,9 @@ const UI = {
     postReply: 'Publicar respuesta',
     noReplies: 'Todavía no hay respuestas.',
     discussionThread: 'Hilo de discusión',
-    backToFeed: 'Volver al feed'
+    backToFeed: 'Volver al feed',
+    jobsiteSupport: 'Soporte de obra',
+    trades: 'Oficios'
   }
 }
 
@@ -349,6 +448,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
   const [loading, setLoading] = useState(true)
   const [lang, setLang] = useState(langProp || localStorage.getItem('surplox_lang') || 'en')
   const [currentUserId, setCurrentUserId] = useState(null)
+  const [imageUrls, setImageUrls] = useState({})
 
   const [crewMembers, setCrewMembers] = useState([])
   const [myCrewMembership, setMyCrewMembership] = useState(false)
@@ -382,6 +482,34 @@ export default function PostDetail({ lang: langProp = 'en' }) {
 
     if (error) {
       console.error('Notification insert failed:', error)
+    }
+  }
+
+  async function loadSignedUrls(paths = []) {
+    if (!paths.length) {
+      setImageUrls({})
+      return
+    }
+
+    try {
+      const entries = await Promise.all(
+        paths.map(async (path) => {
+          const { data, error } = await supabase.storage
+            .from('post-images')
+            .createSignedUrl(path, 60 * 60)
+
+          if (error) {
+            console.error('Signed URL error:', error)
+            return [path, null]
+          }
+
+          return [path, data?.signedUrl || null]
+        })
+      )
+
+      setImageUrls(Object.fromEntries(entries))
+    } catch (err) {
+      console.error(err)
     }
   }
 
@@ -435,7 +563,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
 
       if (navigator.share) {
         await navigator.share({
-          title: post?.title || 'Surplox crew post',
+          title: post?.title || 'Surplox post',
           text,
           url
         })
@@ -461,7 +589,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
 
   function openEmailInvite() {
     try {
-      const subject = encodeURIComponent(post?.title || 'Surplox crew post')
+      const subject = encodeURIComponent(post?.title || 'Surplox post')
       const body = encodeURIComponent(getInviteText())
       window.location.href = `mailto:?subject=${subject}&body=${body}`
     } catch (err) {
@@ -524,8 +652,15 @@ export default function PostDetail({ lang: langProp = 'en' }) {
           compensation,
           start_date,
           author_id,
+          category_group,
+          service_tags,
+          equipment_tags,
+          is_urgent,
+          image_urls,
+          boosted_at,
+          boost_count,
           trades(name),
-          author_profile:profiles!posts_author_id_fkey(display_name, role, is_available)
+          author_profile:profiles!posts_author_id_fkey(display_name, role, is_available, availability_status)
         `)
         .eq('id', id)
         .maybeSingle()
@@ -539,19 +674,33 @@ export default function PostDetail({ lang: langProp = 'en' }) {
         setWorkedBeforeMap({})
         setScore(0)
         setMyVote(0)
+        setImageUrls({})
         return
       }
 
       const detectedLang = detectLikelyLanguage(`${p.title || ''} ${p.body || ''}`)
+      const categoryGroup = p.category_group || 'trade'
+      const serviceTags = Array.isArray(p.service_tags) ? p.service_tags : []
+      const equipmentTags = Array.isArray(p.equipment_tags) ? p.equipment_tags : []
+      const imagePaths = Array.isArray(p.image_urls) ? p.image_urls : []
 
-      setPost({
+      const hydratedPost = {
         ...p,
+        category_group: categoryGroup,
+        service_tags: serviceTags,
+        equipment_tags: equipmentTags,
+        support_type: categoryGroup === 'jobsite_support' ? detectSupportType(serviceTags) : null,
+        image_urls: imagePaths,
         trade_name: p.trades?.name || t(activeLang, 'detail_general'),
         author_name: p.author_profile?.display_name || activeCopy.unknownMember,
         author_role: p.author_profile?.role || '',
         author_available: Boolean(p.author_profile?.is_available),
+        author_availability_status: p.author_profile?.availability_status || '',
         source_language: p.source_language || detectedLang
-      })
+      }
+
+      setPost(hydratedPost)
+      await loadSignedUrls(imagePaths)
 
       const { data: c, error: cErr } = await supabase
         .from('comments')
@@ -560,7 +709,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
           body,
           created_at,
           author_id,
-          author_profile:profiles!comments_author_id_fkey(display_name, role, is_available)
+          author_profile:profiles!comments_author_id_fkey(display_name, role, is_available, availability_status)
         `)
         .eq('post_id', id)
         .order('created_at', { ascending: true })
@@ -573,6 +722,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
           author_name: x.author_profile?.display_name || activeCopy.unknownMember,
           author_role: x.author_profile?.role || '',
           author_available: Boolean(x.author_profile?.is_available),
+          author_availability_status: x.author_profile?.availability_status || '',
           source_language: detectLikelyLanguage(x.body || '')
         }))
       )
@@ -612,7 +762,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
         if (joinedUserIds.length > 0) {
           const { data: joinedProfiles, error: joinedProfilesErr } = await supabase
             .from('profiles')
-            .select('user_id, display_name, role, is_available')
+            .select('user_id, display_name, role, is_available, availability_status')
             .in('user_id', joinedUserIds)
 
           if (joinedProfilesErr) throw joinedProfilesErr
@@ -644,6 +794,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
             display_name: profile?.display_name || activeCopy.unknownMember,
             role: profile?.role || '',
             is_available: Boolean(profile?.is_available),
+            availability_status: profile?.availability_status || '',
             phone: contact?.phone || '',
             email: contact?.email || '',
             city: contact?.city || ''
@@ -786,7 +937,10 @@ export default function PostDetail({ lang: langProp = 'en' }) {
               target_user_id: post.author_id,
               relationship_type: 'replied_to_post',
               post_id: String(id),
-              metadata: { post_type: post.post_type || 'discussion' }
+              metadata: {
+                post_type: post.post_type || 'discussion',
+                category_group: post.category_group || 'trade'
+              }
             },
             {
               onConflict: 'source_user_id,target_user_id,relationship_type,post_id'
@@ -943,9 +1097,9 @@ export default function PostDetail({ lang: langProp = 'en' }) {
           }
         )
 
-      if (relationshipErr) {
-        console.error('Relationship graph insert failed:', relationshipErr)
-      }
+        if (relationshipErr) {
+          console.error('Relationship graph insert failed:', relationshipErr)
+        }
 
       await createNotification({
         userId: post.author_id,
@@ -1079,7 +1233,11 @@ export default function PostDetail({ lang: langProp = 'en' }) {
   }
 
   const isOwner = useMemo(() => currentUserId && post?.author_id === currentUserId, [currentUserId, post])
-  const typeStyles = getPostTypeStyles(post?.post_type || 'discussion')
+  const typeStyles = getPostTypeStyles(
+    post?.post_type || 'discussion',
+    post?.category_group || 'trade',
+    post?.is_urgent
+  )
   const postBodyToRender = showTranslatedPost ? translatedPostBody : post?.body || ''
 
   if (loading) {
@@ -1138,9 +1296,19 @@ export default function PostDetail({ lang: langProp = 'en' }) {
               {postTypeLabel(post.post_type || 'discussion', lang)}
             </span>
 
+            <span className="badge" style={tradeBadgeStyle()}>
+              {post.category_group === 'jobsite_support' ? copy.jobsiteSupport : copy.trades}
+            </span>
+
             {post.trade_name ? (
               <span className="badge" style={tradeBadgeStyle()}>
                 {post.trade_name}
+              </span>
+            ) : null}
+
+            {post.category_group === 'jobsite_support' && post.support_type ? (
+              <span className="badge" style={tradeBadgeStyle()}>
+                {supportTypeLabel(post.support_type, lang)}
               </span>
             ) : null}
 
@@ -1158,7 +1326,15 @@ export default function PostDetail({ lang: langProp = 'en' }) {
 
             {post.author_available ? (
               <span className="badge" style={availabilityBadgeStyle(true)}>
-                {copy.available}
+                {post.author_availability_status
+                  ? availabilityStatusLabel(post.author_availability_status, lang)
+                  : copy.available}
+              </span>
+            ) : null}
+
+            {post.is_urgent ? (
+              <span className="badge" style={urgentBadgeStyle()}>
+                ⚡ {copy.urgent}
               </span>
             ) : null}
 
@@ -1221,7 +1397,47 @@ export default function PostDetail({ lang: langProp = 'en' }) {
             {post.post_type === 'need_crew' ? (
               <MetaStat label={copy.filled} value={`${crewMembers.length}`} />
             ) : null}
+            {post.category_group === 'jobsite_support' ? (
+              <MetaStat
+                label={copy.supportType}
+                value={supportTypeLabel(post.support_type, lang)}
+              />
+            ) : null}
           </div>
+
+          {post.category_group === 'jobsite_support' && (post.service_tags.length > 0 || post.equipment_tags.length > 0) ? (
+            <div className="grid two" style={{ marginTop: 18 }}>
+              {post.service_tags.length > 0 ? (
+                <div className="card-soft" style={{ background: typeStyles.softPanel }}>
+                  <div className="card-section-title" style={{ fontSize: 15 }}>
+                    {copy.serviceTags}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                    {post.service_tags.map((tag) => (
+                      <span key={`service-${tag}`} className="badge">
+                        {formatTagLabel(tag)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {post.equipment_tags.length > 0 ? (
+                <div className="card-soft" style={{ background: typeStyles.softPanel }}>
+                  <div className="card-section-title" style={{ fontSize: 15 }}>
+                    {copy.equipmentTags}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                    {post.equipment_tags.map((tag) => (
+                      <span key={`equipment-${tag}`} className="badge">
+                        {formatTagLabel(tag)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button
@@ -1262,6 +1478,57 @@ export default function PostDetail({ lang: langProp = 'en' }) {
             <div className="card-soft" style={{ marginTop: 14 }}>
               <div className="card-section-title" style={{ fontSize: 15 }}>
                 {copy.translatedVersion}
+              </div>
+            </div>
+          ) : null}
+
+          {post.image_urls?.length > 0 ? (
+            <div className="card-soft" style={{ marginTop: 18, background: typeStyles.softPanel }}>
+              <div className="card-section-title" style={{ fontSize: 15 }}>
+                {copy.photos}
+              </div>
+
+              <div className="grid two" style={{ marginTop: 12 }}>
+                {post.image_urls.map((path) => {
+                  const src = imageUrls[path]
+                  return (
+                    <div
+                      key={path}
+                      style={{
+                        background: '#ffffff',
+                        borderRadius: 18,
+                        overflow: 'hidden',
+                        minHeight: 180
+                      }}
+                    >
+                      {src ? (
+                        <img
+                          src={src}
+                          alt="Post attachment"
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover',
+                            display: 'block'
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            padding: 20,
+                            color: 'var(--muted)',
+                            minHeight: 180,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          {copy.unableLoadImage}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           ) : null}
@@ -1391,7 +1658,9 @@ export default function PostDetail({ lang: langProp = 'en' }) {
 
                           {member.is_available ? (
                             <span className="badge" style={availabilityBadgeStyle(true)}>
-                              {copy.available}
+                              {member.availability_status
+                                ? availabilityStatusLabel(member.availability_status, lang)
+                                : copy.available}
                             </span>
                           ) : (
                             <span className="badge">{copy.notAvailable}</span>
@@ -1527,7 +1796,9 @@ export default function PostDetail({ lang: langProp = 'en' }) {
 
                   {comment.author_available ? (
                     <span className="badge" style={availabilityBadgeStyle(true)}>
-                      {copy.available}
+                      {comment.author_availability_status
+                        ? availabilityStatusLabel(comment.author_availability_status, lang)
+                        : copy.available}
                     </span>
                   ) : null}
 
