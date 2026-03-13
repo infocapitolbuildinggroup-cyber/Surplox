@@ -16,7 +16,7 @@ function roleBadgeStyle(role) {
   if (role === 'contractor') return { background: '#111111', color: '#ffffff' }
   if (role === 'subcontractor') return { background: '#fff0b4', color: '#111111' }
   if (role === 'laborer') return { background: '#ecebe3', color: '#111111' }
-  if (role === 'supplier') return { background: '#ffd7b0', color: '#111111' }
+  if (role === 'supplier') return { background: '#f1e7a8', color: '#111111' }
   return {}
 }
 
