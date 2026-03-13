@@ -1,560 +1,388 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Routes, Route, Navigate, useNavigate, NavLink, useLocation } from 'react-router-dom'
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { supabase } from './supabaseClient'
-import { t } from './i18n'
-import Home from './pages/Home.jsx'
-import Auth from './pages/Auth.jsx'
-import Onboarding from './pages/Onboarding.jsx'
-import Feed from './pages/Feed.jsx'
-import NewPost from './pages/NewPost.jsx'
-import PostDetail from './pages/PostDetail.jsx'
-import AdminDirectory from './pages/AdminDirectory.jsx'
-import Channels from './pages/Channels.jsx'
-import MyAccount from './pages/MyAccount.jsx'
-import Notifications from './pages/Notifications.jsx'
-import WorkerProfile from './pages/WorkerProfile.jsx'
-import logo from './assets/logo.png'
 
-function SessionOnly({ session, children }) {
-  if (!session) return <Navigate to="/auth?mode=signin" replace />
-  return children
+import Home from './pages/Home'
+import Auth from './pages/Auth'
+import Feed from './pages/Feed'
+import NewPost from './pages/NewPost'
+import PostDetail from './pages/PostDetail'
+import WorkerProfile from './pages/WorkerProfile'
+import MyAccount from './pages/MyAccount'
+import Notifications from './pages/Notifications'
+import Channels from './pages/Channels'
+import Onboarding from './pages/Onboarding'
+import AdminDirectory from './pages/AdminDirectory'
+
+import './styles.css'
+
+function usePreferredLanguage() {
+  const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
+
+  useEffect(() => {
+    localStorage.setItem('surplox_lang', lang)
+  }, [lang])
+
+  return [lang, setLang]
 }
 
-function AppOnly({ session, profileChecked, children, lang }) {
-  if (!session) return <Navigate to="/auth?mode=signin" replace />
-  if (!profileChecked) return <div className="card">{t(lang, 'checking_permissions')}</div>
-  return children
-}
+function AppShell({ lang, setLang }) {
+  const location = useLocation()
+  const [session, setSession] = useState(null)
+  const [loadingSession, setLoadingSession] = useState(true)
+  const [logoError, setLogoError] = useState(false)
 
-function AdminOnly({ session, profileChecked, isAdmin, adminChecked, children, lang }) {
-  if (!session) return <Navigate to="/auth?mode=signin" replace />
-  if (!profileChecked) return <div className="card">{t(lang, 'checking_permissions')}</div>
-  if (!adminChecked) return <div className="card">{t(lang, 'checking_permissions')}</div>
-  if (!isAdmin) return <Navigate to="/feed" replace />
-  return children
-}
+  useEffect(() => {
+    let mounted = true
 
-function AccountIcon() {
+    async function loadSession() {
+      const { data } = await supabase.auth.getSession()
+      if (!mounted) return
+      setSession(data.session || null)
+      setLoadingSession(false)
+    }
+
+    loadSession()
+
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession || null)
+    })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  const navItems = useMemo(() => {
+    if (!session) {
+      return [
+        { to: '/', label: lang === 'es' ? 'Inicio' : 'Home' },
+        { to: '/auth', label: lang === 'es' ? 'Entrar' : 'Sign In' }
+      ]
+    }
+
+    return [
+      { to: '/feed', label: lang === 'es' ? 'Feed' : 'Feed' },
+      { to: '/channels', label: lang === 'es' ? 'Canales' : 'Channels' },
+      { to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
+      { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
+      { to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' }
+    ]
+  }, [session, lang])
+
+  const homeCtaLinks = useMemo(() => {
+    return {
+      labor: '/feed',
+      delivery: '/feed?category=jobsite_support&support=material_delivery',
+      repair: '/feed?category=jobsite_support&support=equipment_fleet_repair'
+    }
+  }, [])
+
+  const isActive = (to) => {
+    if (to === '/') return location.pathname === '/'
+    return location.pathname.startsWith(to)
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+  }
+
+  if (loadingSession) {
+    return (
+      <div className="page-shell">
+        <div className="container" style={{ paddingTop: 40, paddingBottom: 40 }}>
+          <div className="card">Loading Surplox…</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="nav-icon-svg">
-      <circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" strokeWidth="2" />
-      <path
-        d="M4 20c1.8-3.8 5-5.7 8-5.7s6.2 1.9 8 5.7"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
+    <div className="page-shell">
+      <header
+        style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 40,
+          backdropFilter: 'blur(16px)',
+          background: 'rgba(255,255,255,0.82)',
+          borderBottom: '1px solid rgba(17,17,17,0.06)'
+        }}
+      >
+        <div
+          className="container"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+            paddingTop: 14,
+            paddingBottom: 14
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <Link
+              to={session ? '/feed' : '/'}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                textDecoration: 'none',
+                color: 'var(--text)'
+              }}
+            >
+              {!logoError ? (
+                <img
+                  src="/src/assets/logo.png"
+                  alt="Surplox"
+                  style={{
+                    width: 34,
+                    height: 34,
+                    objectFit: 'contain',
+                    display: 'block'
+                  }}
+                  onError={() => setLogoError(true)}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 10,
+                    background: '#111111',
+                    color: '#ffffff',
+                    display: 'grid',
+                    placeItems: 'center',
+                    fontWeight: 900,
+                    fontSize: 14
+                  }}
+                >
+                  S
+                </div>
+              )}
 
-function MenuIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true" className="nav-icon-svg">
-      <path d="M4 7h16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-      <path d="M4 12h16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-      <path d="M4 17h16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-    </svg>
-  )
-}
+              <div>
+                <div
+                  style={{
+                    fontWeight: 900,
+                    fontSize: 20,
+                    letterSpacing: '-0.04em',
+                    lineHeight: 1
+                  }}
+                >
+                  Surplox
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--muted-soft)',
+                    marginTop: 3
+                  }}
+                >
+                  {lang === 'es'
+                    ? 'Red de operaciones de obra'
+                    : 'Jobsite operations network'}
+                </div>
+              </div>
+            </Link>
 
-function getProfileReminderItems(profile = {}, contact = {}, lang = 'en') {
-  const items = []
+            {session ? (
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  flexWrap: 'wrap'
+                }}
+              >
+                <Link
+                  className="badge"
+                  to={homeCtaLinks.labor}
+                  style={{ textDecoration: 'none' }}
+                >
+                  {lang === 'es' ? 'Labor' : 'Labor'}
+                </Link>
+                <Link
+                  className="badge"
+                  to={homeCtaLinks.delivery}
+                  style={{ textDecoration: 'none' }}
+                >
+                  {lang === 'es' ? 'Entrega' : 'Delivery'}
+                </Link>
+                <Link
+                  className="badge"
+                  to={homeCtaLinks.repair}
+                  style={{ textDecoration: 'none' }}
+                >
+                  {lang === 'es' ? 'Reparación' : 'Repair'}
+                </Link>
+              </div>
+            ) : null}
+          </div>
 
-  if (!String(profile.first_name || '').trim() || !String(profile.last_name || '').trim()) {
-    items.push(lang === 'es' ? 'Agregar nombre y apellido' : 'Add first and last name')
-  }
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              flexWrap: 'wrap',
+              justifyContent: 'flex-end'
+            }}
+          >
+            <select
+              className="input"
+              value={lang}
+              onChange={(e) => setLang(e.target.value)}
+              style={{
+                width: 112,
+                minWidth: 112,
+                paddingTop: 10,
+                paddingBottom: 10
+              }}
+            >
+              <option value="en">English</option>
+              <option value="es">Español</option>
+            </select>
 
-  if (!String(contact.phone || '').trim()) {
-    items.push(lang === 'es' ? 'Agregar número de teléfono' : 'Add phone number')
-  }
+            {session ? (
+              <button className="btn" onClick={handleSignOut}>
+                {lang === 'es' ? 'Salir' : 'Sign Out'}
+              </button>
+            ) : (
+              <Link className="btn primary" to="/auth">
+                {lang === 'es' ? 'Entrar' : 'Sign In'}
+              </Link>
+            )}
+          </div>
+        </div>
 
-  if (!String(contact.city || '').trim()) {
-    items.push(lang === 'es' ? 'Agregar ciudad' : 'Add city')
-  }
+        <div className="container" style={{ paddingBottom: 12 }}>
+          <nav
+            style={{
+              display: 'flex',
+              gap: 10,
+              flexWrap: 'wrap'
+            }}
+          >
+            {navItems.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={isActive(item.to) ? 'btn primary small' : 'btn small'}
+                style={{ textDecoration: 'none' }}
+              >
+                {item.label}
+              </Link>
+            ))}
 
-  if (!String(profile.role || '').trim()) {
-    items.push(lang === 'es' ? 'Agregar rol principal' : 'Add primary role')
-  }
+            {session ? (
+              <>
+                <Link
+                  to="/feed?category=jobsite_support&support=material_delivery"
+                  className={
+                    location.search.includes('support=material_delivery')
+                      ? 'btn primary small'
+                      : 'btn small'
+                  }
+                  style={{ textDecoration: 'none' }}
+                >
+                  {lang === 'es' ? 'Hot Shot / Entrega' : 'Hot Shot / Delivery'}
+                </Link>
 
-  if (!String(profile.bio || '').trim()) {
-    items.push(lang === 'es' ? 'Agregar experiencia o biografía' : 'Add bio or experience')
-  }
+                <Link
+                  to="/feed?category=jobsite_support&support=equipment_fleet_repair"
+                  className={
+                    location.search.includes('support=equipment_fleet_repair')
+                      ? 'btn primary small'
+                      : 'btn small'
+                  }
+                  style={{ textDecoration: 'none' }}
+                >
+                  {lang === 'es' ? 'Reparación de flota' : 'Fleet Repair'}
+                </Link>
 
-  if (!Number(profile.crew_size || 0) || Number(profile.crew_size || 0) <= 1) {
-    items.push(lang === 'es' ? 'Agregar tamaño de cuadrilla' : 'Add crew size')
-  }
+                <Link
+                  to="/admin"
+                  className={isActive('/admin') ? 'btn primary small' : 'btn small'}
+                  style={{ textDecoration: 'none' }}
+                >
+                  {lang === 'es' ? 'Admin' : 'Admin'}
+                </Link>
+              </>
+            ) : null}
+          </nav>
+        </div>
+      </header>
 
-  return items
-}
-
-function NavBadge({ count }) {
-  if (!count) return null
-
-  return (
-    <span
-      className="badge"
-      style={{
-        marginLeft: 8,
-        background: '#fff0b4',
-        color: '#111111',
-        minWidth: 26,
-        justifyContent: 'center',
-        fontWeight: 800
-      }}
-    >
-      {count}
-    </span>
+      <main>
+        <div className="container" style={{ paddingTop: 22, paddingBottom: 32 }}>
+          <Routes>
+            <Route path="/" element={<Home lang={lang} />} />
+            <Route path="/auth" element={<Auth lang={lang} setLang={setLang} />} />
+            <Route
+              path="/feed"
+              element={session ? <Feed lang={lang} /> : <Navigate to="/auth" replace />}
+            />
+            <Route
+              path="/new"
+              element={session ? <NewPost lang={lang} /> : <Navigate to="/auth" replace />}
+            />
+            <Route
+              path="/p/:id"
+              element={session ? <PostDetail lang={lang} /> : <Navigate to="/auth" replace />}
+            />
+            <Route
+              path="/u/:userId"
+              element={session ? <WorkerProfile lang={lang} /> : <Navigate to="/auth" replace />}
+            />
+            <Route
+              path="/account"
+              element={
+                session ? (
+                  <MyAccount lang={lang} setLang={setLang} />
+                ) : (
+                  <Navigate to="/auth" replace />
+                )
+              }
+            />
+            <Route
+              path="/notifications"
+              element={session ? <Notifications lang={lang} /> : <Navigate to="/auth" replace />}
+            />
+            <Route
+              path="/channels"
+              element={session ? <Channels lang={lang} /> : <Navigate to="/auth" replace />}
+            />
+            <Route
+              path="/onboarding"
+              element={
+                session ? (
+                  <Onboarding lang={lang} setLang={setLang} />
+                ) : (
+                  <Navigate to="/auth" replace />
+                )
+              }
+            />
+            <Route
+              path="/admin"
+              element={session ? <AdminDirectory lang={lang} /> : <Navigate to="/auth" replace />}
+            />
+            <Route path="*" element={<Navigate to={session ? '/feed' : '/'} replace />} />
+          </Routes>
+        </div>
+      </main>
+    </div>
   )
 }
 
 export default function App() {
-  const [session, setSession] = useState(null)
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [adminChecked, setAdminChecked] = useState(false)
-  const [profileChecked, setProfileChecked] = useState(false)
-  const [coreProfileReady, setCoreProfileReady] = useState(false)
-  const [hasProfileReminder, setHasProfileReminder] = useState(false)
-  const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
-  const [unreadNotifications, setUnreadNotifications] = useState(0)
-  const [savingLang, setSavingLang] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  const navigate = useNavigate()
-  const location = useLocation()
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-    })
-
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, sess) => {
-      setSession(sess)
-      setAdminChecked(false)
-      setProfileChecked(false)
-      setCoreProfileReady(false)
-      setHasProfileReminder(false)
-      setMobileMenuOpen(false)
-
-      if (!sess) {
-        setIsAdmin(false)
-        setUnreadNotifications(0)
-        const localLang = localStorage.getItem('surplox_lang') || 'en'
-        setLang(localLang)
-      }
-    })
-
-    return () => sub.subscription.unsubscribe()
-  }, [])
-
-  useEffect(() => {
-    setMobileMenuOpen(false)
-  }, [location.pathname])
-
-  useEffect(() => {
-    async function loadProfileState() {
-      if (!session?.user) return
-
-      setProfileChecked(false)
-      setAdminChecked(false)
-
-      try {
-        const { data: prof, error: profErr } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .maybeSingle()
-
-        if (profErr) console.error(profErr)
-
-        const { data: contact, error: contactErr } = await supabase
-          .from('contact_private')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .maybeSingle()
-
-        if (contactErr) console.error(contactErr)
-
-        const userLang = prof?.preferred_language || localStorage.getItem('surplox_lang') || 'en'
-        setLang(userLang)
-        localStorage.setItem('surplox_lang', userLang)
-
-        const hasCore = Boolean(
-          prof &&
-            String(prof.display_name || '').trim() &&
-            String(prof.home_zip || '').trim() &&
-            (prof.trade_id || String(prof.bio || '').trim())
-        )
-
-        setCoreProfileReady(hasCore)
-
-        const reminderItems = getProfileReminderItems(prof || {}, contact || {}, userLang)
-        setHasProfileReminder(reminderItems.length > 0)
-
-        const { data: adminFlag, error: adminErr } = await supabase.rpc('is_admin')
-        if (adminErr) console.error(adminErr)
-
-        setIsAdmin(Boolean(adminFlag))
-        setAdminChecked(true)
-        setProfileChecked(true)
-
-        if (location.pathname === '/auth') {
-          navigate('/feed', { replace: true })
-        }
-      } catch (err) {
-        console.error(err)
-        setProfileChecked(true)
-      }
-    }
-
-    loadProfileState()
-  }, [session?.user?.id, session?.access_token, navigate, location.pathname])
-
-  useEffect(() => {
-    async function loadUnreadCount() {
-      if (!session?.user?.id) return
-
-      const { count, error } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', session.user.id)
-        .eq('is_read', false)
-
-      if (error) {
-        console.error(error)
-        return
-      }
-
-      setUnreadNotifications(count || 0)
-    }
-
-    loadUnreadCount()
-  }, [session?.user?.id, location.pathname])
-
-  async function updateLanguage(newLang) {
-    if (!newLang || newLang === lang) return
-
-    setLang(newLang)
-    localStorage.setItem('surplox_lang', newLang)
-
-    if (!session?.user?.id) return
-
-    try {
-      setSavingLang(true)
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({ preferred_language: newLang })
-        .eq('user_id', session.user.id)
-
-      if (error) console.error(error)
-    } finally {
-      setSavingLang(false)
-    }
-  }
-
-  async function signOut() {
-    await supabase.auth.signOut()
-    setMobileMenuOpen(false)
-    setIsAdmin(false)
-    setAdminChecked(false)
-    setProfileChecked(false)
-    setCoreProfileReady(false)
-    setHasProfileReminder(false)
-    setUnreadNotifications(0)
-    navigate('/', { replace: true })
-  }
-
-  function navBtnClass({ isActive }) {
-    return isActive ? 'btn small nav-link nav-link-active' : 'btn small nav-link'
-  }
-
-  function adminNavBtnClass({ isActive }) {
-    return isActive ? 'btn small primary nav-link nav-link-active' : 'btn small primary nav-link'
-  }
-
-  const brandTarget = session ? '/feed' : '/'
-  const showFullAppNav = Boolean(session && profileChecked)
-  const alertsBadgeCount = unreadNotifications + (hasProfileReminder ? 1 : 0)
-
-  const menuItems = useMemo(() => {
-    if (!showFullAppNav) return []
-
-    const items = [
-      { key: 'feed', to: '/feed', label: t(lang, 'nav_feed'), className: navBtnClass },
-      { key: 'channels', to: '/channels', label: t(lang, 'nav_channels'), className: navBtnClass },
-      { key: 'new', to: '/new', label: t(lang, 'nav_new_post'), className: navBtnClass },
-      {
-        key: 'notifications',
-        to: '/notifications',
-        label: t(lang, 'nav_alerts') || 'Alerts',
-        className: navBtnClass,
-        badge: alertsBadgeCount > 0 ? alertsBadgeCount : null
-      }
-    ]
-
-    if (isAdmin) {
-      items.push({
-        key: 'admin',
-        to: '/admin',
-        label: t(lang, 'nav_admin') || 'Admin',
-        className: adminNavBtnClass
-      })
-    }
-
-    return items
-  }, [showFullAppNav, lang, alertsBadgeCount, isAdmin])
+  const [lang, setLang] = usePreferredLanguage()
 
   return (
-    <>
-      <div className="nav">
-        <div className="nav-inner">
-          <div className="nav-brand-row">
-            <div className="nav-brand-group">
-              <NavLink className="brand" to={brandTarget}>
-                <img src={logo} alt="Surplox logo" className="logo" />
-              </NavLink>
-
-              <span aria-label="Surplox beta" className="beta-pill">
-                Beta
-              </span>
-            </div>
-
-            <div className="nav-links">
-              <div className="nav-language-group">
-                <button
-                  type="button"
-                  className={lang === 'en' ? 'btn small primary' : 'btn small'}
-                  onClick={() => updateLanguage('en')}
-                  disabled={savingLang}
-                  aria-pressed={lang === 'en'}
-                >
-                  EN
-                </button>
-
-                <button
-                  type="button"
-                  className={lang === 'es' ? 'btn small primary' : 'btn small'}
-                  onClick={() => updateLanguage('es')}
-                  disabled={savingLang}
-                  aria-pressed={lang === 'es'}
-                >
-                  ES
-                </button>
-              </div>
-
-              {session ? (
-                showFullAppNav ? (
-                  <>
-                    <div className="nav-desktop-links">
-                      {menuItems.map((item) => (
-                        <NavLink key={item.key} className={item.className} to={item.to}>
-                          {item.label}
-                          <NavBadge count={item.badge} />
-                        </NavLink>
-                      ))}
-
-                      <NavLink className={navBtnClass} to="/account">
-                        {t(lang, 'nav_account')}
-                      </NavLink>
-
-                      <button className="btn small danger" onClick={signOut}>
-                        {t(lang, 'nav_sign_out')}
-                      </button>
-                    </div>
-
-                    <div className="nav-mobile-actions">
-                      <NavLink
-                        className={({ isActive }) =>
-                          isActive
-                            ? 'btn small primary nav-icon-btn nav-link nav-link-active'
-                            : 'btn small primary nav-icon-btn nav-link'
-                        }
-                        to="/account"
-                        aria-label={t(lang, 'nav_account')}
-                        title={t(lang, 'nav_account')}
-                      >
-                        <AccountIcon />
-                      </NavLink>
-
-                      <button
-                        type="button"
-                        className={`btn small nav-icon-btn ${mobileMenuOpen ? 'nav-link-active' : ''}`}
-                        onClick={() => setMobileMenuOpen((prev) => !prev)}
-                        aria-expanded={mobileMenuOpen}
-                        aria-controls="surplox-mobile-menu"
-                        aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-                        title={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-                      >
-                        <MenuIcon />
-                      </button>
-                    </div>
-                  </>
-                ) : null
-              ) : (
-                <NavLink className="btn small primary nav-link" to="/auth?mode=signin">
-                  {t(lang, 'nav_sign_in')}
-                </NavLink>
-              )}
-            </div>
-          </div>
-
-          {session && showFullAppNav && mobileMenuOpen ? (
-            <div id="surplox-mobile-menu" className="nav-mobile-menu">
-              <div className="nav-mobile-menu-list">
-                {menuItems.map((item) => (
-                  <NavLink key={item.key} className={item.className} to={item.to}>
-                    <span>{item.label}</span>
-                    <NavBadge count={item.badge} />
-                  </NavLink>
-                ))}
-
-                <NavLink className={navBtnClass} to="/account">
-                  {t(lang, 'nav_account')}
-                </NavLink>
-
-                <button className="btn danger nav-mobile-signout" onClick={signOut}>
-                  {t(lang, 'nav_sign_out')}
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      <main className="container">
-        <Routes>
-          <Route path="/" element={<Home session={session} lang={lang} />} />
-          <Route path="/join" element={<Home session={session} lang={lang} variant="join" />} />
-
-          <Route
-            path="/auth"
-            element={<Auth lang={lang} setLang={updateLanguage} />}
-          />
-
-          <Route
-            path="/onboarding"
-            element={
-              <SessionOnly session={session}>
-                <Onboarding lang={lang} setLang={updateLanguage} />
-              </SessionOnly>
-            }
-          />
-
-          <Route
-            path="/feed"
-            element={
-              <AppOnly session={session} profileChecked={profileChecked} lang={lang}>
-                <Feed lang={lang} />
-              </AppOnly>
-            }
-          />
-
-          <Route
-            path="/channels"
-            element={
-              <AppOnly session={session} profileChecked={profileChecked} lang={lang}>
-                <Channels lang={lang} />
-              </AppOnly>
-            }
-          />
-
-          <Route
-            path="/new"
-            element={
-              <AppOnly session={session} profileChecked={profileChecked} lang={lang}>
-                <NewPost lang={lang} />
-              </AppOnly>
-            }
-          />
-
-          <Route
-            path="/p/:id"
-            element={
-              <AppOnly session={session} profileChecked={profileChecked} lang={lang}>
-                <PostDetail lang={lang} />
-              </AppOnly>
-            }
-          />
-
-          <Route
-            path="/account"
-            element={
-              <AppOnly session={session} profileChecked={profileChecked} lang={lang}>
-                <MyAccount lang={lang} setLang={updateLanguage} />
-              </AppOnly>
-            }
-          />
-
-          <Route
-            path="/notifications"
-            element={
-              <AppOnly session={session} profileChecked={profileChecked} lang={lang}>
-                <Notifications lang={lang} />
-              </AppOnly>
-            }
-          />
-
-          <Route
-            path="/u/:userId"
-            element={
-              <AppOnly session={session} profileChecked={profileChecked} lang={lang}>
-                <WorkerProfile />
-              </AppOnly>
-            }
-          />
-
-          <Route
-            path="/admin"
-            element={
-              <AdminOnly
-                session={session}
-                profileChecked={profileChecked}
-                isAdmin={isAdmin}
-                adminChecked={adminChecked}
-                lang={lang}
-              >
-                <AdminDirectory />
-              </AdminOnly>
-            }
-          />
-
-          <Route
-            path="*"
-            element={<Navigate to={session ? '/feed' : '/'} replace />}
-          />
-        </Routes>
-
-        {session && profileChecked && !coreProfileReady ? (
-          <div
-            className="card"
-            style={{
-              marginTop: 18,
-              background: '#fff4da'
-            }}
-          >
-            <div className="card-section-title">
-              {lang === 'es'
-                ? 'Termina tu acceso básico a Surplox'
-                : 'Finish your basic Surplox access'}
-            </div>
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-              {lang === 'es'
-                ? 'Agrega tu nombre visible, oficio y ZIP para fortalecer tu cuenta y desbloquear una mejor experiencia dentro de la red.'
-                : 'Add your display name, trade, and ZIP to strengthen your account and unlock a better experience inside the network.'}
-            </p>
-
-            <div style={{ marginTop: 14 }}>
-              <NavLink className="btn primary" to="/onboarding">
-                {lang === 'es' ? 'Completar cuenta' : 'Complete Account'}
-              </NavLink>
-            </div>
-          </div>
-        ) : null}
-
-        <div className="footerNote">{t(lang, 'footer_note')}</div>
-      </main>
-    </>
+    <BrowserRouter>
+      <AppShell lang={lang} setLang={setLang} />
+    </BrowserRouter>
   )
 }

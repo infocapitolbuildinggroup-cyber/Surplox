@@ -1,397 +1,338 @@
 import React from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 const COPY = {
   en: {
-    badge: 'Built for local construction',
-    title: 'The network where crews, workers, and opportunities move faster.',
-    body:
-      'Surplox helps laborers, subcontractors, contractors, and suppliers stay connected in one place. Discover nearby work, post crew needs, show availability, grow your network, and stay in the loop on real trade activity happening around you.',
-    primaryCta: 'Join Surplox',
-    joinBadge: 'Fast signup for crews, classmates, and local workers',
-    joinTitle: 'Join the Surplox construction network before the next opportunity moves without you.',
-    joinBody:
-      'Create your profile, get visible to local trade activity, and invite your crew or classmates onto Surplox in a few taps.',
-    joinPrimaryCta: 'Create Your Profile',
-    joinSecondaryCta: 'Already have an account? Sign In',
-    joinPoint1: 'Find crews and nearby work',
-    joinPoint2: 'Ask trade questions and stay visible',
-    joinPoint3: 'Invite your class or crew with one link',
-    secondaryCta: 'Sign In',
-    signedInPrimary: 'Go to Feed',
-    signedInSecondary: 'Create Post',
+    heroBadge: 'Construction operating network',
+    heroTitle: 'Labor, delivery, and repair — connected around the jobsite.',
+    heroBody:
+      'Surplox helps crews, laborers, contractors, runners, and repair support connect faster so work keeps moving. Start with labor today. Expand into material delivery and fleet support as the network grows.',
+    ctaPrimary: 'Enter Surplox',
+    ctaSecondary: 'View Channels',
 
-    valueTitle: 'What Surplox does now',
-    valueBody:
-      'Surplox is no longer just a forum. It is a live local construction network built to help the right people find each other faster and keep work moving.',
+    proof1: 'Need crew',
+    proof2: 'Looking for work',
+    proof3: 'Material delivery / hot shot',
+    proof4: 'Equipment / fleet repair',
 
-    card1Title: 'Find nearby opportunities',
-    card1Body:
-      'See local trade activity based on ZIP code and radius so relevant work, discussions, and crew needs are easier to discover.',
+    missionTitle: 'Built around real construction operations',
+    missionBody:
+      'A jobsite does not only need labor. It also needs materials moved, equipment kept running, and trusted people who can respond fast. Surplox is being built to connect that ecosystem one layer at a time.',
 
-    card2Title: 'Build and fill crews',
-    card2Body:
-      'Post when you need labor, track who joins, and move people into real job opportunities faster.',
+    pillarsTitle: 'The Surplox ecosystem',
+    pillarLaborTitle: 'Labor Network',
+    pillarLaborBody:
+      'Crews, laborers, tradesmen, and subcontractors can post availability, ask questions, and fill manpower gaps faster.',
+    pillarDemandTitle: 'Contractor Demand',
+    pillarDemandBody:
+      'Contractors and foremen can post crew needs, find local labor, and build a stronger repeat network over time.',
+    pillarDeliveryTitle: 'Material Delivery / Hot Shot',
+    pillarDeliveryBody:
+      'Cargo vans, pickups, flatbeds, and goosenecks can support local material runs, jobsite pickups, and urgent supply movement.',
+    pillarRepairTitle: 'Equipment / Fleet Repair',
+    pillarRepairBody:
+      'Diesel mechanics, trailer repair, and heavy equipment support help jobsites stay moving when equipment problems hit.',
 
-    card3Title: 'Show availability',
-    card3Body:
-      'Workers and subs can stay visible with profiles, trade details, travel radius, and current availability.',
+    lanesTitle: 'Why this matters',
+    lane1Title: 'Keep labor connected',
+    lane1Body:
+      'Workers need visibility and contractors need fast access to available people nearby.',
+    lane2Title: 'Keep materials moving',
+    lane2Body:
+      'Jobsites constantly lose time when someone has to leave for tools, supplies, or last-minute pickups.',
+    lane3Title: 'Keep equipment running',
+    lane3Body:
+      'Breakdowns stop work. Repair support close to the field can protect uptime and project momentum.',
 
-    card4Title: 'Strengthen your network',
-    card4Body:
-      'Stay connected through activity, alerts, replies, and repeat working relationships across your market.',
+    roadmapTitle: 'The growth path',
+    roadmap1: 'Start with labor liquidity in one market',
+    roadmap2: 'Add contractor demand and repeat hiring',
+    roadmap3: 'Layer in jobsite support users',
+    roadmap4: 'Eventually unlock construction material delivery',
 
-    audienceTitle: 'Who it is for',
-    audience1: 'Laborers looking for local work and visibility',
-    audience2: 'Subcontractors building crews and finding help',
-    audience3: 'Contractors filling labor gaps and posting opportunities',
-    audience4: 'Suppliers staying connected to active job markets',
+    supportTitle: 'Now entering Jobsite Support',
+    supportBody:
+      'Surplox is expanding carefully into construction-adjacent operations without losing focus. That means keeping the app centered on jobsite activity — not turning it into a generic gig marketplace.',
+    supportDelivery: 'Material Delivery / Hot Shot',
+    supportRepair: 'Equipment / Fleet Repair',
 
-    bottomTitle: 'Built for the field, not the office.',
-    bottomBody:
-      'Surplox is designed around how construction actually moves — through people, timing, location, and trusted local connections.',
-
-    inviteHint: 'Someone in your network invited you to join Surplox.',
-    heroTag1: 'Local network',
-    heroTag2: 'Crew activity',
-    heroTag3: 'Faster field visibility',
-    stat1Label: 'Built for',
-    stat1Value: 'Laborers, subs, contractors, suppliers',
-    stat2Label: 'What moves here',
-    stat2Value: 'Work, crews, trade activity, visibility',
-    stat3Label: 'Why it matters',
-    stat3Value: 'Faster local connections'
+    finalTitle: 'A network built to compound',
+    finalBody:
+      'The more real workers, contractors, runners, and repair specialists who use Surplox locally, the more valuable the network becomes for everyone inside it.',
+    finalCtaPrimary: 'Sign In',
+    finalCtaSecondary: 'Explore Channels'
   },
   es: {
-    badge: 'Hecho para la construcción local',
-    title: 'La red donde cuadrillas, trabajadores y oportunidades avanzan más rápido.',
-    body:
-      'Surplox ayuda a trabajadores, subcontratistas, contratistas y proveedores a mantenerse conectados en un solo lugar. Descubre trabajo cercano, publica necesidades de cuadrilla, muestra disponibilidad, haz crecer tu red y mantente al tanto de la actividad real del oficio cerca de ti.',
-    primaryCta: 'Unirse a Surplox',
-    joinBadge: 'Registro rápido para cuadrillas, compañeros y trabajadores locales',
-    joinTitle: 'Únete a la red de construcción Surplox antes de que la próxima oportunidad se mueva sin ti.',
-    joinBody:
-      'Crea tu perfil, mantente visible para la actividad local del oficio e invita a tu cuadrilla o compañeros a Surplox en pocos toques.',
-    joinPrimaryCta: 'Crear tu perfil',
-    joinSecondaryCta: '¿Ya tienes cuenta? Inicia sesión',
-    joinPoint1: 'Encuentra cuadrillas y trabajo cercano',
-    joinPoint2: 'Haz preguntas del oficio y mantente visible',
-    joinPoint3: 'Invita a tu clase o cuadrilla con un solo enlace',
-    secondaryCta: 'Iniciar sesión',
-    signedInPrimary: 'Ir al Feed',
-    signedInSecondary: 'Crear publicación',
+    heroBadge: 'Red operativa de construcción',
+    heroTitle: 'Mano de obra, entrega y reparación — conectadas alrededor de la obra.',
+    heroBody:
+      'Surplox ayuda a cuadrillas, trabajadores, contratistas, runners y soporte de reparación a conectarse más rápido para que el trabajo siga avanzando. Empieza con mano de obra hoy. Expándete hacia entrega de materiales y soporte de flota conforme crece la red.',
+    ctaPrimary: 'Entrar a Surplox',
+    ctaSecondary: 'Ver canales',
 
-    valueTitle: 'Lo que hace Surplox ahora',
-    valueBody:
-      'Surplox ya no es solo un foro. Ahora es una red activa local de construcción diseñada para que la gente correcta se encuentre más rápido y el trabajo siga avanzando.',
+    proof1: 'Se necesita cuadrilla',
+    proof2: 'Buscando trabajo',
+    proof3: 'Entrega de materiales / hot shot',
+    proof4: 'Reparación de equipo / flota',
 
-    card1Title: 'Encontrar oportunidades cercanas',
-    card1Body:
-      'Ve actividad local del oficio según ZIP y radio para descubrir trabajo, conversaciones y necesidades de cuadrilla más relevantes.',
+    missionTitle: 'Construido alrededor de operaciones reales de obra',
+    missionBody:
+      'Una obra no solo necesita mano de obra. También necesita mover materiales, mantener el equipo funcionando y personas confiables que puedan responder rápido. Surplox se está construyendo para conectar ese ecosistema una capa a la vez.',
 
-    card2Title: 'Armar y llenar cuadrillas',
-    card2Body:
-      'Publica cuando necesites personal, revisa quién se une y mueve gente hacia oportunidades reales más rápido.',
+    pillarsTitle: 'El ecosistema de Surplox',
+    pillarLaborTitle: 'Red de mano de obra',
+    pillarLaborBody:
+      'Cuadrillas, trabajadores, oficios y subcontratistas pueden publicar disponibilidad, hacer preguntas y cubrir faltantes de personal más rápido.',
+    pillarDemandTitle: 'Demanda del contratista',
+    pillarDemandBody:
+      'Contratistas y capataces pueden publicar necesidades de cuadrilla, encontrar mano de obra local y construir una red de confianza con el tiempo.',
+    pillarDeliveryTitle: 'Entrega de materiales / Hot Shot',
+    pillarDeliveryBody:
+      'Cargo vans, pickups, flatbeds y goosenecks pueden apoyar viajes locales de materiales, recolecciones en tienda y movimiento urgente de suministros.',
+    pillarRepairTitle: 'Reparación de equipo / flota',
+    pillarRepairBody:
+      'Mecánicos diésel, reparación de remolques y soporte de equipo pesado ayudan a que las obras sigan activas cuando aparecen problemas mecánicos.',
 
-    card3Title: 'Mostrar disponibilidad',
-    card3Body:
-      'Trabajadores y subcontratistas pueden mantenerse visibles con perfiles, oficio, radio de trabajo y disponibilidad actual.',
+    lanesTitle: 'Por qué importa',
+    lane1Title: 'Mantener conectada la mano de obra',
+    lane1Body:
+      'Los trabajadores necesitan visibilidad y los contratistas necesitan acceso rápido a gente disponible cerca.',
+    lane2Title: 'Mantener los materiales moviéndose',
+    lane2Body:
+      'Las obras pierden tiempo constantemente cuando alguien tiene que salir por herramientas, suministros o recogidas de último minuto.',
+    lane3Title: 'Mantener el equipo funcionando',
+    lane3Body:
+      'Las fallas detienen el trabajo. Tener soporte de reparación cerca del campo protege el tiempo activo y el avance del proyecto.',
 
-    card4Title: 'Fortalecer tu red',
-    card4Body:
-      'Mantente conectado mediante actividad, alertas, respuestas y relaciones de trabajo repetidas dentro de tu mercado.',
+    roadmapTitle: 'La ruta de crecimiento',
+    roadmap1: 'Empezar con liquidez laboral en un mercado',
+    roadmap2: 'Agregar demanda de contratistas y contrataciones repetidas',
+    roadmap3: 'Incorporar usuarios de soporte de obra',
+    roadmap4: 'Eventualmente desbloquear entrega de materiales para construcción',
 
-    audienceTitle: 'Para quién es',
-    audience1: 'Trabajadores buscando visibilidad y trabajo local',
-    audience2: 'Subcontratistas armando cuadrillas y encontrando apoyo',
-    audience3: 'Contratistas cubriendo faltantes y publicando oportunidades',
-    audience4: 'Proveedores conectados a mercados activos de trabajo',
+    supportTitle: 'Ahora entrando a Soporte de obra',
+    supportBody:
+      'Surplox se está expandiendo con cuidado hacia operaciones adyacentes a la construcción sin perder enfoque. Eso significa mantener la app centrada en la actividad de obra, no convertirla en un marketplace genérico.',
+    supportDelivery: 'Entrega de materiales / Hot Shot',
+    supportRepair: 'Reparación de equipo / flota',
 
-    bottomTitle: 'Hecho para el campo, no para la oficina.',
-    bottomBody:
-      'Surplox está diseñado alrededor de cómo realmente se mueve la construcción: personas, tiempo, ubicación y conexiones locales de confianza.',
-
-    inviteHint: 'Alguien de tu red te invitó a unirte a Surplox.',
-    heroTag1: 'Red local',
-    heroTag2: 'Actividad de cuadrillas',
-    heroTag3: 'Más visibilidad en campo',
-    stat1Label: 'Hecho para',
-    stat1Value: 'Trabajadores, subs, contratistas, proveedores',
-    stat2Label: 'Lo que se mueve aquí',
-    stat2Value: 'Trabajo, cuadrillas, actividad del oficio, visibilidad',
-    stat3Label: 'Por qué importa',
-    stat3Value: 'Conexiones locales más rápidas'
+    finalTitle: 'Una red hecha para acumular valor',
+    finalBody:
+      'Entre más trabajadores, contratistas, runners y especialistas de reparación usen Surplox localmente, más valiosa se vuelve la red para todos los que están dentro.',
+    finalCtaPrimary: 'Entrar',
+    finalCtaSecondary: 'Explorar canales'
   }
 }
 
-function SectionCard({ title, body }) {
+function PillarCard({ badge, title, body, dark = false }) {
   return (
-    <div className="card" style={{ height: '100%' }}>
-      <div className="card-section-title">{title}</div>
-      <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+    <div
+      className={dark ? 'card surface-dark rounded-xl' : 'card rounded-xl'}
+      style={{ padding: 22 }}
+    >
+      <div
+        className="badge"
+        style={
+          dark
+            ? { background: 'rgba(255,255,255,0.12)', color: '#ffffff' }
+            : { background: '#f1e7a8', color: '#111111' }
+        }
+      >
+        {badge}
+      </div>
+      <div style={{ marginTop: 14, fontWeight: 900, fontSize: 24, lineHeight: 1.12 }}>
+        {title}
+      </div>
+      <p
+        style={{
+          marginTop: 10,
+          lineHeight: 1.7,
+          color: dark ? 'rgba(255,255,255,0.82)' : 'var(--muted)'
+        }}
+      >
         {body}
       </p>
     </div>
   )
 }
 
-function MiniStat({ label, value }) {
-  return (
-    <div className="card-soft" style={{ gap: 8 }}>
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 800,
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          color: 'var(--muted-soft)'
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: 16,
-          lineHeight: 1.35,
-          fontWeight: 800,
-          color: 'var(--text)'
-        }}
-      >
-        {value}
-      </div>
-    </div>
-  )
-}
-
-export default function Home({ session, lang = 'en', variant = 'default' }) {
+export default function Home({ lang = 'en' }) {
   const copy = COPY[lang] || COPY.en
-  const location = useLocation()
-  const ref = new URLSearchParams(location.search).get('ref')
-  const isJoinVariant = variant === 'join'
-  const inviteHint = ref && !session ? copy.inviteHint : ''
 
   return (
     <div className="grid" style={{ gap: 18 }}>
-      {isJoinVariant ? (
-        <div
-          className="card surface-warm rounded-xl"
-          style={{
-            padding: 28
-          }}
-        >
-          <div
-            className="badge"
-            style={{
-              marginBottom: 16,
-              background: '#f1e7a8',
-              color: 'var(--text)'
-            }}
-          >
-            {copy.joinBadge}
-          </div>
-
-          <div className="h1" style={{ maxWidth: 980 }}>
-            {copy.joinTitle}
-          </div>
-
-          <p
-            className="muted"
-            style={{
-              marginTop: 14,
-              maxWidth: 900,
-              fontSize: 17,
-              lineHeight: 1.7
-            }}
-          >
-            {copy.joinBody}
-          </p>
-
-          {inviteHint ? (
-            <div
-              className="card-soft"
-              style={{
-                marginTop: 16,
-                background: 'rgba(255,255,255,0.55)'
-              }}
-            >
-              <div style={{ fontWeight: 700 }}>{inviteHint}</div>
-            </div>
-          ) : null}
-
-          <div className="grid two" style={{ marginTop: 18 }}>
-            <div className="card-soft">
-              <div style={{ fontWeight: 800 }}>{copy.joinPoint1}</div>
-            </div>
-            <div className="card-soft">
-              <div style={{ fontWeight: 800 }}>{copy.joinPoint2}</div>
-            </div>
-            <div className="card-soft">
-              <div style={{ fontWeight: 800 }}>{copy.joinPoint3}</div>
-            </div>
-            <div className="card-soft">
-              <div style={{ fontWeight: 800 }}>{copy.audience1}</div>
-            </div>
-          </div>
-
-          <div className="row" style={{ marginTop: 18 }}>
-            {!session ? (
-              <>
-                <Link className="btn primary" to="/auth?mode=signup">
-                  {copy.joinPrimaryCta}
-                </Link>
-                <Link className="btn" to="/auth?mode=signin">
-                  {copy.joinSecondaryCta}
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link className="btn primary" to="/feed">
-                  {copy.signedInPrimary}
-                </Link>
-                <Link className="btn" to="/new">
-                  {copy.signedInSecondary}
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      ) : null}
-
       <div
         className="card rounded-xl"
         style={{
-          padding: 28,
-          background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
+          padding: 32,
+          background: 'linear-gradient(180deg, #fff7c8 0%, #ffffff 100%)'
         }}
       >
-        <div
-          className="badge"
-          style={{
-            marginBottom: 16,
-            background: '#f1e7a8',
-            color: 'var(--text)'
-          }}
-        >
-          {copy.badge}
+        <div className="badge" style={{ marginBottom: 16, background: '#f1e7a8' }}>
+          {copy.heroBadge}
         </div>
 
-        <div className="row" style={{ alignItems: 'stretch', gap: 18 }}>
-          <div style={{ flex: '1 1 620px' }}>
-            <div className="h1" style={{ maxWidth: 920 }}>
-              {copy.title}
+        <div className="grid two" style={{ alignItems: 'start' }}>
+          <div>
+            <div className="h1" style={{ maxWidth: 760 }}>
+              {copy.heroTitle}
             </div>
 
             <p
               className="muted"
               style={{
                 marginTop: 14,
-                maxWidth: 860,
                 fontSize: 18,
-                lineHeight: 1.7
+                lineHeight: 1.75,
+                maxWidth: 820
               }}
             >
-              {copy.body}
+              {copy.heroBody}
             </p>
 
-            <div
-              style={{
-                display: 'flex',
-                gap: 8,
-                flexWrap: 'wrap',
-                marginTop: 18
-              }}
-            >
-              <span className="badge">{copy.heroTag1}</span>
-              <span className="badge">{copy.heroTag2}</span>
-              <span className="badge">{copy.heroTag3}</span>
-            </div>
-
-            <div className="row" style={{ marginTop: 20 }}>
-              {!session ? (
-                <>
-                  <Link className="btn primary" to="/auth?mode=signup">
-                    {copy.primaryCta}
-                  </Link>
-                  <Link className="btn" to="/auth?mode=signin">
-                    {copy.secondaryCta}
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link className="btn primary" to="/feed">
-                    {copy.signedInPrimary}
-                  </Link>
-                  <Link className="btn" to="/new">
-                    {copy.signedInSecondary}
-                  </Link>
-                </>
-              )}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 20 }}>
+              <Link className="btn primary" to="/auth">
+                {copy.ctaPrimary}
+              </Link>
+              <Link className="btn" to="/channels">
+                {copy.ctaSecondary}
+              </Link>
             </div>
           </div>
 
-          <div
-            style={{
-              flex: '1 1 320px',
-              minWidth: 280,
-              display: 'grid',
-              gap: 12,
-              alignSelf: 'stretch'
-            }}
-          >
-            <MiniStat label={copy.stat1Label} value={copy.stat1Value} />
-            <MiniStat label={copy.stat2Label} value={copy.stat2Value} />
-            <MiniStat label={copy.stat3Label} value={copy.stat3Value} />
+          <div className="grid" style={{ gap: 12 }}>
+            <div className="card-soft" style={{ minHeight: 92 }}>
+              <div style={{ fontWeight: 800, fontSize: 16 }}>{copy.proof1}</div>
+            </div>
+            <div className="card-soft" style={{ minHeight: 92 }}>
+              <div style={{ fontWeight: 800, fontSize: 16 }}>{copy.proof2}</div>
+            </div>
+            <div className="card-soft" style={{ minHeight: 92 }}>
+              <div style={{ fontWeight: 800, fontSize: 16 }}>{copy.proof3}</div>
+            </div>
+            <div className="card-soft" style={{ minHeight: 92 }}>
+              <div style={{ fontWeight: 800, fontSize: 16 }}>{copy.proof4}</div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="grid two">
-        <div className="card-soft" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.valueTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 10 }}>
-            {copy.valueBody}
-          </p>
-        </div>
+      <div className="card rounded-xl" style={{ padding: 24 }}>
+        <div className="card-section-title">{copy.missionTitle}</div>
+        <p className="card-section-subtitle" style={{ marginTop: 10, lineHeight: 1.8 }}>
+          {copy.missionBody}
+        </p>
+      </div>
 
-        <div className="card-soft" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.audienceTitle}</div>
-          <div className="grid" style={{ gap: 10, marginTop: 12 }}>
-            <div style={{ fontWeight: 700 }}>{copy.audience1}</div>
-            <div style={{ fontWeight: 700 }}>{copy.audience2}</div>
-            <div style={{ fontWeight: 700 }}>{copy.audience3}</div>
-            <div style={{ fontWeight: 700 }}>{copy.audience4}</div>
-          </div>
+      <div className="card rounded-xl" style={{ padding: 24 }}>
+        <div className="card-section-title">{copy.pillarsTitle}</div>
+
+        <div className="grid two" style={{ marginTop: 16 }}>
+          <PillarCard
+            badge={lang === 'es' ? 'Labor' : 'Labor'}
+            title={copy.pillarLaborTitle}
+            body={copy.pillarLaborBody}
+          />
+          <PillarCard
+            badge={lang === 'es' ? 'Demanda' : 'Demand'}
+            title={copy.pillarDemandTitle}
+            body={copy.pillarDemandBody}
+          />
+          <PillarCard
+            badge={lang === 'es' ? 'Entrega' : 'Delivery'}
+            title={copy.pillarDeliveryTitle}
+            body={copy.pillarDeliveryBody}
+          />
+          <PillarCard
+            badge={lang === 'es' ? 'Reparación' : 'Repair'}
+            title={copy.pillarRepairTitle}
+            body={copy.pillarRepairBody}
+          />
         </div>
       </div>
 
       <div className="grid two">
-        <SectionCard title={copy.card1Title} body={copy.card1Body} />
-        <SectionCard title={copy.card2Title} body={copy.card2Body} />
-        <SectionCard title={copy.card3Title} body={copy.card3Body} />
-        <SectionCard title={copy.card4Title} body={copy.card4Body} />
+        <PillarCard
+          badge="01"
+          title={copy.lane1Title}
+          body={copy.lane1Body}
+        />
+        <PillarCard
+          badge="02"
+          title={copy.lane2Title}
+          body={copy.lane2Body}
+        />
+        <PillarCard
+          badge="03"
+          title={copy.lane3Title}
+          body={copy.lane3Body}
+          dark
+        />
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 24 }}>
+        <div className="card-section-title">{copy.roadmapTitle}</div>
+
+        <div className="grid two" style={{ marginTop: 16 }}>
+          <div className="card-soft"><div style={{ fontWeight: 800 }}>{copy.roadmap1}</div></div>
+          <div className="card-soft"><div style={{ fontWeight: 800 }}>{copy.roadmap2}</div></div>
+          <div className="card-soft"><div style={{ fontWeight: 800 }}>{copy.roadmap3}</div></div>
+          <div className="card-soft"><div style={{ fontWeight: 800 }}>{copy.roadmap4}</div></div>
+        </div>
       </div>
 
       <div
-        className="card surface-dark rounded-xl"
+        className="card rounded-xl"
         style={{
-          padding: 28
+          padding: 24,
+          background: 'linear-gradient(180deg, #f5f3e8 0%, #ffffff 100%)'
         }}
       >
-        <div className="h2" style={{ marginBottom: 10 }}>
-          {copy.bottomTitle}
+        <div className="card-section-title">{copy.supportTitle}</div>
+        <p className="card-section-subtitle" style={{ marginTop: 10, lineHeight: 1.8 }}>
+          {copy.supportBody}
+        </p>
+
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+          <Link
+            className="btn"
+            to="/feed?category=jobsite_support&support=material_delivery"
+          >
+            {copy.supportDelivery}
+          </Link>
+          <Link
+            className="btn"
+            to="/feed?category=jobsite_support&support=equipment_fleet_repair"
+          >
+            {copy.supportRepair}
+          </Link>
+        </div>
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 28, background: '#111111', color: '#ffffff' }}>
+        <div className="h1" style={{ maxWidth: 760 }}>
+          {copy.finalTitle}
         </div>
 
         <p
-          className="muted"
           style={{
-            maxWidth: 860,
-            fontSize: 17,
-            lineHeight: 1.7,
-            margin: 0
+            marginTop: 12,
+            maxWidth: 820,
+            lineHeight: 1.75,
+            color: 'rgba(255,255,255,0.82)'
           }}
         >
-          {copy.bottomBody}
+          {copy.finalBody}
         </p>
+
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
+          <Link className="btn primary" to="/auth">
+            {copy.finalCtaPrimary}
+          </Link>
+          <Link className="btn" to="/channels">
+            {copy.finalCtaSecondary}
+          </Link>
+        </div>
       </div>
     </div>
   )
