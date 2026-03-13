@@ -125,7 +125,15 @@ const COPY = {
     profileStatus: 'Profile Status',
     profileComplete: 'Complete',
     profileIncomplete: 'Incomplete',
-    missingFields: 'Missing Fields'
+    missingFields: 'Missing Fields',
+
+    heroBadge: 'Admin OS',
+    heroTitle: 'Run Surplox with cleaner visibility.',
+    heroBody:
+      'Track marketplace health, spot shortages, review worker quality, and manage admin follow-up from one premium control center.',
+    filteredMembers: 'Filtered Members',
+    networkHealth: 'Network Health',
+    demandSignals: 'Demand Signals'
   },
   es: {
     pageTitle: 'Panel de Administración',
@@ -249,7 +257,15 @@ const COPY = {
     profileStatus: 'Estado del Perfil',
     profileComplete: 'Completo',
     profileIncomplete: 'Incompleto',
-    missingFields: 'Campos Faltantes'
+    missingFields: 'Campos Faltantes',
+
+    heroBadge: 'Admin OS',
+    heroTitle: 'Dirige Surplox con más claridad.',
+    heroBody:
+      'Sigue la salud del marketplace, detecta faltantes, revisa la calidad de trabajadores y administra el seguimiento desde un solo centro de control.',
+    filteredMembers: 'Miembros filtrados',
+    networkHealth: 'Salud de la red',
+    demandSignals: 'Señales de demanda'
   }
 }
 
@@ -279,44 +295,16 @@ function roleLabel(role, copy) {
 }
 
 function roleBadgeStyle(role) {
-  if (role === 'contractor') {
-    return {
-      color: '#ffde59',
-      borderColor: 'rgba(255, 117, 31, 0.55)',
-      background: 'rgba(255, 117, 31, 0.12)'
-    }
-  }
-  if (role === 'subcontractor') {
-    return {
-      color: '#ff751f',
-      borderColor: 'rgba(255, 222, 89, 0.55)',
-      background: 'rgba(255, 222, 89, 0.12)'
-    }
-  }
-  if (role === 'laborer') {
-    return {
-      color: '#ffde59',
-      borderColor: 'rgba(255, 222, 89, 0.35)',
-      background: 'rgba(255, 222, 89, 0.05)'
-    }
-  }
-  if (role === 'supplier') {
-    return {
-      color: '#ffd6b5',
-      borderColor: 'rgba(255, 117, 31, 0.4)',
-      background: 'rgba(255, 117, 31, 0.08)'
-    }
-  }
+  if (role === 'contractor') return { background: '#111111', color: '#ffffff' }
+  if (role === 'subcontractor') return { background: '#fff0b4', color: '#111111' }
+  if (role === 'laborer') return { background: '#ecebe3', color: '#111111' }
+  if (role === 'supplier') return { background: '#ffd7b0', color: '#111111' }
   return {}
 }
 
 function availabilityBadgeStyle(isAvailable) {
   if (!isAvailable) return {}
-  return {
-    color: '#ff751f',
-    borderColor: 'rgba(255, 222, 89, 0.65)',
-    background: 'rgba(255, 222, 89, 0.14)'
-  }
+  return { background: '#dcf4e5', color: '#177245' }
 }
 
 function formatDateTime(value) {
@@ -362,6 +350,52 @@ function getMissingProfileFields(worker, copy) {
   if (!worker.trade_id && !String(worker.trade_name || '').trim()) missing.push(copy.trade)
 
   return missing
+}
+
+function StatCard({ label, value, dark = false }) {
+  return (
+    <div
+      className={dark ? 'card surface-dark rounded-xl' : 'card-soft'}
+      style={{ minHeight: 116, padding: 18 }}
+    >
+      <div
+        style={{
+          fontSize: 12,
+          fontWeight: 800,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          color: dark ? 'rgba(255,255,255,0.72)' : 'var(--muted-soft)'
+        }}
+      >
+        {label}
+      </div>
+      <div style={{ marginTop: 10, fontSize: 30, fontWeight: 900, lineHeight: 1 }}>
+        {value}
+      </div>
+    </div>
+  )
+}
+
+function InsightList({ title, items, copy, formatter }) {
+  return (
+    <div className="card rounded-xl" style={{ padding: 22 }}>
+      <div className="card-section-title">{title}</div>
+
+      {items.length === 0 ? (
+        <div className="card-soft" style={{ marginTop: 14 }}>
+          <div className="muted">{copy.noData}</div>
+        </div>
+      ) : (
+        <div className="list" style={{ marginTop: 14 }}>
+          {items.map((item, idx) => (
+            <div key={`${title}-${idx}`} className="card-soft" style={{ background: '#ffffff' }}>
+              {formatter(item)}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function AdminDirectory() {
@@ -509,7 +543,7 @@ export default function AdminDirectory() {
     return () => {
       alive = false
     }
-  }, [])
+  }, [copy.saveError])
 
   function setF(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }))
@@ -814,9 +848,7 @@ export default function AdminDirectory() {
 
     const activityMap = new Map()
     profiles.forEach((p) => activityMap.set(p.user_id, 0))
-    posts.forEach((p) =>
-      activityMap.set(p.author_id, (activityMap.get(p.author_id) || 0) + 1)
-    )
+    posts.forEach((p) => activityMap.set(p.author_id, (activityMap.get(p.author_id) || 0) + 1))
     comments.forEach((c) =>
       activityMap.set(c.author_id, (activityMap.get(c.author_id) || 0) + 1)
     )
@@ -915,347 +947,149 @@ export default function AdminDirectory() {
 
   function exportByTrade() {
     const tradeId = String(filters.trade_id || '')
-    if (!tradeId) return
     exportRowsToCsv(
       'surplox_selected_trade.csv',
-      makeWorkerExportRows(mergedWorkers.filter((w) => String(w.trade_id) === tradeId))
+      makeWorkerExportRows(
+        mergedWorkers.filter((w) => !tradeId || String(w.trade_id) === tradeId)
+      )
     )
   }
 
   function exportByZip() {
     const zip = String(filters.job_zip || '').trim()
-    if (!zip) return
     exportRowsToCsv(
       'surplox_selected_zip.csv',
-      makeWorkerExportRows(mergedWorkers.filter((w) => String(w.home_zip || '') === zip))
+      makeWorkerExportRows(
+        mergedWorkers.filter((w) => !zip || String(w.home_zip || '') === zip)
+      )
     )
   }
 
-  async function saveAdminFields(userId, adminRating, adminNotes, followUpStatus) {
-    setSavingId(userId)
-    setMsg('')
+  async function saveAdminData(worker) {
+    const ratingValue = String(worker.admin_rating ?? '').trim()
+    const numericRating = ratingValue === '' ? null : Number(ratingValue)
+
+    if (
+      numericRating !== null &&
+      (!Number.isFinite(numericRating) || numericRating < 1 || numericRating > 5)
+    ) {
+      setMsg(copy.ratingPlaceholder ? (lang === 'es' ? 'La calificación debe ser entre 1 y 5.' : 'Rating must be between 1 and 5.') : copy.saveError)
+      return
+    }
 
     try {
-      const ratingNum = adminRating === '' ? null : Number(adminRating)
+      setSavingId(worker.user_id)
+      setMsg('')
 
-      if (ratingNum !== null && (!Number.isFinite(ratingNum) || ratingNum < 1 || ratingNum > 5)) {
-        throw new Error(copy.saveError)
+      const payload = {
+        user_id: worker.user_id,
+        phone: worker.phone || null,
+        email: worker.email || null,
+        city: worker.city || null,
+        admin_rating: numericRating,
+        admin_notes: String(worker.admin_notes || '').trim() || null,
+        admin_follow_up_status: String(worker.admin_follow_up_status || '').trim() || null
       }
 
-      const { error } = await supabase
-        .from('contact_private')
-        .upsert(
-          {
-            user_id: userId,
-            admin_rating: ratingNum,
-            admin_notes: String(adminNotes || ''),
-            admin_follow_up_status: String(followUpStatus || '')
-          },
-          { onConflict: 'user_id' }
-        )
-
+      const { error } = await supabase.from('contact_private').upsert(payload)
       if (error) throw error
 
       setPrivateRows((prev) => {
-        const exists = prev.some((row) => row.user_id === userId)
-        if (exists) {
-          return prev.map((row) =>
-            row.user_id === userId
-              ? {
-                  ...row,
-                  admin_rating: ratingNum,
-                  admin_notes: String(adminNotes || ''),
-                  admin_follow_up_status: String(followUpStatus || '')
-                }
-              : row
-          )
-        }
-
-        return [
-          ...prev,
-          {
-            user_id: userId,
-            admin_rating: ratingNum,
-            admin_notes: String(adminNotes || ''),
-            admin_follow_up_status: String(followUpStatus || '')
-          }
-        ]
+        const next = [...prev]
+        const idx = next.findIndex((r) => r.user_id === worker.user_id)
+        if (idx >= 0) next[idx] = { ...next[idx], ...payload }
+        else next.push(payload)
+        return next
       })
 
       setMsg(copy.saved)
-    } catch (e) {
-      console.error(e)
-      setMsg(e?.message || copy.saveError)
+    } catch (err) {
+      console.error(err)
+      setMsg(err.message || copy.saveError)
     } finally {
       setSavingId(null)
     }
   }
 
-  if (loading) {
-    return <div className="card">{copy.loading}</div>
-  }
+  if (loading) return <div className="card">{copy.loading}</div>
 
   return (
-    <div className="grid" style={{ gap: 12 }}>
-      <div className="card">
-        <div className="h1" style={{ marginTop: 0, fontSize: 24 }}>
+    <div className="grid" style={{ gap: 18 }}>
+      {msg ? (
+        <div className="card-message" style={{ padding: 14, borderRadius: 18 }}>
+          {msg}
+        </div>
+      ) : null}
+
+      <div
+        className="card rounded-xl"
+        style={{
+          padding: 28,
+          background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
+        }}
+      >
+        <div className="badge" style={{ marginBottom: 14, background: '#f1e7a8' }}>
+          {copy.heroBadge}
+        </div>
+
+        <div className="h1" style={{ maxWidth: 860 }}>
+          {copy.heroTitle}
+        </div>
+
+        <p className="muted" style={{ marginTop: 12, maxWidth: 900, fontSize: 17, lineHeight: 1.7 }}>
+          {copy.heroBody}
+        </p>
+
+        <div className="grid two" style={{ marginTop: 18 }}>
+          <StatCard label={copy.filteredMembers} value={filteredWorkers.length} dark />
+          <StatCard label={copy.networkHealth} value={analytics.totalUsers} />
+          <StatCard label={copy.demandSignals} value={analytics.needCrewPosts} />
+        </div>
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="h1" style={{ fontSize: 'clamp(1.9rem, 4vw, 2.7rem)' }}>
           {copy.pageTitle}
         </div>
-        <p className="card-section-subtitle">{copy.pageIntro}</p>
+        <p className="muted" style={{ marginTop: 10 }}>
+          {copy.pageIntro}
+        </p>
       </div>
 
-      <div className="card">
+      <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{copy.analyticsTitle}</div>
-        <div className="grid two" style={{ marginTop: 12 }}>
-          {[
-            [copy.totalUsers, analytics.totalUsers],
-            [copy.laborers, analytics.laborers],
-            [copy.subcontractors, analytics.subcontractors],
-            [copy.contractors, analytics.contractors],
-            [copy.suppliers, analytics.suppliers],
-            [copy.availableWorkers, analytics.availableWorkers],
-            [copy.completedProfiles, analytics.completedProfiles],
-            [copy.incompleteProfiles, analytics.incompleteProfiles],
-            [copy.totalPosts, analytics.totalPosts],
-            [copy.needCrewPosts, analytics.needCrewPosts],
-            [copy.lookingForWorkPosts, analytics.lookingForWorkPosts],
-            [copy.discussions, analytics.discussions],
-            [copy.crewJoins, analytics.crewJoins],
-            [copy.hires, analytics.hires],
-            [copy.openCrewPosts, analytics.openCrewPosts],
-            [copy.fullCrewPosts, analytics.fullCrewPosts],
-            [copy.closedCrewPosts, analytics.closedCrewPosts],
-            [copy.totalComments, analytics.totalComments]
-          ].map(([label, value]) => (
-            <div key={label} className="card card-soft">
-              <div className="card-section-title" style={{ fontSize: 15 }}>
-                {label}
-              </div>
-              <div className="h1" style={{ fontSize: 28, margin: '8px 0 0' }}>
-                {value}
-              </div>
-            </div>
-          ))}
+        <div className="grid two" style={{ marginTop: 14 }}>
+          <StatCard label={copy.totalUsers} value={analytics.totalUsers} dark />
+          <StatCard label={copy.availableWorkers} value={analytics.availableWorkers} />
+          <StatCard label={copy.totalPosts} value={analytics.totalPosts} />
+          <StatCard label={copy.needCrewPosts} value={analytics.needCrewPosts} />
+          <StatCard label={copy.lookingForWorkPosts} value={analytics.lookingForWorkPosts} />
+          <StatCard label={copy.discussions} value={analytics.discussions} />
+          <StatCard label={copy.crewJoins} value={analytics.crewJoins} />
+          <StatCard label={copy.hires} value={analytics.hires} />
+          <StatCard label={copy.openCrewPosts} value={analytics.openCrewPosts} />
+          <StatCard label={copy.fullCrewPosts} value={analytics.fullCrewPosts} />
+          <StatCard label={copy.closedCrewPosts} value={analytics.closedCrewPosts} />
+          <StatCard label={copy.totalComments} value={analytics.totalComments} />
+          <StatCard label={copy.completedProfiles} value={analytics.completedProfiles} />
+          <StatCard label={copy.incompleteProfiles} value={analytics.incompleteProfiles} />
         </div>
       </div>
 
-      <div className="grid two">
-        <div className="card">
-          <div className="card-section-title">{copy.marketTitle}</div>
-
-          <div className="grid two" style={{ marginTop: 12 }}>
-            <div className="card card-soft">
-              <div className="card-section-title">{copy.topTradesByUsers}</div>
-              <div style={{ marginTop: 10 }}>
-                {marketIntel.topTradesByUsers.length ? (
-                  marketIntel.topTradesByUsers.map(([name, count]) => (
-                    <div key={name} className="row" style={{ justifyContent: 'space-between' }}>
-                      <span>{name}</span>
-                      <span className="badge">{count} {copy.userCount}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="muted">{copy.noData}</div>
-                )}
-              </div>
-            </div>
-
-            <div className="card card-soft">
-              <div className="card-section-title">{copy.topTradesByDemand}</div>
-              <div style={{ marginTop: 10 }}>
-                {marketIntel.topTradesByDemand.length ? (
-                  marketIntel.topTradesByDemand.map(([name, count]) => (
-                    <div key={name} className="row" style={{ justifyContent: 'space-between' }}>
-                      <span>{name}</span>
-                      <span className="badge">{count} {copy.requests}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="muted">{copy.noData}</div>
-                )}
-              </div>
-            </div>
-
-            <div className="card card-soft">
-              <div className="card-section-title">{copy.topZipsByWorkers}</div>
-              <div style={{ marginTop: 10 }}>
-                {marketIntel.topZipsByWorkers.length ? (
-                  marketIntel.topZipsByWorkers.map(([name, count]) => (
-                    <div key={name} className="row" style={{ justifyContent: 'space-between' }}>
-                      <span>{name || copy.unknown}</span>
-                      <span className="badge">{count} {copy.workers}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="muted">{copy.noData}</div>
-                )}
-              </div>
-            </div>
-
-            <div className="card card-soft">
-              <div className="card-section-title">{copy.topZipsByCrewRequests}</div>
-              <div style={{ marginTop: 10 }}>
-                {marketIntel.topZipsByCrewRequests.length ? (
-                  marketIntel.topZipsByCrewRequests.map(([name, count]) => (
-                    <div key={name} className="row" style={{ justifyContent: 'space-between' }}>
-                      <span>{name || copy.unknown}</span>
-                      <span className="badge">{count} {copy.requests}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="muted">{copy.noData}</div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="card card-soft" style={{ marginTop: 12 }}>
-            <div className="card-section-title">{copy.marketGapFinder}</div>
-            <div className="grid" style={{ marginTop: 10, gap: 8 }}>
-              {marketIntel.gapRows.length ? (
-                marketIntel.gapRows.map((row) => (
-                  <div
-                    key={row.tradeName}
-                    className="row"
-                    style={{
-                      justifyContent: 'space-between',
-                      padding: '10px 12px',
-                      borderRadius: 14,
-                      border: '1px solid rgba(255, 222, 89, 0.16)',
-                      background: 'rgba(255,255,255,0.02)'
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 700 }}>{row.tradeName}</div>
-                      <div className="muted" style={{ fontSize: 13 }}>
-                        {copy.supply}: {row.supply} • {copy.demand}: {row.demand} • {copy.gap}:{' '}
-                        {row.gap}
-                      </div>
-                    </div>
-                    <span className="badge">
-                      {row.status === 'surplus'
-                        ? copy.surplus
-                        : row.status === 'shortage'
-                        ? copy.shortage
-                        : copy.balanced}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <div className="muted">{copy.noData}</div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="card-section-title">{copy.activityTitle}</div>
-
-          <div className="grid two" style={{ marginTop: 12 }}>
-            <div className="card card-soft">
-              <div className="card-section-title">{copy.newestUsers}</div>
-              <div style={{ marginTop: 10 }}>
-                {activity.newestUsers.length ? (
-                  activity.newestUsers.map((row) => (
-                    <div key={row.user_id} className="row" style={{ justifyContent: 'space-between' }}>
-                      <span>{row.display_name || copy.unknownMember}</span>
-                      <span className="muted">{formatDateTime(row.created_at)}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="muted">{copy.noData}</div>
-                )}
-              </div>
-            </div>
-
-            <div className="card card-soft">
-              <div className="card-section-title">{copy.newestPosts}</div>
-              <div style={{ marginTop: 10 }}>
-                {activity.newestPosts.length ? (
-                  activity.newestPosts.map((row) => (
-                    <div key={row.id} className="row" style={{ justifyContent: 'space-between' }}>
-                      <span>{row.title || copy.unknown}</span>
-                      <span className="muted">{formatDateTime(row.created_at)}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="muted">{copy.noData}</div>
-                )}
-              </div>
-            </div>
-
-            <div className="card card-soft">
-              <div className="card-section-title">{copy.newestCrewJoins}</div>
-              <div style={{ marginTop: 10 }}>
-                {activity.newestCrewJoins.length ? (
-                  activity.newestCrewJoins.map((row, idx) => (
-                    <div key={`${row.user_id}-${row.post_id}-${idx}`} className="row" style={{ justifyContent: 'space-between' }}>
-                      <span>{row.user_name}</span>
-                      <span className="muted">{row.post_title}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="muted">{copy.noData}</div>
-                )}
-              </div>
-            </div>
-
-            <div className="card card-soft">
-              <div className="card-section-title">{copy.newestHires}</div>
-              <div style={{ marginTop: 10 }}>
-                {activity.newestHires.length ? (
-                  activity.newestHires.map((row, idx) => (
-                    <div key={`${row.user_id}-${row.post_id}-${idx}`} className="row" style={{ justifyContent: 'space-between' }}>
-                      <span>{row.user_name}</span>
-                      <span className="muted">{row.post_title}</span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="muted">{copy.noData}</div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="card card-soft" style={{ marginTop: 12 }}>
-            <div className="card-section-title">{copy.mostActiveMembers}</div>
-            <div style={{ marginTop: 10 }}>
-              {activity.mostActiveMembers.length ? (
-                activity.mostActiveMembers.map((row) => (
-                  <div key={row.user_id} className="row" style={{ justifyContent: 'space-between' }}>
-                    <div>
-                      <div>{row.display_name}</div>
-                      <div className="muted" style={{ fontSize: 13 }}>
-                        {roleLabel(row.role, copy)}
-                      </div>
-                    </div>
-                    <span className="badge">
-                      {row.score} {copy.connections}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <div className="muted">{copy.noData}</div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
+      <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{copy.filtersTitle}</div>
-        <p className="card-section-subtitle" style={{ marginTop: 6 }}>
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
           {copy.filtersIntro}
         </p>
 
-        <div className="grid two" style={{ marginTop: 12 }}>
+        <div className="grid two" style={{ marginTop: 14 }}>
           <div>
             <div className="muted" style={{ marginBottom: 6 }}>{copy.searchLabel}</div>
             <input
               className="input"
               value={filters.q}
-              placeholder={copy.searchPlaceholder}
               onChange={(e) => setF('q', e.target.value)}
+              placeholder={copy.searchPlaceholder}
             />
           </div>
 
@@ -1267,9 +1101,9 @@ export default function AdminDirectory() {
               onChange={(e) => setF('trade_id', e.target.value)}
             >
               <option value="">{copy.allTrades}</option>
-              {trades.map((tr) => (
-                <option key={tr.id} value={tr.id}>
-                  {tr.name}
+              {trades.map((trade) => (
+                <option key={trade.id} value={trade.id}>
+                  {trade.name}
                 </option>
               ))}
             </select>
@@ -1291,24 +1125,12 @@ export default function AdminDirectory() {
           </div>
 
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{copy.profileCompletionLabel}</div>
-            <select
-              className="input"
-              value={filters.profile_completion}
-              onChange={(e) => setF('profile_completion', e.target.value)}
-            >
-              <option value="all">{copy.profileCompletionAll}</option>
-              <option value="complete">{copy.profileCompletionComplete}</option>
-              <option value="incomplete">{copy.profileCompletionIncomplete}</option>
-            </select>
-          </div>
-
-          <div>
             <div className="muted" style={{ marginBottom: 6 }}>{copy.zipLabel}</div>
             <input
               className="input"
               value={filters.job_zip}
               onChange={(e) => setF('job_zip', e.target.value)}
+              placeholder="76102"
             />
           </div>
 
@@ -1317,9 +1139,18 @@ export default function AdminDirectory() {
             <input
               className="input"
               type="number"
-              min="1"
               value={filters.job_radius_miles}
               onChange={(e) => setF('job_radius_miles', e.target.value)}
+            />
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.minCrewLabel}</div>
+            <input
+              className="input"
+              type="number"
+              value={filters.min_crew_size}
+              onChange={(e) => setF('min_crew_size', e.target.value)}
             />
           </div>
 
@@ -1337,21 +1168,23 @@ export default function AdminDirectory() {
           </div>
 
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{copy.minCrewLabel}</div>
-            <input
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.profileCompletionLabel}</div>
+            <select
               className="input"
-              type="number"
-              min="1"
-              value={filters.min_crew_size}
-              onChange={(e) => setF('min_crew_size', e.target.value)}
-            />
+              value={filters.profile_completion}
+              onChange={(e) => setF('profile_completion', e.target.value)}
+            >
+              <option value="all">{copy.profileCompletionAll}</option>
+              <option value="complete">{copy.profileCompletionComplete}</option>
+              <option value="incomplete">{copy.profileCompletionIncomplete}</option>
+            </select>
           </div>
         </div>
       </div>
 
-      <div className="card">
+      <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{copy.exportTitle}</div>
-        <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
           <button className="btn primary" onClick={exportFiltered}>
             {copy.exportFiltered}
           </button>
@@ -1373,37 +1206,231 @@ export default function AdminDirectory() {
         </div>
       </div>
 
-      {msg ? (
-        <div className="card card-message">
-          {msg}
-        </div>
-      ) : null}
+      <div className="grid two">
+        <InsightList
+          title={copy.topTradesByUsers}
+          items={marketIntel.topTradesByUsers}
+          copy={copy}
+          formatter={(item) => (
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ fontWeight: 800 }}>{item[0]}</div>
+              <div className="badge">{item[1]} {copy.userCount}</div>
+            </div>
+          )}
+        />
 
-      <div className="card">
+        <InsightList
+          title={copy.topTradesByDemand}
+          items={marketIntel.topTradesByDemand}
+          copy={copy}
+          formatter={(item) => (
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ fontWeight: 800 }}>{item[0]}</div>
+              <div className="badge">{item[1]} {copy.requests}</div>
+            </div>
+          )}
+        />
+
+        <InsightList
+          title={copy.topZipsByWorkers}
+          items={marketIntel.topZipsByWorkers}
+          copy={copy}
+          formatter={(item) => (
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ fontWeight: 800 }}>{item[0]}</div>
+              <div className="badge">{item[1]} {copy.workers}</div>
+            </div>
+          )}
+        />
+
+        <InsightList
+          title={copy.topZipsByCrewRequests}
+          items={marketIntel.topZipsByCrewRequests}
+          copy={copy}
+          formatter={(item) => (
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ fontWeight: 800 }}>{item[0]}</div>
+              <div className="badge">{item[1]} {copy.requests}</div>
+            </div>
+          )}
+        />
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">{copy.marketGapFinder}</div>
+
+        {marketIntel.gapRows.length === 0 ? (
+          <div className="card-soft" style={{ marginTop: 14 }}>
+            <div className="muted">{copy.noData}</div>
+          </div>
+        ) : (
+          <div className="list" style={{ marginTop: 14 }}>
+            {marketIntel.gapRows.map((row) => {
+              const badgeStyle =
+                row.status === 'surplus'
+                  ? { background: '#dcf4e5', color: '#177245' }
+                  : row.status === 'shortage'
+                    ? { background: '#fff0b4', color: '#111111' }
+                    : { background: '#ecebe3', color: '#111111' }
+
+              return (
+                <div key={row.tradeName} className="card-soft" style={{ background: '#ffffff' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                      flexWrap: 'wrap',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <div style={{ fontWeight: 900, fontSize: 18 }}>{row.tradeName}</div>
+                    <span className="badge" style={badgeStyle}>
+                      {copy[row.status]}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                    <span className="badge">{copy.supply}: {row.supply}</span>
+                    <span className="badge">{copy.demand}: {row.demand}</span>
+                    <span className="badge">{copy.gap}: {row.gap}</span>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="grid two">
+        <InsightList
+          title={copy.newestUsers}
+          items={activity.newestUsers}
+          copy={copy}
+          formatter={(user) => (
+            <div>
+              <div className="postMeta">
+                <span className="badge" style={roleBadgeStyle(user.role)}>
+                  {roleLabel(user.role, copy)}
+                </span>
+                <span>{formatDateTime(user.created_at)}</span>
+              </div>
+              <div style={{ marginTop: 10, fontWeight: 900 }}>{user.display_name || copy.unknownMember}</div>
+            </div>
+          )}
+        />
+
+        <InsightList
+          title={copy.newestPosts}
+          items={activity.newestPosts}
+          copy={copy}
+          formatter={(post) => (
+            <div>
+              <div className="postMeta">
+                <span className="badge">{post.post_type}</span>
+                <span>{formatDateTime(post.created_at)}</span>
+              </div>
+              <div style={{ marginTop: 10, fontWeight: 900 }}>{post.title || copy.unknown}</div>
+              <div style={{ marginTop: 10 }}>
+                <Link className="btn small" to={`/p/${post.id}`}>
+                  {copy.openPost}
+                </Link>
+              </div>
+            </div>
+          )}
+        />
+
+        <InsightList
+          title={copy.newestCrewJoins}
+          items={activity.newestCrewJoins}
+          copy={copy}
+          formatter={(row) => (
+            <div>
+              <div style={{ fontWeight: 900 }}>{row.user_name}</div>
+              <div className="muted" style={{ marginTop: 8 }}>{row.post_title}</div>
+              <div className="postMeta" style={{ marginTop: 8 }}>
+                <span>{formatDateTime(row.created_at)}</span>
+              </div>
+            </div>
+          )}
+        />
+
+        <InsightList
+          title={copy.newestHires}
+          items={activity.newestHires}
+          copy={copy}
+          formatter={(row) => (
+            <div>
+              <div style={{ fontWeight: 900 }}>{row.user_name}</div>
+              <div className="muted" style={{ marginTop: 8 }}>{row.post_title}</div>
+              <div className="postMeta" style={{ marginTop: 8 }}>
+                <span>{formatDateTime(row.created_at)}</span>
+              </div>
+            </div>
+          )}
+        />
+
+        <InsightList
+          title={copy.mostActiveMembers}
+          items={activity.mostActiveMembers}
+          copy={copy}
+          formatter={(member) => (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: 12,
+                flexWrap: 'wrap',
+                alignItems: 'center'
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 900 }}>{member.display_name}</div>
+                <div className="postMeta" style={{ marginTop: 8 }}>
+                  <span className="badge" style={roleBadgeStyle(member.role)}>
+                    {roleLabel(member.role, copy)}
+                  </span>
+                </div>
+              </div>
+              <span className="badge">{member.score} pts</span>
+            </div>
+          )}
+        />
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">
-          {copy.workerIntelTitle} • {filteredWorkers.length} {copy.results}
+          {copy.workerIntelTitle} · {filteredWorkers.length} {copy.results}
         </div>
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+          Review filtered members, profile completion, private admin notes, and follow-up status.
+        </p>
 
-        <div className="grid" style={{ gap: 12, marginTop: 12 }}>
-          {filteredWorkers.map((worker) => (
-            <div key={worker.user_id} className="card card-soft">
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, minWidth: 280 }}>
-                  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <div className="card-section-title" style={{ fontSize: 18 }}>
-                        {worker.display_name || copy.unknownMember}
-                      </div>
-                      <div className="muted" style={{ marginTop: 4 }}>
-                        {worker.trade_name || copy.unknown}
-                      </div>
-                    </div>
+        {filteredWorkers.length === 0 ? (
+          <div className="card-soft" style={{ marginTop: 14 }}>
+            <div className="card-section-title">{copy.noData}</div>
+          </div>
+        ) : (
+          <div className="list" style={{ marginTop: 14 }}>
+            {filteredWorkers.map((worker) => (
+              <div key={worker.user_id} className="card rounded-xl" style={{ padding: 22 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: 14,
+                    flexWrap: 'wrap',
+                    alignItems: 'flex-start'
+                  }}
+                >
+                  <div style={{ flex: '1 1 420px' }}>
+                    <div className="postMeta">
+                      <span className="badge" style={roleBadgeStyle(worker.role)}>
+                        {roleLabel(worker.role, copy)}
+                      </span>
 
-                    <div className="row">
-                      {worker.role ? (
-                        <span className="badge" style={roleBadgeStyle(worker.role)}>
-                          {roleLabel(worker.role, copy)}
-                        </span>
+                      {worker.trade_name ? (
+                        <span className="badge">{worker.trade_name}</span>
                       ) : null}
 
                       {worker.is_available ? (
@@ -1414,228 +1441,180 @@ export default function AdminDirectory() {
                         <span className="badge">{copy.notAvailable}</span>
                       )}
 
-                      {worker.trade_name ? <span className="badge">{worker.trade_name}</span> : null}
-
                       <span
                         className="badge"
-                        style={worker.profile_complete
-                          ? {
-                              color: '#ff751f',
-                              borderColor: 'rgba(255, 222, 89, 0.65)',
-                              background: 'rgba(255, 222, 89, 0.14)'
-                            }
-                          : {
-                              color: '#ffde59',
-                              borderColor: 'rgba(255, 117, 31, 0.55)',
-                              background: 'rgba(255, 117, 31, 0.12)'
-                            }}
+                        style={
+                          worker.profile_complete
+                            ? { background: '#dcf4e5', color: '#177245' }
+                            : { background: '#fff0b4', color: '#111111' }
+                        }
                       >
-                        {copy.profileStatus}: {worker.profile_complete ? copy.profileComplete : copy.profileIncomplete}
+                        {worker.profile_complete ? copy.profileComplete : copy.profileIncomplete}
                       </span>
+                    </div>
 
-                      {worker.distance_miles != null ? (
+                    <div style={{ marginTop: 12, fontSize: 24, fontWeight: 900, lineHeight: 1.1 }}>
+                      {worker.display_name || copy.unknownMember}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                      {worker.city ? <span className="badge">{copy.city}: {worker.city}</span> : null}
+                      {worker.home_zip ? <span className="badge">{copy.zip}: {worker.home_zip}</span> : null}
+                      <span className="badge">{copy.travelRadius}: {worker.travel_radius_miles || 0}</span>
+                      <span className="badge">{copy.crewSize}: {worker.crew_size || 0}</span>
+                      {typeof worker.distance_miles === 'number' ? (
                         <span className="badge">
                           {worker.distance_miles.toFixed(1)} {copy.milesAway}
                         </span>
                       ) : null}
-                    </div>
-                  </div>
-
-                  <div className="grid two">
-                    <div className="card card-soft">
-                      <div className="card-section-title" style={{ fontSize: 15 }}>
-                        {copy.location}
-                      </div>
-                      <div className="muted" style={{ marginTop: 6 }}>
-                        {worker.city || copy.unknown} • ZIP {worker.home_zip || copy.unknown}
-                      </div>
+                      <span className="badge">
+                        {copy.workedWithCount}: {worker.worked_with_count || 0}
+                      </span>
+                      <span className="badge">
+                        {copy.hiresCount}: {worker.hires_count || 0}
+                      </span>
+                      <span className="badge">
+                        {copy.crewsJoinedCount}: {worker.crews_joined_count || 0}
+                      </span>
                     </div>
 
-                    <div className="card card-soft">
-                      <div className="card-section-title" style={{ fontSize: 15 }}>
-                        {copy.crewRadius}
+                    {worker.bio ? (
+                      <div style={{ marginTop: 14, lineHeight: 1.7 }}>
+                        {worker.bio}
                       </div>
-                      <div className="muted" style={{ marginTop: 6 }}>
-                        {copy.crewSize}: {worker.crew_size || 0} • {copy.travelRadius}:{' '}
-                        {worker.travel_radius_miles || 0} miles
-                      </div>
-                    </div>
-
-                    <div className="card card-soft">
-                      <div className="card-section-title" style={{ fontSize: 15 }}>
-                        {copy.contact}
-                      </div>
-                      <div className="stack-sm" style={{ marginTop: 8 }}>
-                        <div className="muted">Phone: {worker.phone || copy.unknown}</div>
-                        <div className="muted">Email: {worker.email || copy.unknown}</div>
-                        <div className="muted">City: {worker.city || copy.unknown}</div>
-                      </div>
-                    </div>
-
-                    <div className="card card-soft">
-                      <div className="card-section-title" style={{ fontSize: 15 }}>
-                        {copy.bio}
-                      </div>
-                      <div className="muted" style={{ marginTop: 8, whiteSpace: 'pre-wrap' }}>
-                        {worker.bio || copy.noData}
-                      </div>
-                    </div>
+                    ) : null}
 
                     {!worker.profile_complete ? (
-                      <div
-                        className="card card-soft"
-                        style={{
-                          gridColumn: '1 / -1',
-                          borderColor: 'rgba(255, 117, 31, 0.28)',
-                          background: 'rgba(255, 117, 31, 0.05)'
-                        }}
-                      >
+                      <div className="card-soft" style={{ marginTop: 14, background: '#fffaf0' }}>
                         <div className="card-section-title" style={{ fontSize: 15 }}>
                           {copy.missingFields}
                         </div>
-                        <div className="muted" style={{ marginTop: 8 }}>
-                          {worker.missing_profile_fields.join(' • ')}
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                          {worker.missing_profile_fields.map((field) => (
+                            <span key={field} className="badge">
+                              {field}
+                            </span>
+                          ))}
                         </div>
                       </div>
                     ) : null}
-                  </div>
 
-                  <div className="row" style={{ marginTop: 12 }}>
-                    <span className="badge">
-                      {copy.workedWithCount}: {worker.worked_with_count || 0}
-                    </span>
-                    <span className="badge">
-                      {copy.hiresCount}: {worker.hires_count || 0}
-                    </span>
-                    <span className="badge">
-                      {copy.crewsJoinedCount}: {worker.crews_joined_count || 0}
-                    </span>
-                  </div>
-
-                  <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    <Link className="btn small primary" to={`/u/${worker.user_id}`}>
-                      {copy.openProfile}
-                    </Link>
-                    {posts.find((p) => p.author_id === worker.user_id) ? (
-                      <Link
-                        className="btn small"
-                        to={`/p/${posts.find((p) => p.author_id === worker.user_id).id}`}
-                      >
-                        {copy.openPost}
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+                      <Link className="btn small primary" to={`/u/${worker.user_id}`}>
+                        {copy.openProfile}
                       </Link>
-                    ) : null}
+                    </div>
                   </div>
-                </div>
 
-                <div style={{ width: 320, maxWidth: '100%' }}>
-                  <div className="card card-soft">
-                    <div className="card-section-title" style={{ fontSize: 15 }}>
-                      {copy.privateAdmin}
-                    </div>
-
-                    <div style={{ marginTop: 10 }}>
-                      <div className="muted" style={{ marginBottom: 6 }}>
-                        {copy.privateRating}
+                  <div style={{ flex: '1 1 340px', minWidth: 300 }}>
+                    <div className="card-soft" style={{ background: '#f8f8f4' }}>
+                      <div className="card-section-title" style={{ fontSize: 16 }}>
+                        {copy.privateAdmin}
                       </div>
-                      <input
-                        className="input"
-                        type="number"
-                        min="1"
-                        max="5"
-                        value={worker.admin_rating ?? ''}
-                        placeholder={copy.ratingPlaceholder}
-                        onChange={(e) => {
-                          const next = e.target.value
-                          setPrivateRows((prev) => {
-                            const exists = prev.some((row) => row.user_id === worker.user_id)
-                            if (exists) {
-                              return prev.map((row) =>
-                                row.user_id === worker.user_id
-                                  ? { ...row, admin_rating: next }
-                                  : row
-                              )
-                            }
-                            return [...prev, { user_id: worker.user_id, admin_rating: next }]
-                          })
-                        }}
-                      />
-                    </div>
 
-                    <div style={{ marginTop: 10 }}>
-                      <div className="muted" style={{ marginBottom: 6 }}>
-                        {copy.followUpStatus}
+                      <div className="grid" style={{ gap: 12, marginTop: 12 }}>
+                        <div>
+                          <div className="muted" style={{ marginBottom: 6 }}>{copy.privateRating}</div>
+                          <input
+                            className="input"
+                            value={worker.admin_rating ?? ''}
+                            placeholder={copy.ratingPlaceholder}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              setPrivateRows((prev) => {
+                                const next = [...prev]
+                                const idx = next.findIndex((r) => r.user_id === worker.user_id)
+                                if (idx >= 0) next[idx] = { ...next[idx], admin_rating: value }
+                                else {
+                                  next.push({
+                                    user_id: worker.user_id,
+                                    phone: worker.phone || '',
+                                    email: worker.email || '',
+                                    city: worker.city || '',
+                                    admin_rating: value,
+                                    admin_notes: worker.admin_notes || '',
+                                    admin_follow_up_status: worker.admin_follow_up_status || ''
+                                  })
+                                }
+                                return next
+                              })
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <div className="muted" style={{ marginBottom: 6 }}>{copy.followUpStatus}</div>
+                          <input
+                            className="input"
+                            value={worker.admin_follow_up_status ?? ''}
+                            placeholder={copy.followUpPlaceholder}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              setPrivateRows((prev) => {
+                                const next = [...prev]
+                                const idx = next.findIndex((r) => r.user_id === worker.user_id)
+                                if (idx >= 0) next[idx] = { ...next[idx], admin_follow_up_status: value }
+                                else {
+                                  next.push({
+                                    user_id: worker.user_id,
+                                    phone: worker.phone || '',
+                                    email: worker.email || '',
+                                    city: worker.city || '',
+                                    admin_rating: worker.admin_rating || '',
+                                    admin_notes: worker.admin_notes || '',
+                                    admin_follow_up_status: value
+                                  })
+                                }
+                                return next
+                              })
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <div className="muted" style={{ marginBottom: 6 }}>{copy.privateNotes}</div>
+                          <textarea
+                            className="input"
+                            value={worker.admin_notes ?? ''}
+                            placeholder={copy.notesPlaceholder}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              setPrivateRows((prev) => {
+                                const next = [...prev]
+                                const idx = next.findIndex((r) => r.user_id === worker.user_id)
+                                if (idx >= 0) next[idx] = { ...next[idx], admin_notes: value }
+                                else {
+                                  next.push({
+                                    user_id: worker.user_id,
+                                    phone: worker.phone || '',
+                                    email: worker.email || '',
+                                    city: worker.city || '',
+                                    admin_rating: worker.admin_rating || '',
+                                    admin_notes: value,
+                                    admin_follow_up_status: worker.admin_follow_up_status || ''
+                                  })
+                                }
+                                return next
+                              })
+                            }}
+                          />
+                        </div>
+
+                        <button
+                          className="btn primary"
+                          onClick={() => saveAdminData(worker)}
+                          disabled={savingId === worker.user_id}
+                        >
+                          {savingId === worker.user_id ? copy.saving : copy.save}
+                        </button>
                       </div>
-                      <input
-                        className="input"
-                        value={worker.admin_follow_up_status || ''}
-                        placeholder={copy.followUpPlaceholder}
-                        onChange={(e) => {
-                          const next = e.target.value
-                          setPrivateRows((prev) => {
-                            const exists = prev.some((row) => row.user_id === worker.user_id)
-                            if (exists) {
-                              return prev.map((row) =>
-                                row.user_id === worker.user_id
-                                  ? { ...row, admin_follow_up_status: next }
-                                  : row
-                              )
-                            }
-                            return [
-                              ...prev,
-                              { user_id: worker.user_id, admin_follow_up_status: next }
-                            ]
-                          })
-                        }}
-                      />
-                    </div>
-
-                    <div style={{ marginTop: 10 }}>
-                      <div className="muted" style={{ marginBottom: 6 }}>
-                        {copy.privateNotes}
-                      </div>
-                      <textarea
-                        className="input"
-                        value={worker.admin_notes || ''}
-                        placeholder={copy.notesPlaceholder}
-                        onChange={(e) => {
-                          const next = e.target.value
-                          setPrivateRows((prev) => {
-                            const exists = prev.some((row) => row.user_id === worker.user_id)
-                            if (exists) {
-                              return prev.map((row) =>
-                                row.user_id === worker.user_id
-                                  ? { ...row, admin_notes: next }
-                                  : row
-                              )
-                            }
-                            return [...prev, { user_id: worker.user_id, admin_notes: next }]
-                          })
-                        }}
-                      />
-                    </div>
-
-                    <div style={{ marginTop: 12 }}>
-                      <button
-                        className="btn primary"
-                        disabled={savingId === worker.user_id}
-                        onClick={() =>
-                          saveAdminFields(
-                            worker.user_id,
-                            worker.admin_rating,
-                            worker.admin_notes,
-                            worker.admin_follow_up_status
-                          )
-                        }
-                      >
-                        {savingId === worker.user_id ? copy.saving : copy.save}
-                      </button>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
