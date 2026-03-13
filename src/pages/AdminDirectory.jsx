@@ -15,7 +15,7 @@ const COPY = {
     exportTitle: 'Export / Ops',
     filtersTitle: 'Admin Filters',
     filtersIntro:
-      'Search the network by role, trade, ZIP, radius, availability, and crew size.',
+      'Search the network by role, category, support type, trade, ZIP, radius, availability, and crew size.',
 
     totalUsers: 'Total Users',
     laborers: 'Laborers',
@@ -35,6 +35,10 @@ const COPY = {
     totalComments: 'Total Comments',
     completedProfiles: 'Completed Profiles',
     incompleteProfiles: 'Incomplete Profiles',
+    tradeUsers: 'Trade Users',
+    jobsiteSupportUsers: 'Jobsite Support Users',
+    urgentPosts: 'Urgent Posts',
+    verifiedContractors: 'Verified Contractors',
 
     topTradesByUsers: 'Top Trades by User Count',
     topTradesByDemand: 'Top Trades by Post Demand',
@@ -60,6 +64,12 @@ const COPY = {
     zip: 'ZIP',
     radius: 'Radius',
     availability: 'Availability',
+    availabilityStatus: 'Availability Status',
+    categoryGroup: 'Category',
+    supportType: 'Support Type',
+    serviceTags: 'Service Tags',
+    equipmentTags: 'Equipment Tags',
+    contractorVerification: 'Contractor Verification',
     privateRating: 'Private Admin Rating',
     privateNotes: 'Private Notes',
     followUpStatus: 'Follow-Up Status',
@@ -71,19 +81,38 @@ const COPY = {
     unknownMember: 'Unknown Member',
     available: 'Available',
     notAvailable: 'Not Available',
+    availableNow: 'Available Now',
+    availableThisWeek: 'Available This Week',
+    busy: 'Busy',
+    tradesGroup: 'Trades',
+    jobsiteSupportGroup: 'Jobsite Support',
+    materialDelivery: 'Material Delivery / Hot Shot',
+    fleetRepair: 'Equipment / Fleet Repair',
+    verified: 'Verified',
+    notVerified: 'Not Verified',
 
     searchLabel: 'Search',
-    searchPlaceholder: 'Search by name, trade, city, ZIP, role, or bio',
+    searchPlaceholder: 'Search by name, trade, city, ZIP, role, bio, service, or equipment',
     tradeLabel: 'Trade',
     allTrades: 'All Trades',
     roleLabel: 'Role',
     allRoles: 'All Roles',
+    categoryLabel: 'Category',
+    allCategories: 'All Categories',
+    supportTypeLabel: 'Support Type',
+    allSupportTypes: 'All Support Types',
     zipLabel: 'Job ZIP',
     radiusLabel: 'Job Radius (miles)',
     availabilityLabel: 'Availability',
     availabilityAll: 'All Availability',
     availabilityAvailable: 'Available Only',
     availabilityUnavailable: 'Unavailable Only',
+    availabilityStatusLabel: 'Availability Status',
+    allAvailabilityStatuses: 'All Availability Statuses',
+    contractorVerificationLabel: 'Contractor Verification',
+    verificationAll: 'All Verification States',
+    verificationOnlyVerified: 'Verified Only',
+    verificationOnlyUnverified: 'Unverified Only',
     minCrewLabel: 'Minimum Crew Size',
     profileCompletionLabel: 'Profile Completion',
     profileCompletionAll: 'All Profiles',
@@ -96,6 +125,7 @@ const COPY = {
     exportAvailable: 'Export Available Workers',
     exportByTrade: 'Export Selected Trade',
     exportByZip: 'Export Selected ZIP',
+    exportJobsiteSupport: 'Export Jobsite Support',
     results: 'results',
 
     location: 'Location',
@@ -147,7 +177,7 @@ const COPY = {
     exportTitle: 'Exportación / Operaciones',
     filtersTitle: 'Filtros de Administración',
     filtersIntro:
-      'Busca en la red por rol, oficio, ZIP, radio, disponibilidad y tamaño de cuadrilla.',
+      'Busca en la red por rol, categoría, tipo de soporte, oficio, ZIP, radio, disponibilidad y tamaño de cuadrilla.',
 
     totalUsers: 'Usuarios Totales',
     laborers: 'Trabajadores',
@@ -167,6 +197,10 @@ const COPY = {
     totalComments: 'Comentarios Totales',
     completedProfiles: 'Perfiles Completos',
     incompleteProfiles: 'Perfiles Incompletos',
+    tradeUsers: 'Usuarios de Oficios',
+    jobsiteSupportUsers: 'Usuarios de Soporte de Obra',
+    urgentPosts: 'Publicaciones Urgentes',
+    verifiedContractors: 'Contratistas Verificados',
 
     topTradesByUsers: 'Oficios Principales por Cantidad de Usuarios',
     topTradesByDemand: 'Oficios Principales por Demanda',
@@ -192,6 +226,12 @@ const COPY = {
     zip: 'ZIP',
     radius: 'Radio',
     availability: 'Disponibilidad',
+    availabilityStatus: 'Estado de Disponibilidad',
+    categoryGroup: 'Categoría',
+    supportType: 'Tipo de Soporte',
+    serviceTags: 'Etiquetas de Servicio',
+    equipmentTags: 'Etiquetas de Equipo',
+    contractorVerification: 'Verificación de Contratista',
     privateRating: 'Calificación Privada de Admin',
     privateNotes: 'Notas Privadas',
     followUpStatus: 'Estado de Seguimiento',
@@ -203,19 +243,38 @@ const COPY = {
     unknownMember: 'Miembro Desconocido',
     available: 'Disponible',
     notAvailable: 'No Disponible',
+    availableNow: 'Disponible Ahora',
+    availableThisWeek: 'Disponible Esta Semana',
+    busy: 'Ocupado',
+    tradesGroup: 'Oficios',
+    jobsiteSupportGroup: 'Soporte de Obra',
+    materialDelivery: 'Entrega de Materiales / Hot Shot',
+    fleetRepair: 'Reparación de Equipo / Flota',
+    verified: 'Verificado',
+    notVerified: 'No Verificado',
 
     searchLabel: 'Buscar',
-    searchPlaceholder: 'Busca por nombre, oficio, ciudad, ZIP, rol o biografía',
+    searchPlaceholder: 'Busca por nombre, oficio, ciudad, ZIP, rol, biografía, servicio o equipo',
     tradeLabel: 'Oficio',
     allTrades: 'Todos los Oficios',
     roleLabel: 'Rol',
     allRoles: 'Todos los Roles',
+    categoryLabel: 'Categoría',
+    allCategories: 'Todas las Categorías',
+    supportTypeLabel: 'Tipo de Soporte',
+    allSupportTypes: 'Todos los Tipos de Soporte',
     zipLabel: 'ZIP del Trabajo',
     radiusLabel: 'Radio del Trabajo (millas)',
     availabilityLabel: 'Disponibilidad',
     availabilityAll: 'Toda Disponibilidad',
     availabilityAvailable: 'Solo Disponibles',
     availabilityUnavailable: 'Solo No Disponibles',
+    availabilityStatusLabel: 'Estado de Disponibilidad',
+    allAvailabilityStatuses: 'Todos los Estados de Disponibilidad',
+    contractorVerificationLabel: 'Verificación de Contratista',
+    verificationAll: 'Todos los Estados de Verificación',
+    verificationOnlyVerified: 'Solo Verificados',
+    verificationOnlyUnverified: 'Solo No Verificados',
     minCrewLabel: 'Tamaño Mínimo de Cuadrilla',
     profileCompletionLabel: 'Estado del Perfil',
     profileCompletionAll: 'Todos los Perfiles',
@@ -228,6 +287,7 @@ const COPY = {
     exportAvailable: 'Exportar Disponibles',
     exportByTrade: 'Exportar Oficio Seleccionado',
     exportByZip: 'Exportar ZIP Seleccionado',
+    exportJobsiteSupport: 'Exportar Soporte de Obra',
     results: 'resultados',
 
     location: 'Ubicación',
@@ -298,13 +358,45 @@ function roleBadgeStyle(role) {
   if (role === 'contractor') return { background: '#111111', color: '#ffffff' }
   if (role === 'subcontractor') return { background: '#fff0b4', color: '#111111' }
   if (role === 'laborer') return { background: '#ecebe3', color: '#111111' }
-  if (role === 'supplier') return { background: '#ffd7b0', color: '#111111' }
+  if (role === 'supplier') return { background: '#f1e7a8', color: '#111111' }
   return {}
 }
 
 function availabilityBadgeStyle(isAvailable) {
   if (!isAvailable) return {}
   return { background: '#dcf4e5', color: '#177245' }
+}
+
+function availabilityStatusLabel(status, copy) {
+  if (status === 'available_now') return copy.availableNow
+  if (status === 'available_this_week') return copy.availableThisWeek
+  if (status === 'busy') return copy.busy
+  return copy.unknown
+}
+
+function categoryGroupLabel(value, copy) {
+  if (value === 'jobsite_support') return copy.jobsiteSupportGroup
+  return copy.tradesGroup
+}
+
+function detectSupportType(serviceTags = []) {
+  const repairTags = new Set([
+    'diesel_mechanic',
+    'heavy_equipment_repair',
+    'trailer_repair',
+    'emergency_repair',
+    'jobsite_service'
+  ])
+
+  return serviceTags.some((tag) => repairTags.has(tag))
+    ? 'equipment_fleet_repair'
+    : 'material_delivery'
+}
+
+function supportTypeLabel(value, copy) {
+  if (value === 'equipment_fleet_repair') return copy.fleetRepair
+  if (value === 'material_delivery') return copy.materialDelivery
+  return copy.unknown
 }
 
 function formatDateTime(value) {
@@ -347,7 +439,15 @@ function getMissingProfileFields(worker, copy) {
   if (!Number(worker.crew_size || 0) || Number(worker.crew_size || 0) <= 1) missing.push(copy.crewSize)
   if (!String(worker.display_name || '').trim()) missing.push('Display Name')
   if (!String(worker.home_zip || '').trim()) missing.push(copy.zip)
-  if (!worker.trade_id && !String(worker.trade_name || '').trim()) missing.push(copy.trade)
+
+  if (worker.category_group === 'trade') {
+    if (!worker.trade_id && !String(worker.trade_name || '').trim()) missing.push(copy.trade)
+  }
+
+  if (worker.category_group === 'jobsite_support') {
+    if (!Array.isArray(worker.service_tags) || worker.service_tags.length === 0) missing.push(copy.serviceTags)
+    if (!Array.isArray(worker.equipment_tags) || worker.equipment_tags.length === 0) missing.push(copy.equipmentTags)
+  }
 
   return missing
 }
@@ -418,6 +518,10 @@ export default function AdminDirectory() {
     job_radius_miles: 50,
     trade_id: '',
     role: '',
+    category_group: '',
+    support_type: '',
+    availability_status: '',
+    contractor_verified: 'all',
     min_crew_size: 1,
     availability: 'all',
     profile_completion: 'all',
@@ -462,7 +566,7 @@ export default function AdminDirectory() {
           supabase
             .from('profiles')
             .select(
-              'user_id, display_name, first_name, last_name, role, trade_id, home_zip, travel_radius_miles, crew_size, bio, is_available, created_at'
+              'user_id, display_name, first_name, last_name, role, trade_id, home_zip, travel_radius_miles, crew_size, bio, is_available, availability_status, category_group, service_tags, equipment_tags, contractor_verified, created_at'
             )
             .order('created_at', { ascending: false }),
           supabase
@@ -473,7 +577,7 @@ export default function AdminDirectory() {
           supabase
             .from('posts')
             .select(
-              'id, author_id, title, post_type, crew_status, trade_id, center_zip, created_at'
+              'id, author_id, title, post_type, crew_status, trade_id, center_zip, created_at, category_group, service_tags, equipment_tags, is_urgent'
             )
             .order('created_at', { ascending: false }),
           supabase
@@ -598,9 +702,19 @@ export default function AdminDirectory() {
     return profiles.map((p) => {
       const priv = privateByUser.get(p.user_id) || {}
       const trade_name = tradeNameById.get(String(p.trade_id)) || ''
+      const service_tags = Array.isArray(p.service_tags) ? p.service_tags : []
+      const equipment_tags = Array.isArray(p.equipment_tags) ? p.equipment_tags : []
+      const category_group = p.category_group || 'trade'
+      const support_type =
+        category_group === 'jobsite_support' ? detectSupportType(service_tags) : null
+
       const baseWorker = {
         ...p,
         trade_name,
+        category_group,
+        service_tags,
+        equipment_tags,
+        support_type,
         phone: priv.phone || '',
         email: priv.email || '',
         city: priv.city || '',
@@ -634,6 +748,10 @@ export default function AdminDirectory() {
     const q = String(filters.q || '').trim().toLowerCase()
     const tradeId = String(filters.trade_id || '')
     const role = String(filters.role || '')
+    const categoryGroup = String(filters.category_group || '')
+    const supportType = String(filters.support_type || '')
+    const availabilityStatus = String(filters.availability_status || '')
+    const contractorVerified = String(filters.contractor_verified || 'all')
     const minCrew = Number(filters.min_crew_size || 1)
     const jobZip = String(filters.job_zip || '').trim()
     const jobMiles = Number(filters.job_radius_miles || 0)
@@ -646,6 +764,13 @@ export default function AdminDirectory() {
       .filter((worker) => {
         if (tradeId && String(worker.trade_id) !== tradeId) return false
         if (role && String(worker.role) !== role) return false
+        if (categoryGroup && String(worker.category_group) !== categoryGroup) return false
+        if (supportType && String(worker.support_type) !== supportType) return false
+        if (availabilityStatus && String(worker.availability_status) !== availabilityStatus) return false
+
+        if (contractorVerified === 'verified' && !worker.contractor_verified) return false
+        if (contractorVerified === 'unverified' && worker.contractor_verified) return false
+
         if (Number(worker.crew_size || 0) < minCrew) return false
 
         if (availability === 'available' && !worker.is_available) return false
@@ -661,7 +786,11 @@ export default function AdminDirectory() {
             worker.home_zip,
             worker.trade_name,
             worker.bio,
-            worker.role
+            worker.role,
+            worker.category_group,
+            worker.support_type,
+            ...(worker.service_tags || []),
+            ...(worker.equipment_tags || [])
           ]
             .join(' ')
             .toLowerCase()
@@ -720,11 +849,17 @@ export default function AdminDirectory() {
     const contractors = profiles.filter((p) => p.role === 'contractor').length
     const suppliers = profiles.filter((p) => p.role === 'supplier').length
     const availableWorkers = profiles.filter((p) => p.is_available).length
+    const tradeUsers = profiles.filter((p) => (p.category_group || 'trade') === 'trade').length
+    const jobsiteSupportUsers = profiles.filter(
+      (p) => (p.category_group || 'trade') === 'jobsite_support'
+    ).length
+    const verifiedContractors = profiles.filter((p) => p.contractor_verified).length
 
     const totalPosts = posts.length
     const needCrewPosts = posts.filter((p) => p.post_type === 'need_crew').length
     const lookingForWorkPosts = posts.filter((p) => p.post_type === 'looking_for_work').length
     const discussions = posts.filter((p) => p.post_type === 'discussion').length
+    const urgentPosts = posts.filter((p) => p.is_urgent).length
     const openCrewPosts = posts.filter(
       (p) => p.post_type === 'need_crew' && (p.crew_status || 'open') === 'open'
     ).length
@@ -752,6 +887,7 @@ export default function AdminDirectory() {
       needCrewPosts,
       lookingForWorkPosts,
       discussions,
+      urgentPosts,
       crewJoins,
       hires,
       openCrewPosts,
@@ -759,23 +895,43 @@ export default function AdminDirectory() {
       closedCrewPosts,
       totalComments,
       completedProfiles,
-      incompleteProfiles
+      incompleteProfiles,
+      tradeUsers,
+      jobsiteSupportUsers,
+      verifiedContractors
     }
   }, [profiles, posts, comments, crewMemberships, mergedWorkers])
 
   const marketIntel = useMemo(() => {
     const usersByTradeMap = new Map()
     profiles.forEach((p) => {
-      const tradeName = tradeNameById.get(String(p.trade_id)) || copy.unknown
-      usersByTradeMap.set(tradeName, (usersByTradeMap.get(tradeName) || 0) + 1)
+      const categoryGroup = p.category_group || 'trade'
+
+      if (categoryGroup === 'jobsite_support') {
+        const supportType = detectSupportType(Array.isArray(p.service_tags) ? p.service_tags : [])
+        const label = supportType === 'equipment_fleet_repair' ? copy.fleetRepair : copy.materialDelivery
+        usersByTradeMap.set(label, (usersByTradeMap.get(label) || 0) + 1)
+      } else {
+        const tradeName = tradeNameById.get(String(p.trade_id)) || copy.unknown
+        usersByTradeMap.set(tradeName, (usersByTradeMap.get(tradeName) || 0) + 1)
+      }
     })
 
     const demandByTradeMap = new Map()
     posts
-      .filter((p) => p.post_type === 'need_crew')
+      .filter((p) => p.post_type === 'need_crew' || (p.category_group || 'trade') === 'jobsite_support')
       .forEach((p) => {
-        const tradeName = tradeNameById.get(String(p.trade_id)) || copy.unknown
-        demandByTradeMap.set(tradeName, (demandByTradeMap.get(tradeName) || 0) + 1)
+        const categoryGroup = p.category_group || 'trade'
+        let label = copy.unknown
+
+        if (categoryGroup === 'jobsite_support') {
+          const supportType = detectSupportType(Array.isArray(p.service_tags) ? p.service_tags : [])
+          label = supportType === 'equipment_fleet_repair' ? copy.fleetRepair : copy.materialDelivery
+        } else {
+          label = tradeNameById.get(String(p.trade_id)) || copy.unknown
+        }
+
+        demandByTradeMap.set(label, (demandByTradeMap.get(label) || 0) + 1)
       })
 
     const workersByZipMap = makeCountMap(profiles, 'home_zip')
@@ -809,7 +965,7 @@ export default function AdminDirectory() {
       topZipsByCrewRequests: topEntriesFromMap(crewRequestsByZipMap, 5),
       gapRows
     }
-  }, [profiles, posts, tradeNameById, copy.unknown])
+  }, [profiles, posts, tradeNameById, copy.unknown, copy.fleetRepair, copy.materialDelivery])
 
   const activity = useMemo(() => {
     const newestUsers = profiles
@@ -896,12 +1052,18 @@ export default function AdminDirectory() {
     return sourceRows.map((r) => ({
       display_name: r.display_name || '',
       role: r.role || '',
+      category_group: r.category_group || '',
+      support_type: r.support_type || '',
       trade: r.trade_name || '',
+      service_tags: (r.service_tags || []).join(' | '),
+      equipment_tags: (r.equipment_tags || []).join(' | '),
       city: r.city || '',
       zip: r.home_zip || '',
       travel_radius_miles: r.travel_radius_miles || '',
       crew_size: r.crew_size || '',
       is_available: r.is_available ? 'yes' : 'no',
+      availability_status: r.availability_status || '',
+      contractor_verified: r.contractor_verified ? 'yes' : 'no',
       phone: r.phone || '',
       email: r.email || '',
       admin_rating: r.admin_rating || '',
@@ -965,6 +1127,15 @@ export default function AdminDirectory() {
     )
   }
 
+  function exportJobsiteSupport() {
+    exportRowsToCsv(
+      'surplox_jobsite_support.csv',
+      makeWorkerExportRows(
+        mergedWorkers.filter((w) => (w.category_group || 'trade') === 'jobsite_support')
+      )
+    )
+  }
+
   async function saveAdminData(worker) {
     const ratingValue = String(worker.admin_rating ?? '').trim()
     const numericRating = ratingValue === '' ? null : Number(ratingValue)
@@ -973,7 +1144,11 @@ export default function AdminDirectory() {
       numericRating !== null &&
       (!Number.isFinite(numericRating) || numericRating < 1 || numericRating > 5)
     ) {
-      setMsg(copy.ratingPlaceholder ? (lang === 'es' ? 'La calificación debe ser entre 1 y 5.' : 'Rating must be between 1 and 5.') : copy.saveError)
+      setMsg(
+        lang === 'es'
+          ? 'La calificación debe ser entre 1 y 5.'
+          : 'Rating must be between 1 and 5.'
+      )
       return
     }
 
@@ -1043,7 +1218,7 @@ export default function AdminDirectory() {
         <div className="grid two" style={{ marginTop: 18 }}>
           <StatCard label={copy.filteredMembers} value={filteredWorkers.length} dark />
           <StatCard label={copy.networkHealth} value={analytics.totalUsers} />
-          <StatCard label={copy.demandSignals} value={analytics.needCrewPosts} />
+          <StatCard label={copy.demandSignals} value={analytics.needCrewPosts + analytics.urgentPosts} />
         </div>
       </div>
 
@@ -1061,10 +1236,14 @@ export default function AdminDirectory() {
         <div className="grid two" style={{ marginTop: 14 }}>
           <StatCard label={copy.totalUsers} value={analytics.totalUsers} dark />
           <StatCard label={copy.availableWorkers} value={analytics.availableWorkers} />
+          <StatCard label={copy.tradeUsers} value={analytics.tradeUsers} />
+          <StatCard label={copy.jobsiteSupportUsers} value={analytics.jobsiteSupportUsers} />
           <StatCard label={copy.totalPosts} value={analytics.totalPosts} />
           <StatCard label={copy.needCrewPosts} value={analytics.needCrewPosts} />
           <StatCard label={copy.lookingForWorkPosts} value={analytics.lookingForWorkPosts} />
           <StatCard label={copy.discussions} value={analytics.discussions} />
+          <StatCard label={copy.urgentPosts} value={analytics.urgentPosts} />
+          <StatCard label={copy.verifiedContractors} value={analytics.verifiedContractors} />
           <StatCard label={copy.crewJoins} value={analytics.crewJoins} />
           <StatCard label={copy.hires} value={analytics.hires} />
           <StatCard label={copy.openCrewPosts} value={analytics.openCrewPosts} />
@@ -1125,6 +1304,32 @@ export default function AdminDirectory() {
           </div>
 
           <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.categoryLabel}</div>
+            <select
+              className="input"
+              value={filters.category_group}
+              onChange={(e) => setF('category_group', e.target.value)}
+            >
+              <option value="">{copy.allCategories}</option>
+              <option value="trade">{copy.tradesGroup}</option>
+              <option value="jobsite_support">{copy.jobsiteSupportGroup}</option>
+            </select>
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.supportTypeLabel}</div>
+            <select
+              className="input"
+              value={filters.support_type}
+              onChange={(e) => setF('support_type', e.target.value)}
+            >
+              <option value="">{copy.allSupportTypes}</option>
+              <option value="material_delivery">{copy.materialDelivery}</option>
+              <option value="equipment_fleet_repair">{copy.fleetRepair}</option>
+            </select>
+          </div>
+
+          <div>
             <div className="muted" style={{ marginBottom: 6 }}>{copy.zipLabel}</div>
             <input
               className="input"
@@ -1168,6 +1373,33 @@ export default function AdminDirectory() {
           </div>
 
           <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.availabilityStatusLabel}</div>
+            <select
+              className="input"
+              value={filters.availability_status}
+              onChange={(e) => setF('availability_status', e.target.value)}
+            >
+              <option value="">{copy.allAvailabilityStatuses}</option>
+              <option value="available_now">{copy.availableNow}</option>
+              <option value="available_this_week">{copy.availableThisWeek}</option>
+              <option value="busy">{copy.busy}</option>
+            </select>
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.contractorVerificationLabel}</div>
+            <select
+              className="input"
+              value={filters.contractor_verified}
+              onChange={(e) => setF('contractor_verified', e.target.value)}
+            >
+              <option value="all">{copy.verificationAll}</option>
+              <option value="verified">{copy.verificationOnlyVerified}</option>
+              <option value="unverified">{copy.verificationOnlyUnverified}</option>
+            </select>
+          </div>
+
+          <div>
             <div className="muted" style={{ marginBottom: 6 }}>{copy.profileCompletionLabel}</div>
             <select
               className="input"
@@ -1202,6 +1434,9 @@ export default function AdminDirectory() {
           </button>
           <button className="btn" onClick={exportByZip}>
             {copy.exportByZip}
+          </button>
+          <button className="btn" onClick={exportJobsiteSupport}>
+            {copy.exportJobsiteSupport}
           </button>
         </div>
       </div>
@@ -1307,37 +1542,64 @@ export default function AdminDirectory() {
           title={copy.newestUsers}
           items={activity.newestUsers}
           copy={copy}
-          formatter={(user) => (
-            <div>
-              <div className="postMeta">
-                <span className="badge" style={roleBadgeStyle(user.role)}>
-                  {roleLabel(user.role, copy)}
-                </span>
-                <span>{formatDateTime(user.created_at)}</span>
+          formatter={(user) => {
+            const categoryGroup = user.category_group || 'trade'
+            const supportType =
+              categoryGroup === 'jobsite_support'
+                ? detectSupportType(Array.isArray(user.service_tags) ? user.service_tags : [])
+                : null
+
+            return (
+              <div>
+                <div className="postMeta">
+                  <span className="badge" style={roleBadgeStyle(user.role)}>
+                    {roleLabel(user.role, copy)}
+                  </span>
+                  <span className="badge">{categoryGroupLabel(categoryGroup, copy)}</span>
+                  {supportType ? <span className="badge">{supportTypeLabel(supportType, copy)}</span> : null}
+                  <span>{formatDateTime(user.created_at)}</span>
+                </div>
+                <div style={{ marginTop: 10, fontWeight: 900 }}>
+                  {user.display_name || copy.unknownMember}
+                </div>
               </div>
-              <div style={{ marginTop: 10, fontWeight: 900 }}>{user.display_name || copy.unknownMember}</div>
-            </div>
-          )}
+            )
+          }}
         />
 
         <InsightList
           title={copy.newestPosts}
           items={activity.newestPosts}
           copy={copy}
-          formatter={(post) => (
-            <div>
-              <div className="postMeta">
-                <span className="badge">{post.post_type}</span>
-                <span>{formatDateTime(post.created_at)}</span>
+          formatter={(post) => {
+            const categoryGroup = post.category_group || 'trade'
+            const supportType =
+              categoryGroup === 'jobsite_support'
+                ? detectSupportType(Array.isArray(post.service_tags) ? post.service_tags : [])
+                : null
+
+            return (
+              <div>
+                <div className="postMeta">
+                  <span className="badge">{post.post_type}</span>
+                  <span className="badge">{categoryGroupLabel(categoryGroup, copy)}</span>
+                  {supportType ? <span className="badge">{supportTypeLabel(supportType, copy)}</span> : null}
+                  {post.is_urgent ? (
+                    <span className="badge" style={{ background: '#111111', color: '#ffffff' }}>
+                      Urgent
+                    </span>
+                  ) : null}
+                  <span>{formatDateTime(post.created_at)}</span>
+                </div>
+                <div style={{ marginTop: 10, fontWeight: 900 }}>{post.title || copy.unknown}</div>
+                <div style={{ marginTop: 10 }}>
+                  <Link className="btn small" to={`/p/${post.id}`}>
+                    {copy.openPost}
+                  </Link>
+                </div>
               </div>
-              <div style={{ marginTop: 10, fontWeight: 900 }}>{post.title || copy.unknown}</div>
-              <div style={{ marginTop: 10 }}>
-                <Link className="btn small" to={`/p/${post.id}`}>
-                  {copy.openPost}
-                </Link>
-              </div>
-            </div>
-          )}
+            )
+          }}
         />
 
         <InsightList
@@ -1403,7 +1665,7 @@ export default function AdminDirectory() {
           {copy.workerIntelTitle} · {filteredWorkers.length} {copy.results}
         </div>
         <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-          Review filtered members, profile completion, private admin notes, and follow-up status.
+          Review filtered members, profile completion, service tags, availability, verification, and private admin notes.
         </p>
 
         {filteredWorkers.length === 0 ? (
@@ -1429,13 +1691,21 @@ export default function AdminDirectory() {
                         {roleLabel(worker.role, copy)}
                       </span>
 
+                      <span className="badge">
+                        {categoryGroupLabel(worker.category_group || 'trade', copy)}
+                      </span>
+
                       {worker.trade_name ? (
                         <span className="badge">{worker.trade_name}</span>
                       ) : null}
 
+                      {worker.support_type ? (
+                        <span className="badge">{supportTypeLabel(worker.support_type, copy)}</span>
+                      ) : null}
+
                       {worker.is_available ? (
                         <span className="badge" style={availabilityBadgeStyle(true)}>
-                          {copy.available}
+                          {availabilityStatusLabel(worker.availability_status, copy)}
                         </span>
                       ) : (
                         <span className="badge">{copy.notAvailable}</span>
@@ -1450,6 +1720,17 @@ export default function AdminDirectory() {
                         }
                       >
                         {worker.profile_complete ? copy.profileComplete : copy.profileIncomplete}
+                      </span>
+
+                      <span
+                        className="badge"
+                        style={
+                          worker.contractor_verified
+                            ? { background: '#111111', color: '#ffffff' }
+                            : {}
+                        }
+                      >
+                        {worker.contractor_verified ? copy.verified : copy.notVerified}
                       </span>
                     </div>
 
@@ -1477,6 +1758,28 @@ export default function AdminDirectory() {
                         {copy.crewsJoinedCount}: {worker.crews_joined_count || 0}
                       </span>
                     </div>
+
+                    {worker.service_tags?.length > 0 ? (
+                      <div style={{ marginTop: 12 }}>
+                        <div className="muted" style={{ marginBottom: 6 }}>{copy.serviceTags}</div>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {worker.service_tags.map((tag) => (
+                            <span key={`${worker.user_id}-service-${tag}`} className="badge">{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {worker.equipment_tags?.length > 0 ? (
+                      <div style={{ marginTop: 12 }}>
+                        <div className="muted" style={{ marginBottom: 6 }}>{copy.equipmentTags}</div>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {worker.equipment_tags.map((tag) => (
+                            <span key={`${worker.user_id}-equipment-${tag}`} className="badge">{tag}</span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
 
                     {worker.bio ? (
                       <div style={{ marginTop: 14, lineHeight: 1.7 }}>
