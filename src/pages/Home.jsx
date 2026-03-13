@@ -49,7 +49,18 @@ const COPY = {
 
     bottomTitle: 'Built for the field, not the office.',
     bottomBody:
-      'Surplox is designed around how construction actually moves — through people, timing, location, and trusted local connections.'
+      'Surplox is designed around how construction actually moves — through people, timing, location, and trusted local connections.',
+
+    inviteHint: 'Someone in your network invited you to join Surplox.',
+    heroTag1: 'Local network',
+    heroTag2: 'Crew activity',
+    heroTag3: 'Faster field visibility',
+    stat1Label: 'Built for',
+    stat1Value: 'Laborers, subs, contractors, suppliers',
+    stat2Label: 'What moves here',
+    stat2Value: 'Work, crews, trade activity, visibility',
+    stat3Label: 'Why it matters',
+    stat3Value: 'Faster local connections'
   },
   es: {
     badge: 'Hecho para la construcción local',
@@ -98,8 +109,58 @@ const COPY = {
 
     bottomTitle: 'Hecho para el campo, no para la oficina.',
     bottomBody:
-      'Surplox está diseñado alrededor de cómo realmente se mueve la construcción: personas, tiempo, ubicación y conexiones locales de confianza.'
+      'Surplox está diseñado alrededor de cómo realmente se mueve la construcción: personas, tiempo, ubicación y conexiones locales de confianza.',
+
+    inviteHint: 'Alguien de tu red te invitó a unirte a Surplox.',
+    heroTag1: 'Red local',
+    heroTag2: 'Actividad de cuadrillas',
+    heroTag3: 'Más visibilidad en campo',
+    stat1Label: 'Hecho para',
+    stat1Value: 'Trabajadores, subs, contratistas, proveedores',
+    stat2Label: 'Lo que se mueve aquí',
+    stat2Value: 'Trabajo, cuadrillas, actividad del oficio, visibilidad',
+    stat3Label: 'Por qué importa',
+    stat3Value: 'Conexiones locales más rápidas'
   }
+}
+
+function SectionCard({ title, body }) {
+  return (
+    <div className="card" style={{ height: '100%' }}>
+      <div className="card-section-title">{title}</div>
+      <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+        {body}
+      </p>
+    </div>
+  )
+}
+
+function MiniStat({ label, value }) {
+  return (
+    <div className="card-soft" style={{ gap: 8 }}>
+      <div
+        style={{
+          fontSize: 12,
+          fontWeight: 800,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          color: 'var(--muted-soft)'
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: 16,
+          lineHeight: 1.35,
+          fontWeight: 800,
+          color: 'var(--text)'
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  )
 }
 
 export default function Home({ session, lang = 'en', variant = 'default' }) {
@@ -107,70 +168,72 @@ export default function Home({ session, lang = 'en', variant = 'default' }) {
   const location = useLocation()
   const ref = new URLSearchParams(location.search).get('ref')
   const isJoinVariant = variant === 'join'
-  const inviteHint =
-    ref && !session
-      ? lang === 'es'
-        ? 'Alguien de tu red te invitó a unirte a Surplox.'
-        : 'Someone in your network invited you to join Surplox.'
-      : ''
+  const inviteHint = ref && !session ? copy.inviteHint : ''
 
   return (
-    <div className="grid" style={{ gap: 16 }}>
+    <div className="grid" style={{ gap: 18 }}>
       {isJoinVariant ? (
         <div
-          className="card"
+          className="card surface-warm rounded-xl"
           style={{
-            borderColor: 'rgba(255, 222, 89, 0.35)',
-            background:
-              'linear-gradient(180deg, rgba(10,14,24,0.98) 0%, rgba(8,11,18,0.98) 100%)',
-            boxShadow: '0 0 30px rgba(255, 222, 89, 0.07)'
+            padding: 28
           }}
         >
           <div
             className="badge"
             style={{
-              marginBottom: 14,
-              color: '#ff751f',
-              borderColor: 'rgba(255, 222, 89, 0.55)',
-              background: 'rgba(255, 222, 89, 0.12)'
+              marginBottom: 16,
+              background: '#f1e7a8',
+              color: 'var(--text)'
             }}
           >
             {copy.joinBadge}
           </div>
 
-          <div className="h1" style={{ maxWidth: 920 }}>
+          <div className="h1" style={{ maxWidth: 980 }}>
             {copy.joinTitle}
           </div>
 
           <p
             className="muted"
-            style={{ marginTop: 12, maxWidth: 920, fontSize: 17, lineHeight: 1.65 }}
+            style={{
+              marginTop: 14,
+              maxWidth: 900,
+              fontSize: 17,
+              lineHeight: 1.7
+            }}
           >
             {copy.joinBody}
           </p>
 
           {inviteHint ? (
-            <div className="card card-soft" style={{ marginTop: 14 }}>
-              {inviteHint}
+            <div
+              className="card-soft"
+              style={{
+                marginTop: 16,
+                background: 'rgba(255,255,255,0.55)'
+              }}
+            >
+              <div style={{ fontWeight: 700 }}>{inviteHint}</div>
             </div>
           ) : null}
 
-          <div className="grid two" style={{ marginTop: 16 }}>
-            <div className="card card-soft">
-              <div>{copy.joinPoint1}</div>
+          <div className="grid two" style={{ marginTop: 18 }}>
+            <div className="card-soft">
+              <div style={{ fontWeight: 800 }}>{copy.joinPoint1}</div>
             </div>
-            <div className="card card-soft">
-              <div>{copy.joinPoint2}</div>
+            <div className="card-soft">
+              <div style={{ fontWeight: 800 }}>{copy.joinPoint2}</div>
             </div>
-            <div className="card card-soft">
-              <div>{copy.joinPoint3}</div>
+            <div className="card-soft">
+              <div style={{ fontWeight: 800 }}>{copy.joinPoint3}</div>
             </div>
-            <div className="card card-soft">
-              <div>{copy.audience1}</div>
+            <div className="card-soft">
+              <div style={{ fontWeight: 800 }}>{copy.audience1}</div>
             </div>
           </div>
 
-          <div className="row" style={{ marginTop: 18, gap: 10, flexWrap: 'wrap' }}>
+          <div className="row" style={{ marginTop: 18 }}>
             {!session ? (
               <>
                 <Link className="btn primary" to="/auth?mode=signup">
@@ -195,121 +258,138 @@ export default function Home({ session, lang = 'en', variant = 'default' }) {
       ) : null}
 
       <div
-        className="card"
+        className="card rounded-xl"
         style={{
-          borderColor: 'rgba(255, 222, 89, 0.28)',
-          background:
-            'linear-gradient(180deg, rgba(10,14,24,0.98) 0%, rgba(8,11,18,0.98) 100%)',
-          boxShadow: '0 0 30px rgba(255, 222, 89, 0.07)'
+          padding: 28,
+          background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
         }}
       >
         <div
           className="badge"
           style={{
-            marginBottom: 14,
-            color: '#ff751f',
-            borderColor: 'rgba(255, 222, 89, 0.55)',
-            background: 'rgba(255, 222, 89, 0.12)'
+            marginBottom: 16,
+            background: '#f1e7a8',
+            color: 'var(--text)'
           }}
         >
           {copy.badge}
         </div>
 
-        <div className="h1" style={{ maxWidth: 920 }}>
-          {copy.title}
-        </div>
+        <div className="row" style={{ alignItems: 'stretch', gap: 18 }}>
+          <div style={{ flex: '1 1 620px' }}>
+            <div className="h1" style={{ maxWidth: 920 }}>
+              {copy.title}
+            </div>
 
-        <p
-          className="muted"
-          style={{ marginTop: 12, maxWidth: 920, fontSize: 17, lineHeight: 1.65 }}
-        >
-          {copy.body}
-        </p>
+            <p
+              className="muted"
+              style={{
+                marginTop: 14,
+                maxWidth: 860,
+                fontSize: 18,
+                lineHeight: 1.7
+              }}
+            >
+              {copy.body}
+            </p>
 
-        <div className="row" style={{ marginTop: 18, gap: 10, flexWrap: 'wrap' }}>
-          {!session ? (
-            <>
-              <Link className="btn primary" to="/auth?mode=signup">
-                {copy.primaryCta}
-              </Link>
-              <Link className="btn" to="/auth?mode=signin">
-                {copy.secondaryCta}
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link className="btn primary" to="/feed">
-                {copy.signedInPrimary}
-              </Link>
-              <Link className="btn" to="/new">
-                {copy.signedInSecondary}
-              </Link>
-            </>
-          )}
-        </div>
-      </div>
+            <div
+              style={{
+                display: 'flex',
+                gap: 8,
+                flexWrap: 'wrap',
+                marginTop: 18
+              }}
+            >
+              <span className="badge">{copy.heroTag1}</span>
+              <span className="badge">{copy.heroTag2}</span>
+              <span className="badge">{copy.heroTag3}</span>
+            </div>
 
-      <div className="grid two">
-        <div className="card card-soft">
-          <div className="card-section-title">{copy.valueTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.valueBody}
-          </p>
-        </div>
+            <div className="row" style={{ marginTop: 20 }}>
+              {!session ? (
+                <>
+                  <Link className="btn primary" to="/auth?mode=signup">
+                    {copy.primaryCta}
+                  </Link>
+                  <Link className="btn" to="/auth?mode=signin">
+                    {copy.secondaryCta}
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link className="btn primary" to="/feed">
+                    {copy.signedInPrimary}
+                  </Link>
+                  <Link className="btn" to="/new">
+                    {copy.signedInSecondary}
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
 
-        <div className="card card-soft">
-          <div className="card-section-title">{copy.audienceTitle}</div>
-          <div className="grid" style={{ gap: 8, marginTop: 10 }}>
-            <div>{copy.audience1}</div>
-            <div>{copy.audience2}</div>
-            <div>{copy.audience3}</div>
-            <div>{copy.audience4}</div>
+          <div
+            style={{
+              flex: '1 1 320px',
+              minWidth: 280,
+              display: 'grid',
+              gap: 12,
+              alignSelf: 'stretch'
+            }}
+          >
+            <MiniStat label={copy.stat1Label} value={copy.stat1Value} />
+            <MiniStat label={copy.stat2Label} value={copy.stat2Value} />
+            <MiniStat label={copy.stat3Label} value={copy.stat3Value} />
           </div>
         </div>
       </div>
 
       <div className="grid two">
-        <div className="card">
-          <div className="card-section-title">{copy.card1Title}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.card1Body}
+        <div className="card-soft" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.valueTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 10 }}>
+            {copy.valueBody}
           </p>
         </div>
 
-        <div className="card">
-          <div className="card-section-title">{copy.card2Title}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.card2Body}
-          </p>
-        </div>
-
-        <div className="card">
-          <div className="card-section-title">{copy.card3Title}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.card3Body}
-          </p>
-        </div>
-
-        <div className="card">
-          <div className="card-section-title">{copy.card4Title}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.card4Body}
-          </p>
+        <div className="card-soft" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.audienceTitle}</div>
+          <div className="grid" style={{ gap: 10, marginTop: 12 }}>
+            <div style={{ fontWeight: 700 }}>{copy.audience1}</div>
+            <div style={{ fontWeight: 700 }}>{copy.audience2}</div>
+            <div style={{ fontWeight: 700 }}>{copy.audience3}</div>
+            <div style={{ fontWeight: 700 }}>{copy.audience4}</div>
+          </div>
         </div>
       </div>
 
+      <div className="grid two">
+        <SectionCard title={copy.card1Title} body={copy.card1Body} />
+        <SectionCard title={copy.card2Title} body={copy.card2Body} />
+        <SectionCard title={copy.card3Title} body={copy.card3Body} />
+        <SectionCard title={copy.card4Title} body={copy.card4Body} />
+      </div>
+
       <div
-        className="card"
+        className="card surface-dark rounded-xl"
         style={{
-          borderColor: 'rgba(255, 222, 89, 0.24)',
-          background:
-            'linear-gradient(180deg, rgba(12,16,28,0.98) 0%, rgba(8,11,18,0.98) 100%)'
+          padding: 28
         }}
       >
-        <div className="h1" style={{ maxWidth: 760 }}>
+        <div className="h2" style={{ marginBottom: 10 }}>
           {copy.bottomTitle}
         </div>
-        <p className="muted" style={{ marginTop: 12, maxWidth: 820 }}>
+
+        <p
+          className="muted"
+          style={{
+            maxWidth: 860,
+            fontSize: 17,
+            lineHeight: 1.7,
+            margin: 0
+          }}
+        >
           {copy.bottomBody}
         </p>
       </div>
