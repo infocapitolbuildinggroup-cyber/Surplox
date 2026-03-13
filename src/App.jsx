@@ -26,29 +26,70 @@ function usePreferredLanguage() {
   return [lang, setLang]
 }
 
-function LanguageToggle({ lang, setLang }) {
+function LanguageSlider({ lang, setLang }) {
   return (
     <div
       style={{
-        display: 'flex',
-        gap: 8,
+        position: 'relative',
+        display: 'inline-grid',
+        gridTemplateColumns: '1fr 1fr',
         alignItems: 'center',
-        flexWrap: 'wrap'
+        width: 148,
+        padding: 4,
+        borderRadius: 999,
+        background: '#ecebe6',
+        border: '1px solid rgba(17,17,17,0.05)'
       }}
     >
+      <div
+        style={{
+          position: 'absolute',
+          top: 4,
+          left: lang === 'en' ? 4 : 'calc(50% + 0px)',
+          width: 'calc(50% - 4px)',
+          height: 'calc(100% - 8px)',
+          borderRadius: 999,
+          background: 'var(--accent)',
+          transition: 'left 0.22s ease'
+        }}
+      />
+
       <button
         type="button"
-        className={lang === 'en' ? 'btn primary small' : 'btn small'}
         onClick={() => setLang('en')}
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          border: 'none',
+          background: 'transparent',
+          padding: '10px 14px',
+          borderRadius: 999,
+          fontWeight: 800,
+          fontSize: 14,
+          color: '#111111',
+          cursor: 'pointer'
+        }}
       >
-        English
+        EN
       </button>
+
       <button
         type="button"
-        className={lang === 'es' ? 'btn primary small' : 'btn small'}
         onClick={() => setLang('es')}
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          border: 'none',
+          background: 'transparent',
+          padding: '10px 14px',
+          borderRadius: 999,
+          fontWeight: 800,
+          fontSize: 14,
+          color: '#111111',
+          cursor: 'pointer'
+        }}
       >
-        Español
+        ES
       </button>
     </div>
   )
@@ -141,23 +182,24 @@ function AppShell({ lang, setLang }) {
           className="container"
           style={{
             display: 'flex',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             justifyContent: 'space-between',
             gap: 16,
-            paddingTop: 14,
-            paddingBottom: 14
+            paddingTop: 10,
+            paddingBottom: 10
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
             <Link
               to="/"
               aria-label={lang === 'es' ? 'Ir al inicio de Surplox' : 'Go to Surplox home'}
               style={{
                 display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                alignItems: 'flex-start',
+                justifyContent: 'flex-start',
                 textDecoration: 'none',
-                color: 'var(--text)'
+                color: 'var(--text)',
+                marginTop: -2
               }}
             >
               {!logoError ? (
@@ -165,8 +207,8 @@ function AppShell({ lang, setLang }) {
                   src="/logo.png"
                   alt="Surplox"
                   style={{
-                    width: 42,
-                    height: 42,
+                    width: 58,
+                    height: 58,
                     objectFit: 'contain',
                     display: 'block'
                   }}
@@ -175,15 +217,15 @@ function AppShell({ lang, setLang }) {
               ) : (
                 <div
                   style={{
-                    width: 42,
-                    height: 42,
-                    borderRadius: 12,
+                    width: 58,
+                    height: 58,
+                    borderRadius: 16,
                     background: '#111111',
                     color: '#ffffff',
                     display: 'grid',
                     placeItems: 'center',
                     fontWeight: 900,
-                    fontSize: 16
+                    fontSize: 20
                   }}
                 >
                   S
@@ -196,7 +238,8 @@ function AppShell({ lang, setLang }) {
                 style={{
                   display: 'flex',
                   gap: 8,
-                  flexWrap: 'wrap'
+                  flexWrap: 'wrap',
+                  paddingTop: 10
                 }}
               >
                 <Link className="badge" to={homeCtaLinks.labor} style={{ textDecoration: 'none' }}>
@@ -221,7 +264,7 @@ function AppShell({ lang, setLang }) {
               justifyContent: 'flex-end'
             }}
           >
-            <LanguageToggle lang={lang} setLang={setLang} />
+            <LanguageSlider lang={lang} setLang={setLang} />
 
             {session ? (
               <button className="btn" onClick={handleSignOut}>

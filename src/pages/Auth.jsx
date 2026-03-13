@@ -40,8 +40,8 @@ const COPY = {
     previewFree: 'Free for workers.',
     previewTexas: 'Built for local construction networks.',
     languageLabel: 'Language',
-    languageEnglish: 'English',
-    languageSpanish: 'Español',
+    languageEnglish: 'EN',
+    languageSpanish: 'ES',
     email: 'Email',
     password: 'Password',
     emailPlaceholder: 'you@email.com',
@@ -117,8 +117,8 @@ const COPY = {
     previewFree: 'Gratis para trabajadores.',
     previewTexas: 'Hecho para redes locales de construcción.',
     languageLabel: 'Idioma',
-    languageEnglish: 'English',
-    languageSpanish: 'Español',
+    languageEnglish: 'EN',
+    languageSpanish: 'ES',
     email: 'Correo electrónico',
     password: 'Contraseña',
     emailPlaceholder: 'tu@email.com',
@@ -244,23 +244,77 @@ function StepPill({ active, complete, number, label }) {
   )
 }
 
-function LanguageToggle({ lang, setLang, copy }) {
+function LanguageSlider({ lang, setLang, copy }) {
   return (
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-      <button
-        type="button"
-        className={lang === 'en' ? 'btn primary small' : 'btn small'}
-        onClick={() => setLang('en')}
+    <div>
+      <div className="muted" style={{ marginBottom: 8 }}>
+        {copy.languageLabel}
+      </div>
+
+      <div
+        style={{
+          position: 'relative',
+          display: 'inline-grid',
+          gridTemplateColumns: '1fr 1fr',
+          alignItems: 'center',
+          width: 132,
+          padding: 4,
+          borderRadius: 999,
+          background: '#ecebe6',
+          border: '1px solid rgba(17,17,17,0.05)'
+        }}
       >
-        {copy.languageEnglish}
-      </button>
-      <button
-        type="button"
-        className={lang === 'es' ? 'btn primary small' : 'btn small'}
-        onClick={() => setLang('es')}
-      >
-        {copy.languageSpanish}
-      </button>
+        <div
+          style={{
+            position: 'absolute',
+            top: 4,
+            left: lang === 'en' ? 4 : 'calc(50% + 0px)',
+            width: 'calc(50% - 4px)',
+            height: 'calc(100% - 8px)',
+            borderRadius: 999,
+            background: 'var(--accent)',
+            transition: 'left 0.22s ease'
+          }}
+        />
+
+        <button
+          type="button"
+          onClick={() => setLang('en')}
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            border: 'none',
+            background: 'transparent',
+            padding: '10px 12px',
+            borderRadius: 999,
+            fontWeight: 800,
+            fontSize: 14,
+            color: '#111111',
+            cursor: 'pointer'
+          }}
+        >
+          {copy.languageEnglish}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setLang('es')}
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            border: 'none',
+            background: 'transparent',
+            padding: '10px 12px',
+            borderRadius: 999,
+            fontWeight: 800,
+            fontSize: 14,
+            color: '#111111',
+            cursor: 'pointer'
+          }}
+        >
+          {copy.languageSpanish}
+        </button>
+      </div>
     </div>
   )
 }
@@ -571,12 +625,7 @@ export default function Auth({ lang = 'en', setLang }) {
             </div>
           </div>
 
-          <div>
-            <div className="muted" style={{ marginBottom: 8 }}>
-              {copy.languageLabel}
-            </div>
-            <LanguageToggle lang={lang} setLang={handleLanguageChange} copy={copy} />
-          </div>
+          <LanguageSlider lang={lang} setLang={handleLanguageChange} copy={copy} />
         </div>
       </div>
 
