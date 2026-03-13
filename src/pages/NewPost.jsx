@@ -9,9 +9,69 @@ const POST_TYPE_OPTIONS = [
   { value: 'looking_for_work', en: 'Looking for Work', es: 'Buscando trabajo' }
 ]
 
+const CATEGORY_GROUP_OPTIONS = [
+  { value: 'trade', en: 'Trades', es: 'Oficios' },
+  { value: 'jobsite_support', en: 'Jobsite Support', es: 'Soporte de obra' }
+]
+
+const JOBSITE_SUPPORT_OPTIONS = [
+  {
+    value: 'material_delivery',
+    en: 'Material Delivery / Hot Shot',
+    es: 'Entrega de materiales / Hot Shot'
+  },
+  {
+    value: 'equipment_fleet_repair',
+    en: 'Equipment / Fleet Repair',
+    es: 'Reparación de equipo / flota'
+  }
+]
+
+const MATERIAL_DELIVERY_SERVICE_TAGS = [
+  { value: 'material_delivery', en: 'Material Delivery', es: 'Entrega de materiales' },
+  { value: 'hot_shot', en: 'Hot Shot', es: 'Hot Shot' },
+  { value: 'last_mile_delivery', en: 'Last Mile Delivery', es: 'Entrega última milla' },
+  { value: 'local_runs', en: 'Local Runs', es: 'Viajes locales' },
+  { value: 'same_day_delivery', en: 'Same Day Delivery', es: 'Entrega el mismo día' },
+  { value: 'long_distance', en: 'Long Distance', es: 'Larga distancia' }
+]
+
+const MATERIAL_DELIVERY_EQUIPMENT_TAGS = [
+  { value: 'pickup_truck', en: 'Pickup Truck', es: 'Pickup' },
+  { value: 'cargo_van', en: 'Cargo Van', es: 'Cargo van' },
+  { value: 'flatbed_trailer', en: 'Flatbed Trailer', es: 'Remolque plataforma' },
+  { value: 'gooseneck_trailer', en: 'Gooseneck Trailer', es: 'Remolque gooseneck' }
+]
+
+const FLEET_REPAIR_SERVICE_TAGS = [
+  { value: 'diesel_mechanic', en: 'Diesel Mechanic', es: 'Mecánico diésel' },
+  { value: 'heavy_equipment_repair', en: 'Heavy Equipment Repair', es: 'Reparación de equipo pesado' },
+  { value: 'trailer_repair', en: 'Trailer Repair', es: 'Reparación de remolques' },
+  { value: 'emergency_repair', en: 'Emergency Repair', es: 'Reparación de emergencia' },
+  { value: 'jobsite_service', en: 'Jobsite Service', es: 'Servicio en obra' }
+]
+
+const FLEET_REPAIR_EQUIPMENT_TAGS = [
+  { value: 'mobile_repair_truck', en: 'Mobile Repair Truck', es: 'Camión de reparación móvil' },
+  { value: 'diesel_diagnostics', en: 'Diesel Diagnostics', es: 'Diagnóstico diésel' },
+  { value: 'trailer_brake_tools', en: 'Trailer Brake Tools', es: 'Herramientas de frenos de remolque' }
+]
+
 function postTypeLabel(type, lang) {
   const match = POST_TYPE_OPTIONS.find((x) => x.value === type)
   if (!match) return type
+  return lang === 'es' ? match.es : match.en
+}
+
+function categoryGroupLabel(value, lang) {
+  const match = CATEGORY_GROUP_OPTIONS.find((x) => x.value === value)
+  if (!match) return value
+  return lang === 'es' ? match.es : match.en
+}
+
+function jobsiteSupportLabel(value, lang) {
+  const match = JOBSITE_SUPPORT_OPTIONS.find((x) => x.value === value)
+  if (!match) return value
   return lang === 'es' ? match.es : match.en
 }
 
@@ -24,29 +84,79 @@ function getPostTypeTheme(type) {
     return {
       badge: { background: '#ffde59', color: '#111111' },
       hero: { background: 'linear-gradient(180deg, #fff7cf 0%, #ffffff 100%)' },
-      panel: { background: '#fffaf0' },
-      button: 'btn primary',
-      accent: '#ffde59'
+      panel: { background: '#fffaf0' }
     }
   }
 
   if (type === 'looking_for_work') {
     return {
-      badge: { background: '#ffd7b0', color: '#111111' },
-      hero: { background: 'linear-gradient(180deg, #fff1e6 0%, #ffffff 100%)' },
-      panel: { background: '#fff8f2' },
-      button: 'btn',
-      accent: '#ffb067'
+      badge: { background: '#fff0b4', color: '#111111' },
+      hero: { background: 'linear-gradient(180deg, #f8f7ef 0%, #ffffff 100%)' },
+      panel: { background: '#f8f7ef' }
     }
   }
 
   return {
     badge: { background: '#ecebe3', color: '#111111' },
     hero: { background: 'linear-gradient(180deg, #f5f4ec 0%, #ffffff 100%)' },
-    panel: { background: '#f8f8f4' },
-    button: 'btn primary',
-    accent: '#d9d7cc'
+    panel: { background: '#f8f8f4' }
   }
+}
+
+function getServiceAndEquipmentOptions(jobsiteSupportType) {
+  if (jobsiteSupportType === 'material_delivery') {
+    return {
+      serviceOptions: MATERIAL_DELIVERY_SERVICE_TAGS,
+      equipmentOptions: MATERIAL_DELIVERY_EQUIPMENT_TAGS
+    }
+  }
+
+  if (jobsiteSupportType === 'equipment_fleet_repair') {
+    return {
+      serviceOptions: FLEET_REPAIR_SERVICE_TAGS,
+      equipmentOptions: FLEET_REPAIR_EQUIPMENT_TAGS
+    }
+  }
+
+  return {
+    serviceOptions: [],
+    equipmentOptions: []
+  }
+}
+
+function formatTagLabel(tag, lang = 'en') {
+  const all = [
+    ...MATERIAL_DELIVERY_SERVICE_TAGS,
+    ...MATERIAL_DELIVERY_EQUIPMENT_TAGS,
+    ...FLEET_REPAIR_SERVICE_TAGS,
+    ...FLEET_REPAIR_EQUIPMENT_TAGS
+  ]
+  const found = all.find((item) => item.value === tag)
+  if (!found) return tag
+  return lang === 'es' ? found.es : found.en
+}
+
+async function uploadPostImages(files, userId) {
+  if (!files?.length) return []
+
+  const uploadedPaths = []
+
+  for (const file of files) {
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const safeName = `${userId}/${crypto.randomUUID()}.${ext}`
+
+    const { error } = await supabase.storage
+      .from('post-images')
+      .upload(safeName, file, {
+        cacheControl: '3600',
+        upsert: false
+      })
+
+    if (error) throw error
+    uploadedPaths.push(safeName)
+  }
+
+  return uploadedPaths
 }
 
 export default function NewPost({ lang: langProp = 'en' }) {
@@ -57,6 +167,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
   const [profilePromptItems, setProfilePromptItems] = useState([])
   const [profileGateMessage, setProfileGateMessage] = useState('')
   const [profileReadyForPosting, setProfileReadyForPosting] = useState(false)
+  const [selectedFiles, setSelectedFiles] = useState([])
 
   const location = useLocation()
   const navigate = useNavigate()
@@ -66,6 +177,8 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
   const [form, setForm] = useState({
     post_type: preselectedType,
+    category_group: 'trade',
+    jobsite_support_type: 'material_delivery',
     trade_id: '',
     title: '',
     body: '',
@@ -74,7 +187,10 @@ export default function NewPost({ lang: langProp = 'en' }) {
     needed_crew_size: '',
     compensation: '',
     start_date: '',
-    source_language: langProp || localStorage.getItem('surplox_lang') || 'en'
+    source_language: langProp || localStorage.getItem('surplox_lang') || 'en',
+    service_tags: [],
+    equipment_tags: [],
+    is_urgent: false
   })
 
   useEffect(() => {
@@ -112,7 +228,10 @@ export default function NewPost({ lang: langProp = 'en' }) {
           ...prev,
           source_language: prev.source_language || userLang,
           trade_id: prev.trade_id || (prof?.trade_id ? String(prof.trade_id) : ''),
-          center_zip: prev.center_zip || String(prof?.home_zip || '')
+          center_zip: prev.center_zip || String(prof?.home_zip || ''),
+          category_group: prof?.category_group || prev.category_group || 'trade',
+          service_tags: Array.isArray(prof?.service_tags) ? prof.service_tags : prev.service_tags,
+          equipment_tags: Array.isArray(prof?.equipment_tags) ? prof.equipment_tags : prev.equipment_tags
         }))
 
         const prompts = []
@@ -151,7 +270,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
           prof &&
             String(prof.display_name || '').trim() &&
             String(prof.home_zip || '').trim() &&
-            (prof.trade_id || String(prof.bio || '').trim())
+            (prof.trade_id || String(prof.bio || '').trim() || Array.isArray(prof?.service_tags))
         )
 
         setProfileReadyForPosting(hasCorePostingProfile)
@@ -227,14 +346,56 @@ export default function NewPost({ lang: langProp = 'en' }) {
     setProfileGateMessage('')
   }, [form.post_type, lang, profilePromptItems, profileReadyForPosting])
 
+  useEffect(() => {
+    if (form.category_group === 'jobsite_support') {
+      setForm((prev) => ({
+        ...prev,
+        trade_id: '',
+        service_tags:
+          prev.service_tags.length > 0
+            ? prev.service_tags
+            : getServiceAndEquipmentOptions(prev.jobsite_support_type).serviceOptions
+                .slice(0, 1)
+                .map((x) => x.value)
+      }))
+    }
+  }, [form.category_group])
+
+  useEffect(() => {
+    if (form.category_group !== 'jobsite_support') return
+
+    const { serviceOptions, equipmentOptions } = getServiceAndEquipmentOptions(form.jobsite_support_type)
+    const validServiceSet = new Set(serviceOptions.map((x) => x.value))
+    const validEquipmentSet = new Set(equipmentOptions.map((x) => x.value))
+
+    setForm((prev) => ({
+      ...prev,
+      service_tags: prev.service_tags.filter((tag) => validServiceSet.has(tag)),
+      equipment_tags: prev.equipment_tags.filter((tag) => validEquipmentSet.has(tag))
+    }))
+  }, [form.jobsite_support_type, form.category_group])
+
   function setField(key, value) {
     setForm((f) => ({ ...f, [key]: value }))
+  }
+
+  function toggleMultiTag(field, value) {
+    setForm((prev) => {
+      const current = Array.isArray(prev[field]) ? prev[field] : []
+      const exists = current.includes(value)
+      return {
+        ...prev,
+        [field]: exists ? current.filter((x) => x !== value) : [...current, value]
+      }
+    })
   }
 
   const helperCopy = useMemo(() => {
     if (lang === 'es') {
       return {
         postType: 'Tipo de publicación',
+        categoryGroup: 'Grupo de categoría',
+        jobsiteSupportType: 'Tipo de soporte de obra',
         postLanguage: 'Idioma de la publicación',
         english: 'English',
         spanish: 'Español',
@@ -248,10 +409,18 @@ export default function NewPost({ lang: langProp = 'en' }) {
           'Ejemplo: Se necesitan 2 acabadores de concreto en Fort Worth para empezar el lunes',
         workTitle:
           'Ejemplo: Soldador de tubería disponible para trabajo de paro en DFW',
+        supportDeliveryTitle:
+          'Ejemplo: Cargo van disponible para entregas de materiales y herramientas en DFW',
+        supportRepairTitle:
+          'Ejemplo: Reparación de remolque y servicio diésel disponible en obra',
         crewBody:
           'Describe el oficio, dónde está el trabajo, cuánta gente necesitas, cuándo inicia y los detalles de pago.',
         workBody:
           'Describe tu oficio, disponibilidad, radio de viaje, experiencia y qué tipo de trabajo estás buscando.',
+        deliveryBody:
+          'Describe el tipo de entrega, vehículo/equipo disponible, zona de cobertura y si haces viajes locales, urgentes o el mismo día.',
+        repairBody:
+          'Describe el servicio de reparación, el equipo o sistema que atiendes, si haces servicio móvil y tu zona de cobertura.',
         crewRequired:
           'El tamaño de cuadrilla debe ser por lo menos 1 para publicaciones de Se necesita cuadrilla.',
         opportunityIntro:
@@ -277,12 +446,22 @@ export default function NewPost({ lang: langProp = 'en' }) {
         radiusLabel: 'Radio (millas)',
         zipLabel: 'ZIP de la publicación',
         publish: 'Publicar',
-        publishing: 'Publicando…'
+        publishing: 'Publicando…',
+        serviceTags: 'Etiquetas de servicio',
+        equipmentTags: 'Etiquetas de equipo',
+        urgent: 'Solicitud urgente',
+        urgentBody: 'Haz que esta publicación se marque como urgente.',
+        photos: 'Fotos de la publicación',
+        photoHelp: 'Puedes subir hasta 4 imágenes.',
+        categoryHelp:
+          'Usa Oficios para mano de obra y discusiones. Usa Soporte de obra para entrega de materiales o reparación de flota/equipo.'
       }
     }
 
     return {
       postType: 'Post Type',
+      categoryGroup: 'Category Group',
+      jobsiteSupportType: 'Jobsite Support Type',
       postLanguage: 'Post Language',
       english: 'English',
       spanish: 'Español',
@@ -294,10 +473,18 @@ export default function NewPost({ lang: langProp = 'en' }) {
       workExample: 'Example: welder available this week in Dallas',
       crewTitle: 'Example: Need 2 concrete finishers in Fort Worth starting Monday',
       workTitle: 'Example: Pipe welder available for shutdown work in DFW',
+      supportDeliveryTitle:
+        'Example: Cargo van available for material and tool delivery across DFW',
+      supportRepairTitle:
+        'Example: Trailer repair and diesel service available at jobsites',
       workBody:
         'Describe your trade, availability, travel radius, experience, and what kind of work you want.',
       crewBody:
         'Describe the trade, where the job is, how many people you need, start timing, and pay details.',
+      deliveryBody:
+        'Describe the delivery service, vehicle/equipment available, coverage area, and whether you do local runs, urgent pickups, or same-day service.',
+      repairBody:
+        'Describe the repair service, what equipment or systems you work on, whether you provide mobile service, and your coverage area.',
       crewRequired: 'Crew size must be at least 1 for Need Crew posts.',
       opportunityIntro:
         'Create a high-visibility local opportunity post so nearby workers and crews can find it quickly.',
@@ -321,23 +508,48 @@ export default function NewPost({ lang: langProp = 'en' }) {
       radiusLabel: 'Radius (miles)',
       zipLabel: 'Post ZIP',
       publish: 'Publish Post',
-      publishing: 'Publishing…'
+      publishing: 'Publishing…',
+      serviceTags: 'Service Tags',
+      equipmentTags: 'Equipment Tags',
+      urgent: 'Urgent Request',
+      urgentBody: 'Mark this post as urgent.',
+      photos: 'Post Photos',
+      photoHelp: 'You can upload up to 4 images.',
+      categoryHelp:
+        'Use Trades for labor and discussions. Use Jobsite Support for material delivery or fleet/equipment repair.'
     }
   }, [lang])
 
+  const { serviceOptions, equipmentOptions } = getServiceAndEquipmentOptions(form.jobsite_support_type)
+
   function titlePlaceholder() {
+    if (form.category_group === 'jobsite_support') {
+      return form.jobsite_support_type === 'material_delivery'
+        ? helperCopy.supportDeliveryTitle
+        : helperCopy.supportRepairTitle
+    }
     if (form.post_type === 'need_crew') return helperCopy.crewTitle
     if (form.post_type === 'looking_for_work') return helperCopy.workTitle
     return helperCopy.discussionTitle
   }
 
   function bodyPlaceholder() {
+    if (form.category_group === 'jobsite_support') {
+      return form.jobsite_support_type === 'material_delivery'
+        ? helperCopy.deliveryBody
+        : helperCopy.repairBody
+    }
     if (form.post_type === 'need_crew') return helperCopy.crewBody
     if (form.post_type === 'looking_for_work') return helperCopy.workBody
     return t(lang, 'new_post_body_placeholder')
   }
 
   function exampleBody() {
+    if (form.category_group === 'jobsite_support') {
+      return form.jobsite_support_type === 'material_delivery'
+        ? helperCopy.deliveryBody
+        : helperCopy.repairBody
+    }
     if (form.post_type === 'need_crew') return helperCopy.crewExample
     if (form.post_type === 'looking_for_work') return helperCopy.workExample
     return t(lang, 'new_post_example_body')
@@ -379,6 +591,23 @@ export default function NewPost({ lang: langProp = 'en' }) {
         throw new Error(helperCopy.invalidPostLanguage)
       }
 
+      if (!['trade', 'jobsite_support'].includes(form.category_group)) {
+        throw new Error(
+          lang === 'es' ? 'Selecciona una categoría válida.' : 'Select a valid category.'
+        )
+      }
+
+      if (
+        form.category_group === 'jobsite_support' &&
+        !['material_delivery', 'equipment_fleet_repair'].includes(form.jobsite_support_type)
+      ) {
+        throw new Error(
+          lang === 'es'
+            ? 'Selecciona un tipo de soporte válido.'
+            : 'Select a valid support type.'
+        )
+      }
+
       if (!form.title.trim()) throw new Error(t(lang, 'post_title_required'))
       if (!form.body.trim()) throw new Error(t(lang, 'post_body_required'))
       if (!/^[0-9]{5}$/.test(form.center_zip)) throw new Error(t(lang, 'post_zip_invalid'))
@@ -395,6 +624,10 @@ export default function NewPost({ lang: langProp = 'en' }) {
         }
       }
 
+      if (selectedFiles.length > 4) {
+        throw new Error(lang === 'es' ? 'Máximo 4 imágenes.' : 'Maximum 4 images.')
+      }
+
       const { data: zipRow, error: zipErr } = await supabase
         .from('zipcodes')
         .select('zip')
@@ -404,15 +637,22 @@ export default function NewPost({ lang: langProp = 'en' }) {
       if (zipErr) throw zipErr
       if (!zipRow?.zip) throw new Error(t(lang, 'post_zip_missing'))
 
+      const uploadedPaths = await uploadPostImages(selectedFiles, user.id)
+
       const payload = {
         author_id: user.id,
         post_type: form.post_type,
-        trade_id: form.trade_id ? Number(form.trade_id) : null,
+        category_group: form.category_group,
+        trade_id: form.category_group === 'trade' && form.trade_id ? Number(form.trade_id) : null,
         title: form.title.trim(),
         body: form.body.trim(),
         center_zip: form.center_zip,
         radius_miles: radius,
-        source_language: form.source_language
+        source_language: form.source_language,
+        service_tags: form.category_group === 'jobsite_support' ? form.service_tags : [],
+        equipment_tags: form.category_group === 'jobsite_support' ? form.equipment_tags : [],
+        is_urgent: Boolean(form.is_urgent),
+        image_urls: uploadedPaths
       }
 
       if (form.post_type === 'need_crew') {
@@ -534,65 +774,214 @@ export default function NewPost({ lang: langProp = 'en' }) {
             })}
           </div>
 
-          <div className="grid two" style={{ marginTop: 18 }}>
+          <div className="grid" style={{ gap: 14, marginTop: 18 }}>
             <div>
               <div className="muted" style={{ marginBottom: 6 }}>
-                {helperCopy.postLanguage}
+                {helperCopy.categoryGroup}
               </div>
               <select
                 className="input"
-                value={form.source_language}
-                onChange={(e) => setField('source_language', e.target.value)}
+                value={form.category_group}
+                onChange={(e) => setField('category_group', e.target.value)}
               >
-                <option value="en">{helperCopy.english}</option>
-                <option value="es">{helperCopy.spanish}</option>
-              </select>
-            </div>
-
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>
-                {t(lang, 'new_post_trade')}
-              </div>
-              <select
-                className="input"
-                value={form.trade_id}
-                onChange={(e) => setField('trade_id', e.target.value)}
-              >
-                <option value="">{helperCopy.selectTrade}</option>
-                {trades.map((trade) => (
-                  <option key={trade.id} value={trade.id}>
-                    {trade.name}
+                {CATEGORY_GROUP_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {categoryGroupLabel(option.value, lang)}
                   </option>
                 ))}
               </select>
+              <div className="muted" style={{ marginTop: 8 }}>
+                {helperCopy.categoryHelp}
+              </div>
             </div>
-          </div>
 
-          {form.post_type !== 'discussion' ? (
-            <div
-              className="card-soft"
-              style={{
-                marginTop: 16,
-                ...theme.panel
-              }}
-            >
-              <div className="card-section-title" style={{ fontSize: 16 }}>
-                {helperCopy.opportunityIntro}
+            {form.category_group === 'jobsite_support' ? (
+              <div>
+                <div className="muted" style={{ marginBottom: 6 }}>
+                  {helperCopy.jobsiteSupportType}
+                </div>
+                <select
+                  className="input"
+                  value={form.jobsite_support_type}
+                  onChange={(e) => setField('jobsite_support_type', e.target.value)}
+                >
+                  {JOBSITE_SUPPORT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {jobsiteSupportLabel(option.value, lang)}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-                {exampleBody()}
-              </p>
-            </div>
-          ) : (
-            <div className="card-soft" style={{ marginTop: 16 }}>
-              <div className="card-section-title" style={{ fontSize: 16 }}>
-                {t(lang, 'new_post_example')}
+            ) : null}
+
+            <div className="grid two">
+              <div>
+                <div className="muted" style={{ marginBottom: 6 }}>
+                  {helperCopy.postLanguage}
+                </div>
+                <select
+                  className="input"
+                  value={form.source_language}
+                  onChange={(e) => setField('source_language', e.target.value)}
+                >
+                  <option value="en">{helperCopy.english}</option>
+                  <option value="es">{helperCopy.spanish}</option>
+                </select>
               </div>
-              <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-                {t(lang, 'new_post_example_body')}
-              </p>
+
+              {form.category_group === 'trade' ? (
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {t(lang, 'new_post_trade')}
+                  </div>
+                  <select
+                    className="input"
+                    value={form.trade_id}
+                    onChange={(e) => setField('trade_id', e.target.value)}
+                  >
+                    <option value="">{helperCopy.selectTrade}</option>
+                    {trades.map((trade) => (
+                      <option key={trade.id} value={trade.id}>
+                        {trade.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {helperCopy.urgent}
+                  </div>
+                  <button
+                    type="button"
+                    className={form.is_urgent ? 'btn primary' : 'btn'}
+                    style={{ width: '100%' }}
+                    onClick={() => setField('is_urgent', !form.is_urgent)}
+                  >
+                    {helperCopy.urgent}
+                  </button>
+                  <div className="muted" style={{ marginTop: 8 }}>
+                    {helperCopy.urgentBody}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+
+            {form.category_group === 'jobsite_support' ? (
+              <>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {helperCopy.serviceTags}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {serviceOptions.map((tag) => {
+                      const active = form.service_tags.includes(tag.value)
+                      return (
+                        <button
+                          key={tag.value}
+                          type="button"
+                          className={active ? 'btn primary small' : 'btn small'}
+                          onClick={() => toggleMultiTag('service_tags', tag.value)}
+                        >
+                          {lang === 'es' ? tag.es : tag.en}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {helperCopy.equipmentTags}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {equipmentOptions.map((tag) => {
+                      const active = form.equipment_tags.includes(tag.value)
+                      return (
+                        <button
+                          key={tag.value}
+                          type="button"
+                          className={active ? 'btn primary small' : 'btn small'}
+                          onClick={() => toggleMultiTag('equipment_tags', tag.value)}
+                        >
+                          {lang === 'es' ? tag.es : tag.en}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
+            ) : null}
+
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>
+                {helperCopy.photos}
+              </div>
+              <input
+                className="input"
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                multiple
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []).slice(0, 4)
+                  setSelectedFiles(files)
+                }}
+              />
+              <div className="muted" style={{ marginTop: 8 }}>
+                {helperCopy.photoHelp}
+              </div>
+              {selectedFiles.length > 0 ? (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  {selectedFiles.map((file) => (
+                    <span key={`${file.name}-${file.size}`} className="badge">
+                      {file.name}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            {form.post_type !== 'discussion' || form.category_group === 'jobsite_support' ? (
+              <div
+                className="card-soft"
+                style={{
+                  marginTop: 2,
+                  ...theme.panel
+                }}
+              >
+                <div className="card-section-title" style={{ fontSize: 16 }}>
+                  {helperCopy.opportunityIntro}
+                </div>
+                <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+                  {exampleBody()}
+                </p>
+
+                {form.category_group === 'jobsite_support' ? (
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                    {form.service_tags.map((tag) => (
+                      <span key={tag} className="badge">
+                        {formatTagLabel(tag, lang)}
+                      </span>
+                    ))}
+                    {form.equipment_tags.map((tag) => (
+                      <span key={tag} className="badge">
+                        {formatTagLabel(tag, lang)}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="card-soft" style={{ marginTop: 2 }}>
+                <div className="card-section-title" style={{ fontSize: 16 }}>
+                  {t(lang, 'new_post_example')}
+                </div>
+                <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+                  {t(lang, 'new_post_example_body')}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="card rounded-xl" style={{ padding: 24 }}>
