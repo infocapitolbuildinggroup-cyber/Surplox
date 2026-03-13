@@ -66,26 +66,28 @@ function getPostTypeStyles(type) {
   if (type === 'need_crew') {
     return {
       shell: {
-        background: 'linear-gradient(180deg, #fff7cf 0%, #ffffff 100%)'
+        background: 'linear-gradient(180deg, #fffaf0 0%, #ffffff 100%)'
       },
       badge: {
         background: '#ffde59',
         color: '#111111'
       },
-      accent: '#ffde59'
+      accent: '#ffde59',
+      softPanel: '#fffaf0'
     }
   }
 
   if (type === 'looking_for_work') {
     return {
       shell: {
-        background: 'linear-gradient(180deg, #fff1e6 0%, #ffffff 100%)'
+        background: 'linear-gradient(180deg, #f8f7ef 0%, #ffffff 100%)'
       },
       badge: {
-        background: '#ffd7b0',
+        background: '#fff0b4',
         color: '#111111'
       },
-      accent: '#ffb067'
+      accent: '#d4b21f',
+      softPanel: '#f8f7ef'
     }
   }
 
@@ -97,7 +99,8 @@ function getPostTypeStyles(type) {
       background: '#ecebe3',
       color: '#111111'
     },
-    accent: '#d9d7cc'
+    accent: '#d9d7cc',
+    softPanel: '#f8f8f4'
   }
 }
 
@@ -105,7 +108,7 @@ function roleBadgeStyle(role) {
   if (role === 'contractor') return { background: '#111111', color: '#ffffff' }
   if (role === 'subcontractor') return { background: '#fff0b4', color: '#111111' }
   if (role === 'laborer') return { background: '#ecebe3', color: '#111111' }
-  if (role === 'supplier') return { background: '#ffd7b0', color: '#111111' }
+  if (role === 'supplier') return { background: '#f1e7a8', color: '#111111' }
   return {}
 }
 
@@ -1265,7 +1268,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
 
           {post.post_type === 'need_crew' ? (
             <div className="grid two" style={{ marginTop: 20 }}>
-              <div className="card-soft" style={{ background: '#fffaf0' }}>
+              <div className="card-soft" style={{ background: typeStyles.softPanel }}>
                 <div className="card-section-title" style={{ fontSize: 16 }}>
                   {copy.crewBuilder}
                 </div>
