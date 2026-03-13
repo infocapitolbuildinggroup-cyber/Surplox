@@ -8,6 +8,64 @@ const ROLE_OPTIONS = [
   { value: 'supplier', label: { en: 'Supplier', es: 'Proveedor' } }
 ]
 
+const CATEGORY_GROUP_OPTIONS = [
+  { value: 'trade', label: { en: 'Trades', es: 'Oficios' } },
+  { value: 'jobsite_support', label: { en: 'Jobsite Support', es: 'Soporte de obra' } }
+]
+
+const JOBSITE_SUPPORT_OPTIONS = [
+  {
+    value: 'material_delivery',
+    label: { en: 'Material Delivery / Hot Shot', es: 'Entrega de materiales / Hot Shot' }
+  },
+  {
+    value: 'equipment_fleet_repair',
+    label: { en: 'Equipment / Fleet Repair', es: 'Reparación de equipo / flota' }
+  }
+]
+
+const AVAILABILITY_OPTIONS = [
+  { value: 'available_now', label: { en: 'Available Now', es: 'Disponible ahora' } },
+  { value: 'available_this_week', label: { en: 'Available This Week', es: 'Disponible esta semana' } },
+  { value: 'busy', label: { en: 'Busy', es: 'Ocupado' } }
+]
+
+const MATERIAL_DELIVERY_SERVICE_TAGS = [
+  { value: 'material_delivery', label: { en: 'Material Delivery', es: 'Entrega de materiales' } },
+  { value: 'hot_shot', label: { en: 'Hot Shot', es: 'Hot Shot' } },
+  { value: 'last_mile_delivery', label: { en: 'Last Mile Delivery', es: 'Entrega última milla' } },
+  { value: 'local_runs', label: { en: 'Local Runs', es: 'Viajes locales' } },
+  { value: 'same_day_delivery', label: { en: 'Same Day Delivery', es: 'Entrega el mismo día' } },
+  { value: 'long_distance', label: { en: 'Long Distance', es: 'Larga distancia' } }
+]
+
+const MATERIAL_DELIVERY_EQUIPMENT_TAGS = [
+  { value: 'pickup_truck', label: { en: 'Pickup Truck', es: 'Pickup' } },
+  { value: 'cargo_van', label: { en: 'Cargo Van', es: 'Cargo van' } },
+  { value: 'flatbed_trailer', label: { en: 'Flatbed Trailer', es: 'Remolque plataforma' } },
+  { value: 'gooseneck_trailer', label: { en: 'Gooseneck Trailer', es: 'Remolque gooseneck' } }
+]
+
+const FLEET_REPAIR_SERVICE_TAGS = [
+  { value: 'diesel_mechanic', label: { en: 'Diesel Mechanic', es: 'Mecánico diésel' } },
+  {
+    value: 'heavy_equipment_repair',
+    label: { en: 'Heavy Equipment Repair', es: 'Reparación de equipo pesado' }
+  },
+  { value: 'trailer_repair', label: { en: 'Trailer Repair', es: 'Reparación de remolques' } },
+  { value: 'emergency_repair', label: { en: 'Emergency Repair', es: 'Reparación de emergencia' } },
+  { value: 'jobsite_service', label: { en: 'Jobsite Service', es: 'Servicio en obra' } }
+]
+
+const FLEET_REPAIR_EQUIPMENT_TAGS = [
+  { value: 'mobile_repair_truck', label: { en: 'Mobile Repair Truck', es: 'Camión de reparación móvil' } },
+  { value: 'diesel_diagnostics', label: { en: 'Diesel Diagnostics', es: 'Diagnóstico diésel' } },
+  {
+    value: 'trailer_brake_tools',
+    label: { en: 'Trailer Brake Tools', es: 'Herramientas de frenos de remolque' }
+  }
+]
+
 const COPY = {
   en: {
     loading: 'Loading your account…',
@@ -18,6 +76,8 @@ const COPY = {
     emailInvalid: 'Enter a valid email address.',
     phoneInvalid: 'Enter a valid phone number.',
     languageInvalid: 'Select a valid language.',
+    availabilityInvalid: 'Select a valid availability status.',
+    categoryInvalid: 'Select a valid category group.',
     success: 'Your account has been updated.',
     saveError: 'Unable to save your account changes.',
     title: 'My Surplox Account',
@@ -36,11 +96,11 @@ const COPY = {
     language: 'Preferred Language',
     bio: 'Bio / Experience / Certifications',
     bioPlaceholder:
-      'Share what kind of work you do, your experience level, and any certifications or capabilities you want people to see.',
+      'Share what kind of work you do, your experience level, certifications, capabilities, delivery coverage, or repair specialty.',
     selectTrade: 'Select your trade',
     inviteTitle: 'Invite Your Crew',
     inviteBody:
-      'Use your personal Surplox invite link to bring classmates, coworkers, or people from your crew onto the network before the event.',
+      'Use your personal Surplox invite link to bring classmates, coworkers, runners, mechanics, or people from your crew onto the network.',
     copyInvite: 'Copy Invite Link',
     shareInvite: 'Share Invite',
     textInvite: 'Text Invite',
@@ -55,7 +115,7 @@ const COPY = {
     saving: 'Saving…',
     completionTitle: 'Finish Profile Completion',
     completionBody:
-      'Complete these remaining items so your profile is fully finished and carries more weight with workers, crews, and contractors.',
+      'Complete these remaining items so your profile is fully finished and carries more weight with workers, crews, contractors, and jobsite support users.',
     completionCrew: 'Add crew size',
     completionBio: 'Add experience and certifications in your bio',
     completionPhone: 'Add phone number',
@@ -64,10 +124,28 @@ const COPY = {
     completionRole: 'Add primary role',
     accountOverview: 'Account Overview',
     accountOverviewBody:
-      'Keep your profile clean, credible, and ready for nearby work opportunities and crew invites.',
+      'Keep your profile clean, credible, and ready for nearby work opportunities, material runs, repair requests, and crew invites.',
     profileStrength: 'Profile Strength',
     complete: 'Complete',
-    incomplete: 'Needs work'
+    incomplete: 'Needs work',
+    categoryGroup: 'Category Group',
+    jobsiteSupportType: 'Jobsite Support Type',
+    jobsiteSupportIntro:
+      'Use Jobsite Support for material delivery, hot shot, fleet repair, and equipment repair profiles.',
+    serviceTags: 'Service Tags',
+    equipmentTags: 'Equipment Tags',
+    availabilityStatus: 'Availability Status',
+    contractorVerification: 'Contractor Verification',
+    verifiedContractor: 'Verified Contractor',
+    notVerifiedContractor: 'Not Verified',
+    serviceProfileTitle: 'Jobsite Support Profile',
+    servicesEquipmentBody:
+      'Select the services you offer and the equipment you have so contractors know exactly what you can do.',
+    tradesGroup: 'Trades',
+    jobsiteSupportGroup: 'Jobsite Support',
+    materialDeliveryType: 'Material Delivery / Hot Shot',
+    fleetRepairType: 'Equipment / Fleet Repair',
+    selectSupportType: 'Select support type'
   },
   es: {
     loading: 'Cargando tu cuenta…',
@@ -78,6 +156,8 @@ const COPY = {
     emailInvalid: 'Ingresa un correo electrónico válido.',
     phoneInvalid: 'Ingresa un número de teléfono válido.',
     languageInvalid: 'Selecciona un idioma válido.',
+    availabilityInvalid: 'Selecciona un estado de disponibilidad válido.',
+    categoryInvalid: 'Selecciona un grupo de categoría válido.',
     success: 'Tu cuenta ha sido actualizada.',
     saveError: 'No se pudieron guardar los cambios de tu cuenta.',
     title: 'Mi cuenta de Surplox',
@@ -96,11 +176,11 @@ const COPY = {
     language: 'Idioma preferido',
     bio: 'Biografía / Experiencia / Certificaciones',
     bioPlaceholder:
-      'Comparte qué tipo de trabajo haces, tu nivel de experiencia y cualquier certificación o capacidad que quieras mostrar.',
+      'Comparte qué tipo de trabajo haces, tu experiencia, certificaciones, capacidades, cobertura de entrega o especialidad de reparación.',
     selectTrade: 'Selecciona tu oficio',
     inviteTitle: 'Invita a tu cuadrilla',
     inviteBody:
-      'Usa tu enlace personal de Surplox para invitar compañeros de clase, compañeros de trabajo o gente de tu cuadrilla antes del evento.',
+      'Usa tu enlace personal de Surplox para invitar compañeros de clase, compañeros de trabajo, runners, mecánicos o gente de tu cuadrilla.',
     copyInvite: 'Copiar enlace',
     shareInvite: 'Compartir',
     textInvite: 'Invitar por texto',
@@ -115,7 +195,7 @@ const COPY = {
     saving: 'Guardando…',
     completionTitle: 'Terminar perfil',
     completionBody:
-      'Completa estos elementos restantes para que tu perfil quede completamente terminado y tenga más peso con trabajadores, cuadrillas y contratistas.',
+      'Completa estos elementos restantes para que tu perfil quede completamente terminado y tenga más peso con trabajadores, cuadrillas, contratistas y usuarios de soporte de obra.',
     completionCrew: 'Agregar tamaño de cuadrilla',
     completionBio: 'Agregar experiencia y certificaciones en tu biografía',
     completionPhone: 'Agregar número de teléfono',
@@ -124,10 +204,28 @@ const COPY = {
     completionRole: 'Agregar rol principal',
     accountOverview: 'Resumen de cuenta',
     accountOverviewBody:
-      'Mantén tu perfil limpio, creíble y listo para oportunidades cercanas e invitaciones de cuadrilla.',
+      'Mantén tu perfil limpio, creíble y listo para oportunidades cercanas, entregas de materiales, solicitudes de reparación e invitaciones de cuadrilla.',
     profileStrength: 'Fuerza del perfil',
     complete: 'Completo',
-    incomplete: 'Necesita trabajo'
+    incomplete: 'Necesita trabajo',
+    categoryGroup: 'Grupo de categoría',
+    jobsiteSupportType: 'Tipo de soporte de obra',
+    jobsiteSupportIntro:
+      'Usa Soporte de obra para entrega de materiales, hot shot, reparación de flota y reparación de equipo.',
+    serviceTags: 'Etiquetas de servicio',
+    equipmentTags: 'Etiquetas de equipo',
+    availabilityStatus: 'Estado de disponibilidad',
+    contractorVerification: 'Verificación de contratista',
+    verifiedContractor: 'Contratista verificado',
+    notVerifiedContractor: 'No verificado',
+    serviceProfileTitle: 'Perfil de soporte de obra',
+    servicesEquipmentBody:
+      'Selecciona los servicios que ofreces y el equipo que tienes para que los contratistas sepan exactamente lo que puedes hacer.',
+    tradesGroup: 'Oficios',
+    jobsiteSupportGroup: 'Soporte de obra',
+    materialDeliveryType: 'Entrega de materiales / Hot Shot',
+    fleetRepairType: 'Reparación de equipo / flota',
+    selectSupportType: 'Selecciona tipo de soporte'
   }
 }
 
@@ -159,6 +257,42 @@ function OverviewStat({ label, value }) {
   )
 }
 
+function labelForOption(option, lang) {
+  return option.label?.[lang] || option.label?.en || option.value
+}
+
+function getSupportOptions(jobsiteSupportType) {
+  if (jobsiteSupportType === 'material_delivery') {
+    return {
+      serviceOptions: MATERIAL_DELIVERY_SERVICE_TAGS,
+      equipmentOptions: MATERIAL_DELIVERY_EQUIPMENT_TAGS
+    }
+  }
+
+  if (jobsiteSupportType === 'equipment_fleet_repair') {
+    return {
+      serviceOptions: FLEET_REPAIR_SERVICE_TAGS,
+      equipmentOptions: FLEET_REPAIR_EQUIPMENT_TAGS
+    }
+  }
+
+  return {
+    serviceOptions: [],
+    equipmentOptions: []
+  }
+}
+
+function detectSupportType(serviceTags = []) {
+  if (
+    serviceTags.some((tag) =>
+      ['diesel_mechanic', 'heavy_equipment_repair', 'trailer_repair', 'emergency_repair', 'jobsite_service'].includes(tag)
+    )
+  ) {
+    return 'equipment_fleet_repair'
+  }
+  return 'material_delivery'
+}
+
 export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLang }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -180,10 +314,17 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
     phone: '',
     city: '',
     email: '',
-    preferred_language: 'en'
+    preferred_language: 'en',
+    category_group: 'trade',
+    jobsite_support_type: 'material_delivery',
+    service_tags: [],
+    equipment_tags: [],
+    availability_status: 'available_now',
+    contractor_verified: false
   })
 
   const copy = COPY[lang] || COPY.en
+  const { serviceOptions, equipmentOptions } = getSupportOptions(form.jobsite_support_type)
 
   useEffect(() => {
     setLang(langProp || localStorage.getItem('surplox_lang') || 'en')
@@ -214,8 +355,8 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
     const name = form.display_name?.trim() || 'A Surplox member'
     const message =
       lang === 'es'
-        ? `${name} te invitó a unirte a Surplox, la red local de construcción para cuadrillas, trabajo y actividad del oficio.`
-        : `${name} invited you to join Surplox, the local construction network for crews, work, and trade activity.`
+        ? `${name} te invitó a unirte a Surplox, la red local de construcción para cuadrillas, trabajo, entregas y soporte de obra.`
+        : `${name} invited you to join Surplox, the local construction network for crews, work, delivery, and jobsite support.`
 
     return `${message}\n\n${buildInviteUrl()}`
   }
@@ -270,6 +411,34 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
     }
   }
 
+  function toggleMultiTag(field, value) {
+    setForm((prev) => {
+      const current = Array.isArray(prev[field]) ? prev[field] : []
+      const exists = current.includes(value)
+      return {
+        ...prev,
+        [field]: exists ? current.filter((x) => x !== value) : [...current, value]
+      }
+    })
+  }
+
+  useEffect(() => {
+    if (form.category_group !== 'jobsite_support') return
+
+    const nextType = form.jobsite_support_type || 'material_delivery'
+    const { serviceOptions: nextServiceOptions, equipmentOptions: nextEquipmentOptions } =
+      getSupportOptions(nextType)
+
+    const validServiceSet = new Set(nextServiceOptions.map((x) => x.value))
+    const validEquipmentSet = new Set(nextEquipmentOptions.map((x) => x.value))
+
+    setForm((prev) => ({
+      ...prev,
+      service_tags: prev.service_tags.filter((tag) => validServiceSet.has(tag)),
+      equipment_tags: prev.equipment_tags.filter((tag) => validEquipmentSet.has(tag))
+    }))
+  }, [form.category_group, form.jobsite_support_type])
+
   useEffect(() => {
     async function load() {
       setLoading(true)
@@ -310,6 +479,12 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
         const userLang =
           prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
 
+        const categoryGroup = prof?.category_group || 'trade'
+        const serviceTags = Array.isArray(prof?.service_tags) ? prof.service_tags : []
+        const equipmentTags = Array.isArray(prof?.equipment_tags) ? prof.equipment_tags : []
+        const supportType =
+          categoryGroup === 'jobsite_support' ? detectSupportType(serviceTags) : 'material_delivery'
+
         setInviteCode(user.id)
         setLang(userLang)
         localStorage.setItem('surplox_lang', userLang)
@@ -328,7 +503,13 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
           phone: cp?.phone || '',
           city: cp?.city || '',
           email: cp?.email || user.email || '',
-          preferred_language: userLang
+          preferred_language: userLang,
+          category_group: categoryGroup,
+          jobsite_support_type: supportType,
+          service_tags: serviceTags,
+          equipment_tags: equipmentTags,
+          availability_status: prof?.availability_status || 'available_now',
+          contractor_verified: Boolean(prof?.contractor_verified)
         })
       } finally {
         setLoading(false)
@@ -381,7 +562,7 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
       if (!user) throw new Error(activeCopy.signedInRequired)
       if (!form.display_name.trim()) throw new Error(activeCopy.displayNameRequired)
       if (!/^[0-9]{5}$/.test(form.home_zip)) throw new Error(activeCopy.zipInvalid)
-      if (!form.trade_id) throw new Error(activeCopy.tradeRequired)
+      if (form.category_group === 'trade' && !form.trade_id) throw new Error(activeCopy.tradeRequired)
 
       const phoneDigits = normalizePhone(form.phone)
       if (form.phone.trim() && phoneDigits.length < 10) throw new Error(activeCopy.phoneInvalid)
@@ -391,28 +572,40 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
         throw new Error(activeCopy.languageInvalid)
       }
 
+      if (!['available_now', 'available_this_week', 'busy'].includes(form.availability_status)) {
+        throw new Error(activeCopy.availabilityInvalid)
+      }
+
+      if (!['trade', 'jobsite_support'].includes(form.category_group)) {
+        throw new Error(activeCopy.categoryInvalid)
+      }
+
       const displayName = form.display_name.trim()
       const firstName = form.first_name.trim() || displayName.split(/\s+/)[0] || displayName
 
-      const { error: profErr } = await supabase.from('profiles').upsert({
+      const profilePayload = {
         user_id: user.id,
         display_name: displayName,
         first_name: firstName,
         last_name: form.last_name.trim(),
         role: form.role || 'laborer',
-        trade_id: Number(form.trade_id),
+        trade_id: form.category_group === 'trade' ? Number(form.trade_id) : null,
         travel_radius_miles: Number(form.travel_radius_miles || 50),
         crew_size: Number(form.crew_size || 1),
         bio: form.bio.trim(),
-        preferred_language: form.preferred_language
-      })
+        preferred_language: form.preferred_language,
+        category_group: form.category_group,
+        service_tags: form.category_group === 'jobsite_support' ? form.service_tags : [],
+        equipment_tags: form.category_group === 'jobsite_support' ? form.equipment_tags : [],
+        availability_status: form.availability_status
+      }
 
+      const { error: profErr } = await supabase.from('profiles').upsert(profilePayload)
       if (profErr) throw profErr
 
       const { error: zipErr } = await supabase.rpc('set_my_home_zip', {
         p_zip: form.home_zip
       })
-
       if (zipErr) throw zipErr
 
       const { error: cpErr } = await supabase.from('contact_private').upsert({
@@ -421,7 +614,6 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
         city: form.city.trim() || null,
         email: form.email.trim() ? form.email.trim().toLowerCase() : null
       })
-
       if (cpErr) throw cpErr
 
       localStorage.setItem('surplox_lang', form.preferred_language)
@@ -440,9 +632,7 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
     }
   }
 
-  const completionPercent = Math.round(
-    ((6 - completionItems.length) / 6) * 100
-  )
+  const completionPercent = Math.round(((6 - completionItems.length) / 6) * 100)
 
   if (loading) return <div className="card">{copy.loading}</div>
 
@@ -562,20 +752,63 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
             </div>
 
             <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.trade}</div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.categoryGroup}</div>
               <select
                 className="input"
-                value={form.trade_id}
-                onChange={(e) => setField('trade_id', e.target.value)}
+                value={form.category_group}
+                onChange={(e) => setField('category_group', e.target.value)}
               >
-                <option value="">{copy.selectTrade}</option>
-                {trades.map((trade) => (
-                  <option key={trade.id} value={trade.id}>
-                    {trade.name}
+                {CATEGORY_GROUP_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {labelForOption(option, form.preferred_language)}
                   </option>
                 ))}
               </select>
             </div>
+
+            {form.category_group === 'trade' ? (
+              <div>
+                <div className="muted" style={{ marginBottom: 6 }}>{copy.trade}</div>
+                <select
+                  className="input"
+                  value={form.trade_id}
+                  onChange={(e) => setField('trade_id', e.target.value)}
+                >
+                  <option value="">{copy.selectTrade}</option>
+                  {trades.map((trade) => (
+                    <option key={trade.id} value={trade.id}>
+                      {trade.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>{copy.jobsiteSupportType}</div>
+                  <select
+                    className="input"
+                    value={form.jobsite_support_type}
+                    onChange={(e) => setField('jobsite_support_type', e.target.value)}
+                  >
+                    {JOBSITE_SUPPORT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {labelForOption(option, form.preferred_language)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="card-soft" style={{ background: '#fffaf0' }}>
+                  <div className="card-section-title" style={{ fontSize: 15 }}>
+                    {copy.serviceProfileTitle}
+                  </div>
+                  <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+                    {copy.servicesEquipmentBody}
+                  </p>
+                </div>
+              </>
+            )}
 
             <div>
               <div className="muted" style={{ marginBottom: 6 }}>{copy.zip}</div>
@@ -672,9 +905,89 @@ export default function MyAccount({ lang: langProp = 'en', setLang: setGlobalLan
                 <option value="es">Español</option>
               </select>
             </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.availabilityStatus}</div>
+              <select
+                className="input"
+                value={form.availability_status}
+                onChange={(e) => setField('availability_status', e.target.value)}
+              >
+                {AVAILABILITY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {labelForOption(option, form.preferred_language)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.contractorVerification}</div>
+              <div className="card-soft" style={{ minHeight: 'auto', padding: 14 }}>
+                <span
+                  className="badge"
+                  style={
+                    form.contractor_verified
+                      ? { background: '#111111', color: '#ffffff' }
+                      : { background: '#ecebe3', color: '#111111' }
+                  }
+                >
+                  {form.contractor_verified ? copy.verifiedContractor : copy.notVerifiedContractor}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+      {form.category_group === 'jobsite_support' ? (
+        <div className="card rounded-xl" style={{ padding: 24 }}>
+          <div className="card-section-title">{copy.serviceProfileTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {copy.jobsiteSupportIntro}
+          </p>
+
+          <div className="grid two" style={{ marginTop: 16 }}>
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>{copy.serviceTags}</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {serviceOptions.map((option) => {
+                  const active = form.service_tags.includes(option.value)
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={active ? 'btn primary small' : 'btn small'}
+                      onClick={() => toggleMultiTag('service_tags', option.value)}
+                    >
+                      {labelForOption(option, form.preferred_language)}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>{copy.equipmentTags}</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {equipmentOptions.map((option) => {
+                  const active = form.equipment_tags.includes(option.value)
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={active ? 'btn primary small' : 'btn small'}
+                      onClick={() => toggleMultiTag('equipment_tags', option.value)}
+                    >
+                      {labelForOption(option, form.preferred_language)}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="card rounded-xl" style={{ padding: 24 }}>
         <div className="muted" style={{ marginBottom: 6 }}>{copy.bio}</div>
