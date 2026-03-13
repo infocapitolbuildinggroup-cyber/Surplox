@@ -187,10 +187,10 @@ export default function Channels({ lang: langProp = 'en' }) {
             to="/new?type=looking_for_work"
             style={{
               padding: 22,
-              background: 'linear-gradient(180deg, #fff5eb 0%, #ffffff 100%)'
+              background: 'linear-gradient(180deg, #f8f7ef 0%, #ffffff 100%)'
             }}
           >
-            <div className="badge" style={{ background: '#ffd7b0', color: '#111111' }}>
+            <div className="badge" style={{ background: '#fff0b4', color: '#111111' }}>
               {copy.workBadge}
             </div>
 
