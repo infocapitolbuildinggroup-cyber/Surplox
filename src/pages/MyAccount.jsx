@@ -821,7 +821,7 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
           business_hours: form.role === 'supplier' ? normalizeBusinessHours(form.business_hours) : null,
           business_name: form.role === 'supplier' ? String(form.business_name || '').trim() : null,
           business_address: form.role === 'supplier' ? String(form.business_address || '').trim() : null,
-          business_zip: form.role === 'supplier' ? String(form.business_zip || form.home_zip || '').trim() : null,
+          business_zip: form.role === 'supplier' ? String(form.business_zip || '').trim() : null,
           materials_categories: form.role === 'supplier' ? (Array.isArray(form.materials_categories) ? form.materials_categories : []) : [],
           storefront: form.role === 'supplier' ? Boolean(form.storefront) : false,
           vehicle_type: form.role === 'driver' ? String(form.vehicle_type || '').trim() : null,
