@@ -89,7 +89,7 @@ const COPY = {
     title: 'My Surplox Account',
     intro: 'Review and update your account information below.',
     displayName: 'Display Name',
-    primaryRole: 'Primary Role',
+    primaryRole: 'Account Type',
     trade: 'Trade',
     firstName: 'First Name',
     lastName: 'Last Name',
@@ -153,7 +153,14 @@ const COPY = {
     cargoVanType: 'Cargo Van / Local Delivery',
     fleetRepairType: 'Equipment / Fleet Repair',
     selectSupportType: 'Select support type',
-    supplierTradeOptional: 'Supplier accounts can leave trade blank and use bio, city, service focus, and contact details to explain what they supply.',
+    supplierTradeOptional: 'Supplier accounts use business details instead of trade, crew, or travel fields.',
+    supplierBusinessBio: 'Business Bio',
+    businessName: 'Business Name',
+    businessLocation: 'Business Location',
+    materialsCategories: 'Materials Categories',
+    customCategory: 'Add Custom Category',
+    customCategoryPlaceholder: 'Type a material category and press Add',
+    addCategory: 'Add',
     supportCrewOptional: 'Crew size is optional for supplier, driver, and mechanic profiles.'
   },
   es: {
@@ -172,7 +179,7 @@ const COPY = {
     title: 'Mi cuenta de Surplox',
     intro: 'Revisa y actualiza la información de tu cuenta abajo.',
     displayName: 'Nombre visible',
-    primaryRole: 'Rol principal',
+    primaryRole: 'Tipo de cuenta',
     trade: 'Oficio',
     firstName: 'Nombre',
     lastName: 'Apellido',
@@ -236,7 +243,14 @@ const COPY = {
     cargoVanType: 'Cargo Van / Entrega local',
     fleetRepairType: 'Reparación de equipo / flota',
     selectSupportType: 'Selecciona el tipo de soporte',
-    supplierTradeOptional: 'Las cuentas de proveedor pueden dejar el oficio en blanco y usar biografía, ciudad, enfoque de servicio y contacto para explicar lo que suministran.',
+    supplierTradeOptional: 'Las cuentas de proveedor usan detalles comerciales en lugar de oficio, cuadrilla o radio de viaje.',
+    supplierBusinessBio: 'Biografía del negocio',
+    businessName: 'Nombre comercial',
+    businessLocation: 'Ubicación del negocio',
+    materialsCategories: 'Categorías de materiales',
+    customCategory: 'Agregar categoría personalizada',
+    customCategoryPlaceholder: 'Escribe una categoría de materiales y presiona Agregar',
+    addCategory: 'Agregar',
     supportCrewOptional: 'El tamaño de cuadrilla es opcional para perfiles de proveedor, conductor y mecánico.'
   }
 }
@@ -365,6 +379,7 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
   const [inviteLink, setInviteLink] = useState('')
   const [copyStatus, setCopyStatus] = useState('')
   const [completionItems, setCompletionItems] = useState([])
+  const [customMaterialCategory, setCustomMaterialCategory] = useState('')
 
   const [form, setForm] = useState({
     display_name: '',
@@ -434,6 +449,38 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
         materials_categories: exists ? current.filter((item) => item !== value) : [...current, value]
       }
     })
+  }
+
+  function addCustomMaterialsCategory() {
+    const value = String(customMaterialCategory || '').trim()
+    if (!value) return
+
+    setForm((prev) => {
+      const current = Array.isArray(prev.materials_categories) ? prev.materials_categories : []
+      if (current.includes(value)) return prev
+      return {
+        ...prev,
+        materials_categories: [...current, value]
+      }
+    })
+
+    setCustomMaterialCategory('')
+  }
+
+  function prettyMaterialLabel(value) {
+    const map = {
+      equipment_rental: 'Equipment Rental',
+      safety_equipment: 'Safety Equipment',
+      lumber: 'Lumber',
+      concrete: 'Concrete',
+      steel: 'Steel',
+      electrical: 'Electrical',
+      plumbing: 'Plumbing',
+      drywall: 'Drywall',
+      fasteners: 'Fasteners',
+      tools: 'Tools'
+    }
+    return map[value] || value
   }
 
   function buildInviteLink(userId) {
@@ -822,21 +869,6 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
               </select>
             </div>
 
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.categoryGroup}</div>
-              <select
-                className="input"
-                value={form.category_group}
-                onChange={(e) => setField('category_group', e.target.value)}
-              >
-                {CATEGORY_GROUP_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {labelForOption(option, form.preferred_language)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {form.category_group === 'trade' ? (
               <div>
                 <div className="muted" style={{ marginBottom: 6 }}>{copy.trade}</div>
@@ -886,6 +918,7 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
               </>
             )}
 
+            {form.role !== 'supplier' ? (
             <div>
               <div className="muted" style={{ marginBottom: 6 }}>{copy.zip}</div>
               <input
@@ -894,7 +927,9 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                 onChange={(e) => setField('home_zip', e.target.value)}
               />
             </div>
+            ) : null}
 
+            {form.role !== 'supplier' ? (
             <div>
               <div className="muted" style={{ marginBottom: 6 }}>{copy.radius}</div>
               <input
@@ -904,6 +939,7 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                 onChange={(e) => setField('travel_radius_miles', e.target.value)}
               />
             </div>
+            ) : null}
 
             <div>
               <div className="muted" style={{ marginBottom: 6 }}>{copy.crewSize}</div>
@@ -931,21 +967,12 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                   />
                 </div>
 
-                <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>Business Address</div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <div className="muted" style={{ marginBottom: 6 }}>{copy.businessLocation}</div>
                   <input
                     className="input"
                     value={form.business_address}
                     onChange={(e) => setField('business_address', e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>Business ZIP</div>
-                  <input
-                    className="input"
-                    value={form.business_zip}
-                    onChange={(e) => setField('business_zip', e.target.value)}
                   />
                 </div>
 
@@ -962,7 +989,7 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                 </div>
 
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <div className="muted" style={{ marginBottom: 8 }}>Materials Categories</div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.materialsCategories}</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {['lumber','concrete','steel','electrical','plumbing','drywall','fasteners','equipment_rental','tools','safety_equipment'].map((option) => {
                       const active = form.materials_categories.includes(option)
@@ -973,10 +1000,23 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                           className={`btn small ${active ? 'primary' : ''}`}
                           onClick={() => toggleMaterialsCategory(option)}
                         >
-                          {option}
+                          {prettyMaterialLabel(option)}
                         </button>
                       )
                     })}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 10, marginTop: 12, alignItems: 'center' }}>
+                    <input
+                      className="input"
+                      style={{ flex: 1 }}
+                      value={customMaterialCategory}
+                      onChange={(e) => setCustomMaterialCategory(e.target.value)}
+                      placeholder={copy.customCategoryPlaceholder}
+                    />
+                    <button type="button" className="btn" onClick={addCustomMaterialsCategory}>
+                      {copy.addCategory}
+                    </button>
                   </div>
                 </div>
               </>
