@@ -407,20 +407,24 @@ function getProfileCompletionPercent(profile) {
   const checks = [
     Boolean(String(profile.display_name || '').trim()),
     Boolean(String(profile.role || '').trim()),
-    Boolean(String(profile.home_zip || '').trim()),
+    profile.role === 'supplier'
+      ? Boolean(String(profile.business_address || '').trim() || String(profile.business_zip || '').trim())
+      : Boolean(String(profile.home_zip || '').trim()),
     Boolean(String(profile.first_name || '').trim()),
     Boolean(String(profile.last_name || '').trim()),
     Boolean(String(profile.phone || '').trim()),
     Boolean(String(profile.city || '').trim()),
     Boolean(String(profile.bio || '').trim()),
     crewSizeOptional ? true : Boolean(Number(profile.crew_size || 0) > 1),
-    Boolean(String(profile.availability_status || '').trim()),
-    profile.category_group === 'trade'
-      ? tradeOptional || Boolean(String(profile.trade_id || '').trim())
-      : Array.isArray(profile.service_tags) &&
-        profile.service_tags.length > 0 &&
-        Array.isArray(profile.equipment_tags) &&
-        profile.equipment_tags.length > 0
+    profile.role === 'supplier' ? true : Boolean(String(profile.availability_status || '').trim()),
+    profile.role === 'supplier'
+      ? Boolean(Array.isArray(profile.materials_categories) ? profile.materials_categories.length > 0 : false)
+      : profile.category_group === 'trade'
+        ? tradeOptional || Boolean(String(profile.trade_id || '').trim())
+        : Array.isArray(profile.service_tags) &&
+          profile.service_tags.length > 0 &&
+          Array.isArray(profile.equipment_tags) &&
+          profile.equipment_tags.length > 0
   ]
 
   const completeCount = checks.filter(Boolean).length
@@ -476,7 +480,6 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
   const [inviteLink, setInviteLink] = useState('')
   const [copyStatus, setCopyStatus] = useState('')
   const [completionItems, setCompletionItems] = useState([])
-  const [customMaterialCategory, setCustomMaterialCategory] = useState('')
   const [customMaterialCategory, setCustomMaterialCategory] = useState('')
 
   const [form, setForm] = useState({
