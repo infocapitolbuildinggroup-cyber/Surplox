@@ -31,46 +31,15 @@ function usePreferredLanguage() {
 function LanguageSlider({ lang, setLang }) {
   return (
     <div
-      style={{
-        position: 'relative',
-        display: 'inline-grid',
-        gridTemplateColumns: '1fr 1fr',
-        alignItems: 'center',
-        width: 148,
-        padding: 4,
-        borderRadius: 999,
-        background: '#ecebe6',
-        border: '1px solid rgba(17,17,17,0.05)'
-      }}
+      className="lang-toggle"
+      aria-label={lang === 'es' ? 'Selector de idioma' : 'Language selector'}
     >
-      <div
-        style={{
-          position: 'absolute',
-          top: 4,
-          left: lang === 'en' ? 4 : 'calc(50% + 0px)',
-          width: 'calc(50% - 4px)',
-          height: 'calc(100% - 8px)',
-          borderRadius: 999,
-          background: 'var(--accent)',
-          transition: 'left 0.22s ease'
-        }}
-      />
+      <div className={`lang-toggle-thumb ${lang === 'es' ? 'is-es' : 'is-en'}`} />
 
       <button
         type="button"
         onClick={() => setLang('en')}
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          border: 'none',
-          background: 'transparent',
-          padding: '10px 14px',
-          borderRadius: 999,
-          fontWeight: 800,
-          fontSize: 14,
-          color: '#111111',
-          cursor: 'pointer'
-        }}
+        className={`lang-toggle-btn ${lang === 'en' ? 'is-active' : ''}`}
       >
         EN
       </button>
@@ -78,18 +47,7 @@ function LanguageSlider({ lang, setLang }) {
       <button
         type="button"
         onClick={() => setLang('es')}
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          border: 'none',
-          background: 'transparent',
-          padding: '10px 14px',
-          borderRadius: 999,
-          fontWeight: 800,
-          fontSize: 14,
-          color: '#111111',
-          cursor: 'pointer'
-        }}
+        className={`lang-toggle-btn ${lang === 'es' ? 'is-active' : ''}`}
       >
         ES
       </button>
@@ -126,11 +84,16 @@ function hasAdminAccess(user) {
   return getCandidateEmails(user).some((email) => ADMIN_EMAILS.has(email))
 }
 
+function isSupportSearchActive(search = '', values = []) {
+  return values.some((value) => search.includes(`support=${value}`))
+}
+
 function AppShell({ lang, setLang }) {
   const location = useLocation()
   const [session, setSession] = useState(null)
   const [loadingSession, setLoadingSession] = useState(true)
   const [logoError, setLogoError] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -156,11 +119,35 @@ function AppShell({ lang, setLang }) {
     }
   }, [])
 
+  useEffect(() => {
+    setMobileMenuOpen(false)
+  }, [location.pathname, location.search])
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+
+    let lastY = window.scrollY
+
+    function handleScroll() {
+      const currentY = window.scrollY
+      if (Math.abs(currentY - lastY) > 4) {
+        setMobileMenuOpen(false)
+      }
+      lastY = currentY
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [mobileMenuOpen])
+
   const navItems = useMemo(() => {
     if (!session) return []
 
     return [
-      { to: '/feed', label: 'Feed' },
+      { to: '/feed', label: lang === 'es' ? 'Feed' : 'Feed' },
       { to: '/channels', label: lang === 'es' ? 'Canales' : 'Channels' },
       { to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
       { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
@@ -170,11 +157,10 @@ function AppShell({ lang, setLang }) {
 
   const isAdmin = useMemo(() => hasAdminAccess(session?.user), [session?.user])
 
-  const homeCtaLinks = useMemo(() => {
+  const quickLinks = useMemo(() => {
     return {
       labor: '/feed',
       delivery: '/feed?category=jobsite_support&support=material_delivery',
-      cargoVan: '/feed?category=jobsite_support&support=cargo_van_delivery',
       repair: '/feed?category=jobsite_support&support=equipment_fleet_repair'
     }
   }, [])
@@ -184,7 +170,16 @@ function AppShell({ lang, setLang }) {
     return location.pathname.startsWith(to)
   }
 
+  const isDeliveryActive =
+    location.pathname.startsWith('/feed') &&
+    isSupportSearchActive(location.search, ['material_delivery', 'cargo_van_delivery'])
+
+  const isRepairActive =
+    location.pathname.startsWith('/feed') &&
+    isSupportSearchActive(location.search, ['equipment_fleet_repair'])
+
   async function handleSignOut() {
+    setMobileMenuOpen(false)
     await supabase.auth.signOut()
   }
 
@@ -212,179 +207,204 @@ function AppShell({ lang, setLang }) {
           borderBottom: '1px solid rgba(17,17,17,0.06)'
         }}
       >
-        <div
-          className="container"
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            gap: 16,
-            paddingTop: 10,
-            paddingBottom: 10
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
-            <Link
-              to="/"
-              aria-label={lang === 'es' ? 'Ir al inicio de Surplox' : 'Go to Surplox home'}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'flex-start',
-                justifyContent: 'flex-start',
-                textDecoration: 'none',
-                color: 'var(--text)',
-                marginTop: -2
-              }}
-            >
-              {!logoError ? (
-                <img
-                  src="/logo.png"
-                  alt="Surplox"
-                  style={{
-                    width: 58,
-                    height: 58,
-                    objectFit: 'contain',
-                    display: 'block'
-                  }}
-                  onError={() => setLogoError(true)}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 58,
-                    height: 58,
-                    borderRadius: 16,
-                    background: '#111111',
-                    color: '#ffffff',
-                    display: 'grid',
-                    placeItems: 'center',
-                    fontWeight: 900,
-                    fontSize: 20
-                  }}
-                >
-                  S
+        <div className="container">
+          <div className="nav-shell">
+            <div className="nav-shell-left">
+              <Link
+                to="/"
+                aria-label={lang === 'es' ? 'Ir al inicio de Surplox' : 'Go to Surplox home'}
+                className="nav-logo-link"
+              >
+                {!logoError ? (
+                  <img
+                    src="/logo.png"
+                    alt="Surplox"
+                    className="nav-logo-image"
+                    onError={() => setLogoError(true)}
+                  />
+                ) : (
+                  <div className="nav-logo-fallback">S</div>
+                )}
+              </Link>
+
+              {session ? (
+                <div className="nav-session-shortcuts">
+                  <Link className="badge" to={quickLinks.labor}>
+                    {lang === 'es' ? 'Labor' : 'Labor'}
+                  </Link>
+                  <Link className="badge" to={quickLinks.delivery}>
+                    {lang === 'es' ? 'Entrega' : 'Delivery'}
+                  </Link>
+                  <Link className="badge" to={quickLinks.repair}>
+                    {lang === 'es' ? 'Reparación' : 'Repair'}
+                  </Link>
                 </div>
-              )}
-            </Link>
+              ) : null}
+            </div>
 
-            {session ? (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <Link className="badge" to={homeCtaLinks.labor}>
-                  {lang === 'es' ? 'Labor' : 'Labor'}
-                </Link>
-                <Link className="badge" to={homeCtaLinks.delivery}>
-                  {lang === 'es' ? 'Entrega' : 'Delivery'}
-                </Link>
-                <Link className="badge" to={homeCtaLinks.cargoVan}>
-                  {lang === 'es' ? 'Cargo Van / Entrega local' : 'Cargo Van / Local Delivery'}
-                </Link>
-                <Link className="badge" to={homeCtaLinks.repair}>
-                  {lang === 'es' ? 'Reparación' : 'Repair'}
-                </Link>
-              </div>
-            ) : null}
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              flexWrap: 'wrap',
-              justifyContent: 'flex-end'
-            }}
-          >
-            <LanguageSlider lang={lang} setLang={setLang} />
-
-            {session ? (
-              <button className="btn" onClick={handleSignOut}>
-                {lang === 'es' ? 'Salir' : 'Sign Out'}
-              </button>
-            ) : (
-              <>
-                <Link className="btn" to="/auth?mode=signin">
-                  {lang === 'es' ? 'Entrar' : 'Sign In'}
-                </Link>
-                <Link className="btn primary" to="/auth?mode=signup">
-                  {lang === 'es' ? 'Únete' : 'Join'}
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-
-        {showNav ? (
-          <div className="container" style={{ paddingBottom: 12 }}>
-            <nav
-              style={{
-                display: 'flex',
-                gap: 10,
-                flexWrap: 'wrap'
-              }}
-            >
-              {navItems.map((item) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={isActive(item.to) ? 'btn primary small' : 'btn small'}
-                  style={{ textDecoration: 'none' }}
-                >
-                  {item.label}
-                </Link>
-              ))}
+            <div className="nav-header-actions">
+              <LanguageSlider lang={lang} setLang={setLang} />
 
               {session ? (
                 <>
+                  <div className="nav-desktop-auth">
+                    <button className="btn" onClick={handleSignOut}>
+                      {lang === 'es' ? 'Salir' : 'Sign Out'}
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn nav-mobile-toggle"
+                    onClick={() => setMobileMenuOpen((prev) => !prev)}
+                    aria-expanded={mobileMenuOpen}
+                    aria-label={lang === 'es' ? 'Abrir menú' : 'Open menu'}
+                  >
+                    {lang === 'es' ? 'Menú' : 'Menu'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="nav-desktop-auth">
+                    <Link className="btn" to="/auth?mode=signin">
+                      {lang === 'es' ? 'Entrar' : 'Sign In'}
+                    </Link>
+                    <Link className="btn primary" to="/auth?mode=signup">
+                      {lang === 'es' ? 'Únete' : 'Join'}
+                    </Link>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn nav-mobile-toggle"
+                    onClick={() => setMobileMenuOpen((prev) => !prev)}
+                    aria-expanded={mobileMenuOpen}
+                    aria-label={lang === 'es' ? 'Abrir menú' : 'Open menu'}
+                  >
+                    {lang === 'es' ? 'Menú' : 'Menu'}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {showNav ? (
+            <div className="nav-desktop-nav" style={{ paddingBottom: 12 }}>
+              <nav
+                style={{
+                  display: 'flex',
+                  gap: 10,
+                  flexWrap: 'wrap'
+                }}
+              >
+                {navItems.map((item) => (
                   <Link
-                    to="/feed?category=jobsite_support&support=material_delivery"
-                    className={
-                      location.search.includes('support=material_delivery')
-                        ? 'btn primary small'
-                        : 'btn small'
-                    }
+                    key={item.to}
+                    to={item.to}
+                    className={isActive(item.to) ? 'btn primary small' : 'btn small'}
                     style={{ textDecoration: 'none' }}
                   >
-                    {lang === 'es' ? 'Hot Shot / Entrega' : 'Hot Shot / Delivery'}
+                    {item.label}
                   </Link>
+                ))}
 
-                  <Link
-                    to="/feed?category=jobsite_support&support=cargo_van_delivery"
-                    className={
-                      location.search.includes('support=cargo_van_delivery')
-                        ? 'btn primary small'
-                        : 'btn small'
-                    }
-                    style={{ textDecoration: 'none' }}
-                  >
-                    {lang === 'es' ? 'Cargo Van / Entrega local' : 'Cargo Van / Local Delivery'}
-                  </Link>
-
-                  <Link
-                    to="/feed?category=jobsite_support&support=equipment_fleet_repair"
-                    className={
-                      location.search.includes('support=equipment_fleet_repair')
-                        ? 'btn primary small'
-                        : 'btn small'
-                    }
-                    style={{ textDecoration: 'none' }}
-                  >
-                    {lang === 'es' ? 'Equipo / Reparación de flota' : 'Equipment / Fleet Repair'}
-                  </Link>
-
-                  {isAdmin ? (
+                {session ? (
+                  <>
                     <Link
-                      to="/admin"
-                      className={isActive('/admin') ? 'btn primary small' : 'btn small'}
+                      to={quickLinks.delivery}
+                      className={isDeliveryActive ? 'btn primary small' : 'btn small'}
                       style={{ textDecoration: 'none' }}
                     >
-                      Admin
+                      {lang === 'es' ? 'Entrega' : 'Delivery'}
                     </Link>
-                  ) : null}
-                </>
-              ) : null}
-            </nav>
-          </div>
-        ) : null}
+
+                    <Link
+                      to={quickLinks.repair}
+                      className={isRepairActive ? 'btn primary small' : 'btn small'}
+                      style={{ textDecoration: 'none' }}
+                    >
+                      {lang === 'es' ? 'Equipo / Reparación' : 'Equipment / Repair'}
+                    </Link>
+
+                    {isAdmin ? (
+                      <Link
+                        to="/admin"
+                        className={isActive('/admin') ? 'btn primary small' : 'btn small'}
+                        style={{ textDecoration: 'none' }}
+                      >
+                        Admin
+                      </Link>
+                    ) : null}
+                  </>
+                ) : null}
+              </nav>
+            </div>
+          ) : null}
+
+          {mobileMenuOpen ? (
+            <div className="nav-mobile-menu">
+              <div className="card rounded-xl">
+                {session ? (
+                  <>
+                    <div className="nav-mobile-shortcuts">
+                      <Link
+                        to={quickLinks.labor}
+                        className={isActive('/feed') && !isDeliveryActive && !isRepairActive ? 'btn primary small' : 'btn small'}
+                      >
+                        {lang === 'es' ? 'Labor' : 'Labor'}
+                      </Link>
+
+                      <Link
+                        to={quickLinks.delivery}
+                        className={isDeliveryActive ? 'btn primary small' : 'btn small'}
+                      >
+                        {lang === 'es' ? 'Entrega' : 'Delivery'}
+                      </Link>
+
+                      <Link
+                        to={quickLinks.repair}
+                        className={isRepairActive ? 'btn primary small' : 'btn small'}
+                      >
+                        {lang === 'es' ? 'Reparación' : 'Repair'}
+                      </Link>
+                    </div>
+
+                    <div className="nav-mobile-menu-list">
+                      {navItems.map((item) => (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          className={isActive(item.to) ? 'btn primary' : 'btn'}
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+
+                      {isAdmin ? (
+                        <Link to="/admin" className={isActive('/admin') ? 'btn primary' : 'btn'}>
+                          Admin
+                        </Link>
+                      ) : null}
+
+                      <button type="button" className="btn nav-mobile-signout" onClick={handleSignOut}>
+                        {lang === 'es' ? 'Salir' : 'Sign Out'}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="nav-mobile-menu-list">
+                    <Link className="btn" to="/auth?mode=signin">
+                      {lang === 'es' ? 'Entrar' : 'Sign In'}
+                    </Link>
+                    <Link className="btn primary" to="/auth?mode=signup">
+                      {lang === 'es' ? 'Únete' : 'Join'}
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </div>
       </header>
 
       <main>
