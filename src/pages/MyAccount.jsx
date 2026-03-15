@@ -781,6 +781,7 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
               </select>
             </div>
 
+            {form.role !== 'supplier' ? (
             <div>
               <div className="muted" style={{ marginBottom: 6 }}>{copy.categoryGroup}</div>
               <select
@@ -795,6 +796,7 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                 ))}
               </select>
             </div>
+            ) : null}
 
             {form.category_group === 'trade' && form.role !== 'supplier' ? (
               <div>
