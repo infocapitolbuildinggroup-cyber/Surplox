@@ -385,7 +385,17 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
     service_tags: [],
     equipment_tags: [],
     availability_status: 'available_now',
-    contractor_verified: false
+    contractor_verified: false,
+    business_name: '',
+    business_address: '',
+    business_zip: '',
+    materials_categories: [],
+    storefront: false,
+    vehicle_type: '',
+    trailer_type: '',
+    trailer_length: '',
+    payload_capacity: '',
+    delivery_radius: ''
   })
 
   const copy = COPY[form.preferred_language] || COPY.en
@@ -411,6 +421,17 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
       return {
         ...prev,
         [key]: exists ? current.filter((item) => item !== value) : [...current, value]
+      }
+    })
+  }
+
+  function toggleMaterialsCategory(value) {
+    setForm((prev) => {
+      const current = Array.isArray(prev.materials_categories) ? prev.materials_categories : []
+      const exists = current.includes(value)
+      return {
+        ...prev,
+        materials_categories: exists ? current.filter((item) => item !== value) : [...current, value]
       }
     })
   }
@@ -473,7 +494,17 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
           service_tags: Array.isArray(profileData?.service_tags) ? profileData.service_tags : [],
           equipment_tags: Array.isArray(profileData?.equipment_tags) ? profileData.equipment_tags : [],
           availability_status: profileData?.availability_status || 'available_now',
-          contractor_verified: Boolean(profileData?.contractor_verified)
+          contractor_verified: Boolean(profileData?.contractor_verified),
+          business_name: profileData?.business_name || '',
+          business_address: profileData?.business_address || '',
+          business_zip: profileData?.business_zip || '',
+          materials_categories: Array.isArray(profileData?.materials_categories) ? profileData.materials_categories : [],
+          storefront: Boolean(profileData?.storefront),
+          vehicle_type: profileData?.vehicle_type || '',
+          trailer_type: profileData?.trailer_type || '',
+          trailer_length: profileData?.trailer_length ?? '',
+          payload_capacity: profileData?.payload_capacity ?? '',
+          delivery_radius: profileData?.delivery_radius ?? ''
         }
     
         setForm(mergedForm)
@@ -626,7 +657,17 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
           availability_status: form.availability_status,
           contractor_verified: Boolean(form.contractor_verified),
           service_tags: form.category_group === 'jobsite_support' ? form.service_tags : [],
-          equipment_tags: form.category_group === 'jobsite_support' ? form.equipment_tags : []
+          equipment_tags: form.category_group === 'jobsite_support' ? form.equipment_tags : [],
+          business_name: form.role === 'supplier' ? String(form.business_name || '').trim() : null,
+          business_address: form.role === 'supplier' ? String(form.business_address || '').trim() : null,
+          business_zip: form.role === 'supplier' ? String(form.business_zip || form.home_zip || '').trim() : null,
+          materials_categories: form.role === 'supplier' ? (Array.isArray(form.materials_categories) ? form.materials_categories : []) : [],
+          storefront: form.role === 'supplier' ? Boolean(form.storefront) : false,
+          vehicle_type: form.role === 'driver' ? String(form.vehicle_type || '').trim() : null,
+          trailer_type: form.role === 'driver' ? String(form.trailer_type || '').trim() : null,
+          trailer_length: form.role === 'driver' && String(form.trailer_length || '').trim() ? Number(form.trailer_length) : null,
+          payload_capacity: form.role === 'driver' && String(form.payload_capacity || '').trim() ? Number(form.payload_capacity) : null,
+          delivery_radius: form.role === 'driver' && String(form.delivery_radius || '').trim() ? Number(form.delivery_radius) : null
         }
     
         const privatePayload = {
@@ -878,6 +919,134 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                 </div>
               ) : null}
             </div>
+
+            {form.role === 'supplier' ? (
+              <>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>Business Name</div>
+                  <input
+                    className="input"
+                    value={form.business_name}
+                    onChange={(e) => setField('business_name', e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>Business Address</div>
+                  <input
+                    className="input"
+                    value={form.business_address}
+                    onChange={(e) => setField('business_address', e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>Business ZIP</div>
+                  <input
+                    className="input"
+                    value={form.business_zip}
+                    onChange={(e) => setField('business_zip', e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>Storefront Location</div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(form.storefront)}
+                      onChange={(e) => setField('storefront', e.target.checked)}
+                    />
+                    <span>{Boolean(form.storefront) ? 'Yes' : 'No'}</span>
+                  </label>
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <div className="muted" style={{ marginBottom: 8 }}>Materials Categories</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {['lumber','concrete','steel','electrical','plumbing','drywall','fasteners','equipment_rental','tools','safety_equipment'].map((option) => {
+                      const active = form.materials_categories.includes(option)
+                      return (
+                        <button
+                          key={option}
+                          type="button"
+                          className={`btn small ${active ? 'primary' : ''}`}
+                          onClick={() => toggleMaterialsCategory(option)}
+                        >
+                          {option}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </>
+            ) : null}
+
+            {form.role === 'driver' ? (
+              <>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>Vehicle Type</div>
+                  <select
+                    className="input"
+                    value={form.vehicle_type}
+                    onChange={(e) => setField('vehicle_type', e.target.value)}
+                  >
+                    <option value="">Select vehicle</option>
+                    <option value="pickup_truck">Pickup Truck</option>
+                    <option value="cargo_van">Cargo Van</option>
+                    <option value="box_truck">Box Truck</option>
+                    <option value="flatbed_truck">Flatbed Truck</option>
+                  </select>
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>Trailer Type</div>
+                  <select
+                    className="input"
+                    value={form.trailer_type}
+                    onChange={(e) => setField('trailer_type', e.target.value)}
+                  >
+                    <option value="">Select trailer</option>
+                    <option value="none">No Trailer</option>
+                    <option value="utility_trailer">Utility Trailer</option>
+                    <option value="flatbed_trailer">Flatbed Trailer</option>
+                    <option value="gooseneck_trailer">Gooseneck Trailer</option>
+                    <option value="equipment_trailer">Equipment Trailer</option>
+                    <option value="enclosed_trailer">Enclosed Trailer</option>
+                  </select>
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>Trailer Length (ft)</div>
+                  <input
+                    className="input"
+                    type="number"
+                    value={form.trailer_length}
+                    onChange={(e) => setField('trailer_length', e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>Payload Capacity (lbs)</div>
+                  <input
+                    className="input"
+                    type="number"
+                    value={form.payload_capacity}
+                    onChange={(e) => setField('payload_capacity', e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>Delivery Radius (miles)</div>
+                  <input
+                    className="input"
+                    type="number"
+                    value={form.delivery_radius}
+                    onChange={(e) => setField('delivery_radius', e.target.value)}
+                  />
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
         <div className="card rounded-xl" style={{ padding: 24 }}>
