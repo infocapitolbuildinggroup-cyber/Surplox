@@ -72,6 +72,81 @@ const FLEET_REPAIR_EQUIPMENT_TAGS = [
   }
 ]
 
+
+const BUSINESS_HOUR_DAYS = [
+  { key: 'monday', copyKey: 'monday' },
+  { key: 'tuesday', copyKey: 'tuesday' },
+  { key: 'wednesday', copyKey: 'wednesday' },
+  { key: 'thursday', copyKey: 'thursday' },
+  { key: 'friday', copyKey: 'friday' },
+  { key: 'saturday', copyKey: 'saturday' },
+  { key: 'sunday', copyKey: 'sunday' }
+]
+
+const BUSINESS_HOUR_OPTIONS = [
+  '12:00 AM','12:30 AM','1:00 AM','1:30 AM','2:00 AM','2:30 AM','3:00 AM','3:30 AM','4:00 AM','4:30 AM',
+  '5:00 AM','5:30 AM','6:00 AM','6:30 AM','7:00 AM','7:30 AM','8:00 AM','8:30 AM','9:00 AM','9:30 AM',
+  '10:00 AM','10:30 AM','11:00 AM','11:30 AM','12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM',
+  '3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM','6:00 PM','6:30 PM','7:00 PM','7:30 PM',
+  '8:00 PM','8:30 PM','9:00 PM','9:30 PM','10:00 PM','10:30 PM','11:00 PM','11:30 PM'
+]
+
+function defaultBusinessHours() {
+  return {
+    monday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
+    tuesday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
+    wednesday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
+    thursday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
+    friday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
+    saturday: { closed: true, open: '8:00 AM', close: '5:00 PM' },
+    sunday: { closed: true, open: '8:00 AM', close: '5:00 PM' }
+  }
+}
+
+function normalizeBusinessHours(value) {
+  const base = defaultBusinessHours()
+  if (!value || typeof value !== 'object') return base
+  const next = { ...base }
+  BUSINESS_HOUR_DAYS.forEach((day) => {
+    const row = value?.[day.key]
+    if (row && typeof row === 'object') {
+      next[day.key] = {
+        closed: Boolean(row.closed),
+        open: BUSINESS_HOUR_OPTIONS.includes(row.open) ? row.open : base[day.key].open,
+        close: BUSINESS_HOUR_OPTIONS.includes(row.close) ? row.close : base[day.key].close
+      }
+    }
+  })
+  return next
+}
+
+function parseTimeLabelToMinutes(label) {
+  const match = String(label || '').match(/^(\d{1,2}):(\d{2})\s(AM|PM)$/)
+  if (!match) return null
+  let hour = Number(match[1])
+  const minute = Number(match[2])
+  const suffix = match[3]
+  if (suffix === 'AM') {
+    if (hour === 12) hour = 0
+  } else if (hour !== 12) {
+    hour += 12
+  }
+  return hour * 60 + minute
+}
+
+function getCurrentBusinessStatus(businessHours) {
+  const normalized = normalizeBusinessHours(businessHours)
+  const dayKeys = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
+  const today = normalized[dayKeys[new Date().getDay()]]
+  if (!today || today.closed) return 'closed'
+  const now = new Date()
+  const currentMinutes = now.getHours() * 60 + now.getMinutes()
+  const openMinutes = parseTimeLabelToMinutes(today.open)
+  const closeMinutes = parseTimeLabelToMinutes(today.close)
+  if (openMinutes === null || closeMinutes === null) return 'closed'
+  return currentMinutes >= openMinutes && currentMinutes < closeMinutes ? 'open' : 'closed'
+}
+
 const COPY = {
   en: {
     loading: 'Loading your account…',
@@ -161,6 +236,17 @@ const COPY = {
     customCategory: 'Add Custom Category',
     customCategoryPlaceholder: 'Type a material category and press Add',
     addCategory: 'Add',
+    businessHours: 'Business Hours',
+    openNow: 'Open Now',
+    closedNow: 'Closed Now',
+    closedAllDay: 'Closed All Day',
+    monday: 'Monday',
+    tuesday: 'Tuesday',
+    wednesday: 'Wednesday',
+    thursday: 'Thursday',
+    friday: 'Friday',
+    saturday: 'Saturday',
+    sunday: 'Sunday',
     supportCrewOptional: 'Crew size is optional for supplier, driver, and mechanic profiles.'
   },
   es: {
@@ -251,6 +337,17 @@ const COPY = {
     customCategory: 'Agregar categoría personalizada',
     customCategoryPlaceholder: 'Escribe una categoría de materiales y presiona Agregar',
     addCategory: 'Agregar',
+    businessHours: 'Horario Comercial',
+    openNow: 'Abierto Ahora',
+    closedNow: 'Cerrado Ahora',
+    closedAllDay: 'Cerrado Todo el Día',
+    monday: 'Lunes',
+    tuesday: 'Martes',
+    wednesday: 'Miércoles',
+    thursday: 'Jueves',
+    friday: 'Viernes',
+    saturday: 'Sábado',
+    sunday: 'Domingo',
     supportCrewOptional: 'El tamaño de cuadrilla es opcional para perfiles de proveedor, conductor y mecánico.'
   }
 }
@@ -380,6 +477,7 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
   const [copyStatus, setCopyStatus] = useState('')
   const [completionItems, setCompletionItems] = useState([])
   const [customMaterialCategory, setCustomMaterialCategory] = useState('')
+  const [customMaterialCategory, setCustomMaterialCategory] = useState('')
 
   const [form, setForm] = useState({
     display_name: '',
@@ -410,7 +508,8 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
     trailer_type: '',
     trailer_length: '',
     payload_capacity: '',
-    delivery_radius: ''
+    delivery_radius: '',
+    business_hours: defaultBusinessHours()
   })
 
   const copy = COPY[form.preferred_language] || COPY.en
@@ -427,6 +526,19 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
 
   function setField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function updateBusinessHours(dayKey, updates) {
+    setForm((prev) => ({
+      ...prev,
+      business_hours: {
+        ...normalizeBusinessHours(prev.business_hours),
+        [dayKey]: {
+          ...normalizeBusinessHours(prev.business_hours)[dayKey],
+          ...updates
+        }
+      }
+    }))
   }
 
   function toggleMultiTag(key, value) {
@@ -551,7 +663,8 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
           trailer_type: profileData?.trailer_type || '',
           trailer_length: profileData?.trailer_length ?? '',
           payload_capacity: profileData?.payload_capacity ?? '',
-          delivery_radius: profileData?.delivery_radius ?? ''
+          delivery_radius: profileData?.delivery_radius ?? '',
+          business_hours: normalizeBusinessHours(profileData?.business_hours)
         }
     
         setForm(mergedForm)
@@ -705,6 +818,7 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
           contractor_verified: Boolean(form.contractor_verified),
           service_tags: form.category_group === 'jobsite_support' ? form.service_tags : [],
           equipment_tags: form.category_group === 'jobsite_support' ? form.equipment_tags : [],
+          business_hours: form.role === 'supplier' ? normalizeBusinessHours(form.business_hours) : null,
           business_name: form.role === 'supplier' ? String(form.business_name || '').trim() : null,
           business_address: form.role === 'supplier' ? String(form.business_address || '').trim() : null,
           business_zip: form.role === 'supplier' ? String(form.business_zip || form.home_zip || '').trim() : null,
@@ -1017,6 +1131,37 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                     <button type="button" className="btn" onClick={addCustomMaterialsCategory}>
                       {copy.addCategory}
                     </button>
+                  </div>
+                </div>
+
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.businessHours}</div>
+                  <div className="card-soft" style={{ minHeight: 'unset', background: getCurrentBusinessStatus(form.business_hours) === 'open' ? '#dcf4e5' : '#f8f7ef', marginBottom: 12 }}>
+                    <div style={{ fontWeight: 800 }}>
+                      {getCurrentBusinessStatus(form.business_hours) === 'open' ? copy.openNow : copy.closedNow}
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {BUSINESS_HOUR_DAYS.map((day) => {
+                      const row = normalizeBusinessHours(form.business_hours)[day.key]
+                      return (
+                        <div key={day.key} className="card-soft" style={{ minHeight: 'unset', background: '#ffffff', padding: 14 }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.95fr 0.95fr auto', gap: 10, alignItems: 'center' }}>
+                            <div style={{ fontWeight: 800 }}>{copy[day.copyKey]}</div>
+                            <select className="input" value={row.open} disabled={row.closed} onChange={(e) => updateBusinessHours(day.key, { open: e.target.value })}>
+                              {BUSINESS_HOUR_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                            </select>
+                            <select className="input" value={row.close} disabled={row.closed} onChange={(e) => updateBusinessHours(day.key, { close: e.target.value })}>
+                              {BUSINESS_HOUR_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                            </select>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
+                              <input type="checkbox" checked={Boolean(row.closed)} onChange={(e) => updateBusinessHours(day.key, { closed: e.target.checked })} />
+                              <span>{copy.closedAllDay}</span>
+                            </label>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               </>
