@@ -206,7 +206,10 @@ export default function NewPost({ lang: langProp = 'en' }) {
     source_language: langProp || localStorage.getItem('surplox_lang') || 'en',
     service_tags: [],
     equipment_tags: [],
-    is_urgent: false
+    is_urgent: false,
+    poster_role: '',
+    business_name: '',
+    business_zip: ''
   })
 
   useEffect(() => {
@@ -244,8 +247,11 @@ export default function NewPost({ lang: langProp = 'en' }) {
           ...prev,
           source_language: prev.source_language || userLang,
           trade_id: prev.trade_id || (prof?.trade_id ? String(prof.trade_id) : ''),
-          center_zip: prev.center_zip || String(prof?.home_zip || ''),
+          center_zip: prev.center_zip || String(prof?.business_zip || prof?.home_zip || ''),
           category_group: prof?.category_group || prev.category_group || 'trade',
+          poster_role: String(prof?.role || ''),
+          business_name: String(prof?.business_name || ''),
+          business_zip: String(prof?.business_zip || ''),
           service_tags: Array.isArray(prof?.service_tags) ? prof.service_tags : prev.service_tags,
           equipment_tags: Array.isArray(prof?.equipment_tags) ? prof.equipment_tags : prev.equipment_tags
         }))
@@ -293,7 +299,15 @@ export default function NewPost({ lang: langProp = 'en' }) {
               prof.trade_id ||
               String(prof.bio || '').trim() ||
               (Array.isArray(prof?.service_tags) && prof.service_tags.length > 0) ||
-              String(prof.role || '') === 'supplier'
+              (
+                String(prof.role || '') === 'supplier' &&
+                String(prof.business_name || '').trim() &&
+                String(prof.business_zip || prof.home_zip || '').trim() &&
+                (
+                  (Array.isArray(prof.materials_categories) && prof.materials_categories.length > 0) ||
+                  String(prof.bio || '').trim()
+                )
+              )
             )
         )
 
@@ -363,6 +377,15 @@ export default function NewPost({ lang: langProp = 'en' }) {
             ? 'Para publicar "Buscando trabajo", agrega teléfono y experiencia en tu biografía.'
             : 'To publish a Looking for Work post, add phone number and experience in your bio.'
           : ''
+      )
+      return
+    }
+
+    if (form.poster_role === 'supplier') {
+      setProfileGateMessage(
+        lang === 'es'
+          ? 'Las cuentas de proveedor funcionan mejor con publicaciones de discusión o visibilidad de materiales usando nombre comercial, ZIP comercial y materiales ofrecidos.'
+          : 'Supplier accounts work best with discussion or material visibility posts using business name, business ZIP, and offered materials.'
       )
       return
     }
@@ -439,6 +462,10 @@ export default function NewPost({ lang: langProp = 'en' }) {
           'Ejemplo: Cargo van disponible para viajes locales, última milla y recogidas el mismo día en DFW',
         supportRepairTitle:
           'Ejemplo: Reparación de remolque y servicio diésel disponible en obra',
+        supplierTitle:
+          'Ejemplo: Patio de materiales con block, concreto y acero disponible en Fort Worth',
+        supplierBody:
+          'Describe tu ubicación, tipos de materiales, si tienes entrega o pickup y cómo contactarte.',
         crewBody:
           'Describe el oficio, dónde está el trabajo, cuánta gente necesitas, cuándo inicia y los detalles de pago.',
         workBody:
