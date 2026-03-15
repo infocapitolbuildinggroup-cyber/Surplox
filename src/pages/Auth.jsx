@@ -33,6 +33,7 @@ const JOBSITE_SUPPORT_SIGNUP_OPTIONS = [
     trade_id: null,
     service_tags: ['material_delivery', 'hot_shot'],
     equipment_tags: [],
+    default_vehicle_type: 'pickup_truck',
     bio: {
       en: 'Material delivery and hot shot support for active jobsites.',
       es: 'Soporte de entrega de materiales y hot shot para obras activas.'
@@ -47,6 +48,7 @@ const JOBSITE_SUPPORT_SIGNUP_OPTIONS = [
     trade_id: null,
     service_tags: ['material_delivery', 'last_mile_delivery', 'local_runs'],
     equipment_tags: ['cargo_van'],
+    default_vehicle_type: 'cargo_van',
     bio: {
       en: 'Cargo van and local delivery support for material runs, pickups, and jobsite deliveries.',
       es: 'Soporte con cargo van y entrega local para viajes de materiales, recogidas y entregas en obra.'
@@ -61,6 +63,7 @@ const JOBSITE_SUPPORT_SIGNUP_OPTIONS = [
     trade_id: null,
     service_tags: ['diesel_mechanic', 'jobsite_service'],
     equipment_tags: ['mobile_repair_truck'],
+    default_vehicle_type: 'mobile_repair_truck',
     bio: {
       en: 'Equipment and fleet repair support for field service and jobsite uptime.',
       es: 'Soporte de reparación de equipo y flota para servicio en campo y continuidad de obra.'
@@ -132,8 +135,8 @@ const COPY = {
     next: 'Next',
     back: 'Back',
     finish: 'Enter Surplox',
-    nameLabel: 'What’s your name?',
-    namePlaceholder: 'Juan Martinez',
+    nameLabel: 'What should this account be called?',
+    namePlaceholder: 'Juan Martinez or Fort Worth Masonry Supply',
     tradeLabel: 'What trade, service, or supplier lane fits you best?',
     tradePlaceholder: 'Select your trade, service, or supplier lane',
     generalConstruction: 'General Construction',
@@ -157,7 +160,7 @@ const COPY = {
     stageTitle1: 'Your Name',
     stageTitle2: 'Trade/Service/Supplier',
     stageTitle3: 'Your Area and Login',
-    stageBody1: 'Start with your name so people know who is entering the network.',
+    stageBody1: 'Start with the name people should see on this account. Workers can use their own name and supplier accounts can use the business location name.',
     stageBody2:
       'Choose the trade, service, or supplier lane that best matches the work you do most often.',
     stageBody3:
@@ -215,8 +218,8 @@ const COPY = {
     next: 'Siguiente',
     back: 'Atrás',
     finish: 'Entrar a Surplox',
-    nameLabel: '¿Cómo te llamas?',
-    namePlaceholder: 'Juan Martinez',
+    nameLabel: '¿Cómo se debe llamar esta cuenta?',
+    namePlaceholder: 'Juan Martinez or Fort Worth Masonry Supply',
     tradeLabel: '¿Qué oficio, servicio o categoría de proveedor te representa mejor?',
     tradePlaceholder: 'Selecciona tu oficio, servicio o categoría de proveedor',
     generalConstruction: 'Construcción general',
@@ -241,7 +244,7 @@ const COPY = {
     stageTitle2: 'Oficio/Servicio/Proveedor',
     stageTitle3: 'Tu Zona y Acceso',
     stageBody1:
-      'Empieza con tu nombre para que la gente sepa quién está entrando a la red.',
+      'Empieza con el nombre que la gente debe ver en esta cuenta. Los trabajadores pueden usar su propio nombre y las cuentas de proveedor pueden usar el nombre del negocio o ubicación.',
     stageBody2:
       'Elige el oficio, servicio o categoría de proveedor que mejor representa el trabajo que haces más seguido.',
     stageBody3:
@@ -521,6 +524,30 @@ export default function Auth({ lang = 'en', setLang }) {
     setSignInForm((prev) => ({ ...prev, [key]: value }))
   }
 
+  const selectedSignupOption = useMemo(() => {
+    return tradeOptions.find((option) => String(option.id) === String(signUpForm.trade_id)) || null
+  }, [tradeOptions, signUpForm.trade_id])
+
+  const isSupplierSignup = selectedSignupOption?.section === 'supplier'
+
+  function buildNameFields(rawName, isSupplier) {
+    const clean = String(rawName || '').trim()
+    if (isSupplier) {
+      return {
+        displayName: clean,
+        firstName: clean,
+        lastName: ''
+      }
+    }
+
+    const nameParts = clean.split(/\s+/).filter(Boolean)
+    return {
+      displayName: clean,
+      firstName: nameParts[0] || clean,
+      lastName: nameParts.slice(1).join(' ')
+    }
+  }
+
   async function handleSignIn(e) {
     e.preventDefault()
     setMsg('')
@@ -550,7 +577,12 @@ export default function Auth({ lang = 'en', setLang }) {
         categoryGroup: 'trade',
         serviceTags: [],
         equipmentTags: [],
-        bio: copy.generalConstruction
+        bio: '',
+        businessName: '',
+        storefront: false,
+        vehicleType: '',
+        trailerType: '',
+        deliveryRadius: 50
       }
     }
 
@@ -561,7 +593,12 @@ export default function Auth({ lang = 'en', setLang }) {
         categoryGroup: SUPPLIER_SIGNUP_OPTION.category_group,
         serviceTags: SUPPLIER_SIGNUP_OPTION.service_tags,
         equipmentTags: SUPPLIER_SIGNUP_OPTION.equipment_tags,
-        bio: SUPPLIER_SIGNUP_OPTION.bio[lang] || SUPPLIER_SIGNUP_OPTION.bio.en
+        bio: SUPPLIER_SIGNUP_OPTION.bio[lang] || SUPPLIER_SIGNUP_OPTION.bio.en,
+        businessName: '',
+        storefront: true,
+        vehicleType: '',
+        trailerType: '',
+        deliveryRadius: 0
       }
     }
 
@@ -574,7 +611,12 @@ export default function Auth({ lang = 'en', setLang }) {
         categoryGroup: 'trade',
         serviceTags: [],
         equipmentTags: [],
-        bio: ''
+        bio: '',
+        businessName: '',
+        storefront: false,
+        vehicleType: '',
+        trailerType: '',
+        deliveryRadius: 50
       }
     }
 
@@ -585,7 +627,12 @@ export default function Auth({ lang = 'en', setLang }) {
         categoryGroup: exactOption.category_group,
         serviceTags: exactOption.service_tags,
         equipmentTags: exactOption.equipment_tags,
-        bio: exactOption.bio[lang] || exactOption.bio.en
+        bio: exactOption.bio[lang] || exactOption.bio.en,
+        businessName: '',
+        storefront: false,
+        vehicleType: exactOption.default_vehicle_type || '',
+        trailerType: exactOption.value === 'cargo_van_delivery' ? 'no_trailer' : '',
+        deliveryRadius: 50
       }
     }
 
@@ -617,7 +664,12 @@ export default function Auth({ lang = 'en', setLang }) {
       categoryGroup: 'trade',
       serviceTags: [],
       equipmentTags: [],
-      bio: ''
+      bio: '',
+      businessName: '',
+      storefront: false,
+      vehicleType: '',
+      trailerType: '',
+      deliveryRadius: 50
     }
   }
 
@@ -653,27 +705,32 @@ export default function Auth({ lang = 'en', setLang }) {
       if (!user?.id) throw new Error(copy.authError)
 
       const rawName = signUpForm.display_name.trim()
-      const nameParts = rawName.split(/\s+/).filter(Boolean)
-      const firstName = nameParts[0] || rawName
-      const lastName = nameParts.slice(1).join(' ')
 
-      const { tradeId, role, categoryGroup, serviceTags, equipmentTags, bio } =
+      const { tradeId, role, categoryGroup, serviceTags, equipmentTags, bio, businessName, storefront, vehicleType, trailerType, deliveryRadius } =
         await resolveSignupSelection(signUpForm.trade_id)
+
+      const { displayName, firstName, lastName } = buildNameFields(rawName, role === 'supplier')
 
       const { error: profileError } = await supabase.from('profiles').upsert({
         user_id: user.id,
-        display_name: rawName,
+        display_name: displayName,
         first_name: firstName,
         last_name: lastName,
         role,
         trade_id: tradeId,
-        travel_radius_miles: 50,
+        travel_radius_miles: deliveryRadius || 50,
         crew_size: 1,
         bio,
         preferred_language: lang,
         category_group: categoryGroup,
         service_tags: serviceTags,
-        equipment_tags: equipmentTags
+        equipment_tags: equipmentTags,
+        business_name: role === 'supplier' ? displayName : businessName,
+        business_zip: role === 'supplier' ? signUpForm.home_zip : null,
+        storefront: Boolean(storefront && role === 'supplier'),
+        vehicle_type: role === 'driver' || role === 'mechanic' ? vehicleType : null,
+        trailer_type: role === 'driver' ? trailerType : null,
+        delivery_radius: role === 'driver' ? (deliveryRadius || 50) : null
       })
 
       if (profileError) throw profileError
@@ -917,7 +974,11 @@ export default function Auth({ lang = 'en', setLang }) {
               </select>
 
               <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
-                {copy.supportAccountsHint}
+                {isSupplierSignup
+                  ? (lang === 'es'
+                    ? 'Las cuentas de proveedor representan un negocio o ubicación física. Usa el nombre de la tienda o patio en el paso 1.'
+                    : 'Supplier accounts represent a business or storefront location. Use the store or yard name in step 1.')
+                  : copy.supportAccountsHint}
               </div>
 
               {tradesError ? (
