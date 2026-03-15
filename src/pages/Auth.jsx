@@ -97,7 +97,7 @@ const COPY = {
       'Fast signup for workers, supplier locations, delivery operators, and local construction connections. Get into the app first and finish the rest later.',
     previewTitle: 'Quick Setup',
     previewBody:
-      'Surplox gets people in quickly: name or business name, account type, ZIP, then straight into the feed.'
+      'Surplox gets people in quickly: name or business name, account type, ZIP, then straight into the feed.',
     previewBullet1: 'Join in a few taps',
     previewBullet2: 'Find crews and nearby work',
     previewBullet3: 'Finish the rest later',
@@ -148,7 +148,7 @@ const COPY = {
     tradesUnavailable:
       'Trades unavailable right now. Showing Surplox default trades.',
     supportAccountsHint:
-      'Choose the account type that best matches what you are joining Surplox as: worker, supplier location, delivery driver, or jobsite support.'
+      'Choose the account type that best matches what you are joining Surplox as: worker, supplier location, delivery driver, or jobsite support.',
     zipLabel: 'What ZIP do you usually work in?',
     zipPlaceholder: '76102',
     tradeRequired: 'Select your account type.',
@@ -162,7 +162,7 @@ const COPY = {
     stageTitle3: 'Your Area and Login',
     stageBody1: 'Start with the name people should see on this account. Workers can use their own name and supplier accounts can use the business location name.',
     stageBody2:
-      'Choose the account type that best matches how you are entering the network.'
+      'Choose the account type that best matches how you are entering the network.',
     stageBody3:
       'Finish with your ZIP, email, and password so Surplox can place you into the right local feed.',
     alreadyInside: 'Already in Surplox?',
@@ -180,7 +180,7 @@ const COPY = {
       'Registro rápido para trabajadores, ubicaciones proveedoras, operadores de entrega y conexiones locales de construcción. Entra a la app primero y completa lo demás después.',
     previewTitle: 'Configuración rápida',
     previewBody:
-      'Surplox permite entrar rápido: nombre o nombre comercial, tipo de cuenta, ZIP y directo al feed.'
+      'Surplox permite entrar rápido: nombre o nombre comercial, tipo de cuenta, ZIP y directo al feed.',
     previewBullet1: 'Únete en pocos toques',
     previewBullet2: 'Encuentra cuadrillas y trabajo cercano',
     previewBullet3: 'Completa lo demás después',
@@ -231,7 +231,7 @@ const COPY = {
     tradesUnavailable:
       'Los oficios no están disponibles en este momento. Mostrando oficios predeterminados de Surplox.',
     supportAccountsHint:
-      'Elige el tipo de cuenta que mejor describa cómo entras a Surplox: trabajador, proveedor, conductor de entrega o soporte de obra.'
+      'Elige el tipo de cuenta que mejor describa cómo entras a Surplox: trabajador, proveedor, conductor de entrega o soporte de obra.',
     zipLabel: '¿En qué ZIP trabajas normalmente?',
     zipPlaceholder: '76102',
     tradeRequired: 'Selecciona tu tipo de cuenta.',
@@ -246,7 +246,7 @@ const COPY = {
     stageBody1:
       'Empieza con el nombre que la gente debe ver en esta cuenta. Los trabajadores pueden usar su propio nombre y las cuentas de proveedor pueden usar el nombre del negocio o ubicación.',
     stageBody2:
-      'Elige el tipo de cuenta que mejor representa cómo entras a la red.'
+      'Elige el tipo de cuenta que mejor representa cómo entras a la red.',
     stageBody3:
       'Termina con tu ZIP, correo y contraseña para que Surplox te coloque en el feed local correcto.',
     alreadyInside: '¿Ya estás en Surplox?',
