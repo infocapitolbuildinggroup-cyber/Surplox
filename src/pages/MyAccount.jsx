@@ -72,81 +72,6 @@ const FLEET_REPAIR_EQUIPMENT_TAGS = [
   }
 ]
 
-
-const BUSINESS_HOUR_DAYS = [
-  { key: 'monday', copyKey: 'monday' },
-  { key: 'tuesday', copyKey: 'tuesday' },
-  { key: 'wednesday', copyKey: 'wednesday' },
-  { key: 'thursday', copyKey: 'thursday' },
-  { key: 'friday', copyKey: 'friday' },
-  { key: 'saturday', copyKey: 'saturday' },
-  { key: 'sunday', copyKey: 'sunday' }
-]
-
-const BUSINESS_HOUR_OPTIONS = [
-  '12:00 AM','12:30 AM','1:00 AM','1:30 AM','2:00 AM','2:30 AM','3:00 AM','3:30 AM','4:00 AM','4:30 AM',
-  '5:00 AM','5:30 AM','6:00 AM','6:30 AM','7:00 AM','7:30 AM','8:00 AM','8:30 AM','9:00 AM','9:30 AM',
-  '10:00 AM','10:30 AM','11:00 AM','11:30 AM','12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM',
-  '3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM','6:00 PM','6:30 PM','7:00 PM','7:30 PM',
-  '8:00 PM','8:30 PM','9:00 PM','9:30 PM','10:00 PM','10:30 PM','11:00 PM','11:30 PM'
-]
-
-function defaultBusinessHours() {
-  return {
-    monday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
-    tuesday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
-    wednesday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
-    thursday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
-    friday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
-    saturday: { closed: true, open: '8:00 AM', close: '5:00 PM' },
-    sunday: { closed: true, open: '8:00 AM', close: '5:00 PM' }
-  }
-}
-
-function normalizeBusinessHours(value) {
-  const base = defaultBusinessHours()
-  if (!value || typeof value !== 'object') return base
-  const next = { ...base }
-  BUSINESS_HOUR_DAYS.forEach((day) => {
-    const row = value?.[day.key]
-    if (row && typeof row === 'object') {
-      next[day.key] = {
-        closed: Boolean(row.closed),
-        open: BUSINESS_HOUR_OPTIONS.includes(row.open) ? row.open : base[day.key].open,
-        close: BUSINESS_HOUR_OPTIONS.includes(row.close) ? row.close : base[day.key].close
-      }
-    }
-  })
-  return next
-}
-
-function parseTimeLabelToMinutes(label) {
-  const match = String(label || '').match(/^(\d{1,2}):(\d{2})\s(AM|PM)$/)
-  if (!match) return null
-  let hour = Number(match[1])
-  const minute = Number(match[2])
-  const suffix = match[3]
-  if (suffix === 'AM') {
-    if (hour === 12) hour = 0
-  } else if (hour !== 12) {
-    hour += 12
-  }
-  return hour * 60 + minute
-}
-
-function getCurrentBusinessStatus(businessHours) {
-  const normalized = normalizeBusinessHours(businessHours)
-  const dayKeys = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
-  const today = normalized[dayKeys[new Date().getDay()]]
-  if (!today || today.closed) return 'closed'
-  const now = new Date()
-  const currentMinutes = now.getHours() * 60 + now.getMinutes()
-  const openMinutes = parseTimeLabelToMinutes(today.open)
-  const closeMinutes = parseTimeLabelToMinutes(today.close)
-  if (openMinutes === null || closeMinutes === null) return 'closed'
-  return currentMinutes >= openMinutes && currentMinutes < closeMinutes ? 'open' : 'closed'
-}
-
 const COPY = {
   en: {
     loading: 'Loading your account…',
@@ -228,24 +153,7 @@ const COPY = {
     cargoVanType: 'Cargo Van / Local Delivery',
     fleetRepairType: 'Equipment / Fleet Repair',
     selectSupportType: 'Select support type',
-    supplierTradeOptional: 'Supplier accounts use business details instead of trade, crew, or worker availability fields.',
-    supplierBusinessBio: 'Business Bio',
-    businessName: 'Business Name',
-    businessLocation: 'Business Location',
-    materialsCategories: 'Materials Categories',
-    customCategoryPlaceholder: 'Type a material category and press Add',
-    addCategory: 'Add',
-    businessHours: 'Business Hours',
-    openNow: 'Open Now',
-    closedNow: 'Closed Now',
-    closedAllDay: 'Closed All Day',
-    monday: 'Monday',
-    tuesday: 'Tuesday',
-    wednesday: 'Wednesday',
-    thursday: 'Thursday',
-    friday: 'Friday',
-    saturday: 'Saturday',
-    sunday: 'Sunday',
+    supplierTradeOptional: 'Supplier accounts can leave trade blank and use bio, city, service focus, and contact details to explain what they supply.',
     supportCrewOptional: 'Crew size is optional for supplier, driver, and mechanic profiles.'
   },
   es: {
@@ -264,7 +172,7 @@ const COPY = {
     title: 'Mi cuenta de Surplox',
     intro: 'Revisa y actualiza la información de tu cuenta abajo.',
     displayName: 'Nombre visible',
-    primaryRole: 'Tipo de cuenta',
+    primaryRole: 'Rol principal',
     trade: 'Oficio',
     firstName: 'Nombre',
     lastName: 'Apellido',
@@ -328,24 +236,7 @@ const COPY = {
     cargoVanType: 'Cargo Van / Entrega local',
     fleetRepairType: 'Reparación de equipo / flota',
     selectSupportType: 'Selecciona el tipo de soporte',
-    supplierTradeOptional: 'Las cuentas de proveedor usan detalles comerciales en lugar de oficio, cuadrilla o disponibilidad de trabajador.',
-    supplierBusinessBio: 'Biografía del negocio',
-    businessName: 'Nombre comercial',
-    businessLocation: 'Ubicación del negocio',
-    materialsCategories: 'Categorías de materiales',
-    customCategoryPlaceholder: 'Escribe una categoría de materiales y presiona Agregar',
-    addCategory: 'Agregar',
-    businessHours: 'Horario Comercial',
-    openNow: 'Abierto Ahora',
-    closedNow: 'Cerrado Ahora',
-    closedAllDay: 'Cerrado Todo el Día',
-    monday: 'Lunes',
-    tuesday: 'Martes',
-    wednesday: 'Miércoles',
-    thursday: 'Jueves',
-    friday: 'Viernes',
-    saturday: 'Sábado',
-    sunday: 'Domingo',
+    supplierTradeOptional: 'Las cuentas de proveedor pueden dejar el oficio en blanco y usar biografía, ciudad, enfoque de servicio y contacto para explicar lo que suministran.',
     supportCrewOptional: 'El tamaño de cuadrilla es opcional para perfiles de proveedor, conductor y mecánico.'
   }
 }
@@ -405,28 +296,20 @@ function getProfileCompletionPercent(profile) {
   const checks = [
     Boolean(String(profile.display_name || '').trim()),
     Boolean(String(profile.role || '').trim()),
-    profile.role === 'supplier'
-      ? Boolean(String(profile.business_address || '').trim())
-      : Boolean(String(profile.home_zip || '').trim()),
-    profile.role === 'supplier'
-      ? true
-      : Boolean(String(profile.first_name || '').trim()),
-    profile.role === 'supplier'
-      ? true
-      : Boolean(String(profile.last_name || '').trim()),
+    Boolean(String(profile.home_zip || '').trim()),
+    Boolean(String(profile.first_name || '').trim()),
+    Boolean(String(profile.last_name || '').trim()),
     Boolean(String(profile.phone || '').trim()),
     Boolean(String(profile.city || '').trim()),
     Boolean(String(profile.bio || '').trim()),
     crewSizeOptional ? true : Boolean(Number(profile.crew_size || 0) > 1),
-    profile.role === 'supplier' ? true : Boolean(String(profile.availability_status || '').trim()),
-    profile.role === 'supplier'
-      ? Array.isArray(profile.materials_categories) && profile.materials_categories.length > 0
-      : profile.category_group === 'trade'
-        ? tradeOptional || Boolean(String(profile.trade_id || '').trim())
-        : Array.isArray(profile.service_tags) &&
-          profile.service_tags.length > 0 &&
-          Array.isArray(profile.equipment_tags) &&
-          profile.equipment_tags.length > 0
+    Boolean(String(profile.availability_status || '').trim()),
+    profile.category_group === 'trade'
+      ? tradeOptional || Boolean(String(profile.trade_id || '').trim())
+      : Array.isArray(profile.service_tags) &&
+        profile.service_tags.length > 0 &&
+        Array.isArray(profile.equipment_tags) &&
+        profile.equipment_tags.length > 0
   ]
 
   const completeCount = checks.filter(Boolean).length
@@ -466,14 +349,7 @@ function getCompletionItems(profile, copy) {
     items.push(copy.completionCrew)
   }
 
-  if (profile.role === 'supplier') {
-    if (!String(profile.business_address || '').trim()) {
-      items.push(copy.businessLocation)
-    }
-    if (!Array.isArray(profile.materials_categories) || profile.materials_categories.length === 0) {
-      items.push(copy.materialsCategories)
-    }
-  } else if (profile.category_group === 'trade' && !tradeOptional && !String(profile.trade_id || '').trim()) {
+  if (profile.category_group === 'trade' && !tradeOptional && !String(profile.trade_id || '').trim()) {
     items.push(copy.tradeRequired)
   }
 
@@ -489,7 +365,6 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
   const [inviteLink, setInviteLink] = useState('')
   const [copyStatus, setCopyStatus] = useState('')
   const [completionItems, setCompletionItems] = useState([])
-  const [customMaterialCategory, setCustomMaterialCategory] = useState('')
 
   const [form, setForm] = useState({
     display_name: '',
@@ -510,18 +385,7 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
     service_tags: [],
     equipment_tags: [],
     availability_status: 'available_now',
-    contractor_verified: false,
-    business_name: '',
-    business_address: '',
-    business_zip: '',
-    materials_categories: [],
-    storefront: false,
-    vehicle_type: '',
-    trailer_type: '',
-    trailer_length: '',
-    payload_capacity: '',
-    delivery_radius: '',
-    business_hours: defaultBusinessHours()
+    contractor_verified: false
   })
 
   const copy = COPY[form.preferred_language] || COPY.en
@@ -549,57 +413,6 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
         [key]: exists ? current.filter((item) => item !== value) : [...current, value]
       }
     })
-  }
-
-  function toggleMaterialsCategory(value) {
-    setForm((prev) => {
-      const current = Array.isArray(prev.materials_categories) ? prev.materials_categories : []
-      const exists = current.includes(value)
-      return {
-        ...prev,
-        materials_categories: exists ? current.filter((item) => item !== value) : [...current, value]
-      }
-    })
-  }
-
-  function addCustomMaterialsCategory() {
-    const value = String(customMaterialCategory || '').trim()
-    if (!value) return
-    setForm((prev) => {
-      const current = Array.isArray(prev.materials_categories) ? prev.materials_categories : []
-      if (current.includes(value)) return prev
-      return { ...prev, materials_categories: [...current, value] }
-    })
-    setCustomMaterialCategory('')
-  }
-
-  function prettyMaterialLabel(value) {
-    const map = {
-      equipment_rental: 'Equipment Rental',
-      safety_equipment: 'Safety Equipment',
-      lumber: 'Lumber',
-      concrete: 'Concrete',
-      steel: 'Steel',
-      electrical: 'Electrical',
-      plumbing: 'Plumbing',
-      drywall: 'Drywall',
-      fasteners: 'Fasteners',
-      tools: 'Tools'
-    }
-    return map[value] || value
-  }
-
-  function updateBusinessHours(dayKey, updates) {
-    setForm((prev) => ({
-      ...prev,
-      business_hours: {
-        ...normalizeBusinessHours(prev.business_hours),
-        [dayKey]: {
-          ...normalizeBusinessHours(prev.business_hours)[dayKey],
-          ...updates
-        }
-      }
-    }))
   }
 
   function buildInviteLink(userId) {
@@ -660,18 +473,7 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
           service_tags: Array.isArray(profileData?.service_tags) ? profileData.service_tags : [],
           equipment_tags: Array.isArray(profileData?.equipment_tags) ? profileData.equipment_tags : [],
           availability_status: profileData?.availability_status || 'available_now',
-          contractor_verified: Boolean(profileData?.contractor_verified),
-          business_name: profileData?.business_name || '',
-          business_address: profileData?.business_address || '',
-          business_zip: profileData?.business_zip || '',
-          materials_categories: Array.isArray(profileData?.materials_categories) ? profileData.materials_categories : [],
-          storefront: Boolean(profileData?.storefront),
-          vehicle_type: profileData?.vehicle_type || '',
-          trailer_type: profileData?.trailer_type || '',
-          trailer_length: profileData?.trailer_length ?? '',
-          payload_capacity: profileData?.payload_capacity ?? '',
-          delivery_radius: profileData?.delivery_radius ?? '',
-          business_hours: normalizeBusinessHours(profileData?.business_hours)
+          contractor_verified: Boolean(profileData?.contractor_verified)
         }
     
         setForm(mergedForm)
@@ -808,36 +610,23 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
           return
         }
     
-        const isSupplier = form.role === 'supplier'
-
         const profilePayload = {
           user_id: user.id,
           display_name: form.display_name.trim(),
           role: form.role,
-          trade_id: isSupplier ? null : (form.category_group === 'trade' ? Number(form.trade_id) || null : null),
-          first_name: isSupplier ? '' : form.first_name.trim(),
-          last_name: isSupplier ? '' : form.last_name.trim(),
-          home_zip: isSupplier ? null : form.home_zip.trim(),
-          travel_radius_miles: isSupplier ? null : Number(form.travel_radius_miles) || 50,
-          crew_size: isSupplier ? null : Number(form.crew_size) || 1,
+          trade_id: form.category_group === 'trade' ? Number(form.trade_id) || null : null,
+          first_name: form.first_name.trim(),
+          last_name: form.last_name.trim(),
+          home_zip: form.home_zip.trim(),
+          travel_radius_miles: Number(form.travel_radius_miles) || 50,
+          crew_size: Number(form.crew_size) || 1,
           preferred_language: form.preferred_language,
           bio: form.bio.trim(),
-          category_group: isSupplier ? 'trade' : form.category_group,
-          availability_status: isSupplier ? null : form.availability_status,
+          category_group: form.category_group,
+          availability_status: form.availability_status,
           contractor_verified: Boolean(form.contractor_verified),
-          service_tags: isSupplier ? [] : (form.category_group === 'jobsite_support' ? form.service_tags : []),
-          equipment_tags: isSupplier ? [] : (form.category_group === 'jobsite_support' ? form.equipment_tags : []),
-          business_name: isSupplier ? form.business_name.trim() : null,
-          business_address: isSupplier ? form.business_address.trim() : null,
-          business_zip: isSupplier ? form.business_zip.trim() : null,
-          materials_categories: isSupplier ? form.materials_categories : [],
-          storefront: isSupplier ? Boolean(form.storefront) : false,
-          business_hours: isSupplier ? normalizeBusinessHours(form.business_hours) : null,
-          vehicle_type: form.role === 'driver' ? form.vehicle_type || null : null,
-          trailer_type: form.role === 'driver' ? form.trailer_type || null : null,
-          trailer_length: form.role === 'driver' && String(form.trailer_length || '').trim() ? Number(form.trailer_length) : null,
-          payload_capacity: form.role === 'driver' && String(form.payload_capacity || '').trim() ? Number(form.payload_capacity) : null,
-          delivery_radius: form.role === 'driver' && String(form.delivery_radius || '').trim() ? Number(form.delivery_radius) : null
+          service_tags: form.category_group === 'jobsite_support' ? form.service_tags : [],
+          equipment_tags: form.category_group === 'jobsite_support' ? form.equipment_tags : []
         }
     
         const privatePayload = {
@@ -926,7 +715,7 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
         <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.inviteBody}</p>
 
         <div className="grid" style={{ marginTop: 14, gap: 12 }}>
-          <div>
+          {form.role !== 'supplier' && ({form.role !== 'supplier' && ({form.role !== 'supplier' && ({form.role !== 'supplier' && (<div>
             <div className="muted" style={{ marginBottom: 6 }}>{copy.invitePreviewLabel}</div>
             <div className="card-soft" style={{ minHeight: 'auto', padding: 14, wordBreak: 'break-all' }}>
               {inviteLink || '—'}
@@ -992,7 +781,6 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
               </select>
             </div>
 
-            {form.role !== 'supplier' ? (
             <div>
               <div className="muted" style={{ marginBottom: 6 }}>{copy.categoryGroup}</div>
               <select
@@ -1007,9 +795,8 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                 ))}
               </select>
             </div>
-            ) : null}
 
-            {form.category_group === 'trade' && form.role !== 'supplier' ? (
+            {form.category_group === 'trade' ? (
               <div>
                 <div className="muted" style={{ marginBottom: 6 }}>{copy.trade}</div>
                 <select
@@ -1024,6 +811,11 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                     </option>
                   ))}
                 </select>
+                {form.role === 'supplier' ? (
+                  <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
+                    {copy.supplierTradeOptional}
+                  </div>
+                ) : null}
               </div>
             ) : (
               <>
@@ -1053,7 +845,6 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
               </>
             )}
 
-            {form.role !== 'supplier' ? (
             <div>
               <div className="muted" style={{ marginBottom: 6 }}>{copy.zip}</div>
               <input
@@ -1061,10 +852,8 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                 value={form.home_zip}
                 onChange={(e) => setField('home_zip', e.target.value)}
               />
-            </div>
-            ) : null}
+            </div>)}
 
-            {form.role !== 'supplier' ? (
             <div>
               <div className="muted" style={{ marginBottom: 6 }}>{copy.radius}</div>
               <input
@@ -1073,10 +862,8 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                 value={form.travel_radius_miles}
                 onChange={(e) => setField('travel_radius_miles', e.target.value)}
               />
-            </div>
-            ) : null}
+            </div>)}
 
-            {form.role !== 'supplier' ? (
             <div>
               <div className="muted" style={{ marginBottom: 6 }}>{copy.crewSize}</div>
               <input
@@ -1085,13 +872,12 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                 value={form.crew_size}
                 onChange={(e) => setField('crew_size', e.target.value)}
               />
-              {['driver', 'mechanic'].includes(form.role) ? (
+              {['supplier', 'driver', 'mechanic'].includes(form.role) ? (
                 <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
                   {copy.supportCrewOptional}
-                </div>
+                </div>)}
               ) : null}
             </div>
-            ) : null}
           </div>
         </div>
         <div className="card rounded-xl" style={{ padding: 24 }}>
@@ -1172,7 +958,7 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                   </option>
                 ))}
               </select>
-            </div>
+            </div>)}
 
             <div>
               <div className="muted" style={{ marginBottom: 6 }}>{copy.contractorVerification}</div>
@@ -1243,9 +1029,7 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
       ) : null}
 
       <div className="card rounded-xl" style={{ padding: 24 }}>
-        <div className="muted" style={{ marginBottom: 6 }}>
-          {form.role === 'supplier' ? copy.supplierBusinessBio : copy.bio}
-        </div>
+        <div className="muted" style={{ marginBottom: 6 }}>{form.role === 'supplier' ? 'Business Bio' : copy.bio}</div>
         <textarea
           className="input"
           value={form.bio}
