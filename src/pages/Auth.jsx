@@ -94,10 +94,10 @@ const COPY = {
     signInIntro:
       'Get back to nearby opportunities, crew activity, alerts, profile visibility, and local construction connections.',
     signUpIntro:
-      'Fast signup for workers, services, suppliers, and local construction connections. Get into the app first and finish the rest later.',
+      'Fast signup for workers, supplier locations, delivery operators, and local construction connections. Get into the app first and finish the rest later.',
     previewTitle: 'Quick Setup',
     previewBody:
-      'Surplox gets people in quickly: name, trade, service, or supplier lane, ZIP, then straight into the feed.',
+      'Surplox gets people in quickly: name or business name, account type, ZIP, then straight into the feed.'
     previewBullet1: 'Join in a few taps',
     previewBullet2: 'Find crews and nearby work',
     previewBullet3: 'Finish the rest later',
@@ -137,8 +137,8 @@ const COPY = {
     finish: 'Enter Surplox',
     nameLabel: 'What should this account be called?',
     namePlaceholder: 'Juan Martinez or Fort Worth Masonry Supply',
-    tradeLabel: 'What trade, service, or supplier lane fits you best?',
-    tradePlaceholder: 'Select your trade, service, or supplier lane',
+    tradeLabel: 'What account type fits you best?',
+    tradePlaceholder: 'Select your account type',
     generalConstruction: 'General Construction',
     supplierOption: 'Supplier',
     tradesGroup: 'Trades',
@@ -148,21 +148,21 @@ const COPY = {
     tradesUnavailable:
       'Trades unavailable right now. Showing Surplox default trades.',
     supportAccountsHint:
-      'Workers, service operators, and suppliers can all sign up here. Choose the lane that best matches the work you do most often.',
+      'Choose the account type that best matches what you are joining Surplox as: worker, supplier location, delivery driver, or jobsite support.'
     zipLabel: 'What ZIP do you usually work in?',
     zipPlaceholder: '76102',
-    tradeRequired: 'Select your trade, service, or supplier lane.',
+    tradeRequired: 'Select your account type.',
     zipRequired: 'Enter a valid 5-digit ZIP code.',
     nameRequired: 'Enter your name.',
     emailRequired: 'Enter a valid email address.',
     passwordRequired: 'Password must be at least 6 characters.',
     signUpSuccess: 'Your account is ready.',
     stageTitle1: 'Your Name',
-    stageTitle2: 'Trade/Service/Supplier',
+    stageTitle2: 'Account Type',
     stageTitle3: 'Your Area and Login',
     stageBody1: 'Start with the name people should see on this account. Workers can use their own name and supplier accounts can use the business location name.',
     stageBody2:
-      'Choose the trade, service, or supplier lane that best matches the work you do most often.',
+      'Choose the account type that best matches how you are entering the network.'
     stageBody3:
       'Finish with your ZIP, email, and password so Surplox can place you into the right local feed.',
     alreadyInside: 'Already in Surplox?',
@@ -177,10 +177,10 @@ const COPY = {
     signInIntro:
       'Vuelve a oportunidades cercanas, actividad de cuadrillas, alertas, visibilidad de perfil y conexiones locales de construcción.',
     signUpIntro:
-      'Registro rápido para trabajadores, servicios, proveedores y conexiones locales de construcción. Entra a la app primero y completa lo demás después.',
+      'Registro rápido para trabajadores, ubicaciones proveedoras, operadores de entrega y conexiones locales de construcción. Entra a la app primero y completa lo demás después.',
     previewTitle: 'Configuración rápida',
     previewBody:
-      'Surplox permite entrar rápido: nombre, oficio, servicio o categoría de proveedor, ZIP y directo al feed.',
+      'Surplox permite entrar rápido: nombre o nombre comercial, tipo de cuenta, ZIP y directo al feed.'
     previewBullet1: 'Únete en pocos toques',
     previewBullet2: 'Encuentra cuadrillas y trabajo cercano',
     previewBullet3: 'Completa lo demás después',
@@ -220,8 +220,8 @@ const COPY = {
     finish: 'Entrar a Surplox',
     nameLabel: '¿Cómo se debe llamar esta cuenta?',
     namePlaceholder: 'Juan Martinez or Fort Worth Masonry Supply',
-    tradeLabel: '¿Qué oficio, servicio o categoría de proveedor te representa mejor?',
-    tradePlaceholder: 'Selecciona tu oficio, servicio o categoría de proveedor',
+    tradeLabel: '¿Qué tipo de cuenta te representa mejor?',
+    tradePlaceholder: 'Selecciona tu tipo de cuenta',
     generalConstruction: 'Construcción general',
     supplierOption: 'Proveedor',
     tradesGroup: 'Oficios',
@@ -231,22 +231,22 @@ const COPY = {
     tradesUnavailable:
       'Los oficios no están disponibles en este momento. Mostrando oficios predeterminados de Surplox.',
     supportAccountsHint:
-      'Trabajadores, operadores de servicio y proveedores pueden registrarse aquí. Elige la categoría que mejor coincida con el trabajo que haces más seguido.',
+      'Elige el tipo de cuenta que mejor describa cómo entras a Surplox: trabajador, proveedor, conductor de entrega o soporte de obra.'
     zipLabel: '¿En qué ZIP trabajas normalmente?',
     zipPlaceholder: '76102',
-    tradeRequired: 'Selecciona tu oficio, servicio o categoría de proveedor.',
+    tradeRequired: 'Selecciona tu tipo de cuenta.',
     zipRequired: 'Ingresa un ZIP válido de 5 dígitos.',
     nameRequired: 'Ingresa tu nombre.',
     emailRequired: 'Ingresa un correo válido.',
     passwordRequired: 'La contraseña debe tener al menos 6 caracteres.',
     signUpSuccess: 'Tu cuenta está lista.',
     stageTitle1: 'Tu Nombre',
-    stageTitle2: 'Oficio/Servicio/Proveedor',
+    stageTitle2: 'Tipo de Cuenta',
     stageTitle3: 'Tu Zona y Acceso',
     stageBody1:
       'Empieza con el nombre que la gente debe ver en esta cuenta. Los trabajadores pueden usar su propio nombre y las cuentas de proveedor pueden usar el nombre del negocio o ubicación.',
     stageBody2:
-      'Elige el oficio, servicio o categoría de proveedor que mejor representa el trabajo que haces más seguido.',
+      'Elige el tipo de cuenta que mejor representa cómo entras a la red.'
     stageBody3:
       'Termina con tu ZIP, correo y contraseña para que Surplox te coloque en el feed local correcto.',
     alreadyInside: '¿Ya estás en Surplox?',
@@ -369,6 +369,9 @@ function LanguageSlider({ lang, setLang, copy }) {
 function getOptionLabel(option, copy) {
   if (option.id === GENERAL_CONSTRUCTION_OPTION.id) return copy.generalConstruction
   if (option.id === SUPPLIER_SIGNUP_OPTION.id) return copy.supplierOption
+  if (option.id === 'support:material_delivery') return 'Delivery Driver'
+  if (option.id === 'support:cargo_van') return 'Delivery Driver'
+  if (option.id === 'support:equipment_fleet_repair') return 'Jobsite Support'
   return option.name
 }
 
