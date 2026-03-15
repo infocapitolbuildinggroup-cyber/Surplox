@@ -40,6 +40,35 @@ const JOBSITE_SUPPORT_OPTIONS = [
   }
 ]
 
+const SUPPLIER_MATERIAL_OPTIONS = [
+  { value: 'concrete', label: { en: 'Concrete', es: 'Concreto' } },
+  { value: 'lumber', label: { en: 'Lumber', es: 'Madera' } },
+  { value: 'steel', label: { en: 'Steel', es: 'Acero' } },
+  { value: 'electrical', label: { en: 'Electrical', es: 'Eléctrico' } },
+  { value: 'plumbing', label: { en: 'Plumbing', es: 'Plomería' } },
+  { value: 'drywall', label: { en: 'Drywall', es: 'Tablaroca' } },
+  { value: 'fasteners', label: { en: 'Fasteners', es: 'Sujetadores' } },
+  { value: 'tools', label: { en: 'Tools', es: 'Herramientas' } },
+  { value: 'equipment_rental', label: { en: 'Equipment Rental', es: 'Renta de equipo' } },
+  { value: 'safety_equipment', label: { en: 'Safety Equipment', es: 'Equipo de seguridad' } }
+]
+
+const DRIVER_VEHICLE_OPTIONS = [
+  { value: 'pickup_truck', label: { en: 'Pickup Truck', es: 'Pickup' } },
+  { value: 'cargo_van', label: { en: 'Cargo Van', es: 'Cargo van' } },
+  { value: 'box_truck', label: { en: 'Box Truck', es: 'Camión caja' } },
+  { value: 'flatbed_truck', label: { en: 'Flatbed Truck', es: 'Camión plataforma' } }
+]
+
+const DRIVER_TRAILER_OPTIONS = [
+  { value: 'none', label: { en: 'No Trailer', es: 'Sin remolque' } },
+  { value: 'utility_trailer', label: { en: 'Utility Trailer', es: 'Remolque utilitario' } },
+  { value: 'flatbed_trailer', label: { en: 'Flatbed Trailer', es: 'Remolque plataforma' } },
+  { value: 'gooseneck_trailer', label: { en: 'Gooseneck Trailer', es: 'Remolque gooseneck' } },
+  { value: 'equipment_trailer', label: { en: 'Equipment Trailer', es: 'Remolque para equipo' } },
+  { value: 'enclosed_trailer', label: { en: 'Enclosed Trailer', es: 'Remolque cerrado' } }
+]
+
 const COPY = {
   en: {
     loading: 'Loading account setup…',
@@ -90,11 +119,27 @@ const COPY = {
     supportIntro:
       'Use Jobsite Support for material delivery, cargo van delivery, hot shot, fleet repair, and equipment repair profiles.',
     supplierTradeOptional:
-      'Supplier accounts can leave trade blank and use bio, city, and contact details to explain what they supply.',
+      'Supplier accounts can leave trade blank and use business fields, material categories, city, and contact details to explain what they supply.',
     supportTradeOptional:
       'Jobsite support accounts do not need a trade selected here.',
     supportCrewOptional:
-      'Crew size is optional for supplier, driver, and mechanic accounts.'
+      'Crew size is optional for supplier, driver, and mechanic accounts.',
+    supplierSectionTitle: 'Supplier Storefront Profile',
+    supplierSectionBody:
+      'Suppliers are storefront locations, not individual worker profiles. Add store details and materials so nearby contractors know what this location offers.',
+    businessName: 'Business Name',
+    businessAddress: 'Business Address',
+    businessZip: 'Business ZIP',
+    materialsCategories: 'Material Categories',
+    storefrontLocation: 'This is a storefront / yard location',
+    driverSectionTitle: 'Driver Vehicle Capabilities',
+    driverSectionBody:
+      'Delivery accounts should show vehicle and trailer capability so jobsites know what this driver can move.',
+    vehicleType: 'Vehicle Type',
+    trailerType: 'Trailer Type',
+    trailerLength: 'Trailer Length (ft)',
+    payloadCapacity: 'Payload Capacity (lbs)',
+    deliveryRadius: 'Delivery Radius (miles)'
   },
   es: {
     loading: 'Cargando configuración de cuenta…',
@@ -145,11 +190,27 @@ const COPY = {
     supportIntro:
       'Usa Soporte de obra para entrega de materiales, cargo van, hot shot, reparación de flota y reparación de equipo.',
     supplierTradeOptional:
-      'Las cuentas de proveedor pueden dejar el oficio en blanco y usar biografía, ciudad y contacto para explicar lo que suministran.',
+      'Las cuentas de proveedor pueden dejar el oficio en blanco y usar campos del negocio, categorías de materiales, ciudad y contacto para explicar lo que suministran.',
     supportTradeOptional:
       'Las cuentas de soporte de obra no necesitan seleccionar un oficio aquí.',
     supportCrewOptional:
-      'El tamaño de cuadrilla es opcional para cuentas de proveedor, conductor y mecánico.'
+      'El tamaño de cuadrilla es opcional para cuentas de proveedor, conductor y mecánico.',
+    supplierSectionTitle: 'Perfil de tienda proveedora',
+    supplierSectionBody:
+      'Los proveedores son ubicaciones de tienda o patio, no perfiles individuales de trabajador. Agrega detalles del negocio y materiales para que contratistas cercanos sepan qué ofrece esta ubicación.',
+    businessName: 'Nombre del negocio',
+    businessAddress: 'Dirección del negocio',
+    businessZip: 'ZIP del negocio',
+    materialsCategories: 'Categorías de materiales',
+    storefrontLocation: 'Esta cuenta representa una tienda / patio físico',
+    driverSectionTitle: 'Capacidades del vehículo del conductor',
+    driverSectionBody:
+      'Las cuentas de entrega deben mostrar vehículo y remolque para que las obras sepan qué puede mover este conductor.',
+    vehicleType: 'Tipo de vehículo',
+    trailerType: 'Tipo de remolque',
+    trailerLength: 'Largo del remolque (ft)',
+    payloadCapacity: 'Capacidad de carga (lbs)',
+    deliveryRadius: 'Radio de entrega (millas)'
   }
 }
 
@@ -207,7 +268,17 @@ export default function Onboarding({ lang = 'en', setLang }) {
     email: '',
     preferred_language: lang || 'en',
     category_group: 'trade',
-    jobsite_support_type: 'material_delivery'
+    jobsite_support_type: 'material_delivery',
+    business_name: '',
+    business_address: '',
+    business_zip: '',
+    materials_categories: [],
+    storefront: false,
+    vehicle_type: '',
+    trailer_type: 'none',
+    trailer_length: '',
+    payload_capacity: '',
+    delivery_radius: 50
   })
 
   const copy = COPY[form.preferred_language] || COPY.en
@@ -222,6 +293,17 @@ export default function Onboarding({ lang = 'en', setLang }) {
 
   function setField(k, v) {
     setForm((f) => ({ ...f, [k]: v }))
+  }
+
+  function toggleMultiValue(field, value) {
+    setForm((prev) => {
+      const current = Array.isArray(prev[field]) ? prev[field] : []
+      const exists = current.includes(value)
+      return {
+        ...prev,
+        [field]: exists ? current.filter((item) => item !== value) : [...current, value]
+      }
+    })
   }
 
   function normalizePhone(raw) {
@@ -242,6 +324,12 @@ export default function Onboarding({ lang = 'en', setLang }) {
       JOBSITE_SUPPORT_OPTIONS[0]
     )
   }, [form.jobsite_support_type])
+
+  const isSupplierProfile = form.role === 'supplier' && form.category_group === 'trade'
+  const isDriverProfile =
+    form.role === 'driver' ||
+    (form.category_group === 'jobsite_support' && selectedSupportConfig.role === 'driver')
+
   useEffect(() => {
     async function load() {
       setLoading(true)
@@ -298,7 +386,17 @@ export default function Onboarding({ lang = 'en', setLang }) {
         email: cp?.email || user.email || '',
         preferred_language: preferredLanguage,
         category_group: categoryGroup,
-        jobsite_support_type: supportType
+        jobsite_support_type: supportType,
+        business_name: prof?.business_name || '',
+        business_address: prof?.business_address || '',
+        business_zip: prof?.business_zip || '',
+        materials_categories: Array.isArray(prof?.materials_categories) ? prof.materials_categories : [],
+        storefront: Boolean(prof?.storefront),
+        vehicle_type: prof?.vehicle_type || '',
+        trailer_type: prof?.trailer_type || 'none',
+        trailer_length: prof?.trailer_length ?? '',
+        payload_capacity: prof?.payload_capacity ?? '',
+        delivery_radius: prof?.delivery_radius ?? 50
       })
 
       if (typeof setLang === 'function') {
@@ -334,55 +432,63 @@ export default function Onboarding({ lang = 'en', setLang }) {
       if (!['en', 'es'].includes(form.preferred_language)) throw new Error(copy.errLanguage)
 
       const displayName = form.display_name.trim()
-      const firstName = form.first_name.trim() || displayName.split(/\s+/)[0] || displayName
+      const firstName =
+        isSupplierProfile
+          ? ''
+          : form.first_name.trim() || displayName.split(/\s+/)[0] || displayName
 
-      const { error: profErr } = await supabase
-        .from('profiles')
-        .upsert({
-          user_id: user.id,
-          display_name: displayName,
-          first_name: firstName,
-          last_name: form.last_name.trim(),
-          role:
-            form.category_group === 'jobsite_support'
-              ? selectedSupportConfig.role
-              : form.role || 'laborer',
-          trade_id:
-            form.category_group === 'trade' && form.trade_id
-              ? Number(form.trade_id)
-              : null,
-          travel_radius_miles: Number(form.travel_radius_miles || 50),
-          crew_size: Number(form.crew_size || 1),
-          bio: form.bio.trim(),
-          preferred_language: form.preferred_language,
-          category_group: form.category_group,
-          service_tags:
-            form.category_group === 'jobsite_support'
-              ? selectedSupportConfig.service_tags
-              : [],
-          equipment_tags:
-            form.category_group === 'jobsite_support'
-              ? selectedSupportConfig.equipment_tags
-              : []
-        })
+      const profilePayload = {
+        user_id: user.id,
+        display_name: displayName,
+        first_name: firstName,
+        last_name: isSupplierProfile ? '' : form.last_name.trim(),
+        role:
+          form.category_group === 'jobsite_support'
+            ? selectedSupportConfig.role
+            : form.role || 'laborer',
+        trade_id:
+          form.category_group === 'trade' && form.trade_id
+            ? Number(form.trade_id)
+            : null,
+        travel_radius_miles: Number(form.travel_radius_miles || 50),
+        crew_size: Number(form.crew_size || 1),
+        bio: form.bio.trim(),
+        preferred_language: form.preferred_language,
+        category_group: form.category_group,
+        service_tags:
+          form.category_group === 'jobsite_support'
+            ? selectedSupportConfig.service_tags
+            : [],
+        equipment_tags:
+          form.category_group === 'jobsite_support'
+            ? selectedSupportConfig.equipment_tags
+            : [],
+        business_name: isSupplierProfile ? form.business_name.trim() : null,
+        business_address: isSupplierProfile ? form.business_address.trim() : null,
+        business_zip: isSupplierProfile ? form.business_zip.trim() : null,
+        materials_categories: isSupplierProfile ? form.materials_categories : [],
+        storefront: isSupplierProfile ? Boolean(form.storefront) : false,
+        vehicle_type: isDriverProfile ? form.vehicle_type || null : null,
+        trailer_type: isDriverProfile ? form.trailer_type || 'none' : null,
+        trailer_length: isDriverProfile && form.trailer_length !== '' ? Number(form.trailer_length) : null,
+        payload_capacity: isDriverProfile && form.payload_capacity !== '' ? Number(form.payload_capacity) : null,
+        delivery_radius: isDriverProfile ? Number(form.delivery_radius || 50) : null
+      }
 
+      const { error: profErr } = await supabase.from('profiles').upsert(profilePayload)
       if (profErr) throw profErr
 
       const { error: zipErr } = await supabase.rpc('set_my_home_zip', {
         p_zip: form.home_zip
       })
-
       if (zipErr) throw zipErr
 
-      const { error: cpErr } = await supabase
-        .from('contact_private')
-        .upsert({
-          user_id: user.id,
-          phone: phoneDigits || null,
-          city: form.city.trim() || null,
-          email: form.email.trim() ? form.email.trim().toLowerCase() : null
-        })
-
+      const { error: cpErr } = await supabase.from('contact_private').upsert({
+        user_id: user.id,
+        phone: phoneDigits || null,
+        city: form.city.trim() || null,
+        email: form.email.trim() ? form.email.trim().toLowerCase() : null
+      })
       if (cpErr) throw cpErr
 
       localStorage.setItem('surplox_lang', form.preferred_language)
@@ -439,13 +545,7 @@ export default function Onboarding({ lang = 'en', setLang }) {
           {copy.intro}
         </p>
 
-        <div
-          className="card-soft"
-          style={{
-            marginTop: 16,
-            background: '#fff4da'
-          }}
-        >
+        <div className="card-soft" style={{ marginTop: 16, background: '#fff4da' }}>
           <div className="card-section-title">{copy.noticeTitle}</div>
           <p className="card-section-subtitle" style={{ marginTop: 8 }}>
             {copy.noticeBody}
@@ -461,11 +561,7 @@ export default function Onboarding({ lang = 'en', setLang }) {
         <div className="grid two" style={{ marginTop: 16 }}>
           <div>
             <div className="muted" style={{ marginBottom: 6 }}>{copy.displayName}</div>
-            <input
-              className="input"
-              value={form.display_name}
-              onChange={(e) => setField('display_name', e.target.value)}
-            />
+            <input className="input" value={form.display_name} onChange={(e) => setField('display_name', e.target.value)} />
           </div>
 
           <div>
@@ -486,11 +582,7 @@ export default function Onboarding({ lang = 'en', setLang }) {
 
           <div>
             <div className="muted" style={{ marginBottom: 6 }}>{copy.categoryGroup}</div>
-            <select
-              className="input"
-              value={form.category_group}
-              onChange={(e) => setField('category_group', e.target.value)}
-            >
+            <select className="input" value={form.category_group} onChange={(e) => setField('category_group', e.target.value)}>
               {CATEGORY_GROUP_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {labelForOption(option, form.preferred_language)}
@@ -518,11 +610,7 @@ export default function Onboarding({ lang = 'en', setLang }) {
           ) : (
             <div>
               <div className="muted" style={{ marginBottom: 6 }}>{copy.trade}</div>
-              <select
-                className="input"
-                value={form.trade_id}
-                onChange={(e) => setField('trade_id', e.target.value)}
-              >
+              <select className="input" value={form.trade_id} onChange={(e) => setField('trade_id', e.target.value)}>
                 <option value="">{copy.selectTrade}</option>
                 {trades.map((trade) => (
                   <option key={trade.id} value={trade.id}>
@@ -532,81 +620,50 @@ export default function Onboarding({ lang = 'en', setLang }) {
               </select>
             </div>
           )}
-                    <div>
+
+          <div>
             <div className="muted" style={{ marginBottom: 6 }}>{copy.homeZip}</div>
-            <input
-              className="input"
-              value={form.home_zip}
-              onChange={(e) => setField('home_zip', e.target.value)}
-            />
+            <input className="input" value={form.home_zip} onChange={(e) => setField('home_zip', e.target.value)} />
           </div>
 
-          <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{copy.firstName}</div>
-            <input
-              className="input"
-              value={form.first_name}
-              onChange={(e) => setField('first_name', e.target.value)}
-            />
-          </div>
+          {!isSupplierProfile ? (
+            <>
+              <div>
+                <div className="muted" style={{ marginBottom: 6 }}>{copy.firstName}</div>
+                <input className="input" value={form.first_name} onChange={(e) => setField('first_name', e.target.value)} />
+              </div>
 
-          <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{copy.lastName}</div>
-            <input
-              className="input"
-              value={form.last_name}
-              onChange={(e) => setField('last_name', e.target.value)}
-            />
-          </div>
+              <div>
+                <div className="muted" style={{ marginBottom: 6 }}>{copy.lastName}</div>
+                <input className="input" value={form.last_name} onChange={(e) => setField('last_name', e.target.value)} />
+              </div>
+            </>
+          ) : null}
 
           <div>
             <div className="muted" style={{ marginBottom: 6 }}>{copy.email}</div>
-            <input
-              className="input"
-              type="email"
-              value={form.email}
-              onChange={(e) => setField('email', e.target.value)}
-            />
+            <input className="input" type="email" value={form.email} onChange={(e) => setField('email', e.target.value)} />
           </div>
 
           <div>
             <div className="muted" style={{ marginBottom: 6 }}>{copy.phone}</div>
-            <input
-              className="input"
-              value={form.phone}
-              onChange={(e) => setField('phone', e.target.value)}
-            />
+            <input className="input" value={form.phone} onChange={(e) => setField('phone', e.target.value)} />
           </div>
 
           <div>
             <div className="muted" style={{ marginBottom: 6 }}>{copy.city}</div>
-            <input
-              className="input"
-              value={form.city}
-              onChange={(e) => setField('city', e.target.value)}
-            />
+            <input className="input" value={form.city} onChange={(e) => setField('city', e.target.value)} />
           </div>
 
           <div>
             <div className="muted" style={{ marginBottom: 6 }}>{copy.travelRadius}</div>
-            <input
-              className="input"
-              type="number"
-              value={form.travel_radius_miles}
-              onChange={(e) => setField('travel_radius_miles', e.target.value)}
-            />
+            <input className="input" type="number" value={form.travel_radius_miles} onChange={(e) => setField('travel_radius_miles', e.target.value)} />
           </div>
 
           <div>
             <div className="muted" style={{ marginBottom: 6 }}>{copy.crewSize}</div>
-            <input
-              className="input"
-              type="number"
-              value={form.crew_size}
-              onChange={(e) => setField('crew_size', e.target.value)}
-            />
-            {['supplier', 'driver', 'mechanic'].includes(form.role) ||
-            form.category_group === 'jobsite_support' ? (
+            <input className="input" type="number" value={form.crew_size} onChange={(e) => setField('crew_size', e.target.value)} />
+            {['supplier', 'driver', 'mechanic'].includes(form.role) || form.category_group === 'jobsite_support' ? (
               <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
                 {copy.supportCrewOptional}
               </div>
@@ -636,10 +693,7 @@ export default function Onboarding({ lang = 'en', setLang }) {
         </div>
 
         {form.category_group === 'jobsite_support' ? (
-          <div
-            className="card-soft"
-            style={{ marginTop: 16, background: '#f8f7ef' }}
-          >
+          <div className="card-soft" style={{ marginTop: 16, background: '#f8f7ef' }}>
             <div className="card-section-title">{copy.supportType}</div>
             <p className="card-section-subtitle" style={{ marginTop: 8 }}>
               {copy.supportIntro}
@@ -647,32 +701,106 @@ export default function Onboarding({ lang = 'en', setLang }) {
           </div>
         ) : null}
 
+        {isSupplierProfile ? (
+          <div className="card-soft" style={{ marginTop: 16, background: '#fffaf0' }}>
+            <div className="card-section-title">{copy.supplierSectionTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.supplierSectionBody}</p>
+            <div className="grid two" style={{ marginTop: 14 }}>
+              <div>
+                <div className="muted" style={{ marginBottom: 6 }}>{copy.businessName}</div>
+                <input className="input" value={form.business_name} onChange={(e) => setField('business_name', e.target.value)} />
+              </div>
+              <div>
+                <div className="muted" style={{ marginBottom: 6 }}>{copy.businessZip}</div>
+                <input className="input" value={form.business_zip} onChange={(e) => setField('business_zip', e.target.value)} />
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <div className="muted" style={{ marginBottom: 6 }}>{copy.businessAddress}</div>
+                <input className="input" value={form.business_address} onChange={(e) => setField('business_address', e.target.value)} />
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <div className="muted" style={{ marginBottom: 8 }}>{copy.materialsCategories}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {SUPPLIER_MATERIAL_OPTIONS.map((option) => {
+                    const active = form.materials_categories.includes(option.value)
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`btn small ${active ? 'primary' : ''}`}
+                        onClick={() => toggleMultiValue('materials_categories', option.value)}
+                      >
+                        {labelForOption(option, form.preferred_language)}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontWeight: 700 }}>
+                <input type="checkbox" checked={form.storefront} onChange={(e) => setField('storefront', e.target.checked)} />
+                <span>{copy.storefrontLocation}</span>
+              </label>
+            </div>
+          </div>
+        ) : null}
+
+        {isDriverProfile ? (
+          <div className="card-soft" style={{ marginTop: 16, background: '#eef6ff' }}>
+            <div className="card-section-title">{copy.driverSectionTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.driverSectionBody}</p>
+            <div className="grid two" style={{ marginTop: 14 }}>
+              <div>
+                <div className="muted" style={{ marginBottom: 6 }}>{copy.vehicleType}</div>
+                <select className="input" value={form.vehicle_type} onChange={(e) => setField('vehicle_type', e.target.value)}>
+                  <option value=""></option>
+                  {DRIVER_VEHICLE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {labelForOption(option, form.preferred_language)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <div className="muted" style={{ marginBottom: 6 }}>{copy.trailerType}</div>
+                <select className="input" value={form.trailer_type} onChange={(e) => setField('trailer_type', e.target.value)}>
+                  {DRIVER_TRAILER_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {labelForOption(option, form.preferred_language)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <div className="muted" style={{ marginBottom: 6 }}>{copy.trailerLength}</div>
+                <input className="input" type="number" value={form.trailer_length} onChange={(e) => setField('trailer_length', e.target.value)} />
+              </div>
+              <div>
+                <div className="muted" style={{ marginBottom: 6 }}>{copy.payloadCapacity}</div>
+                <input className="input" type="number" value={form.payload_capacity} onChange={(e) => setField('payload_capacity', e.target.value)} />
+              </div>
+              <div>
+                <div className="muted" style={{ marginBottom: 6 }}>{copy.deliveryRadius}</div>
+                <input className="input" type="number" value={form.delivery_radius} onChange={(e) => setField('delivery_radius', e.target.value)} />
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {form.role === 'supplier' && form.category_group === 'trade' ? (
-          <div
-            className="card-soft"
-            style={{ marginTop: 16, background: '#fffaf0' }}
-          >
+          <div className="card-soft" style={{ marginTop: 16, background: '#fffaf0' }}>
             <p className="card-section-subtitle">{copy.supplierTradeOptional}</p>
           </div>
         ) : null}
 
         {form.category_group === 'jobsite_support' ? (
-          <div
-            className="card-soft"
-            style={{ marginTop: 16, background: '#fffaf0' }}
-          >
+          <div className="card-soft" style={{ marginTop: 16, background: '#fffaf0' }}>
             <p className="card-section-subtitle">{copy.supportTradeOptional}</p>
           </div>
         ) : null}
 
         <div style={{ marginTop: 16 }}>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.bio}</div>
-          <textarea
-            className="input"
-            value={form.bio}
-            placeholder={copy.bioPlaceholder}
-            onChange={(e) => setField('bio', e.target.value)}
-          />
+          <textarea className="input" value={form.bio} placeholder={copy.bioPlaceholder} onChange={(e) => setField('bio', e.target.value)} />
         </div>
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
