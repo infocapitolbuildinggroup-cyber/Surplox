@@ -152,6 +152,9 @@ function getReminderItems(profile = {}, contact = {}, lang = 'en') {
   const copy = COPY[lang] || COPY.en
   const items = []
 
+  const crewSizeOptional = ['supplier', 'driver', 'mechanic'].includes(profile.role)
+  const tradeOptional = profile.role === 'supplier'
+
   if (!String(profile.first_name || '').trim() || !String(profile.last_name || '').trim()) {
     items.push(copy.addFirstLast)
   }
@@ -172,7 +175,7 @@ function getReminderItems(profile = {}, contact = {}, lang = 'en') {
     items.push(copy.addBio)
   }
 
-  if (!Number(profile.crew_size || 0) || Number(profile.crew_size || 0) <= 1) {
+  if (!crewSizeOptional && (!Number(profile.crew_size || 0) || Number(profile.crew_size || 0) <= 1)) {
     items.push(copy.addCrewSize)
   }
 
@@ -183,7 +186,7 @@ function getReminderItems(profile = {}, contact = {}, lang = 'en') {
   const categoryGroup = profile.category_group || 'trade'
 
   if (categoryGroup === 'trade') {
-    if (!profile.trade_id) {
+    if (!tradeOptional && !profile.trade_id) {
       items.push(copy.addTrade)
     }
   }

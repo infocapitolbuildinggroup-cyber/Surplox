@@ -21,6 +21,10 @@ const JOBSITE_SUPPORT_OPTIONS = [
     label: { en: 'Material Delivery / Hot Shot', es: 'Entrega de materiales / Hot Shot' }
   },
   {
+    value: 'cargo_van_delivery',
+    label: { en: 'Cargo Van / Local Delivery', es: 'Cargo Van / Entrega local' }
+  },
+  {
     value: 'equipment_fleet_repair',
     label: { en: 'Equipment / Fleet Repair', es: 'Reparación de equipo / flota' }
   }
@@ -146,8 +150,11 @@ const COPY = {
     tradesGroup: 'Trades',
     jobsiteSupportGroup: 'Jobsite Support',
     materialDeliveryType: 'Material Delivery / Hot Shot',
+    cargoVanType: 'Cargo Van / Local Delivery',
     fleetRepairType: 'Equipment / Fleet Repair',
-    selectSupportType: 'Select support type'
+    selectSupportType: 'Select support type',
+    supplierTradeOptional: 'Supplier accounts can leave trade blank and use bio, city, service focus, and contact details to explain what they supply.',
+    supportCrewOptional: 'Crew size is optional for supplier, driver, and mechanic profiles.'
   },
   es: {
     loading: 'Cargando tu cuenta…',
@@ -226,13 +233,15 @@ const COPY = {
     tradesGroup: 'Oficios',
     jobsiteSupportGroup: 'Soporte de obra',
     materialDeliveryType: 'Entrega de materiales / Hot Shot',
+    cargoVanType: 'Cargo Van / Entrega local',
     fleetRepairType: 'Reparación de equipo / flota',
-    selectSupportType: 'Selecciona el tipo de soporte'
+    selectSupportType: 'Selecciona el tipo de soporte',
+    supplierTradeOptional: 'Las cuentas de proveedor pueden dejar el oficio en blanco y usar biografía, ciudad, enfoque de servicio y contacto para explicar lo que suministran.',
+    supportCrewOptional: 'El tamaño de cuadrilla es opcional para perfiles de proveedor, conductor y mecánico.'
   }
 }
-
 function formatOptionLabel(option, lang = 'en') {
-  return option?.label?.[lang] || option?.label?.en || option?.value || ''
+  return option.label?.[lang] || option.label?.en || option.value
 }
 
 function detectSupportType(serviceTags = []) {
@@ -244,9 +253,15 @@ function detectSupportType(serviceTags = []) {
     'jobsite_service'
   ])
 
-  return serviceTags.some((tag) => repairTags.has(tag))
-    ? 'equipment_fleet_repair'
-    : 'material_delivery'
+  if (serviceTags.some((tag) => repairTags.has(tag))) {
+    return 'equipment_fleet_repair'
+  }
+
+  if (serviceTags.includes('local_runs') || serviceTags.includes('last_mile_delivery')) {
+    return 'cargo_van_delivery'
+  }
+
+  return 'material_delivery'
 }
 
 function getSupportOptions(type) {
@@ -257,6 +272,17 @@ function getSupportOptions(type) {
     }
   }
 
+  if (type === 'cargo_van_delivery') {
+    return {
+      serviceOptions: MATERIAL_DELIVERY_SERVICE_TAGS.filter((option) =>
+        ['material_delivery', 'last_mile_delivery', 'local_runs', 'same_day_delivery'].includes(option.value)
+      ),
+      equipmentOptions: MATERIAL_DELIVERY_EQUIPMENT_TAGS.filter((option) =>
+        ['pickup_truck', 'cargo_van'].includes(option.value)
+      )
+    }
+  }
+
   return {
     serviceOptions: MATERIAL_DELIVERY_SERVICE_TAGS,
     equipmentOptions: MATERIAL_DELIVERY_EQUIPMENT_TAGS
@@ -264,6 +290,9 @@ function getSupportOptions(type) {
 }
 
 function getProfileCompletionPercent(profile) {
+  const crewSizeOptional = ['supplier', 'driver', 'mechanic'].includes(profile.role)
+  const tradeOptional = profile.role === 'supplier'
+
   const checks = [
     Boolean(String(profile.display_name || '').trim()),
     Boolean(String(profile.role || '').trim()),
@@ -273,10 +302,10 @@ function getProfileCompletionPercent(profile) {
     Boolean(String(profile.phone || '').trim()),
     Boolean(String(profile.city || '').trim()),
     Boolean(String(profile.bio || '').trim()),
-    Boolean(Number(profile.crew_size || 0) > 1),
+    crewSizeOptional ? true : Boolean(Number(profile.crew_size || 0) > 1),
     Boolean(String(profile.availability_status || '').trim()),
     profile.category_group === 'trade'
-      ? Boolean(String(profile.trade_id || '').trim())
+      ? tradeOptional || Boolean(String(profile.trade_id || '').trim())
       : Array.isArray(profile.service_tags) &&
         profile.service_tags.length > 0 &&
         Array.isArray(profile.equipment_tags) &&
@@ -289,6 +318,42 @@ function getProfileCompletionPercent(profile) {
 
 function labelForOption(option, lang) {
   return option.label?.[lang] || option.label?.en || option.value
+}
+
+function getCompletionItems(profile, copy) {
+  const items = []
+  const crewSizeOptional = ['supplier', 'driver', 'mechanic'].includes(profile.role)
+  const tradeOptional = profile.role === 'supplier'
+
+  if (!String(profile.first_name || '').trim() || !String(profile.last_name || '').trim()) {
+    items.push(copy.completionFirstLast)
+  }
+
+  if (!String(profile.phone || '').trim()) {
+    items.push(copy.completionPhone)
+  }
+
+  if (!String(profile.city || '').trim()) {
+    items.push(copy.completionCity)
+  }
+
+  if (!String(profile.role || '').trim()) {
+    items.push(copy.completionRole)
+  }
+
+  if (!String(profile.bio || '').trim()) {
+    items.push(copy.completionBio)
+  }
+
+  if (!crewSizeOptional && (!Number(profile.crew_size || 0) || Number(profile.crew_size || 0) <= 1)) {
+    items.push(copy.completionCrew)
+  }
+
+  if (profile.category_group === 'trade' && !tradeOptional && !String(profile.trade_id || '').trim()) {
+    items.push(copy.tradeRequired)
+  }
+
+  return items
 }
 
 export default function MyAccount({ lang = 'en', setLang = () => {} }) {
@@ -389,280 +454,227 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
       profileData?.category_group === 'jobsite_support'
         ? detectSupportType(profileData?.service_tags || [])
         : 'material_delivery'
-
-    const mergedForm = {
-      display_name: profileData?.display_name || '',
-      role: profileData?.role || 'laborer',
-      trade_id: profileData?.trade_id ? String(profileData.trade_id) : '',
-      first_name: profileData?.first_name || '',
-      last_name: profileData?.last_name || '',
-      email: privateData?.email || user.email || '',
-      phone: privateData?.phone || '',
-      city: privateData?.city || '',
-      home_zip: profileData?.home_zip ? String(profileData.home_zip) : '',
-      travel_radius_miles: profileData?.travel_radius_miles || 50,
-      crew_size: profileData?.crew_size || 1,
-      preferred_language: nextLang,
-      bio: profileData?.bio || '',
-      category_group: profileData?.category_group || 'trade',
-      jobsite_support_type: supportType,
-      service_tags: Array.isArray(profileData?.service_tags) ? profileData.service_tags : [],
-      equipment_tags: Array.isArray(profileData?.equipment_tags) ? profileData.equipment_tags : [],
-      availability_status: profileData?.availability_status || 'available_now',
-      contractor_verified: Boolean(profileData?.contractor_verified)
-    }
-
-    setForm(mergedForm)
-    setInviteLink(buildInviteLink(user.id))
-    setLang(nextLang)
-    localStorage.setItem('surplox_lang', nextLang)
-
-    const items = []
-
-    if (!String(mergedForm.first_name || '').trim() || !String(mergedForm.last_name || '').trim()) {
-      items.push(copy.completionFirstLast)
-    }
-
-    if (!String(mergedForm.phone || '').trim()) {
-      items.push(copy.completionPhone)
-    }
-
-    if (!String(mergedForm.city || '').trim()) {
-      items.push(copy.completionCity)
-    }
-
-    if (!String(mergedForm.role || '').trim()) {
-      items.push(copy.completionRole)
-    }
-
-    if (!String(mergedForm.bio || '').trim()) {
-      items.push(copy.completionBio)
-    }
-
-    if (!Number(mergedForm.crew_size || 0) || Number(mergedForm.crew_size || 0) <= 1) {
-      items.push(copy.completionCrew)
-    }
-
-    setCompletionItems(items)
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    loadData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
-    const items = []
-
-    if (!String(form.first_name || '').trim() || !String(form.last_name || '').trim()) {
-      items.push(copy.completionFirstLast)
-    }
-
-    if (!String(form.phone || '').trim()) {
-      items.push(copy.completionPhone)
-    }
-
-    if (!String(form.city || '').trim()) {
-      items.push(copy.completionCity)
-    }
-
-    if (!String(form.role || '').trim()) {
-      items.push(copy.completionRole)
-    }
-
-    if (!String(form.bio || '').trim()) {
-      items.push(copy.completionBio)
-    }
-
-    if (!Number(form.crew_size || 0) || Number(form.crew_size || 0) <= 1) {
-      items.push(copy.completionCrew)
-    }
-
-    setCompletionItems(items)
-  }, [form, copy])
-
-  async function copyInviteLink() {
-    try {
-      if (!inviteLink) throw new Error('Missing invite link')
-      await navigator.clipboard.writeText(inviteLink)
-      setCopyStatus(copy.inviteCopied)
-      setTimeout(() => setCopyStatus(''), 2000)
-    } catch (error) {
-      console.error(error)
-      setCopyStatus(copy.inviteCopyError)
-      setTimeout(() => setCopyStatus(''), 2500)
-    }
-  }
-
-  async function shareInvite() {
-    try {
-      if (!inviteLink) throw new Error('Missing invite link')
-      if (navigator.share) {
-        await navigator.share({
-          title: 'Surplox Invite',
-          text: inviteLink,
-          url: inviteLink
-        })
-      } else {
-        await copyInviteLink()
+        const mergedForm = {
+          display_name: profileData?.display_name || '',
+          role: profileData?.role || 'laborer',
+          trade_id: profileData?.trade_id ? String(profileData.trade_id) : '',
+          first_name: profileData?.first_name || '',
+          last_name: profileData?.last_name || '',
+          email: privateData?.email || user.email || '',
+          phone: privateData?.phone || '',
+          city: privateData?.city || '',
+          home_zip: profileData?.home_zip ? String(profileData.home_zip) : '',
+          travel_radius_miles: profileData?.travel_radius_miles || 50,
+          crew_size: profileData?.crew_size || 1,
+          preferred_language: nextLang,
+          bio: profileData?.bio || '',
+          category_group: profileData?.category_group || 'trade',
+          jobsite_support_type: supportType,
+          service_tags: Array.isArray(profileData?.service_tags) ? profileData.service_tags : [],
+          equipment_tags: Array.isArray(profileData?.equipment_tags) ? profileData.equipment_tags : [],
+          availability_status: profileData?.availability_status || 'available_now',
+          contractor_verified: Boolean(profileData?.contractor_verified)
+        }
+    
+        setForm(mergedForm)
+        setInviteLink(buildInviteLink(user.id))
+        setLang(nextLang)
+        localStorage.setItem('surplox_lang', nextLang)
+    
+        setCompletionItems(getCompletionItems(mergedForm, COPY[nextLang] || COPY.en))
+        setLoading(false)
       }
-    } catch (error) {
-      console.error(error)
-      setCopyStatus(copy.inviteShareError)
-      setTimeout(() => setCopyStatus(''), 2500)
-    }
-  }
-
-  function textInvite() {
-    try {
-      if (!inviteLink) throw new Error('Missing invite link')
-      window.location.href = `sms:?&body=${encodeURIComponent(inviteLink)}`
-    } catch (error) {
-      console.error(error)
-      setCopyStatus(copy.inviteTextError)
-      setTimeout(() => setCopyStatus(''), 2500)
-    }
-  }
-
-  function emailInvite() {
-    try {
-      if (!inviteLink) throw new Error('Missing invite link')
-      window.location.href = `mailto:?subject=${encodeURIComponent('Join me on Surplox')}&body=${encodeURIComponent(inviteLink)}`
-    } catch (error) {
-      console.error(error)
-      setCopyStatus(copy.inviteEmailError)
-      setTimeout(() => setCopyStatus(''), 2500)
-    }
-  }
-
-  function validateForm() {
-    if (!String(form.display_name || '').trim()) {
-      setMsg(copy.displayNameRequired)
-      return false
-    }
-
-    if (!/^\d{5}$/.test(String(form.home_zip || '').trim())) {
-      setMsg(copy.zipInvalid)
-      return false
-    }
-
-    if (form.category_group === 'trade' && !String(form.trade_id || '').trim()) {
-      setMsg(copy.tradeRequired)
-      return false
-    }
-
-    if (String(form.email || '').trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(form.email).trim())) {
-      setMsg(copy.emailInvalid)
-      return false
-    }
-
-    if (String(form.phone || '').trim()) {
-      const digits = String(form.phone || '').replace(/\D/g, '')
-      if (digits.length < 10) {
-        setMsg(copy.phoneInvalid)
-        return false
+    
+      useEffect(() => {
+        loadData()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [])
+    
+      useEffect(() => {
+        setCompletionItems(getCompletionItems(form, copy))
+      }, [form, copy])
+    
+      async function copyInviteLink() {
+        try {
+          if (!inviteLink) throw new Error('Missing invite link')
+          await navigator.clipboard.writeText(inviteLink)
+          setCopyStatus(copy.inviteCopied)
+          setTimeout(() => setCopyStatus(''), 2000)
+        } catch (error) {
+          console.error(error)
+          setCopyStatus(copy.inviteCopyError)
+          setTimeout(() => setCopyStatus(''), 2500)
+        }
       }
-    }
-
-    if (!['en', 'es'].includes(form.preferred_language)) {
-      setMsg(copy.languageInvalid)
-      return false
-    }
-
-    if (!AVAILABILITY_OPTIONS.some((option) => option.value === form.availability_status)) {
-      setMsg(copy.availabilityInvalid)
-      return false
-    }
-
-    if (!CATEGORY_GROUP_OPTIONS.some((option) => option.value === form.category_group)) {
-      setMsg(copy.categoryInvalid)
-      return false
-    }
-
-    return true
-  }
-
-  async function save() {
-    setMsg('')
-    if (!validateForm()) return
-
-    setSaving(true)
-
-    const { data: sessionData } = await supabase.auth.getSession()
-    const user = sessionData.session?.user
-
-    if (!user) {
-      setMsg(copy.signedInRequired)
-      setSaving(false)
-      return
-    }
-
-    const profilePayload = {
-      user_id: user.id,
-      display_name: form.display_name.trim(),
-      role: form.role,
-      trade_id: form.category_group === 'trade' ? Number(form.trade_id) || null : null,
-      first_name: form.first_name.trim(),
-      last_name: form.last_name.trim(),
-      home_zip: form.home_zip.trim(),
-      travel_radius_miles: Number(form.travel_radius_miles) || 50,
-      crew_size: Number(form.crew_size) || 1,
-      preferred_language: form.preferred_language,
-      bio: form.bio.trim(),
-      category_group: form.category_group,
-      availability_status: form.availability_status,
-      contractor_verified: Boolean(form.contractor_verified),
-      service_tags: form.category_group === 'jobsite_support' ? form.service_tags : [],
-      equipment_tags: form.category_group === 'jobsite_support' ? form.equipment_tags : []
-    }
-
-    const privatePayload = {
-      user_id: user.id,
-      email: form.email.trim(),
-      phone: form.phone.trim(),
-      city: form.city.trim()
-    }
-
-    const [{ error: profileError }, { error: privateError }] = await Promise.all([
-      supabase.from('profiles').upsert(profilePayload),
-      supabase.from('contact_private').upsert(privatePayload)
-    ])
-
-    if (profileError || privateError) {
-      console.error(profileError || privateError)
-      setMsg(copy.saveError)
-      setSaving(false)
-      return
-    }
-
-    setMsg(copy.success)
-    setSaving(false)
-  }
-
-  if (loading) {
-    return (
-      <div className="card rounded-xl">
-        <div className="muted">{copy.loading}</div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="grid" style={{ gap: 18 }}>
-      <div
-        className="card rounded-xl"
-        style={{
-          padding: 24,
-          background: 'linear-gradient(180deg, #fff7cf 0%, #ffffff 100%)'
-        }}
-      >
-        <div className="badge good">{copy.title}</div>
-        <div className="h1" style={{ marginTop: 14 }}>{copy.title}</div>
-        <p className="muted" style={{ marginTop: 8 }}>{copy.intro}</p>
-
-        <div className="grid three" style={{ marginTop: 18 }}>
-          <div className="card-soft" style={{ minHeight: 92 }}>
+    
+      async function shareInvite() {
+        try {
+          if (!inviteLink) throw new Error('Missing invite link')
+          if (navigator.share) {
+            await navigator.share({
+              title: 'Surplox Invite',
+              text: inviteLink,
+              url: inviteLink
+            })
+          } else {
+            await copyInviteLink()
+          }
+        } catch (error) {
+          console.error(error)
+          setCopyStatus(copy.inviteShareError)
+          setTimeout(() => setCopyStatus(''), 2500)
+        }
+      }
+    
+      function textInvite() {
+        try {
+          if (!inviteLink) throw new Error('Missing invite link')
+          window.location.href = `sms:?&body=${encodeURIComponent(inviteLink)}`
+        } catch (error) {
+          console.error(error)
+          setCopyStatus(copy.inviteTextError)
+          setTimeout(() => setCopyStatus(''), 2500)
+        }
+      }
+    
+      function emailInvite() {
+        try {
+          if (!inviteLink) throw new Error('Missing invite link')
+          window.location.href = `mailto:?subject=${encodeURIComponent('Join me on Surplox')}&body=${encodeURIComponent(inviteLink)}`
+        } catch (error) {
+          console.error(error)
+          setCopyStatus(copy.inviteEmailError)
+          setTimeout(() => setCopyStatus(''), 2500)
+        }
+      }
+    
+      function validateForm() {
+        if (!String(form.display_name || '').trim()) {
+          setMsg(copy.displayNameRequired)
+          return false
+        }
+    
+        if (!/^\d{5}$/.test(String(form.home_zip || '').trim())) {
+          setMsg(copy.zipInvalid)
+          return false
+        }
+    
+        if (form.category_group === 'trade' && form.role !== 'supplier' && !String(form.trade_id || '').trim()) {
+          setMsg(copy.tradeRequired)
+          return false
+        }
+    
+        if (String(form.email || '').trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(form.email).trim())) {
+          setMsg(copy.emailInvalid)
+          return false
+        }
+    
+        if (String(form.phone || '').trim()) {
+          const digits = String(form.phone || '').replace(/\D/g, '')
+          if (digits.length < 10) {
+            setMsg(copy.phoneInvalid)
+            return false
+          }
+        }
+    
+        if (!['en', 'es'].includes(form.preferred_language)) {
+          setMsg(copy.languageInvalid)
+          return false
+        }
+    
+        if (!AVAILABILITY_OPTIONS.some((option) => option.value === form.availability_status)) {
+          setMsg(copy.availabilityInvalid)
+          return false
+        }
+    
+        if (!CATEGORY_GROUP_OPTIONS.some((option) => option.value === form.category_group)) {
+          setMsg(copy.categoryInvalid)
+          return false
+        }
+    
+        return true
+      }
+    
+      async function save() {
+        setMsg('')
+        if (!validateForm()) return
+    
+        setSaving(true)
+    
+        const { data: sessionData } = await supabase.auth.getSession()
+        const user = sessionData.session?.user
+    
+        if (!user) {
+          setMsg(copy.signedInRequired)
+          setSaving(false)
+          return
+        }
+    
+        const profilePayload = {
+          user_id: user.id,
+          display_name: form.display_name.trim(),
+          role: form.role,
+          trade_id: form.category_group === 'trade' ? Number(form.trade_id) || null : null,
+          first_name: form.first_name.trim(),
+          last_name: form.last_name.trim(),
+          home_zip: form.home_zip.trim(),
+          travel_radius_miles: Number(form.travel_radius_miles) || 50,
+          crew_size: Number(form.crew_size) || 1,
+          preferred_language: form.preferred_language,
+          bio: form.bio.trim(),
+          category_group: form.category_group,
+          availability_status: form.availability_status,
+          contractor_verified: Boolean(form.contractor_verified),
+          service_tags: form.category_group === 'jobsite_support' ? form.service_tags : [],
+          equipment_tags: form.category_group === 'jobsite_support' ? form.equipment_tags : []
+        }
+    
+        const privatePayload = {
+          user_id: user.id,
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+          city: form.city.trim()
+        }
+    
+        const [{ error: profileError }, { error: privateError }] = await Promise.all([
+          supabase.from('profiles').upsert(profilePayload),
+          supabase.from('contact_private').upsert(privatePayload)
+        ])
+    
+        if (profileError || privateError) {
+          console.error(profileError || privateError)
+          setMsg(copy.saveError)
+          setSaving(false)
+          return
+        }
+    
+        setMsg(copy.success)
+        setSaving(false)
+      }
+    
+      if (loading) {
+        return (
+          <div className="card rounded-xl">
+            <div className="muted">{copy.loading}</div>
+          </div>
+        )
+      }
+    
+      return (
+        <div className="grid" style={{ gap: 18 }}>
+          <div
+            className="card rounded-xl"
+            style={{
+              padding: 24,
+              background: 'linear-gradient(180deg, #fff7cf 0%, #ffffff 100%)'
+            }}
+          >
+            <div className="badge good">{copy.title}</div>
+            <div className="h1" style={{ marginTop: 14 }}>{copy.title}</div>
+            <p className="muted" style={{ marginTop: 8 }}>{copy.intro}</p>
+    
+            <div className="grid three" style={{ marginTop: 18 }}>
+            <div className="card-soft" style={{ minHeight: 92 }}>
             <div className="muted" style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>
               {copy.profileStrength}
             </div>
@@ -799,6 +811,11 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                     </option>
                   ))}
                 </select>
+                {form.role === 'supplier' ? (
+                  <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
+                    {copy.supplierTradeOptional}
+                  </div>
+                ) : null}
               </div>
             ) : (
               <>
@@ -855,10 +872,14 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                 value={form.crew_size}
                 onChange={(e) => setField('crew_size', e.target.value)}
               />
+              {['supplier', 'driver', 'mechanic'].includes(form.role) ? (
+                <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
+                  {copy.supportCrewOptional}
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
-
         <div className="card rounded-xl" style={{ padding: 24 }}>
           <div className="grid" style={{ gap: 14 }}>
             <div>

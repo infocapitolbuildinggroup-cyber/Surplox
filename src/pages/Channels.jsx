@@ -10,20 +10,21 @@ const COPY = {
     discussionBadge: 'Trade Board',
     supportBadge: 'Jobsite Support',
     deliveryBadge: 'Material Delivery / Hot Shot',
+    cargoVanBadge: 'Cargo Van / Local Delivery',
     repairBadge: 'Equipment / Fleet Repair',
     heroBadge: 'Trades + actions',
     heroTitle: 'Move faster through the right channels.',
     heroBody:
-      'Jump directly into labor requests, availability posts, trade discussions, delivery support, or fleet repair activity without digging through the wrong feed.',
+      'Jump directly into labor requests, availability posts, trade discussions, supplier visibility, delivery support, cargo van movement, or fleet repair activity without digging through the wrong feed.',
     stat1: 'Quick post shortcuts',
     stat2: 'Trade-based browsing',
     stat3: 'Cleaner jobsite support discovery',
     title: 'Channels',
     intro:
-      'Browse labor channels, trade boards, and the new Jobsite Support lanes built around real construction operations.',
+      'Browse labor channels, trade boards, supplier visibility lanes, and the new Jobsite Support sections built around real construction operations.',
     quickActions: 'Quick Actions',
     quickActionsIntro:
-      'Start the exact kind of post you need so nearby workers, runners, and repair support can find it faster.',
+      'Start the exact kind of post you need so nearby workers, suppliers, runners, drivers, and repair support can find it faster.',
     needCrewTitle: 'Need a Crew',
     needCrewBody:
       'Post labor demand for nearby crews, workers, and subs. Best for filling manpower needs quickly.',
@@ -36,6 +37,10 @@ const COPY = {
     supportDeliveryBody:
       'Post cargo van, pickup, flatbed, or gooseneck support for local material runs, tool transport, and jobsite deliveries.',
     supportDeliveryButton: 'Create Delivery Support Post',
+    supportCargoVanTitle: 'Cargo Van / Local Delivery',
+    supportCargoVanBody:
+      'Post cargo van support for local runs, last-mile delivery, same-day pickups, tool transport, and lighter material movement between yards, stores, and jobsites.',
+    supportCargoVanButton: 'Create Cargo Van Support Post',
     supportRepairTitle: 'Equipment / Fleet Repair',
     supportRepairBody:
       'Post diesel mechanic, trailer repair, or heavy equipment support for field service and jobsite uptime.',
@@ -45,7 +50,7 @@ const COPY = {
       'Open a trade-specific feed to browse local discussion and labor activity.',
     jobsiteSupportTitle: 'Jobsite Support Boards',
     jobsiteSupportIntro:
-      'Browse support lanes for material movement and fleet or equipment repair around active jobsites.',
+      'Browse support lanes for material movement, cargo van delivery, and fleet or equipment repair around active jobsites.',
     emptyTitle: 'No Channels Found',
     emptyBody: 'No trade boards are available yet.',
     viewPosts: 'Open channel',
@@ -53,6 +58,9 @@ const COPY = {
     materialDeliveryTitle: 'Material Delivery / Hot Shot',
     materialDeliveryBody:
       'Best for cargo vans, pickups, flatbeds, goosenecks, local runs, same-day delivery, and urgent material support.',
+    cargoVanDeliveryTitle: 'Cargo Van / Local Delivery',
+    cargoVanDeliveryBody:
+      'Best for cargo van operators handling local runs, last-mile delivery, same-day pickups, tools, and lighter materials between stores, yards, and jobsites.',
     fleetRepairTitle: 'Equipment / Fleet Repair',
     fleetRepairBody:
       'Best for diesel mechanics, trailer repair, heavy equipment repair, and emergency field support.'
@@ -63,20 +71,21 @@ const COPY = {
     discussionBadge: 'Tablero de oficio',
     supportBadge: 'Soporte de obra',
     deliveryBadge: 'Entrega de materiales / Hot Shot',
+    cargoVanBadge: 'Cargo Van / Entrega local',
     repairBadge: 'Reparación de equipo / flota',
     heroBadge: 'Oficios + acciones',
     heroTitle: 'Muévete más rápido por los canales correctos.',
     heroBody:
-      'Entra directo a solicitudes de mano de obra, publicaciones de disponibilidad, discusiones del oficio, soporte de entrega o actividad de reparación de flota sin perder tiempo en el feed equivocado.',
+      'Entra directo a solicitudes de mano de obra, publicaciones de disponibilidad, discusiones del oficio, visibilidad de proveedores, soporte de entrega, movimiento con cargo van o actividad de reparación de flota sin perder tiempo en el feed equivocado.',
     stat1: 'Atajos para publicar',
     stat2: 'Exploración por oficio',
     stat3: 'Descubrimiento más limpio de soporte de obra',
     title: 'Canales',
     intro:
-      'Explora canales de mano de obra, tableros de oficio y las nuevas secciones de Soporte de obra basadas en operaciones reales de construcción.',
+      'Explora canales de mano de obra, tableros de oficio, visibilidad para proveedores y las nuevas secciones de Soporte de obra basadas en operaciones reales de construcción.',
     quickActions: 'Acciones rápidas',
     quickActionsIntro:
-      'Empieza exactamente el tipo de publicación que necesitas para que trabajadores, runners y soporte de reparación cercanos te encuentren más rápido.',
+      'Empieza exactamente el tipo de publicación que necesitas para que trabajadores, proveedores, runners, conductores y soporte de reparación cercanos te encuentren más rápido.',
     needCrewTitle: 'Necesito cuadrilla',
     needCrewBody:
       'Publica demanda de mano de obra para cuadrillas, trabajadores y subcontratistas cercanos. Ideal para cubrir personal rápido.',
@@ -89,6 +98,10 @@ const COPY = {
     supportDeliveryBody:
       'Publica soporte con cargo van, pickup, flatbed o gooseneck para viajes locales de materiales, transporte de herramientas y entregas en obra.',
     supportDeliveryButton: 'Crear publicación de entrega',
+    supportCargoVanTitle: 'Cargo Van / Entrega local',
+    supportCargoVanBody:
+      'Publica soporte con cargo van para viajes locales, última milla, recogidas el mismo día, transporte de herramientas y movimiento ligero de materiales entre patios, tiendas y obras.',
+    supportCargoVanButton: 'Crear publicación de cargo van',
     supportRepairTitle: 'Reparación de equipo / flota',
     supportRepairBody:
       'Publica soporte de mecánico diésel, reparación de remolques o equipo pesado para servicio de campo y continuidad en obra.',
@@ -98,7 +111,7 @@ const COPY = {
       'Abre un feed específico por oficio para ver discusión local y actividad de mano de obra.',
     jobsiteSupportTitle: 'Tableros de soporte de obra',
     jobsiteSupportIntro:
-      'Explora secciones de soporte para movimiento de materiales y reparación de flota o equipo alrededor de obras activas.',
+      'Explora secciones de soporte para movimiento de materiales, entrega con cargo van y reparación de flota o equipo alrededor de obras activas.',
     emptyTitle: 'No se encontraron canales',
     emptyBody: 'Todavía no hay tableros de oficio disponibles.',
     viewPosts: 'Abrir canal',
@@ -106,6 +119,9 @@ const COPY = {
     materialDeliveryTitle: 'Entrega de materiales / Hot Shot',
     materialDeliveryBody:
       'Ideal para cargo vans, pickups, flatbeds, goosenecks, viajes locales, entregas el mismo día y soporte urgente de materiales.',
+    cargoVanDeliveryTitle: 'Cargo Van / Entrega local',
+    cargoVanDeliveryBody:
+      'Ideal para operadores con cargo van que manejan viajes locales, última milla, recogidas el mismo día, herramientas y materiales ligeros entre tiendas, patios y obras.',
     fleetRepairTitle: 'Reparación de equipo / flota',
     fleetRepairBody:
       'Ideal para mecánicos diésel, reparación de remolques, reparación de equipo pesado y soporte de emergencia en campo.'
@@ -323,6 +339,33 @@ export default function Channels({ lang: langProp = 'en' }) {
 
           <Link
             className="card rounded-xl"
+            to="/new?type=discussion&group=jobsite_support&support=cargo_van_delivery"
+            style={{
+              padding: 22,
+              background: 'linear-gradient(180deg, #eef6ff 0%, #ffffff 100%)'
+            }}
+          >
+            <div className="badge" style={{ background: '#d8ecff', color: '#0d3f73' }}>
+              {copy.cargoVanBadge}
+            </div>
+
+            <div style={{ fontWeight: 900, fontSize: 22, marginTop: 14, lineHeight: 1.15 }}>
+              {copy.supportCargoVanTitle}
+            </div>
+
+            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
+              {copy.supportCargoVanBody}
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <span className="btn small">
+                {copy.supportCargoVanButton}
+              </span>
+            </div>
+          </Link>
+
+          <Link
+            className="card rounded-xl"
             to="/new?type=discussion&group=jobsite_support&support=equipment_fleet_repair"
             style={{
               padding: 22,
@@ -385,6 +428,38 @@ export default function Channels({ lang: langProp = 'en' }) {
 
             <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
               {copy.materialDeliveryBody}
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <span className="btn small">{copy.viewSupportPosts}</span>
+            </div>
+          </Link>
+
+          <Link
+            className="card rounded-xl"
+            to="/feed?category=jobsite_support&support=cargo_van_delivery"
+            style={{
+              padding: 20,
+              background: '#ffffff'
+            }}
+          >
+            <div className="badge" style={{ background: '#d8ecff', color: '#0d3f73' }}>
+              {copy.cargoVanBadge}
+            </div>
+
+            <div
+              style={{
+                fontWeight: 900,
+                fontSize: 20,
+                marginTop: 14,
+                lineHeight: 1.15
+              }}
+            >
+              {copy.cargoVanDeliveryTitle}
+            </div>
+
+            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
+              {copy.cargoVanDeliveryBody}
             </div>
 
             <div style={{ marginTop: 16 }}>

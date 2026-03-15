@@ -21,6 +21,11 @@ const JOBSITE_SUPPORT_OPTIONS = [
     es: 'Entrega de materiales / Hot Shot'
   },
   {
+    value: 'cargo_van_delivery',
+    en: 'Cargo Van / Local Delivery',
+    es: 'Cargo Van / Entrega local'
+  },
+  {
     value: 'equipment_fleet_repair',
     en: 'Equipment / Fleet Repair',
     es: 'Reparación de equipo / flota'
@@ -108,6 +113,17 @@ function getServiceAndEquipmentOptions(jobsiteSupportType) {
     return {
       serviceOptions: MATERIAL_DELIVERY_SERVICE_TAGS,
       equipmentOptions: MATERIAL_DELIVERY_EQUIPMENT_TAGS
+    }
+  }
+
+  if (jobsiteSupportType === 'cargo_van_delivery') {
+    return {
+      serviceOptions: MATERIAL_DELIVERY_SERVICE_TAGS.filter((option) =>
+        ['material_delivery', 'last_mile_delivery', 'local_runs', 'same_day_delivery'].includes(option.value)
+      ),
+      equipmentOptions: MATERIAL_DELIVERY_EQUIPMENT_TAGS.filter((option) =>
+        ['pickup_truck', 'cargo_van'].includes(option.value)
+      )
     }
   }
 
@@ -244,7 +260,10 @@ export default function NewPost({ lang: langProp = 'en' }) {
           prompts.push(userLang === 'es' ? 'Agrega rol principal' : 'Add primary role')
         }
 
-        if (!Number(prof?.crew_size || 0) || Number(prof?.crew_size || 0) <= 1) {
+        if (
+          !['supplier', 'driver', 'mechanic'].includes(String(prof?.role || '')) &&
+          (!Number(prof?.crew_size || 0) || Number(prof?.crew_size || 0) <= 1)
+        ) {
           prompts.push(userLang === 'es' ? 'Agrega tamaño de cuadrilla' : 'Add crew size')
         }
 
@@ -270,7 +289,12 @@ export default function NewPost({ lang: langProp = 'en' }) {
           prof &&
             String(prof.display_name || '').trim() &&
             String(prof.home_zip || '').trim() &&
-            (prof.trade_id || String(prof.bio || '').trim() || Array.isArray(prof?.service_tags))
+            (
+              prof.trade_id ||
+              String(prof.bio || '').trim() ||
+              (Array.isArray(prof?.service_tags) && prof.service_tags.length > 0) ||
+              String(prof.role || '') === 'supplier'
+            )
         )
 
         setProfileReadyForPosting(hasCorePostingProfile)
@@ -411,6 +435,8 @@ export default function NewPost({ lang: langProp = 'en' }) {
           'Ejemplo: Soldador de tubería disponible para trabajo de paro en DFW',
         supportDeliveryTitle:
           'Ejemplo: Cargo van disponible para entregas de materiales y herramientas en DFW',
+        supportCargoVanTitle:
+          'Ejemplo: Cargo van disponible para viajes locales, última milla y recogidas el mismo día en DFW',
         supportRepairTitle:
           'Ejemplo: Reparación de remolque y servicio diésel disponible en obra',
         crewBody:
@@ -475,6 +501,8 @@ export default function NewPost({ lang: langProp = 'en' }) {
       workTitle: 'Example: Pipe welder available for shutdown work in DFW',
       supportDeliveryTitle:
         'Example: Cargo van available for material and tool delivery across DFW',
+      supportCargoVanTitle:
+        'Example: Cargo van available for local runs, last-mile delivery, and same-day pickups in DFW',
       supportRepairTitle:
         'Example: Trailer repair and diesel service available at jobsites',
       workBody:
@@ -524,9 +552,9 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
   function titlePlaceholder() {
     if (form.category_group === 'jobsite_support') {
-      return form.jobsite_support_type === 'material_delivery'
-        ? helperCopy.supportDeliveryTitle
-        : helperCopy.supportRepairTitle
+      if (form.jobsite_support_type === 'material_delivery') return helperCopy.supportDeliveryTitle
+      if (form.jobsite_support_type === 'cargo_van_delivery') return helperCopy.supportCargoVanTitle
+      return helperCopy.supportRepairTitle
     }
     if (form.post_type === 'need_crew') return helperCopy.crewTitle
     if (form.post_type === 'looking_for_work') return helperCopy.workTitle
@@ -535,9 +563,9 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
   function bodyPlaceholder() {
     if (form.category_group === 'jobsite_support') {
-      return form.jobsite_support_type === 'material_delivery'
-        ? helperCopy.deliveryBody
-        : helperCopy.repairBody
+      if (form.jobsite_support_type === 'material_delivery') return helperCopy.deliveryBody
+      if (form.jobsite_support_type === 'cargo_van_delivery') return helperCopy.deliveryBody
+      return helperCopy.repairBody
     }
     if (form.post_type === 'need_crew') return helperCopy.crewBody
     if (form.post_type === 'looking_for_work') return helperCopy.workBody
@@ -546,9 +574,9 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
   function exampleBody() {
     if (form.category_group === 'jobsite_support') {
-      return form.jobsite_support_type === 'material_delivery'
-        ? helperCopy.deliveryBody
-        : helperCopy.repairBody
+      if (form.jobsite_support_type === 'material_delivery') return helperCopy.deliveryBody
+      if (form.jobsite_support_type === 'cargo_van_delivery') return helperCopy.deliveryBody
+      return helperCopy.repairBody
     }
     if (form.post_type === 'need_crew') return helperCopy.crewExample
     if (form.post_type === 'looking_for_work') return helperCopy.workExample
@@ -599,7 +627,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
       if (
         form.category_group === 'jobsite_support' &&
-        !['material_delivery', 'equipment_fleet_repair'].includes(form.jobsite_support_type)
+        !['material_delivery', 'cargo_van_delivery', 'equipment_fleet_repair'].includes(form.jobsite_support_type)
       ) {
         throw new Error(
           lang === 'es'

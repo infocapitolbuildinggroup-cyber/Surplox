@@ -7,7 +7,9 @@ function roleLabel(role) {
     laborer: 'Laborer',
     subcontractor: 'Subcontractor',
     contractor: 'Contractor',
-    supplier: 'Supplier'
+    supplier: 'Supplier',
+    driver: 'Driver',
+    mechanic: 'Mechanic'
   }
   return map[role] || role || 'Member'
 }
@@ -17,6 +19,8 @@ function roleBadgeStyle(role) {
   if (role === 'subcontractor') return { background: '#fff0b4', color: '#111111' }
   if (role === 'laborer') return { background: '#ecebe3', color: '#111111' }
   if (role === 'supplier') return { background: '#f1e7a8', color: '#111111' }
+  if (role === 'driver') return { background: '#d8ecff', color: '#0d3f73' }
+  if (role === 'mechanic') return { background: '#e8defa', color: '#4d2f82' }
   return {}
 }
 
@@ -61,14 +65,21 @@ function detectSupportType(serviceTags = []) {
     'jobsite_service'
   ])
 
-  return serviceTags.some((tag) => repairTags.has(tag))
-    ? 'equipment_fleet_repair'
-    : 'material_delivery'
+  if (serviceTags.some((tag) => repairTags.has(tag))) {
+    return 'equipment_fleet_repair'
+  }
+
+  if (serviceTags.includes('local_runs') || serviceTags.includes('last_mile_delivery')) {
+    return 'cargo_van_delivery'
+  }
+
+  return 'material_delivery'
 }
 
 function supportTypeLabel(value) {
   const map = {
     material_delivery: 'Material Delivery / Hot Shot',
+    cargo_van_delivery: 'Cargo Van / Local Delivery',
     equipment_fleet_repair: 'Equipment / Fleet Repair'
   }
   return map[value] || value
@@ -188,9 +199,10 @@ export default function WorkerProfile() {
           category_group: prof.category_group || 'trade',
           service_tags: serviceTags,
           equipment_tags: equipmentTags,
-          support_type: (prof.category_group || 'trade') === 'jobsite_support'
-            ? detectSupportType(serviceTags)
-            : null
+          support_type:
+            (prof.category_group || 'trade') === 'jobsite_support'
+              ? detectSupportType(serviceTags)
+              : null
         })
 
         const { count: crewsJoinedCount } = await supabase
@@ -250,14 +262,46 @@ export default function WorkerProfile() {
         if (counterpartIds.length > 0) {
           const { data: wp, error: wpErr } = await supabase
             .from('profiles')
-            .select('user_id, display_name, role, is_available, availability_status')
+            .select(`
+              user_id,
+              display_name,
+              role,
+              is_available,
+              availability_status,
+              category_group,
+              service_tags,
+              equipment_tags,
+              trade_id,
+              trades(name)
+            `)
             .in('user_id', counterpartIds)
 
           if (wpErr) throw wpErr
           workedProfiles = wp || []
         }
 
-        const profileMap = new Map(workedProfiles.map((p) => [p.user_id, p]))
+        const profileMap = new Map(
+          workedProfiles.map((p) => {
+            const serviceTags = Array.isArray(p.service_tags) ? p.service_tags : []
+            const equipmentTags = Array.isArray(p.equipment_tags) ? p.equipment_tags : []
+            const categoryGroup = p.category_group || 'trade'
+
+            return [
+              p.user_id,
+              {
+                ...p,
+                category_group: categoryGroup,
+                service_tags: serviceTags,
+                equipment_tags: equipmentTags,
+                trade_name: p.trades?.name || '',
+                support_type:
+                  categoryGroup === 'jobsite_support'
+                    ? detectSupportType(serviceTags)
+                    : null
+              }
+            ]
+          })
+        )
 
         const grouped = counterpartIds.map((counterpartId) => {
           const rels = allRels.filter((rel) => {
@@ -277,7 +321,12 @@ export default function WorkerProfile() {
               display_name: 'Unknown Member',
               role: '',
               is_available: false,
-              availability_status: ''
+              availability_status: '',
+              category_group: 'trade',
+              service_tags: [],
+              equipment_tags: [],
+              trade_name: '',
+              support_type: null
             }),
             connection_count: rels.length,
             latest_type: latest?.relationship_type || '',
@@ -557,7 +606,7 @@ export default function WorkerProfile() {
         </div>
 
         <p className="muted" style={{ marginTop: 10, maxWidth: 760, fontSize: 17, lineHeight: 1.7 }}>
-          A cleaner reputation-first Surplox profile view built for rehiring, crew decisions, material delivery support, and trusted repeat connections.
+          A cleaner reputation-first Surplox profile view built for rehiring, crew decisions, material delivery support, cargo van support, and trusted repeat connections.
         </p>
 
         <div className="grid two" style={{ marginTop: 18 }}>
@@ -720,6 +769,14 @@ export default function WorkerProfile() {
                         </span>
                       ) : null}
 
+                      {person.trade_name ? (
+                        <span className="badge">{person.trade_name}</span>
+                      ) : null}
+
+                      {person.category_group === 'jobsite_support' && person.support_type ? (
+                        <span className="badge">{supportTypeLabel(person.support_type)}</span>
+                      ) : null}
+
                       {person.is_available ? (
                         <span className="badge" style={availabilityBadgeStyle(true)}>
                           {availabilityStatusLabel(person.availability_status)}
@@ -814,4 +871,4 @@ export default function WorkerProfile() {
       </div>
     </div>
   )
-}
+}    

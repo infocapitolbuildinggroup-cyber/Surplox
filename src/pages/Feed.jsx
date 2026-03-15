@@ -22,6 +22,11 @@ const JOBSITE_SUPPORT_OPTIONS = [
     es: 'Entrega de materiales / Hot Shot'
   },
   {
+    value: 'cargo_van_delivery',
+    en: 'Cargo Van / Local Delivery',
+    es: 'Cargo Van / Entrega local'
+  },
+  {
     value: 'equipment_fleet_repair',
     en: 'Equipment / Fleet Repair',
     es: 'Reparación de equipo / flota'
@@ -88,6 +93,7 @@ const COPY = {
     quickWork: 'Looking for Work',
     quickDiscuss: 'Start Discussion',
     quickSupportDelivery: 'Post Delivery Support',
+    quickSupportCargoVan: 'Post Cargo Van Support',
     quickSupportRepair: 'Post Repair Support',
     premiumTitle: 'Premium Surplox Feed',
     premiumBody:
@@ -100,6 +106,7 @@ const COPY = {
     jobsiteSupport: 'Jobsite Support',
     trades: 'Trades',
     materialDelivery: 'Material Delivery / Hot Shot',
+    cargoVanDelivery: 'Cargo Van / Local Delivery',
     fleetRepair: 'Equipment / Fleet Repair'
   },
   es: {
@@ -155,6 +162,7 @@ const COPY = {
     quickWork: 'Buscando trabajo',
     quickDiscuss: 'Iniciar discusión',
     quickSupportDelivery: 'Publicar soporte de entrega',
+    quickSupportCargoVan: 'Publicar soporte Cargo Van',
     quickSupportRepair: 'Publicar soporte de reparación',
     premiumTitle: 'Feed premium de Surplox',
     premiumBody:
@@ -167,6 +175,7 @@ const COPY = {
     jobsiteSupport: 'Soporte de obra',
     trades: 'Oficios',
     materialDelivery: 'Entrega de materiales / Hot Shot',
+    cargoVanDelivery: 'Cargo Van / Entrega local',
     fleetRepair: 'Reparación de equipo / flota'
   }
 }
@@ -219,9 +228,15 @@ function detectSupportType(serviceTags = []) {
     'jobsite_service'
   ])
 
-  return serviceTags.some((tag) => repairTags.has(tag))
-    ? 'equipment_fleet_repair'
-    : 'material_delivery'
+  if (serviceTags.some((tag) => repairTags.has(tag))) {
+    return 'equipment_fleet_repair'
+  }
+
+  if (serviceTags.includes('local_runs') || serviceTags.includes('last_mile_delivery')) {
+    return 'cargo_van_delivery'
+  }
+
+  return 'material_delivery'
 }
 
 function crewStatusLabel(status, lang) {
@@ -272,7 +287,6 @@ function getPostTypeStyles(type, categoryGroup, isUrgent) {
       accent: isUrgent ? '#d4b21f' : '#111111'
     }
   }
-
   if (type === 'need_crew') {
     return {
       shell: {
@@ -312,71 +326,71 @@ function getPostTypeStyles(type, categoryGroup, isUrgent) {
 }
 
 function roleBadgeStyle(role) {
-  if (role === 'contractor') {
-    return {
-      background: '#111111',
-      color: '#ffffff'
-    }
-  }
-
-  if (role === 'subcontractor') {
-    return {
-      background: '#fff0b4',
-      color: '#111111'
-    }
-  }
-
-  if (role === 'laborer') {
-    return {
-      background: '#ecebe3',
-      color: '#111111'
-    }
-  }
-
-  if (role === 'supplier') {
-    return {
-      background: '#f1e7a8',
-      color: '#111111'
-    }
-  }
-
-  if (role === 'driver') {
-    return {
-      background: '#e9f3ff',
-      color: '#111111'
-    }
-  }
-
-  if (role === 'mechanic') {
-    return {
-      background: '#e7f4ef',
-      color: '#111111'
-    }
-  }
-
+  if (role === 'contractor') return { background: '#111111', color: '#ffffff' }
+  if (role === 'subcontractor') return { background: '#fff0b4', color: '#111111' }
+  if (role === 'laborer') return { background: '#ecebe3', color: '#111111' }
+  if (role === 'supplier') return { background: '#f1e7a8', color: '#111111' }
+  if (role === 'driver') return { background: '#d8ecff', color: '#0d3f73' }
+  if (role === 'mechanic') return { background: '#e8defa', color: '#4d2f82' }
   return {}
 }
 
-function tradeBadgeStyle() {
-  return {
-    background: '#f1f1eb',
-    color: '#111111'
-  }
+function availabilityBadgeStyle(isAvailable) {
+  if (!isAvailable) return null
+  return { background: '#dcf4e5', color: '#177245' }
 }
 
-function urgentBadgeStyle() {
-  return {
-    background: '#111111',
-    color: '#ffffff'
+function formatTagLabel(tag) {
+  const map = {
+    material_delivery: 'Material Delivery',
+    hot_shot: 'Hot Shot',
+    last_mile_delivery: 'Last Mile Delivery',
+    local_runs: 'Local Runs',
+    same_day_delivery: 'Same Day Delivery',
+    long_distance: 'Long Distance',
+    pickup_truck: 'Pickup Truck',
+    cargo_van: 'Cargo Van',
+    flatbed_trailer: 'Flatbed Trailer',
+    gooseneck_trailer: 'Gooseneck Trailer',
+    diesel_mechanic: 'Diesel Mechanic',
+    heavy_equipment_repair: 'Heavy Equipment Repair',
+    trailer_repair: 'Trailer Repair',
+    emergency_repair: 'Emergency Repair',
+    jobsite_service: 'Jobsite Service',
+    mobile_repair_truck: 'Mobile Repair Truck',
+    diesel_diagnostics: 'Diesel Diagnostics',
+    trailer_brake_tools: 'Trailer Brake Tools'
   }
+  return map[tag] || tag
+}
+
+function timeAgo(ts, lang = 'en') {
+  const d = new Date(ts)
+  const diff = (Date.now() - d.getTime()) / 1000
+
+  if (lang === 'es') {
+    if (diff < 60) return `hace ${Math.floor(diff)} s`
+    if (diff < 3600) return `hace ${Math.floor(diff / 60)} min`
+    if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`
+    return `hace ${Math.floor(diff / 86400)} d`
+  }
+
+  if (diff < 60) return `${Math.floor(diff)}s ago`
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  return `${Math.floor(diff / 86400)}d ago`
 }
 
 export default function Feed({ lang: langProp = 'en' }) {
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const [lang, setLang] = useState(langProp || localStorage.getItem('surplox_lang') || 'en')
+  const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
-  const [posts, setPosts] = useState([])
-  const [profilesById, setProfilesById] = useState({})
-  const [lang, setLang] = useState(langProp || localStorage.getItem('surplox_lang') || 'en')
+  const [shareMsg, setShareMsg] = useState('')
+
   const [filters, setFilters] = useState({
     postType: 'all',
     posterRole: 'all',
@@ -384,135 +398,122 @@ export default function Feed({ lang: langProp = 'en' }) {
     categoryGroup: 'all',
     supportType: 'all',
     urgency: 'all',
-    search: ''
+    q: ''
   })
 
-  const location = useLocation()
-  const navigate = useNavigate()
   const copy = COPY[lang] || COPY.en
 
   useEffect(() => {
-    const localLang = langProp || localStorage.getItem('surplox_lang') || 'en'
-    setLang(localLang)
+    setLang(langProp || localStorage.getItem('surplox_lang') || 'en')
   }, [langProp])
 
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const category = params.get('category')
     const support = params.get('support')
-    const type = params.get('type')
 
     setFilters((prev) => ({
       ...prev,
-      categoryGroup: category === 'jobsite_support' ? 'jobsite_support' : prev.categoryGroup,
-      supportType: support || prev.supportType,
-      postType: type || prev.postType
+      categoryGroup: category || 'all',
+      supportType: support || 'all'
     }))
   }, [location.search])
 
-  async function loadFeed() {
-    setLoading(true)
-    setMsg('')
-
-    try {
-      const { data: postRows, error: postError } = await supabase
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (postError) throw postError
-
-      const authorIds = Array.from(new Set((postRows || []).map((post) => post.author_id).filter(Boolean)))
-
-      let profileMap = {}
-
-      if (authorIds.length > 0) {
-        const { data: profileRows, error: profileError } = await supabase
-          .from('profiles')
-          .select('user_id, display_name, role, trade_id, category_group, service_tags, equipment_tags, is_available, availability_status')
-          .in('user_id', authorIds)
-
-        if (profileError) throw profileError
-
-        profileMap = (profileRows || []).reduce((acc, profile) => {
-          acc[profile.user_id] = profile
-          return acc
-        }, {})
-      }
-
-      const tradeIds = Array.from(
-        new Set(
-          (postRows || [])
-            .map((post) => post.trade_id)
-            .concat(Object.values(profileMap).map((profile) => profile.trade_id))
-            .filter(Boolean)
-        )
-      )
-
-      let tradeMap = {}
-
-      if (tradeIds.length > 0) {
-        const { data: tradeRows, error: tradeError } = await supabase
-          .from('trades')
-          .select('id,name')
-          .in('id', tradeIds)
-
-        if (tradeError) throw tradeError
-
-        tradeMap = (tradeRows || []).reduce((acc, trade) => {
-          acc[trade.id] = trade.name
-          return acc
-        }, {})
-      }
-
-      const enrichedPosts = (postRows || []).map((post) => {
-        const profile = profileMap[post.author_id] || {}
-        const serviceTags = Array.isArray(post.service_tags) ? post.service_tags : Array.isArray(profile.service_tags) ? profile.service_tags : []
-        const equipmentTags = Array.isArray(post.equipment_tags) ? post.equipment_tags : Array.isArray(profile.equipment_tags) ? profile.equipment_tags : []
-        const supportType =
-          (post.category_group || profile.category_group) === 'jobsite_support'
-            ? detectSupportType(serviceTags)
-            : null
-
-        return {
-          ...post,
-          author_name: profile.display_name || copy.unknownMember,
-          author_role: profile.role || '',
-          author_available: Boolean(profile.is_available),
-          author_availability_status: profile.availability_status || '',
-          trade_name: tradeMap[post.trade_id] || tradeMap[profile.trade_id] || '',
-          category_group: post.category_group || profile.category_group || 'trade',
-          service_tags: serviceTags,
-          equipment_tags: equipmentTags,
-          support_type: supportType,
-          crew_joined_count: Number(post.crew_joined_count || 0),
-          crew_hired_count: Number(post.crew_hired_count || 0)
-        }
-      })
-
-      const sortedPosts = enrichedPosts.sort((a, b) => {
-        const priorityDiff =
-          (POST_TYPE_PRIORITY[a.post_type] ?? 99) - (POST_TYPE_PRIORITY[b.post_type] ?? 99)
-
-        if (priorityDiff !== 0) return priorityDiff
-
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      })
-
-      setProfilesById(profileMap)
-      setPosts(sortedPosts)
-    } catch (error) {
-      console.error(error)
-      setMsg(copy.loadError)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
+    let active = true
+
+    async function loadFeed() {
+      setLoading(true)
+      setMsg('')
+
+      try {
+        const { data, error } = await supabase
+          .from('posts')
+          .select(
+            `
+            *,
+            author:profiles!posts_author_id_fkey(
+              user_id,
+              display_name,
+              role,
+              is_available,
+              availability_status,
+              contractor_verified,
+              category_group,
+              service_tags,
+              equipment_tags,
+              trade_id,
+              home_zip,
+              travel_radius_miles,
+              bio,
+              trades(name)
+            ),
+            trades(name)
+          `
+          )
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+
+        if (!active) return
+
+        const normalized = (data || []).map((row) => {
+          const serviceTags = Array.isArray(row.service_tags) ? row.service_tags : []
+          const equipmentTags = Array.isArray(row.equipment_tags) ? row.equipment_tags : []
+          const categoryGroup = row.category_group || 'trade'
+          const supportType =
+            categoryGroup === 'jobsite_support'
+              ? row.support_type || detectSupportType(serviceTags)
+              : null
+
+          const author = row.author || {}
+          const authorServiceTags = Array.isArray(author.service_tags) ? author.service_tags : []
+          const authorEquipmentTags = Array.isArray(author.equipment_tags) ? author.equipment_tags : []
+          const authorCategoryGroup = author.category_group || 'trade'
+          const authorSupportType =
+            authorCategoryGroup === 'jobsite_support'
+              ? detectSupportType(authorServiceTags)
+              : null
+
+          return {
+            ...row,
+            service_tags: serviceTags,
+            equipment_tags: equipmentTags,
+            category_group: categoryGroup,
+            support_type: supportType,
+            trade_name: row.trades?.name || '',
+            author_name: author.display_name || copy.unknownMember,
+            author_role: author.role || '',
+            author_is_available: Boolean(author.is_available),
+            author_availability_status: author.availability_status || '',
+            author_contractor_verified: Boolean(author.contractor_verified),
+            author_category_group: authorCategoryGroup,
+            author_service_tags: authorServiceTags,
+            author_equipment_tags: authorEquipmentTags,
+            author_support_type: authorSupportType,
+            author_trade_name: author.trades?.name || '',
+            author_home_zip: author.home_zip || '',
+            author_travel_radius_miles: author.travel_radius_miles || 0,
+            author_bio: author.bio || ''
+          }
+        })
+
+        setPosts(normalized)
+      } catch (err) {
+        console.error(err)
+        if (!active) return
+        setMsg(err.message || copy.loadError)
+      } finally {
+        if (!active) return
+        setLoading(false)
+      }
+    }
+
     loadFeed()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    return () => {
+      active = false
+    }
+  }, [copy.loadError, copy.unknownMember])
 
   function setFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }))
@@ -526,192 +527,254 @@ export default function Feed({ lang: langProp = 'en' }) {
       categoryGroup: 'all',
       supportType: 'all',
       urgency: 'all',
-      search: ''
+      q: ''
     })
     navigate('/feed')
   }
 
-  async function sharePost(post) {
-    const url = `${window.location.origin}/p/${post.id}`
-
+  async function sharePost(postId) {
     try {
+      const url = `${window.location.origin}/p/${postId}`
+
       if (navigator.share) {
-        await navigator.share({
-          title: post.title,
-          text: url,
-          url
-        })
+        await navigator.share({ url })
       } else {
         await navigator.clipboard.writeText(url)
-        setMsg(copy.postCopied)
-        setTimeout(() => setMsg(''), 2000)
+        setShareMsg(copy.postCopied)
+        setTimeout(() => setShareMsg(''), 2000)
       }
-    } catch (error) {
-      console.error(error)
-      setMsg(copy.postShareError)
-      setTimeout(() => setMsg(''), 2500)
+    } catch (err) {
+      console.error(err)
+      setShareMsg(copy.postShareError)
+      setTimeout(() => setShareMsg(''), 2000)
     }
   }
 
   const filteredPosts = useMemo(() => {
-    return posts.filter((post) => {
-      if (filters.postType !== 'all' && post.post_type !== filters.postType) return false
-      if (filters.posterRole !== 'all' && post.author_role !== filters.posterRole) return false
-      if (filters.crewStatus !== 'all' && (post.crew_status || 'open') !== filters.crewStatus) return false
-      if (filters.categoryGroup !== 'all' && post.category_group !== filters.categoryGroup) return false
-      if (filters.supportType !== 'all' && post.support_type !== filters.supportType) return false
-      if (filters.urgency === 'urgent' && !post.is_urgent) return false
+    const q = String(filters.q || '').trim().toLowerCase()
 
-      const query = String(filters.search || '').trim().toLowerCase()
-      if (!query) return true
+    return posts
+      .filter((post) => {
+        if (filters.postType !== 'all' && post.post_type !== filters.postType) return false
+        if (filters.posterRole !== 'all' && post.author_role !== filters.posterRole) return false
+        if (filters.crewStatus !== 'all' && (post.crew_status || 'open') !== filters.crewStatus) return false
+        if (filters.categoryGroup !== 'all' && post.category_group !== filters.categoryGroup) return false
+        if (filters.supportType !== 'all' && post.support_type !== filters.supportType) return false
+        if (filters.urgency === 'urgent' && !post.is_urgent) return false
 
-      const haystack = [
-        post.title,
-        post.body,
-        post.trade_name,
-        post.author_name,
-        post.author_role,
-        post.center_zip,
-        ...(post.service_tags || []),
-        ...(post.equipment_tags || [])
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
+        if (q) {
+          const haystack = [
+            post.title,
+            post.body,
+            post.trade_name,
+            post.author_name,
+            post.author_role,
+            post.center_zip,
+            ...(post.service_tags || []),
+            ...(post.equipment_tags || [])
+          ]
+            .join(' ')
+            .toLowerCase()
 
-      return haystack.includes(query)
-    })
+          if (!haystack.includes(q)) return false
+        }
+
+        return true
+      })
+      .sort((a, b) => {
+        if (a.is_urgent !== b.is_urgent) return a.is_urgent ? -1 : 1
+        const typeDiff = (POST_TYPE_PRIORITY[a.post_type] ?? 99) - (POST_TYPE_PRIORITY[b.post_type] ?? 99)
+        if (typeDiff !== 0) return typeDiff
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      })
   }, [posts, filters])
+  const totalPosts = posts.length
+  const visiblePosts = filteredPosts.length
 
   if (loading) {
-    return (
-      <div className="card rounded-xl">
-        <div className="muted">Loading your feed…</div>
-      </div>
-    )
+    return <div className="card">Loading feed…</div>
   }
 
   return (
-    <div className="grid" style={{ gap: 18 }}>
+    <div className="grid" style={{ gap: 22 }}>
+      {msg && (
+        <div className="card-message" style={{ padding: 14 }}>
+          {msg}
+        </div>
+      )}
+
+      {shareMsg && (
+        <div className="card-message" style={{ padding: 14 }}>
+          {shareMsg}
+        </div>
+      )}
+
+      {/* HERO */}
+
       <div
         className="card rounded-xl"
         style={{
-          padding: 24,
-          background: 'linear-gradient(180deg, #fff7cf 0%, #ffffff 100%)'
+          padding: 28,
+          background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
         }}
       >
-        <div className="badge good">{copy.heroBadge}</div>
-        <div className="h1" style={{ marginTop: 14 }}>{copy.heroTitle}</div>
-        <p className="muted" style={{ marginTop: 8 }}>{copy.heroBody}</p>
+        <div className="badge" style={{ marginBottom: 12 }}>
+          {copy.heroBadge}
+        </div>
 
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
+        <div className="h1">{copy.heroTitle}</div>
+
+        <p
+          className="muted"
+          style={{
+            marginTop: 12,
+            maxWidth: 920,
+            fontSize: 17,
+            lineHeight: 1.7
+          }}
+        >
+          {copy.heroBody}
+        </p>
+
+        <div
+          style={{
+            marginTop: 18,
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 10
+          }}
+        >
           <Link className="btn primary" to="/new?type=need_crew">
             {copy.quickNeedCrew}
           </Link>
+
           <Link className="btn" to="/new?type=looking_for_work">
             {copy.quickWork}
           </Link>
+
           <Link className="btn" to="/new?type=discussion">
             {copy.quickDiscuss}
           </Link>
-          <Link className="btn" to="/new?category=jobsite_support&support=material_delivery">
+
+          <Link
+            className="btn"
+            to="/new?category=jobsite_support&support=material_delivery"
+          >
             {copy.quickSupportDelivery}
           </Link>
-          <Link className="btn" to="/new?category=jobsite_support&support=equipment_fleet_repair">
+
+          <Link
+            className="btn"
+            to="/new?category=jobsite_support&support=cargo_van_delivery"
+          >
+            {copy.quickSupportCargoVan}
+          </Link>
+
+          <Link
+            className="btn"
+            to="/new?category=jobsite_support&support=equipment_fleet_repair"
+          >
             {copy.quickSupportRepair}
           </Link>
         </div>
       </div>
 
-      {msg ? (
-        <div className="card rounded-xl" style={{ padding: 18 }}>
-          {msg}
-        </div>
-      ) : null}
+      {/* FILTERS */}
 
-      <div className="card rounded-xl" style={{ padding: 24 }}>
+      <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{copy.filtersTitle}</div>
-        <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.filtersIntro}</p>
 
-        <div className="grid two" style={{ marginTop: 16 }}>
+        <p className="muted" style={{ marginTop: 8 }}>
+          {copy.filtersIntro}
+        </p>
+
+        <div
+          style={{
+            marginTop: 16,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))',
+            gap: 12
+          }}
+        >
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{copy.postType}</div>
+            <div className="muted">{copy.postType}</div>
             <select
               className="input"
               value={filters.postType}
               onChange={(e) => setFilter('postType', e.target.value)}
             >
               <option value="all">{copy.allPostTypes}</option>
-              <option value="need_crew">{postTypeLabel('need_crew', lang)}</option>
-              <option value="looking_for_work">{postTypeLabel('looking_for_work', lang)}</option>
-              <option value="discussion">{postTypeLabel('discussion', lang)}</option>
+              <option value="need_crew">Need Crew</option>
+              <option value="looking_for_work">Looking for Work</option>
+              <option value="discussion">Discussion</option>
             </select>
           </div>
 
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{copy.posterRole}</div>
+            <div className="muted">{copy.posterRole}</div>
             <select
               className="input"
               value={filters.posterRole}
               onChange={(e) => setFilter('posterRole', e.target.value)}
             >
               <option value="all">{copy.allRoles}</option>
-              <option value="laborer">{roleLabel('laborer', lang)}</option>
-              <option value="subcontractor">{roleLabel('subcontractor', lang)}</option>
-              <option value="contractor">{roleLabel('contractor', lang)}</option>
-              <option value="supplier">{roleLabel('supplier', lang)}</option>
-              <option value="driver">{roleLabel('driver', lang)}</option>
-              <option value="mechanic">{roleLabel('mechanic', lang)}</option>
+              <option value="contractor">Contractor</option>
+              <option value="subcontractor">Subcontractor</option>
+              <option value="laborer">Laborer</option>
+              <option value="supplier">Supplier</option>
+              <option value="driver">Driver</option>
+              <option value="mechanic">Mechanic</option>
             </select>
           </div>
 
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{copy.crewStatus}</div>
+            <div className="muted">{copy.crewStatus}</div>
             <select
               className="input"
               value={filters.crewStatus}
               onChange={(e) => setFilter('crewStatus', e.target.value)}
             >
               <option value="all">{copy.allStatuses}</option>
-              <option value="open">{crewStatusLabel('open', lang)}</option>
-              <option value="full">{crewStatusLabel('full', lang)}</option>
-              <option value="closed">{crewStatusLabel('closed', lang)}</option>
+              <option value="open">Open</option>
+              <option value="full">Full</option>
+              <option value="closed">Closed</option>
             </select>
           </div>
 
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{copy.categoryGroup}</div>
+            <div className="muted">{copy.categoryGroup}</div>
             <select
               className="input"
               value={filters.categoryGroup}
               onChange={(e) => setFilter('categoryGroup', e.target.value)}
             >
-              {CATEGORY_GROUP_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {categoryGroupLabel(option.value, lang)}
+              {CATEGORY_GROUP_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {lang === 'es' ? opt.es : opt.en}
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{copy.supportType}</div>
+            <div className="muted">{copy.supportType}</div>
             <select
               className="input"
               value={filters.supportType}
               onChange={(e) => setFilter('supportType', e.target.value)}
             >
               <option value="all">{copy.allSupportTypes}</option>
-              {JOBSITE_SUPPORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {supportTypeLabel(option.value, lang)}
+
+              {JOBSITE_SUPPORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {lang === 'es' ? opt.es : opt.en}
                 </option>
               ))}
             </select>
           </div>
 
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{copy.urgency}</div>
+            <div className="muted">{copy.urgency}</div>
             <select
               className="input"
               value={filters.urgency}
@@ -721,254 +784,278 @@ export default function Feed({ lang: langProp = 'en' }) {
               <option value="urgent">{copy.urgentOnly}</option>
             </select>
           </div>
+
+          <div>
+            <div className="muted">{copy.search}</div>
+            <input
+              className="input"
+              placeholder={copy.searchPlaceholder}
+              value={filters.q}
+              onChange={(e) => setFilter('q', e.target.value)}
+            />
+          </div>
         </div>
 
-        <div style={{ marginTop: 16 }}>
-          <div className="muted" style={{ marginBottom: 6 }}>{copy.search}</div>
-          <input
-            className="input"
-            value={filters.search}
-            onChange={(e) => setFilter('search', e.target.value)}
-            placeholder={copy.searchPlaceholder}
-          />
-        </div>
-
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
-          <button type="button" className="btn" onClick={clearFilters}>
+        <div style={{ marginTop: 14 }}>
+          <button className="btn small" onClick={clearFilters}>
             {copy.clearFilters}
           </button>
-          <span className="badge">
-            {copy.showing} {filteredPosts.length} {copy.of} {posts.length}
-          </span>
+        </div>
+
+        <div className="muted" style={{ marginTop: 10 }}>
+          {copy.showing} {visiblePosts} {copy.of} {totalPosts}
         </div>
       </div>
 
-      {filteredPosts.length === 0 ? (
+      {/* EMPTY STATE */}
+
+      {visiblePosts === 0 && (
         <div className="card rounded-xl" style={{ padding: 24 }}>
-          <div className="card-section-title">{copy.welcomeTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.noMatchBody}</p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
-            <button type="button" className="btn" onClick={clearFilters}>
+          <div className="h3">{copy.emptyBetter}</div>
+          <p className="muted" style={{ marginTop: 8 }}>
+            {copy.noMatchBody}
+          </p>
+
+          <div style={{ marginTop: 14 }}>
+            <button className="btn small" onClick={clearFilters}>
               {copy.resetFilters}
             </button>
-            <Link className="btn primary" to="/new">
-              {copy.welcomeCta}
-            </Link>
           </div>
         </div>
-      ) : (
-        <div className="grid" style={{ gap: 16 }}>
-          {filteredPosts.map((p) => {
-            const typeStyles = getPostTypeStyles(p.post_type || 'discussion', p.category_group, p.is_urgent)
-            const isOpportunity =
-              p.post_type === 'need_crew' || p.post_type === 'looking_for_work'
-            const isSupport = p.category_group === 'jobsite_support'
+      )}
+            {/* POSTS */}
+
+            {visiblePosts > 0 && (
+        <div className="list">
+          {filteredPosts.map((post) => {
+            const styles = getPostTypeStyles(
+              post.post_type,
+              post.category_group,
+              post.is_urgent
+            )
 
             return (
               <div
-                key={p.id}
+                key={post.id}
                 className="card rounded-xl"
-                style={{
-                  ...typeStyles.shell,
-                  padding: 0,
-                  overflow: 'hidden'
-                }}
+                style={{ ...styles.shell, padding: 22 }}
               >
-                <div
-                  style={{
-                    height: 6,
-                    background: typeStyles.accent
-                  }}
-                />
+                <div className="postMeta" style={{ marginBottom: 10 }}>
+                  <span className="badge" style={styles.badge}>
+                    {postTypeLabel(post.post_type, lang)}
+                  </span>
 
-                <div style={{ padding: 22 }}>
-                  <div className="postMeta" style={{ marginBottom: 10 }}>
-                    <span className="badge" style={typeStyles.badge}>
-                      {postTypeLabel(p.post_type || 'discussion', lang)}
-                    </span>
+                  <span className="badge">
+                    {post.category_group === 'jobsite_support'
+                      ? copy.jobsiteSupport
+                      : copy.trades}
+                  </span>
 
-                    <span className="badge" style={tradeBadgeStyle()}>
-                      {p.category_group === 'jobsite_support'
-                        ? copy.jobsiteSupport
-                        : copy.trades}
-                    </span>
-
-                    {p.trade_name ? (
-                      <span className="badge" style={tradeBadgeStyle()}>
-                        {p.trade_name}
-                      </span>
-                    ) : null}
-
-                    {isSupport ? (
-                      <span className="badge" style={tradeBadgeStyle()}>
-                        {supportTypeLabel(p.support_type, lang)}
-                      </span>
-                    ) : null}
-
-                    {p.center_zip ? (
+                  {post.category_group === 'jobsite_support' &&
+                    post.support_type && (
                       <span className="badge">
-                        {copy.zip} {p.center_zip}
+                        {supportTypeLabel(post.support_type, lang)}
                       </span>
-                    ) : null}
+                    )}
 
-                    <span className="badge">
-                      {p.radius_miles} {copy.radius}
+                  {post.trade_name && (
+                    <span className="badge">{post.trade_name}</span>
+                  )}
+
+                  {post.is_urgent && (
+                    <span
+                      className="badge"
+                      style={{ background: '#ffde59', color: '#111111' }}
+                    >
+                      {copy.urgent}
                     </span>
+                  )}
 
-                    {p.author_role ? (
-                      <span className="badge" style={roleBadgeStyle(p.author_role)}>
-                        {roleLabel(p.author_role, lang)}
-                      </span>
-                    ) : null}
+                  <span className="badge">
+                    {timeAgo(post.created_at, lang)}
+                  </span>
+                </div>
 
-                    {p.author_available ? (
-                      <span className="badge" style={{ background: '#dcf4e5', color: '#177245' }}>
-                        {p.author_availability_status
-                          ? availabilityStatusLabel(p.author_availability_status, lang)
-                          : copy.available}
-                      </span>
-                    ) : null}
+                <div className="h2">{post.title}</div>
 
-                    {p.is_urgent ? (
-                      <span className="badge" style={urgentBadgeStyle()}>
-                        ⚡ {copy.urgent}
-                      </span>
-                    ) : null}
-
-                    {p.post_type === 'need_crew' ? (
-                      <span className="badge" style={crewStatusBadgeStyle(p.crew_status || 'open')}>
-                        {crewStatusLabel(p.crew_status || 'open', lang)}
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <Link
-                    to={`/p/${p.id}`}
-                    className="postTitle"
-                    style={{
-                      display: 'block',
-                      fontSize: 24,
-                      letterSpacing: '-0.03em',
-                      lineHeight: 1.12
-                    }}
-                  >
-                    {p.title}
-                  </Link>
-
+                {post.body && (
                   <div
                     style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      gap: 12,
-                      flexWrap: 'wrap',
-                      alignItems: 'center',
-                      marginTop: 10
+                      marginTop: 10,
+                      lineHeight: 1.7,
+                      fontSize: 15
                     }}
                   >
-                    <div className="postMeta">
-                      <Link to={`/u/${p.author_id}`} style={{ fontWeight: 800, color: 'var(--text)' }}>
-                        {p.author_name}
-                      </Link>
-                      <span>•</span>
-                      <span>
-                        {p.created_at ? new Date(p.created_at).toLocaleString() : copy.unknownDate}
-                      </span>
-                    </div>
+                    {post.body}
+                  </div>
+                )}
 
-                    <button className="btn small" onClick={() => sharePost(p)}>
-                      {copy.sharePost}
-                    </button>
+                <div
+                  style={{
+                    marginTop: 14,
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 8
+                  }}
+                >
+                  {post.center_zip && (
+                    <span className="badge">
+                      {copy.zip}: {post.center_zip}
+                    </span>
+                  )}
+
+                  {post.start_date && (
+                    <span className="badge">
+                      {copy.start}:{' '}
+                      {new Date(post.start_date).toLocaleDateString()}
+                    </span>
+                  )}
+
+                  {post.compensation && (
+                    <span className="badge">
+                      {copy.pay}: {post.compensation}
+                    </span>
+                  )}
+
+                  {post.author_is_available && (
+                    <span
+                      className="badge"
+                      style={availabilityBadgeStyle(true)}
+                    >
+                      {availabilityStatusLabel(
+                        post.author_availability_status,
+                        lang
+                      )}
+                    </span>
+                  )}
+                </div>
+
+                {/* CREW STATS */}
+
+                {post.post_type === 'need_crew' && (
+                  <div
+                    style={{
+                      marginTop: 12,
+                      display: 'flex',
+                      gap: 8,
+                      flexWrap: 'wrap'
+                    }}
+                  >
+                    <span className="badge">
+                      {copy.crewNeeded}: {post.needed_count || 0}
+                    </span>
+
+                    <span className="badge">
+                      {copy.filled}: {post.filled_count || 0}
+                    </span>
+
+                    <span className="badge">
+                      {copy.hired}: {post.hired_count || 0}
+                    </span>
+
+                    <span
+                      className="badge"
+                      style={crewStatusBadgeStyle(post.crew_status)}
+                    >
+                      {crewStatusLabel(post.crew_status, lang)}
+                    </span>
+                  </div>
+                )}
+
+                {/* SERVICE TAGS */}
+
+                {post.service_tags?.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <div className="muted">{copy.serviceTags}</div>
+
+                    <div
+                      style={{
+                        marginTop: 6,
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 6
+                      }}
+                    >
+                      {post.service_tags.map((tag) => (
+                        <span
+                          key={`${post.id}-service-${tag}`}
+                          className="badge"
+                        >
+                          {formatTagLabel(tag)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* EQUIPMENT TAGS */}
+
+                {post.equipment_tags?.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <div className="muted">{copy.equipmentTags}</div>
+
+                    <div
+                      style={{
+                        marginTop: 6,
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 6
+                      }}
+                    >
+                      {post.equipment_tags.map((tag) => (
+                        <span
+                          key={`${post.id}-equip-${tag}`}
+                          className="badge"
+                        >
+                          {formatTagLabel(tag)}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* AUTHOR */}
+
+                <div
+                  style={{
+                    marginTop: 16,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 10
+                  }}
+                >
+                  <div className="postMeta">
+                    {post.author_role && (
+                      <span
+                        className="badge"
+                        style={roleBadgeStyle(post.author_role)}
+                      >
+                        {roleLabel(post.author_role, lang)}
+                      </span>
+                    )}
+
+                    <span className="badge">{post.author_name}</span>
                   </div>
 
-                  {isOpportunity ? (
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: 8,
-                        flexWrap: 'wrap',
-                        marginTop: 14
-                      }}
-                    >
-                      {p.post_type === 'need_crew' && p.needed_crew_size ? (
-                        <>
-                          <span className="badge">
-                            {copy.crewNeeded}: {p.needed_crew_size}
-                          </span>
-                          <span className="badge">
-                            {copy.filled}: {p.crew_joined_count || 0}/{p.needed_crew_size}
-                          </span>
-                          <span className="badge">
-                            {copy.hired}: {p.crew_hired_count || 0}
-                          </span>
-                        </>
-                      ) : null}
-
-                      {p.compensation ? (
-                        <span className="badge">
-                          {copy.pay}: {p.compensation}
-                        </span>
-                      ) : null}
-
-                      {p.start_date ? (
-                        <span className="badge">
-                          {copy.start}: {new Date(p.start_date).toLocaleDateString()}
-                        </span>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {isSupport && (p.service_tags?.length > 0 || p.equipment_tags?.length > 0) ? (
-                    <div style={{ marginTop: 14 }}>
-                      {p.service_tags?.length > 0 ? (
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
-                          <span className="badge" style={{ background: '#111111', color: '#ffffff' }}>
-                            {copy.serviceTags}
-                          </span>
-                          {p.service_tags.map((tag) => (
-                            <span key={`${p.id}-service-${tag}`} className="badge">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
-
-                      {p.equipment_tags?.length > 0 ? (
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          <span className="badge" style={{ background: '#f1e7a8', color: '#111111' }}>
-                            {copy.equipmentTags}
-                          </span>
-                          {p.equipment_tags.map((tag) => (
-                            <span key={`${p.id}-equip-${tag}`} className="badge">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {p.body ? (
-                    <div
-                      className="postExcerpt"
-                      style={{
-                        marginTop: 14,
-                        fontSize: 15,
-                        lineHeight: 1.7,
-                        maxWidth: 920
-                      }}
-                    >
-                      {p.body.slice(0, 220)}
-                      {p.body.length > 220 ? '…' : ''}
-                    </div>
-                  ) : null}
-
-                  <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    <Link className="btn primary" to={`/p/${p.id}`}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <Link className="btn small primary" to={`/p/${post.id}`}>
                       {copy.openPost}
                     </Link>
-                    <Link className="btn" to={`/u/${p.author_id}`}>
+
+                    <Link
+                      className="btn small"
+                      to={`/u/${post.author_id}`}
+                    >
                       {copy.viewProfile}
                     </Link>
+
+                    <button
+                      className="btn small"
+                      onClick={() => sharePost(post.id)}
+                    >
+                      {copy.sharePost}
+                    </button>
                   </div>
                 </div>
               </div>

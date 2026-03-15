@@ -6,7 +6,38 @@ const ROLE_OPTIONS = [
   { value: 'laborer', label: { en: 'Laborer', es: 'Trabajador' } },
   { value: 'subcontractor', label: { en: 'Subcontractor', es: 'Subcontratista' } },
   { value: 'contractor', label: { en: 'Contractor', es: 'Contratista' } },
-  { value: 'supplier', label: { en: 'Supplier', es: 'Proveedor' } }
+  { value: 'supplier', label: { en: 'Supplier', es: 'Proveedor' } },
+  { value: 'driver', label: { en: 'Driver', es: 'Conductor' } },
+  { value: 'mechanic', label: { en: 'Mechanic', es: 'Mecánico' } }
+]
+
+const CATEGORY_GROUP_OPTIONS = [
+  { value: 'trade', label: { en: 'Trades', es: 'Oficios' } },
+  { value: 'jobsite_support', label: { en: 'Jobsite Support', es: 'Soporte de obra' } }
+]
+
+const JOBSITE_SUPPORT_OPTIONS = [
+  {
+    value: 'material_delivery',
+    label: { en: 'Material Delivery / Hot Shot', es: 'Entrega de materiales / Hot Shot' },
+    role: 'driver',
+    service_tags: ['material_delivery', 'hot_shot'],
+    equipment_tags: ['pickup_truck']
+  },
+  {
+    value: 'cargo_van_delivery',
+    label: { en: 'Cargo Van / Local Delivery', es: 'Cargo Van / Entrega local' },
+    role: 'driver',
+    service_tags: ['material_delivery', 'last_mile_delivery', 'local_runs'],
+    equipment_tags: ['cargo_van']
+  },
+  {
+    value: 'equipment_fleet_repair',
+    label: { en: 'Equipment / Fleet Repair', es: 'Reparación de equipo / flota' },
+    role: 'mechanic',
+    service_tags: ['diesel_mechanic', 'jobsite_service'],
+    equipment_tags: ['mobile_repair_truck']
+  }
 ]
 
 const COPY = {
@@ -52,7 +83,18 @@ const COPY = {
       'You are already in Surplox. Finish the rest of your profile to carry more weight with nearby workers, crews, and contractors.',
     stat1: 'Display name + trade + ZIP',
     stat2: 'Everything else can be completed now',
-    stat3: 'Stronger profile = more trust'
+    stat3: 'Stronger profile = more trust',
+    categoryGroup: 'Category Group',
+    supportType: 'Jobsite Support Type',
+    selectSupportType: 'Select a support type',
+    supportIntro:
+      'Use Jobsite Support for material delivery, cargo van delivery, hot shot, fleet repair, and equipment repair profiles.',
+    supplierTradeOptional:
+      'Supplier accounts can leave trade blank and use bio, city, and contact details to explain what they supply.',
+    supportTradeOptional:
+      'Jobsite support accounts do not need a trade selected here.',
+    supportCrewOptional:
+      'Crew size is optional for supplier, driver, and mechanic accounts.'
   },
   es: {
     loading: 'Cargando configuración de cuenta…',
@@ -96,7 +138,18 @@ const COPY = {
       'Ya estás dentro de Surplox. Termina el resto de tu perfil para tener más peso con trabajadores, cuadrillas y contratistas cercanos.',
     stat1: 'Nombre visible + oficio + ZIP',
     stat2: 'Todo lo demás se puede completar ahora',
-    stat3: 'Perfil más fuerte = más confianza'
+    stat3: 'Perfil más fuerte = más confianza',
+    categoryGroup: 'Grupo de categoría',
+    supportType: 'Tipo de soporte de obra',
+    selectSupportType: 'Selecciona un tipo de soporte',
+    supportIntro:
+      'Usa Soporte de obra para entrega de materiales, cargo van, hot shot, reparación de flota y reparación de equipo.',
+    supplierTradeOptional:
+      'Las cuentas de proveedor pueden dejar el oficio en blanco y usar biografía, ciudad y contacto para explicar lo que suministran.',
+    supportTradeOptional:
+      'Las cuentas de soporte de obra no necesitan seleccionar un oficio aquí.',
+    supportCrewOptional:
+      'El tamaño de cuadrilla es opcional para cuentas de proveedor, conductor y mecánico.'
   }
 }
 
@@ -106,6 +159,30 @@ function MiniTile({ value }) {
       <div style={{ fontWeight: 800, fontSize: 16, lineHeight: 1.35 }}>{value}</div>
     </div>
   )
+}
+
+function labelForOption(option, lang = 'en') {
+  return option.label?.[lang] || option.label?.en || option.value
+}
+
+function detectSupportType(serviceTags = []) {
+  const repairTags = new Set([
+    'diesel_mechanic',
+    'heavy_equipment_repair',
+    'trailer_repair',
+    'emergency_repair',
+    'jobsite_service'
+  ])
+
+  if (serviceTags.some((tag) => repairTags.has(tag))) {
+    return 'equipment_fleet_repair'
+  }
+
+  if (serviceTags.includes('local_runs') || serviceTags.includes('last_mile_delivery')) {
+    return 'cargo_van_delivery'
+  }
+
+  return 'material_delivery'
 }
 
 export default function Onboarding({ lang = 'en', setLang }) {
@@ -128,7 +205,9 @@ export default function Onboarding({ lang = 'en', setLang }) {
     phone: '',
     city: '',
     email: '',
-    preferred_language: lang || 'en'
+    preferred_language: lang || 'en',
+    category_group: 'trade',
+    jobsite_support_type: 'material_delivery'
   })
 
   const copy = COPY[form.preferred_language] || COPY.en
@@ -157,6 +236,12 @@ export default function Onboarding({ lang = 'en', setLang }) {
     return option.label[form.preferred_language] || option.label.en
   }
 
+  const selectedSupportConfig = useMemo(() => {
+    return (
+      JOBSITE_SUPPORT_OPTIONS.find((option) => option.value === form.jobsite_support_type) ||
+      JOBSITE_SUPPORT_OPTIONS[0]
+    )
+  }, [form.jobsite_support_type])
   useEffect(() => {
     async function load() {
       setLoading(true)
@@ -193,6 +278,11 @@ export default function Onboarding({ lang = 'en', setLang }) {
       const preferredLanguage =
         prof?.preferred_language || localStorage.getItem('surplox_lang') || lang || 'en'
 
+      const categoryGroup = prof?.category_group || 'trade'
+      const serviceTags = Array.isArray(prof?.service_tags) ? prof.service_tags : []
+      const supportType =
+        categoryGroup === 'jobsite_support' ? detectSupportType(serviceTags) : 'material_delivery'
+
       setForm({
         display_name: prof?.display_name || '',
         first_name: prof?.first_name || '',
@@ -206,7 +296,9 @@ export default function Onboarding({ lang = 'en', setLang }) {
         phone: cp?.phone || '',
         city: cp?.city || '',
         email: cp?.email || user.email || '',
-        preferred_language: preferredLanguage
+        preferred_language: preferredLanguage,
+        category_group: categoryGroup,
+        jobsite_support_type: supportType
       })
 
       if (typeof setLang === 'function') {
@@ -229,8 +321,12 @@ export default function Onboarding({ lang = 'en', setLang }) {
 
       if (!user) throw new Error(copy.errSignedIn)
       if (!form.display_name.trim()) throw new Error(copy.errDisplayName)
-      if (!form.trade_id) throw new Error(copy.errTrade)
       if (!/^[0-9]{5}$/.test(form.home_zip)) throw new Error(copy.errZip)
+
+      const roleRequiresTrade =
+        form.category_group === 'trade' && form.role !== 'supplier'
+
+      if (roleRequiresTrade && !form.trade_id) throw new Error(copy.errTrade)
 
       const phoneDigits = normalizePhone(form.phone)
       if (form.phone.trim() && phoneDigits.length < 10) throw new Error(copy.errPhone)
@@ -247,12 +343,27 @@ export default function Onboarding({ lang = 'en', setLang }) {
           display_name: displayName,
           first_name: firstName,
           last_name: form.last_name.trim(),
-          role: form.role || 'laborer',
-          trade_id: Number(form.trade_id),
+          role:
+            form.category_group === 'jobsite_support'
+              ? selectedSupportConfig.role
+              : form.role || 'laborer',
+          trade_id:
+            form.category_group === 'trade' && form.trade_id
+              ? Number(form.trade_id)
+              : null,
           travel_radius_miles: Number(form.travel_radius_miles || 50),
           crew_size: Number(form.crew_size || 1),
           bio: form.bio.trim(),
-          preferred_language: form.preferred_language
+          preferred_language: form.preferred_language,
+          category_group: form.category_group,
+          service_tags:
+            form.category_group === 'jobsite_support'
+              ? selectedSupportConfig.service_tags
+              : [],
+          equipment_tags:
+            form.category_group === 'jobsite_support'
+              ? selectedSupportConfig.equipment_tags
+              : []
         })
 
       if (profErr) throw profErr
@@ -363,6 +474,7 @@ export default function Onboarding({ lang = 'en', setLang }) {
               className="input"
               value={form.role}
               onChange={(e) => setField('role', e.target.value)}
+              disabled={form.category_group === 'jobsite_support'}
             >
               {ROLE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -373,22 +485,54 @@ export default function Onboarding({ lang = 'en', setLang }) {
           </div>
 
           <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{copy.trade}</div>
+            <div className="muted" style={{ marginBottom: 6 }}>{copy.categoryGroup}</div>
             <select
               className="input"
-              value={form.trade_id}
-              onChange={(e) => setField('trade_id', e.target.value)}
+              value={form.category_group}
+              onChange={(e) => setField('category_group', e.target.value)}
             >
-              <option value="">{copy.selectTrade}</option>
-              {trades.map((trade) => (
-                <option key={trade.id} value={trade.id}>
-                  {trade.name}
+              {CATEGORY_GROUP_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {labelForOption(option, form.preferred_language)}
                 </option>
               ))}
             </select>
           </div>
 
-          <div>
+          {form.category_group === 'jobsite_support' ? (
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.supportType}</div>
+              <select
+                className="input"
+                value={form.jobsite_support_type}
+                onChange={(e) => setField('jobsite_support_type', e.target.value)}
+              >
+                <option value="">{copy.selectSupportType}</option>
+                {JOBSITE_SUPPORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {labelForOption(option, form.preferred_language)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.trade}</div>
+              <select
+                className="input"
+                value={form.trade_id}
+                onChange={(e) => setField('trade_id', e.target.value)}
+              >
+                <option value="">{copy.selectTrade}</option>
+                {trades.map((trade) => (
+                  <option key={trade.id} value={trade.id}>
+                    {trade.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+                    <div>
             <div className="muted" style={{ marginBottom: 6 }}>{copy.homeZip}</div>
             <input
               className="input"
@@ -461,6 +605,12 @@ export default function Onboarding({ lang = 'en', setLang }) {
               value={form.crew_size}
               onChange={(e) => setField('crew_size', e.target.value)}
             />
+            {['supplier', 'driver', 'mechanic'].includes(form.role) ||
+            form.category_group === 'jobsite_support' ? (
+              <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
+                {copy.supportCrewOptional}
+              </div>
+            ) : null}
           </div>
 
           <div>
@@ -484,6 +634,36 @@ export default function Onboarding({ lang = 'en', setLang }) {
             </select>
           </div>
         </div>
+
+        {form.category_group === 'jobsite_support' ? (
+          <div
+            className="card-soft"
+            style={{ marginTop: 16, background: '#f8f7ef' }}
+          >
+            <div className="card-section-title">{copy.supportType}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {copy.supportIntro}
+            </p>
+          </div>
+        ) : null}
+
+        {form.role === 'supplier' && form.category_group === 'trade' ? (
+          <div
+            className="card-soft"
+            style={{ marginTop: 16, background: '#fffaf0' }}
+          >
+            <p className="card-section-subtitle">{copy.supplierTradeOptional}</p>
+          </div>
+        ) : null}
+
+        {form.category_group === 'jobsite_support' ? (
+          <div
+            className="card-soft"
+            style={{ marginTop: 16, background: '#fffaf0' }}
+          >
+            <p className="card-section-subtitle">{copy.supportTradeOptional}</p>
+          </div>
+        ) : null}
 
         <div style={{ marginTop: 16 }}>
           <div className="muted" style={{ marginBottom: 6 }}>{copy.bio}</div>

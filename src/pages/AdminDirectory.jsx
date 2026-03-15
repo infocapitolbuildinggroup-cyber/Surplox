@@ -22,6 +22,8 @@ const COPY = {
     subcontractors: 'Subcontractors',
     contractors: 'Contractors',
     suppliers: 'Suppliers',
+    drivers: 'Drivers',
+    mechanics: 'Mechanics',
     availableWorkers: 'Available Workers',
     totalPosts: 'Total Posts',
     needCrewPosts: 'Need Crew Posts',
@@ -87,6 +89,7 @@ const COPY = {
     tradesGroup: 'Trades',
     jobsiteSupportGroup: 'Jobsite Support',
     materialDelivery: 'Material Delivery / Hot Shot',
+    cargoVanDelivery: 'Cargo Van / Local Delivery',
     fleetRepair: 'Equipment / Fleet Repair',
     verified: 'Verified',
     notVerified: 'Not Verified',
@@ -184,6 +187,8 @@ const COPY = {
     subcontractors: 'Subcontratistas',
     contractors: 'Contratistas',
     suppliers: 'Proveedores',
+    drivers: 'Conductores',
+    mechanics: 'Mecánicos',
     availableWorkers: 'Trabajadores Disponibles',
     totalPosts: 'Publicaciones Totales',
     needCrewPosts: 'Publicaciones de Se Necesita Cuadrilla',
@@ -249,6 +254,7 @@ const COPY = {
     tradesGroup: 'Oficios',
     jobsiteSupportGroup: 'Soporte de Obra',
     materialDelivery: 'Entrega de Materiales / Hot Shot',
+    cargoVanDelivery: 'Cargo Van / Entrega local',
     fleetRepair: 'Reparación de Equipo / Flota',
     verified: 'Verificado',
     notVerified: 'No Verificado',
@@ -351,6 +357,8 @@ function roleLabel(role, copy) {
   if (role === 'subcontractor') return copy.subcontractors.replace(/s$/, '')
   if (role === 'contractor') return copy.contractors.replace(/s$/, '')
   if (role === 'supplier') return copy.suppliers.replace(/s$/, '')
+  if (role === 'driver') return copy.drivers.replace(/s$/, '')
+  if (role === 'mechanic') return copy.mechanics.replace(/s$/, '')
   return role || copy.unknown
 }
 
@@ -359,6 +367,8 @@ function roleBadgeStyle(role) {
   if (role === 'subcontractor') return { background: '#fff0b4', color: '#111111' }
   if (role === 'laborer') return { background: '#ecebe3', color: '#111111' }
   if (role === 'supplier') return { background: '#f1e7a8', color: '#111111' }
+  if (role === 'driver') return { background: '#d8ecff', color: '#0d3f73' }
+  if (role === 'mechanic') return { background: '#e8defa', color: '#4d2f82' }
   return {}
 }
 
@@ -388,13 +398,20 @@ function detectSupportType(serviceTags = []) {
     'jobsite_service'
   ])
 
-  return serviceTags.some((tag) => repairTags.has(tag))
-    ? 'equipment_fleet_repair'
-    : 'material_delivery'
+  if (serviceTags.some((tag) => repairTags.has(tag))) {
+    return 'equipment_fleet_repair'
+  }
+
+  if (serviceTags.includes('local_runs') || serviceTags.includes('last_mile_delivery')) {
+    return 'cargo_van_delivery'
+  }
+
+  return 'material_delivery'
 }
 
 function supportTypeLabel(value, copy) {
   if (value === 'equipment_fleet_repair') return copy.fleetRepair
+  if (value === 'cargo_van_delivery') return copy.cargoVanDelivery
   if (value === 'material_delivery') return copy.materialDelivery
   return copy.unknown
 }
@@ -426,9 +443,10 @@ function topEntriesFromMap(map, limit = 5) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, limit)
 }
-
 function getMissingProfileFields(worker, copy) {
   const missing = []
+  const crewSizeOptional = ['supplier', 'driver', 'mechanic'].includes(worker.role)
+  const tradeOptional = worker.role === 'supplier'
 
   if (!String(worker.first_name || '').trim()) missing.push('First Name')
   if (!String(worker.last_name || '').trim()) missing.push('Last Name')
@@ -436,12 +454,16 @@ function getMissingProfileFields(worker, copy) {
   if (!String(worker.city || '').trim()) missing.push(copy.city)
   if (!String(worker.role || '').trim()) missing.push(copy.role)
   if (!String(worker.bio || '').trim()) missing.push(copy.bio)
-  if (!Number(worker.crew_size || 0) || Number(worker.crew_size || 0) <= 1) missing.push(copy.crewSize)
+  if (!crewSizeOptional && (!Number(worker.crew_size || 0) || Number(worker.crew_size || 0) <= 1)) {
+    missing.push(copy.crewSize)
+  }
   if (!String(worker.display_name || '').trim()) missing.push('Display Name')
   if (!String(worker.home_zip || '').trim()) missing.push(copy.zip)
 
   if (worker.category_group === 'trade') {
-    if (!worker.trade_id && !String(worker.trade_name || '').trim()) missing.push(copy.trade)
+    if (!tradeOptional && !worker.trade_id && !String(worker.trade_name || '').trim()) {
+      missing.push(copy.trade)
+    }
   }
 
   if (worker.category_group === 'jobsite_support') {
@@ -697,7 +719,6 @@ export default function AdminDirectory() {
     })
     return counts
   }, [crewMemberships])
-
   const mergedWorkers = useMemo(() => {
     return profiles.map((p) => {
       const priv = privateByUser.get(p.user_id) || {}
@@ -771,7 +792,9 @@ export default function AdminDirectory() {
         if (contractorVerified === 'verified' && !worker.contractor_verified) return false
         if (contractorVerified === 'unverified' && worker.contractor_verified) return false
 
-        if (Number(worker.crew_size || 0) < minCrew) return false
+        if (!['supplier', 'driver', 'mechanic'].includes(worker.role)) {
+          if (Number(worker.crew_size || 0) < minCrew) return false
+        }
 
         if (availability === 'available' && !worker.is_available) return false
         if (availability === 'unavailable' && worker.is_available) return false
@@ -848,6 +871,8 @@ export default function AdminDirectory() {
     const subcontractors = profiles.filter((p) => p.role === 'subcontractor').length
     const contractors = profiles.filter((p) => p.role === 'contractor').length
     const suppliers = profiles.filter((p) => p.role === 'supplier').length
+    const drivers = profiles.filter((p) => p.role === 'driver').length
+    const mechanics = profiles.filter((p) => p.role === 'mechanic').length
     const availableWorkers = profiles.filter((p) => p.is_available).length
     const tradeUsers = profiles.filter((p) => (p.category_group || 'trade') === 'trade').length
     const jobsiteSupportUsers = profiles.filter(
@@ -882,6 +907,8 @@ export default function AdminDirectory() {
       subcontractors,
       contractors,
       suppliers,
+      drivers,
+      mechanics,
       availableWorkers,
       totalPosts,
       needCrewPosts,
@@ -909,7 +936,12 @@ export default function AdminDirectory() {
 
       if (categoryGroup === 'jobsite_support') {
         const supportType = detectSupportType(Array.isArray(p.service_tags) ? p.service_tags : [])
-        const label = supportType === 'equipment_fleet_repair' ? copy.fleetRepair : copy.materialDelivery
+        const label =
+          supportType === 'equipment_fleet_repair'
+            ? copy.fleetRepair
+            : supportType === 'cargo_van_delivery'
+              ? copy.cargoVanDelivery
+              : copy.materialDelivery
         usersByTradeMap.set(label, (usersByTradeMap.get(label) || 0) + 1)
       } else {
         const tradeName = tradeNameById.get(String(p.trade_id)) || copy.unknown
@@ -926,7 +958,12 @@ export default function AdminDirectory() {
 
         if (categoryGroup === 'jobsite_support') {
           const supportType = detectSupportType(Array.isArray(p.service_tags) ? p.service_tags : [])
-          label = supportType === 'equipment_fleet_repair' ? copy.fleetRepair : copy.materialDelivery
+          label =
+            supportType === 'equipment_fleet_repair'
+              ? copy.fleetRepair
+              : supportType === 'cargo_van_delivery'
+                ? copy.cargoVanDelivery
+                : copy.materialDelivery
         } else {
           label = tradeNameById.get(String(p.trade_id)) || copy.unknown
         }
@@ -965,8 +1002,7 @@ export default function AdminDirectory() {
       topZipsByCrewRequests: topEntriesFromMap(crewRequestsByZipMap, 5),
       gapRows
     }
-  }, [profiles, posts, tradeNameById, copy.unknown, copy.fleetRepair, copy.materialDelivery])
-
+  }, [profiles, posts, tradeNameById, copy.unknown, copy.fleetRepair, copy.cargoVanDelivery, copy.materialDelivery])
   const activity = useMemo(() => {
     const newestUsers = profiles
       .slice()
@@ -1235,6 +1271,12 @@ export default function AdminDirectory() {
         <div className="card-section-title">{copy.analyticsTitle}</div>
         <div className="grid two" style={{ marginTop: 14 }}>
           <StatCard label={copy.totalUsers} value={analytics.totalUsers} dark />
+          <StatCard label={copy.laborers} value={analytics.laborers} />
+          <StatCard label={copy.subcontractors} value={analytics.subcontractors} />
+          <StatCard label={copy.contractors} value={analytics.contractors} />
+          <StatCard label={copy.suppliers} value={analytics.suppliers} />
+          <StatCard label={copy.drivers} value={analytics.drivers} />
+          <StatCard label={copy.mechanics} value={analytics.mechanics} />
           <StatCard label={copy.availableWorkers} value={analytics.availableWorkers} />
           <StatCard label={copy.tradeUsers} value={analytics.tradeUsers} />
           <StatCard label={copy.jobsiteSupportUsers} value={analytics.jobsiteSupportUsers} />
@@ -1300,6 +1342,8 @@ export default function AdminDirectory() {
               <option value="subcontractor">{copy.subcontractors}</option>
               <option value="contractor">{copy.contractors}</option>
               <option value="supplier">{copy.suppliers}</option>
+              <option value="driver">{copy.drivers}</option>
+              <option value="mechanic">{copy.mechanics}</option>
             </select>
           </div>
 
@@ -1325,6 +1369,7 @@ export default function AdminDirectory() {
             >
               <option value="">{copy.allSupportTypes}</option>
               <option value="material_delivery">{copy.materialDelivery}</option>
+              <option value="cargo_van_delivery">{copy.cargoVanDelivery}</option>
               <option value="equipment_fleet_repair">{copy.fleetRepair}</option>
             </select>
           </div>
@@ -1921,4 +1966,4 @@ export default function AdminDirectory() {
       </div>
     </div>
   )
-}
+}  

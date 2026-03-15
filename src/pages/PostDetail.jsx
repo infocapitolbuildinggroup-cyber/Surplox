@@ -39,7 +39,9 @@ function roleLabel(role, lang) {
     laborer: { en: 'Laborer', es: 'Trabajador' },
     subcontractor: { en: 'Subcontractor', es: 'Subcontratista' },
     contractor: { en: 'Contractor', es: 'Contratista' },
-    supplier: { en: 'Supplier', es: 'Proveedor' }
+    supplier: { en: 'Supplier', es: 'Proveedor' },
+    driver: { en: 'Driver', es: 'Conductor' },
+    mechanic: { en: 'Mechanic', es: 'Mecánico' }
   }
   return map[role]?.[lang] || map[role]?.en || role
 }
@@ -80,9 +82,15 @@ function detectSupportType(serviceTags = []) {
     'jobsite_service'
   ])
 
-  return serviceTags.some((tag) => repairTags.has(tag))
-    ? 'equipment_fleet_repair'
-    : 'material_delivery'
+  if (serviceTags.some((tag) => repairTags.has(tag))) {
+    return 'equipment_fleet_repair'
+  }
+
+  if (serviceTags.includes('local_runs') || serviceTags.includes('last_mile_delivery')) {
+    return 'cargo_van_delivery'
+  }
+
+  return 'material_delivery'
 }
 
 function supportTypeLabel(value, lang) {
@@ -90,6 +98,10 @@ function supportTypeLabel(value, lang) {
     material_delivery: {
       en: 'Material Delivery / Hot Shot',
       es: 'Entrega de materiales / Hot Shot'
+    },
+    cargo_van_delivery: {
+      en: 'Cargo Van / Local Delivery',
+      es: 'Cargo Van / Entrega local'
     },
     equipment_fleet_repair: {
       en: 'Equipment / Fleet Repair',
@@ -162,6 +174,8 @@ function roleBadgeStyle(role) {
   if (role === 'subcontractor') return { background: '#fff0b4', color: '#111111' }
   if (role === 'laborer') return { background: '#ecebe3', color: '#111111' }
   if (role === 'supplier') return { background: '#f1e7a8', color: '#111111' }
+  if (role === 'driver') return { background: '#d8ecff', color: '#0d3f73' }
+  if (role === 'mechanic') return { background: '#e8defa', color: '#4d2f82' }
   return {}
 }
 
@@ -232,6 +246,68 @@ const UI = {
     unableShareMenu: 'Unable to open share menu.',
     unableOpenTextInvite: 'Unable to open text invite.',
     unableOpenEmailInvite: 'Unable to open email invite.',
+    workerProfileCopied: 'Worker profile link copied.',
+    unableCopyWorkerProfile: 'Unable to copy worker profile link.',
+    replyNotification: 'Someone replied to your post.',
+    crewHiredNotification: 'You were marked as hired on a crew post.',
+    crewJoinNotification: 'Someone joined your crew request.',
+    onlyOwnerCrewStatus: 'Only the post owner can change crew status.',
+    unableUpdateCrewStatus: 'Unable to update crew status right now.',
+    onlyOwnerMemberStatus: 'Only the post owner can change member status.',
+    unableUpdateMemberStatus: 'Unable to update member status right now.',
+    postOwnerCannotJoin: 'Post owners cannot join their own crew request.',
+    crewNotOpen: 'This crew request is not open.',
+    crewAlreadyFull: 'This crew request is already full.',
+    unableJoinCrew: 'Unable to join this crew right now.',
+    unableLeaveCrew: 'Unable to leave this crew right now.',
+    unableTranslatePost: 'Unable to translate this post right now.',
+    unableTranslateReply: 'Unable to translate this reply right now.',
+    unableLoadImage: 'Unable to load image.',
+    trade: 'Trade',
+    zip: 'ZIP',
+    start: 'Start',
+    pay: 'Pay',
+    viewProfile: 'View Profile',
+    available: 'Available',
+    category: 'Category',
+    supportType: 'Support Type',
+    serviceTags: 'Services',
+    equipmentTags: 'Equipment',
+    photos: 'Photos',
+    urgent: 'Urgent',
+    opportunityDetails: 'Opportunity Details',
+    availabilityDetails: 'Availability Details',
+    crewNeeded: 'Crew Needed',
+    filled: 'Filled',
+    hired: 'Hired',
+    payRate: 'Pay / Rate',
+    crewBuilder: 'Crew Builder',
+    crewBuilderBody:
+      'Build a crew directly from this post. Workers can join the roster, and the post owner can control whether the crew request is open, full, or closed.',
+    inviteCrew: 'Invite Crew',
+    inviteCrewBody:
+      'Share this post with workers, runners, repair support, subs, or people already in your network.',
+    copyInviteLink: 'Copy Invite Link',
+    share: 'Share',
+    textInvite: 'Text Invite',
+    emailInvite: 'Email Invite',
+    contractorControls: 'Contractor Controls',
+    saving: 'Saving…',
+    markOpen: 'Mark Open',
+    markCrewFull: 'Mark Crew Full',
+    closePost: 'Close Post',
+    joining: 'Joining…',
+    joinCrew: 'Join Crew',
+    leaving: 'Leaving…',
+    leaveCrew: 'Leave Crew',
+    youPostedThis: 'You posted this crew request',
+    crewFull: 'Crew Full',
+    postClosed: 'Post Closed',
+    crewRoster: 'Crew Roster',
+    noOneJoined: 'No one has joined this crew yet.',
+    joinedAt: 'Joined',
+    workedBefore: 'Worked With Before',
+    contactCard: 'Contact Card',
     workerProfileCopied: 'Worker profile link copied.',
     unableCopyWorkerProfile: 'Unable to copy worker profile link.',
     replyNotification: 'Someone replied to your post.',
@@ -557,1280 +633,1346 @@ export default function PostDetail({ lang: langProp = 'en' }) {
 
   async function shareInviteLink() {
     try {
-      const url = getInviteUrl()
-      const text = getInviteText()
+      const url = getInviteUrl()    
       if (!url) throw new Error(copy.inviteLinkUnavailable)
 
-      if (navigator.share) {
-        await navigator.share({
-          title: post?.title || 'Surplox post',
-          text,
-          url
-        })
-      } else {
-        await copyInviteLink()
-      }
-    } catch (err) {
-      if (err?.name === 'AbortError') return
-      console.error(err)
-      setMsg(copy.unableShareMenu)
-    }
-  }
-
-  function openTextInvite() {
-    try {
-      const text = encodeURIComponent(getInviteText())
-      window.open(`sms:?&body=${text}`, '_self')
-    } catch (err) {
-      console.error(err)
-      setMsg(copy.unableOpenTextInvite)
-    }
-  }
-
-  function openEmailInvite() {
-    try {
-      const subject = encodeURIComponent(post?.title || 'Surplox post')
-      const body = encodeURIComponent(getInviteText())
-      window.location.href = `mailto:?subject=${subject}&body=${body}`
-    } catch (err) {
-      console.error(err)
-      setMsg(copy.unableOpenEmailInvite)
-    }
-  }
-
-  async function copyWorkerProfile(userId) {
-    try {
-      const url = `${window.location.origin}/u/${userId}`
-      await navigator.clipboard.writeText(url)
-      setMsg(copy.workerProfileCopied)
-    } catch (err) {
-      console.error(err)
-      setMsg(copy.unableCopyWorkerProfile)
-    }
-  }
-
-  async function loadAll() {
-    setLoading(true)
-    setMsg('')
-
-    try {
-      const { data: sessionData } = await supabase.auth.getSession()
-      const uid = sessionData.session?.user?.id || null
-      setCurrentUserId(uid)
-
-      let activeLang = langProp || localStorage.getItem('surplox_lang') || 'en'
-
-      if (uid) {
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('preferred_language')
-          .eq('user_id', uid)
-          .maybeSingle()
-
-        activeLang = prof?.preferred_language || activeLang
-      }
-
-      setLang(activeLang)
-      localStorage.setItem('surplox_lang', activeLang)
-
-      const activeCopy = UI[activeLang] || UI.en
-
-      const { data: p, error: pErr } = await supabase
-        .from('posts')
-        .select(`
-          id,
-          title,
-          body,
-          source_language,
-          center_zip,
-          radius_miles,
-          created_at,
-          trade_id,
-          post_type,
-          crew_status,
-          needed_crew_size,
-          compensation,
-          start_date,
-          author_id,
-          category_group,
-          service_tags,
-          equipment_tags,
-          is_urgent,
-          image_urls,
-          boosted_at,
-          boost_count,
-          trades(name),
-          author_profile:profiles!posts_author_id_fkey(display_name, role, is_available, availability_status)
-        `)
-        .eq('id', id)
-        .maybeSingle()
-
-      if (pErr) throw pErr
-      if (!p) {
-        setPost(null)
-        setComments([])
-        setCrewMembers([])
-        setMyCrewMembership(false)
-        setWorkedBeforeMap({})
-        setScore(0)
-        setMyVote(0)
-        setImageUrls({})
-        return
-      }
-
-      const detectedLang = detectLikelyLanguage(`${p.title || ''} ${p.body || ''}`)
-      const categoryGroup = p.category_group || 'trade'
-      const serviceTags = Array.isArray(p.service_tags) ? p.service_tags : []
-      const equipmentTags = Array.isArray(p.equipment_tags) ? p.equipment_tags : []
-      const imagePaths = Array.isArray(p.image_urls) ? p.image_urls : []
-
-      const hydratedPost = {
-        ...p,
-        category_group: categoryGroup,
-        service_tags: serviceTags,
-        equipment_tags: equipmentTags,
-        support_type: categoryGroup === 'jobsite_support' ? detectSupportType(serviceTags) : null,
-        image_urls: imagePaths,
-        trade_name: p.trades?.name || t(activeLang, 'detail_general'),
-        author_name: p.author_profile?.display_name || activeCopy.unknownMember,
-        author_role: p.author_profile?.role || '',
-        author_available: Boolean(p.author_profile?.is_available),
-        author_availability_status: p.author_profile?.availability_status || '',
-        source_language: p.source_language || detectedLang
-      }
-
-      setPost(hydratedPost)
-      await loadSignedUrls(imagePaths)
-
-      const { data: c, error: cErr } = await supabase
-        .from('comments')
-        .select(`
-          id,
-          body,
-          created_at,
-          author_id,
-          author_profile:profiles!comments_author_id_fkey(display_name, role, is_available, availability_status)
-        `)
-        .eq('post_id', id)
-        .order('created_at', { ascending: true })
-
-      if (cErr) throw cErr
-
-      setComments(
-        (c || []).map((x) => ({
-          ...x,
-          author_name: x.author_profile?.display_name || activeCopy.unknownMember,
-          author_role: x.author_profile?.role || '',
-          author_available: Boolean(x.author_profile?.is_available),
-          author_availability_status: x.author_profile?.availability_status || '',
-          source_language: detectLikelyLanguage(x.body || '')
-        }))
-      )
-
-      const { data: v, error: vErr } = await supabase
-        .from('votes')
-        .select('value, voter_id')
-        .eq('post_id', id)
-
-      if (vErr) throw vErr
-
-      const totalScore = (v || []).reduce((a, r) => a + r.value, 0)
-      setScore(totalScore)
-
-      const currentVote = (v || []).find((r) => r.voter_id === uid)?.value || 0
-      setMyVote(currentVote)
-
-      if (p.post_type === 'need_crew') {
-        const { data: crewRows, error: crewErr } = await supabase
-          .from('crew_memberships')
-          .select(`
-            post_id,
-            user_id,
-            status,
-            created_at
-          `)
-          .eq('post_id', id)
-          .order('created_at', { ascending: true })
-
-        if (crewErr) throw crewErr
-
-        const joinedUserIds = (crewRows || []).map((row) => row.user_id)
-
-        let profileMap = new Map()
-        let contactMap = new Map()
-
-        if (joinedUserIds.length > 0) {
-          const { data: joinedProfiles, error: joinedProfilesErr } = await supabase
-            .from('profiles')
-            .select('user_id, display_name, role, is_available, availability_status')
-            .in('user_id', joinedUserIds)
-
-          if (joinedProfilesErr) throw joinedProfilesErr
-
-          profileMap = new Map((joinedProfiles || []).map((row) => [row.user_id, row]))
-
-          if (uid === p.author_id) {
-            const { data: contactRows, error: contactErr } = await supabase
-              .from('contact_private')
-              .select('user_id, phone, email, city')
-              .in('user_id', joinedUserIds)
-
-            if (contactErr) {
-              console.error('Unable to load private contact data:', contactErr)
-            } else {
-              contactMap = new Map((contactRows || []).map((row) => [row.user_id, row]))
-            }
-          }
-        }
-
-        const members = (crewRows || []).map((row) => {
-          const profile = profileMap.get(row.user_id)
-          const contact = contactMap.get(row.user_id)
-
-          return {
-            user_id: row.user_id,
-            created_at: row.created_at,
-            status: row.status || 'joined',
-            display_name: profile?.display_name || activeCopy.unknownMember,
-            role: profile?.role || '',
-            is_available: Boolean(profile?.is_available),
-            availability_status: profile?.availability_status || '',
-            phone: contact?.phone || '',
-            email: contact?.email || '',
-            city: contact?.city || ''
-          }
-        })
-
-        setCrewMembers(members)
-        setMyCrewMembership(members.some((member) => member.user_id === uid))
-
-        if (p.author_id && members.length > 0) {
-          const counterpartIds = members.map((m) => m.user_id)
-
-          const { data: relA } = await supabase
-            .from('user_relationships')
-            .select('source_user_id, target_user_id, relationship_type, created_at')
-            .eq('source_user_id', p.author_id)
-            .in('target_user_id', counterpartIds)
-
-          const { data: relB } = await supabase
-            .from('user_relationships')
-            .select('source_user_id, target_user_id, relationship_type, created_at')
-            .eq('target_user_id', p.author_id)
-            .in('source_user_id', counterpartIds)
-
-          const workedMap = {}
-          ;[...(relA || []), ...(relB || [])].forEach((rel) => {
-            const counterpart =
-              rel.source_user_id === p.author_id ? rel.target_user_id : rel.source_user_id
-
-            if (!workedMap[counterpart]) {
-              workedMap[counterpart] = {
-                count: 0,
-                latest_type: rel.relationship_type,
-                latest_at: rel.created_at
-              }
-            }
-
-            workedMap[counterpart].count += 1
-
-            if (
-              !workedMap[counterpart].latest_at ||
-              new Date(rel.created_at).getTime() > new Date(workedMap[counterpart].latest_at).getTime()
-            ) {
-              workedMap[counterpart].latest_type = rel.relationship_type
-              workedMap[counterpart].latest_at = rel.created_at
-            }
+        if (navigator.share) {
+          await navigator.share({
+            title: post?.title || 'Surplox',
+            text: getInviteText(),
+            url
           })
-
-          setWorkedBeforeMap(workedMap)
         } else {
-          setWorkedBeforeMap({})
+          await navigator.clipboard.writeText(url)
+          setMsg(copy.inviteLinkCopied)
         }
-      } else {
-        setCrewMembers([])
-        setMyCrewMembership(false)
-        setWorkedBeforeMap({})
+      } catch (err) {
+        console.error(err)
+        setMsg(copy.unableShareMenu)
       }
-
-      setTranslatedPostBody('')
-      setShowTranslatedPost(false)
-      setTranslatedComments({})
-      setVisibleTranslatedComments({})
-    } catch (err) {
-      console.error(err)
-      setMsg(err.message || t(lang, 'detail_load_error'))
-      setPost(null)
-    } finally {
-      setLoading(false)
     }
-  }
-
-  useEffect(() => {
-    loadAll()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, langProp])
-
-  async function vote(val) {
-    setMsg('')
-
-    try {
-      const { data: sessionData } = await supabase.auth.getSession()
-      const uid = sessionData.session?.user?.id
-      if (!uid) throw new Error(copy.notSignedIn)
-
-      const newVal = myVote === val ? 0 : val
-
-      if (newVal === 0) {
-        const { error } = await supabase
-          .from('votes')
-          .delete()
-          .eq('post_id', id)
-          .eq('voter_id', uid)
-
-        if (error) throw error
-      } else {
+  
+    async function textInviteLink() {
+      try {
+        const text = getInviteText()
+        if (!text) throw new Error(copy.unableOpenTextInvite)
+        window.location.href = `sms:?&body=${encodeURIComponent(text)}`
+      } catch (err) {
+        console.error(err)
+        setMsg(copy.unableOpenTextInvite)
+      }
+    }
+  
+    async function emailInviteLink() {
+      try {
+        const text = getInviteText()
+        if (!text) throw new Error(copy.unableOpenEmailInvite)
+        const subject = post?.title || 'Surplox'
+        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`
+      } catch (err) {
+        console.error(err)
+        setMsg(copy.unableOpenEmailInvite)
+      }
+    }
+  
+    async function copyWorkerProfileLink(userId) {
+      try {
+        const url = `${window.location.origin}/u/${userId}`
+        await navigator.clipboard.writeText(url)
+        setMsg(copy.workerProfileCopied)
+      } catch (err) {
+        console.error(err)
+        setMsg(copy.unableCopyWorkerProfile)
+      }
+    }
+  
+    useEffect(() => {
+      let active = true
+  
+      async function load() {
+        setLoading(true)
+        setMsg('')
+  
+        try {
+          const { data: sessionData } = await supabase.auth.getSession()
+          const uid = sessionData.session?.user?.id || null
+          if (!active) return
+          setCurrentUserId(uid)
+  
+          const { data: postRow, error: postErr } = await supabase
+            .from('posts')
+            .select(
+              `
+              *,
+              author:profiles!posts_author_id_fkey(
+                user_id,
+                display_name,
+                role,
+                is_available,
+                availability_status,
+                contractor_verified,
+                category_group,
+                service_tags,
+                equipment_tags,
+                trade_id,
+                home_zip,
+                travel_radius_miles,
+                bio,
+                trades(name)
+              ),
+              trades(name)
+            `
+            )
+            .eq('id', id)
+            .maybeSingle()
+  
+          if (postErr) throw postErr
+          if (!postRow) throw new Error('Post not found.')
+  
+          const serviceTags = Array.isArray(postRow.service_tags) ? postRow.service_tags : []
+          const equipmentTags = Array.isArray(postRow.equipment_tags) ? postRow.equipment_tags : []
+          const categoryGroup = postRow.category_group || 'trade'
+          const supportType =
+            categoryGroup === 'jobsite_support'
+              ? postRow.support_type || detectSupportType(serviceTags)
+              : null
+  
+          const author = postRow.author || {}
+          const authorServiceTags = Array.isArray(author.service_tags) ? author.service_tags : []
+          const authorEquipmentTags = Array.isArray(author.equipment_tags) ? author.equipment_tags : []
+          const authorCategoryGroup = author.category_group || 'trade'
+          const authorSupportType =
+            authorCategoryGroup === 'jobsite_support'
+              ? detectSupportType(authorServiceTags)
+              : null
+  
+          const normalizedPost = {
+            ...postRow,
+            service_tags: serviceTags,
+            equipment_tags: equipmentTags,
+            category_group: categoryGroup,
+            support_type: supportType,
+            trade_name: postRow.trades?.name || '',
+            author_name: author.display_name || copy.unknownMember,
+            author_role: author.role || '',
+            author_is_available: Boolean(author.is_available),
+            author_availability_status: author.availability_status || '',
+            author_contractor_verified: Boolean(author.contractor_verified),
+            author_category_group: authorCategoryGroup,
+            author_service_tags: authorServiceTags,
+            author_equipment_tags: authorEquipmentTags,
+            author_support_type: authorSupportType,
+            author_trade_name: author.trades?.name || '',
+            author_home_zip: author.home_zip || '',
+            author_travel_radius_miles: author.travel_radius_miles || 0,
+            author_bio: author.bio || ''
+          }
+  
+          if (!active) return
+          setPost(normalizedPost)
+          setTranslatedPostBody('')
+          setShowTranslatedPost(false)
+  
+          await loadSignedUrls(Array.isArray(postRow.image_paths) ? postRow.image_paths : [])
+  
+          const { data: commentRows, error: commentsErr } = await supabase
+            .from('comments')
+            .select(
+              `
+              *,
+              author:profiles!comments_author_id_fkey(
+                user_id,
+                display_name,
+                role
+              )
+            `
+            )
+            .eq('post_id', id)
+            .order('created_at', { ascending: true })
+  
+          if (commentsErr) throw commentsErr
+  
+          if (!active) return
+          setComments(
+            (commentRows || []).map((row) => ({
+              ...row,
+              author_name: row.author?.display_name || copy.unknownMember,
+              author_role: row.author?.role || ''
+            }))
+          )
+  
+          const { data: voteRows, error: votesErr } = await supabase
+            .from('votes')
+            .select('*')
+            .eq('post_id', id)
+  
+          if (votesErr) throw votesErr
+  
+          if (!active) return
+          setScore((voteRows || []).reduce((sum, row) => sum + Number(row.value || 0), 0))
+          setMyVote(
+            Number((voteRows || []).find((row) => row.user_id === uid)?.value || 0)
+          )
+  
+          if (normalizedPost.post_type === 'need_crew') {
+            const { data: membershipRows, error: membersErr } = await supabase
+              .from('crew_memberships')
+              .select(
+                `
+                *,
+                member:profiles!crew_memberships_user_id_fkey(
+                  user_id,
+                  display_name,
+                  role,
+                  is_available,
+                  availability_status,
+                  category_group,
+                  service_tags,
+                  equipment_tags,
+                  trade_id,
+                  home_zip,
+                  travel_radius_miles,
+                  bio,
+                  trades(name)
+                )
+              `
+              )
+              .eq('post_id', id)
+              .order('created_at', { ascending: true })
+  
+            if (membersErr) throw membersErr
+  
+            const normalizedMembers = (membershipRows || []).map((row) => {
+              const member = row.member || {}
+              const memberServiceTags = Array.isArray(member.service_tags) ? member.service_tags : []
+              const memberEquipmentTags = Array.isArray(member.equipment_tags) ? member.equipment_tags : []
+              const memberCategoryGroup = member.category_group || 'trade'
+              const memberSupportType =
+                memberCategoryGroup === 'jobsite_support'
+                  ? detectSupportType(memberServiceTags)
+                  : null
+  
+              return {
+                ...row,
+                display_name: member.display_name || copy.unknownMember,
+                role: member.role || '',
+                is_available: Boolean(member.is_available),
+                availability_status: member.availability_status || '',
+                category_group: memberCategoryGroup,
+                service_tags: memberServiceTags,
+                equipment_tags: memberEquipmentTags,
+                support_type: memberSupportType,
+                trade_name: member.trades?.name || '',
+                home_zip: member.home_zip || '',
+                travel_radius_miles: member.travel_radius_miles || 0,
+                bio: member.bio || ''
+              }
+            })
+  
+            if (!active) return
+            setCrewMembers(normalizedMembers)
+            setMyCrewMembership(Boolean(uid && normalizedMembers.find((m) => m.user_id === uid)))
+  
+            const ids = Array.from(
+              new Set([normalizedPost.author_id, ...normalizedMembers.map((m) => m.user_id)].filter(Boolean))
+            )
+  
+            if (ids.length > 1) {
+              const { data: relationshipRows, error: relErr } = await supabase
+                .from('user_relationships')
+                .select('source_user_id,target_user_id,relationship_type')
+                .in('source_user_id', ids)
+                .in('target_user_id', ids)
+  
+              if (relErr) throw relErr
+  
+              const nextWorkedMap = {}
+              ;(relationshipRows || []).forEach((rel) => {
+                if (
+                  rel.relationship_type === 'hired_from_crew_post' ||
+                  rel.relationship_type === 'joined_crew_post'
+                ) {
+                  nextWorkedMap[`${rel.source_user_id}:${rel.target_user_id}`] = true
+                  nextWorkedMap[`${rel.target_user_id}:${rel.source_user_id}`] = true
+                }
+              })
+  
+              if (!active) return
+              setWorkedBeforeMap(nextWorkedMap)
+            } else {
+              if (!active) return
+              setWorkedBeforeMap({})
+            }
+          } else {
+            if (!active) return
+            setCrewMembers([])
+            setMyCrewMembership(false)
+            setWorkedBeforeMap({})
+          }
+        } catch (err) {
+          console.error(err)
+          if (!active) return
+          setMsg(err.message || 'Unable to load post.')
+        } finally {
+          if (!active) return
+          setLoading(false)
+        }
+      }
+  
+      load()
+      return () => {
+        active = false
+      }
+    }, [id, langProp])
+  
+    const currentCommentLang = useMemo(() => detectLikelyLanguage(newComment || ''), [newComment])
+  
+    const postLang = useMemo(() => {
+      return detectLikelyLanguage(post?.body || '')
+    }, [post?.body])
+  
+    const renderedPostBody = useMemo(() => {
+      if (!post?.body) return ''
+      if (showTranslatedPost && translatedPostBody) return translatedPostBody
+      return post.body
+    }, [post?.body, showTranslatedPost, translatedPostBody])
+  
+    async function translatePostBody() {
+      try {
+        if (!post?.body) return
+        if (postLang === lang) return
+  
+        if (translatedPostBody) {
+          setShowTranslatedPost((prev) => !prev)
+          return
+        }
+  
+        setTranslatingPost(true)
+        const translated = await translateText(post.body, postLang, lang)
+        setTranslatedPostBody(translated)
+        setShowTranslatedPost(true)
+      } catch (err) {
+        console.error(err)
+        setMsg(copy.unableTranslatePost)
+      } finally {
+        setTranslatingPost(false)
+      }
+    }
+    async function vote(value) {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        const uid = sessionData.session?.user?.id
+  
+        if (!uid) {
+          setMsg(copy.notSignedIn)
+          return
+        }
+  
         const { error } = await supabase
           .from('votes')
           .upsert({
+            user_id: uid,
             post_id: id,
-            voter_id: uid,
-            value: newVal
+            value
           })
-
+  
         if (error) throw error
+  
+        setMyVote(value)
+  
+        const { data: votes } = await supabase
+          .from('votes')
+          .select('value')
+          .eq('post_id', id)
+  
+        setScore((votes || []).reduce((s, v) => s + Number(v.value || 0), 0))
+      } catch (err) {
+        console.error(err)
+        setMsg(err.message)
       }
-
-      await loadAll()
-    } catch (err) {
-      console.error(err)
-      setMsg(err.message || t(lang, 'detail_vote_error'))
     }
-  }
-
-  async function addComment() {
-    setMsg('')
-
-    try {
-      if (!newComment.trim()) throw new Error(t(lang, 'detail_comment_empty'))
-
-      const { data: sessionData } = await supabase.auth.getSession()
-      const uid = sessionData.session?.user?.id
-      if (!uid) throw new Error(copy.notSignedIn)
-
-      const { error } = await supabase
-        .from('comments')
-        .insert({
+  
+    async function addComment() {
+      if (!newComment.trim()) return
+  
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        const uid = sessionData.session?.user?.id
+  
+        if (!uid) {
+          setMsg(copy.notSignedIn)
+          return
+        }
+  
+        const { error } = await supabase.from('comments').insert({
           post_id: id,
           author_id: uid,
           body: newComment.trim()
         })
-
-      if (error) throw error
-
-      if (post?.author_id && post.author_id !== uid) {
-        const { error: relationshipErr } = await supabase
-          .from('user_relationships')
-          .upsert(
-            {
-              source_user_id: uid,
-              target_user_id: post.author_id,
-              relationship_type: 'replied_to_post',
-              post_id: String(id),
-              metadata: {
-                post_type: post.post_type || 'discussion',
-                category_group: post.category_group || 'trade'
-              }
-            },
-            {
-              onConflict: 'source_user_id,target_user_id,relationship_type,post_id'
-            }
-          )
-
-        if (relationshipErr) {
-          console.error('Relationship graph insert failed:', relationshipErr)
+  
+        if (error) throw error
+  
+        if (post?.author_id && post.author_id !== uid) {
+          await createNotification({
+            userId: post.author_id,
+            actorUserId: uid,
+            postId: id,
+            type: 'reply',
+            message: copy.replyNotification
+          })
         }
-
+  
+        setNewComment('')
+  
+        const { data } = await supabase
+          .from('comments')
+          .select(
+            `
+            *,
+            author:profiles!comments_author_id_fkey(
+              user_id,
+              display_name,
+              role
+            )
+          `
+          )
+          .eq('post_id', id)
+          .order('created_at', { ascending: true })
+  
+        setComments(
+          (data || []).map((row) => ({
+            ...row,
+            author_name: row.author?.display_name || copy.unknownMember,
+            author_role: row.author?.role || ''
+          }))
+        )
+      } catch (err) {
+        console.error(err)
+        setMsg(err.message)
+      }
+    }
+  
+    async function changeCrewStatus(status) {
+      try {
+        if (currentUserId !== post.author_id) {
+          setMsg(copy.onlyOwnerCrewStatus)
+          return
+        }
+  
+        setCrewActionLoading(true)
+  
+        const { error } = await supabase
+          .from('posts')
+          .update({ crew_status: status })
+          .eq('id', id)
+  
+        if (error) throw error
+  
+        setPost((prev) => ({ ...prev, crew_status: status }))
+      } catch (err) {
+        console.error(err)
+        setMsg(copy.unableUpdateCrewStatus)
+      } finally {
+        setCrewActionLoading(false)
+      }
+    }
+  
+    async function changeMemberStatus(userId, status) {
+      try {
+        if (currentUserId !== post.author_id) {
+          setMsg(copy.onlyOwnerMemberStatus)
+          return
+        }
+  
+        setCrewActionLoading(true)
+  
+        const { error } = await supabase
+          .from('crew_memberships')
+          .update({ status })
+          .eq('post_id', id)
+          .eq('user_id', userId)
+  
+        if (error) throw error
+  
+        if (status === 'hired') {
+          await createNotification({
+            userId,
+            actorUserId: currentUserId,
+            postId: id,
+            type: 'crew_hired',
+            message: copy.crewHiredNotification
+          })
+  
+          const { error: relErr } = await supabase.from('user_relationships').upsert({
+            source_user_id: post.author_id,
+            target_user_id: userId,
+            relationship_type: 'hired_from_crew_post',
+            post_id: id
+          })
+  
+          if (relErr) console.error(relErr)
+        }
+  
+        setCrewMembers((prev) =>
+          prev.map((m) =>
+            m.user_id === userId ? { ...m, status } : m
+          )
+        )
+      } catch (err) {
+        console.error(err)
+        setMsg(copy.unableUpdateMemberStatus)
+      } finally {
+        setCrewActionLoading(false)
+      }
+    }
+  
+    async function joinCrew() {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        const uid = sessionData.session?.user?.id
+  
+        if (!uid) {
+          setMsg(copy.notSignedIn)
+          return
+        }
+  
+        if (uid === post.author_id) {
+          setMsg(copy.postOwnerCannotJoin)
+          return
+        }
+  
+        if (post.crew_status !== 'open') {
+          setMsg(copy.crewNotOpen)
+          return
+        }
+  
+        if (post.needed_count && crewMembers.length >= post.needed_count) {
+          setMsg(copy.crewAlreadyFull)
+          return
+        }
+  
+        setCrewActionLoading(true)
+  
+        const { error } = await supabase
+          .from('crew_memberships')
+          .insert({
+            post_id: id,
+            user_id: uid,
+            status: 'joined'
+          })
+  
+        if (error) throw error
+  
         await createNotification({
           userId: post.author_id,
           actorUserId: uid,
           postId: id,
-          type: 'post_reply',
-          message: copy.replyNotification
+          type: 'crew_join',
+          message: copy.crewJoinNotification
         })
-      }
-
-      setNewComment('')
-      await loadAll()
-    } catch (err) {
-      console.error(err)
-      setMsg(err.message || t(lang, 'detail_comment_error'))
-    }
-  }
-
-  async function updateCrewStatus(nextStatus) {
-    if (!post || post.post_type !== 'need_crew') return
-
-    try {
-      setCrewActionLoading(true)
-      setMsg('')
-
-      const { data: sessionData } = await supabase.auth.getSession()
-      const uid = sessionData.session?.user?.id
-      if (!uid) throw new Error(copy.notSignedIn)
-      if (uid !== post.author_id) throw new Error(copy.onlyOwnerCrewStatus)
-
-      const { error } = await supabase
-        .from('posts')
-        .update({ crew_status: nextStatus })
-        .eq('id', id)
-
-      if (error) throw error
-
-      await loadAll()
-    } catch (err) {
-      console.error(err)
-      setMsg(err.message || copy.unableUpdateCrewStatus)
-    } finally {
-      setCrewActionLoading(false)
-    }
-  }
-
-  async function updateMemberStatus(memberUserId, nextStatus) {
-    if (!post || post.post_type !== 'need_crew') return
-
-    try {
-      setCrewActionLoading(true)
-      setMsg('')
-
-      const { data: sessionData } = await supabase.auth.getSession()
-      const uid = sessionData.session?.user?.id
-      if (!uid) throw new Error(copy.notSignedIn)
-      if (uid !== post.author_id) throw new Error(copy.onlyOwnerMemberStatus)
-
-      const { error } = await supabase
-        .from('crew_memberships')
-        .update({ status: nextStatus })
-        .eq('post_id', id)
-        .eq('user_id', memberUserId)
-
-      if (error) throw error
-
-      if (nextStatus === 'hired') {
-        const { error: relationshipErr } = await supabase
-          .from('user_relationships')
-          .upsert(
-            {
-              source_user_id: post.author_id,
-              target_user_id: memberUserId,
-              relationship_type: 'hired_from_crew_post',
-              post_id: String(id),
-              metadata: { post_type: 'need_crew' }
-            },
-            {
-              onConflict: 'source_user_id,target_user_id,relationship_type,post_id'
-            }
+  
+        const { error: relErr } = await supabase.from('user_relationships').upsert({
+          source_user_id: uid,
+          target_user_id: post.author_id,
+          relationship_type: 'joined_crew_post',
+          post_id: id
+        })
+  
+        if (relErr) console.error(relErr)
+  
+        const { data } = await supabase
+          .from('crew_memberships')
+          .select(
+            `
+            *,
+            member:profiles!crew_memberships_user_id_fkey(
+              user_id,
+              display_name,
+              role,
+              is_available,
+              availability_status,
+              category_group,
+              service_tags,
+              equipment_tags,
+              trade_id,
+              home_zip,
+              travel_radius_miles,
+              bio,
+              trades(name)
+            )
+          `
           )
-
-        if (relationshipErr) {
-          console.error('Relationship graph insert failed:', relationshipErr)
-        }
-
-        await createNotification({
-          userId: memberUserId,
-          actorUserId: post.author_id,
-          postId: id,
-          type: 'crew_hired',
-          message: copy.crewHiredNotification
-        })
-      }
-
-      await loadAll()
-    } catch (err) {
-      console.error(err)
-      setMsg(err.message || copy.unableUpdateMemberStatus)
-    } finally {
-      setCrewActionLoading(false)
-    }
-  }
-
-  async function joinCrew() {
-    if (!post || post.post_type !== 'need_crew') return
-
-    try {
-      setCrewActionLoading(true)
-      setMsg('')
-
-      const { data: sessionData } = await supabase.auth.getSession()
-      const uid = sessionData.session?.user?.id
-      if (!uid) throw new Error(copy.notSignedIn)
-      if (uid === post.author_id) throw new Error(copy.postOwnerCannotJoin)
-      if ((post.crew_status || 'open') !== 'open') throw new Error(copy.crewNotOpen)
-
-      const needed = Number(post.needed_crew_size || 0)
-      if (needed > 0 && crewMembers.length >= needed) {
-        throw new Error(copy.crewAlreadyFull)
-      }
-
-      const { error } = await supabase
-        .from('crew_memberships')
-        .insert({
-          post_id: id,
-          user_id: uid,
-          status: 'joined'
-        })
-
-      if (error) throw error
-
-      const { error: relationshipErr } = await supabase
-        .from('user_relationships')
-        .upsert(
-          {
-            source_user_id: uid,
-            target_user_id: post.author_id,
-            relationship_type: 'joined_crew_post',
-            post_id: String(id),
-            metadata: { post_type: 'need_crew' }
-          },
-          {
-            onConflict: 'source_user_id,target_user_id,relationship_type,post_id'
+          .eq('post_id', id)
+          .order('created_at', { ascending: true })
+  
+        const normalizedMembers = (data || []).map((row) => {
+          const member = row.member || {}
+          const memberServiceTags = Array.isArray(member.service_tags) ? member.service_tags : []
+          const memberEquipmentTags = Array.isArray(member.equipment_tags) ? member.equipment_tags : []
+          const memberCategoryGroup = member.category_group || 'trade'
+          const memberSupportType =
+            memberCategoryGroup === 'jobsite_support'
+              ? detectSupportType(memberServiceTags)
+              : null
+  
+          return {
+            ...row,
+            display_name: member.display_name || copy.unknownMember,
+            role: member.role || '',
+            is_available: Boolean(member.is_available),
+            availability_status: member.availability_status || '',
+            category_group: memberCategoryGroup,
+            service_tags: memberServiceTags,
+            equipment_tags: memberEquipmentTags,
+            support_type: memberSupportType,
+            trade_name: member.trades?.name || '',
+            home_zip: member.home_zip || '',
+            travel_radius_miles: member.travel_radius_miles || 0,
+            bio: member.bio || ''
           }
-        )
-
-        if (relationshipErr) {
-          console.error('Relationship graph insert failed:', relationshipErr)
-        }
-
-      await createNotification({
-        userId: post.author_id,
-        actorUserId: uid,
-        postId: id,
-        type: 'crew_join',
-        message: copy.crewJoinNotification
-      })
-
-      if (needed > 0 && crewMembers.length + 1 >= needed) {
-        const { error: statusErr } = await supabase
-          .from('posts')
-          .update({ crew_status: 'full' })
-          .eq('id', id)
-
-        if (statusErr) {
-          console.error('Auto-mark full failed:', statusErr)
-        }
-      }
-
-      await loadAll()
-    } catch (err) {
-      console.error(err)
-      setMsg(err.message || copy.unableJoinCrew)
-    } finally {
-      setCrewActionLoading(false)
-    }
-  }
-
-  async function leaveCrew() {
-    try {
-      setCrewActionLoading(true)
-      setMsg('')
-
-      const { data: sessionData } = await supabase.auth.getSession()
-      const uid = sessionData.session?.user?.id
-      if (!uid) throw new Error(copy.notSignedIn)
-
-      const { error } = await supabase
-        .from('crew_memberships')
-        .delete()
-        .eq('post_id', id)
-        .eq('user_id', uid)
-
-      if (error) throw error
-
-      if (post?.post_type === 'need_crew' && post?.crew_status === 'full') {
-        const { error: reopenErr } = await supabase
-          .from('posts')
-          .update({ crew_status: 'open' })
-          .eq('id', id)
-
-        if (reopenErr) {
-          console.error('Auto-reopen failed:', reopenErr)
-        }
-      }
-
-      await loadAll()
-    } catch (err) {
-      console.error(err)
-      setMsg(err.message || copy.unableLeaveCrew)
-    } finally {
-      setCrewActionLoading(false)
-    }
-  }
-
-  async function togglePostTranslation() {
-    if (!post) return
-
-    if (showTranslatedPost) {
-      setShowTranslatedPost(false)
-      return
-    }
-
-    try {
-      setTranslatingPost(true)
-
-      if (!translatedPostBody) {
-        const translated = await translateText({
-          text: post.body || '',
-          from: post.source_language || detectLikelyLanguage(post.body || ''),
-          to: lang
         })
-        setTranslatedPostBody(translated)
+  
+        setCrewMembers(normalizedMembers)
+        setMyCrewMembership(true)
+      } catch (err) {
+        console.error(err)
+        setMsg(copy.unableJoinCrew)
+      } finally {
+        setCrewActionLoading(false)
       }
-
-      setShowTranslatedPost(true)
-    } catch (err) {
-      console.error(err)
-      setMsg(copy.unableTranslatePost)
-    } finally {
-      setTranslatingPost(false)
     }
-  }
-
-  async function toggleCommentTranslation(commentId) {
-    const comment = comments.find((x) => x.id === commentId)
-    if (!comment) return
-
-    if (visibleTranslatedComments[commentId]) {
-      setVisibleTranslatedComments((prev) => ({ ...prev, [commentId]: false }))
-      return
+  
+    async function leaveCrew() {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        const uid = sessionData.session?.user?.id
+  
+        if (!uid) {
+          setMsg(copy.notSignedIn)
+          return
+        }
+  
+        setCrewActionLoading(true)
+  
+        const { error } = await supabase
+          .from('crew_memberships')
+          .delete()
+          .eq('post_id', id)
+          .eq('user_id', uid)
+  
+        if (error) throw error
+  
+        setCrewMembers((prev) => prev.filter((m) => m.user_id !== uid))
+        setMyCrewMembership(false)
+      } catch (err) {
+        console.error(err)
+        setMsg(copy.unableLeaveCrew)
+      } finally {
+        setCrewActionLoading(false)
+      }
     }
-
-    try {
-      setTranslatingCommentId(commentId)
-
-      if (!translatedComments[commentId]) {
-        const translated = await translateText({
-          text: comment.body || '',
-          from: comment.source_language || detectLikelyLanguage(comment.body || ''),
-          to: lang
-        })
-
+  
+    async function translateReply(commentId, body) {
+      try {
+        const detected = detectLikelyLanguage(body)
+  
+        if (detected === lang) return
+  
+        if (translatedComments[commentId]) {
+          setVisibleTranslatedComments((prev) => ({
+            ...prev,
+            [commentId]: !prev[commentId]
+          }))
+          return
+        }
+  
+        setTranslatingCommentId(commentId)
+        const translated = await translateText(body, detected, lang)
+  
         setTranslatedComments((prev) => ({
           ...prev,
           [commentId]: translated
         }))
+  
+        setVisibleTranslatedComments((prev) => ({
+          ...prev,
+          [commentId]: true
+        }))
+      } catch (err) {
+        console.error(err)
+        setMsg(copy.unableTranslateReply)
+      } finally {
+        setTranslatingCommentId(null)
       }
-
-      setVisibleTranslatedComments((prev) => ({
-        ...prev,
-        [commentId]: true
-      }))
-    } catch (err) {
-      console.error(err)
-      setMsg(copy.unableTranslateReply)
-    } finally {
-      setTranslatingCommentId(null)
     }
-  }
-
-  const isOwner = useMemo(() => currentUserId && post?.author_id === currentUserId, [currentUserId, post])
-  const typeStyles = getPostTypeStyles(
-    post?.post_type || 'discussion',
-    post?.category_group || 'trade',
-    post?.is_urgent
-  )
-  const postBodyToRender = showTranslatedPost ? translatedPostBody : post?.body || ''
-
-  if (loading) {
-    return <div className="card">{t(lang, 'detail_loading')}</div>
-  }
-
-  if (!post) {
-    return (
-      <div className="card rounded-xl" style={{ padding: 22 }}>
-        <div className="card-section-title">{t(lang, 'detail_not_found')}</div>
-        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-          {msg || t(lang, 'detail_not_found_body')}
-        </p>
-        <div style={{ marginTop: 14 }}>
-          <Link className="btn primary" to="/feed">
-            {t(lang, 'detail_return_feed')}
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="grid" style={{ gap: 18 }}>
-      {msg ? (
-        <div className="card-message" style={{ padding: 14, borderRadius: 18 }}>
-          {msg}
-        </div>
-      ) : null}
-
-      <div
-        className="card rounded-xl"
-        style={{
-          padding: 28,
-          ...typeStyles.shell
-        }}
-      >
-        <div className="badge" style={{ ...typeStyles.badge, marginBottom: 14 }}>
-          {copy.heroBadge}
-        </div>
-
-        <div className="h1" style={{ maxWidth: 760 }}>
-          {copy.heroTitle}
-        </div>
-
-        <p className="muted" style={{ marginTop: 12, maxWidth: 820, fontSize: 17, lineHeight: 1.7 }}>
-          {copy.heroBody}
-        </p>
-      </div>
-
-      <div className="card rounded-xl" style={{ padding: 0, overflow: 'hidden', ...typeStyles.shell }}>
-        <div style={{ height: 6, background: typeStyles.accent }} />
-        <div style={{ padding: 24 }}>
-          <div className="postMeta" style={{ marginBottom: 12 }}>
-            <span className="badge" style={typeStyles.badge}>
-              {postTypeLabel(post.post_type || 'discussion', lang)}
-            </span>
-
-            <span className="badge" style={tradeBadgeStyle()}>
-              {post.category_group === 'jobsite_support' ? copy.jobsiteSupport : copy.trades}
-            </span>
-
-            {post.trade_name ? (
-              <span className="badge" style={tradeBadgeStyle()}>
-                {post.trade_name}
-              </span>
-            ) : null}
-
-            {post.category_group === 'jobsite_support' && post.support_type ? (
-              <span className="badge" style={tradeBadgeStyle()}>
-                {supportTypeLabel(post.support_type, lang)}
-              </span>
-            ) : null}
-
-            {post.center_zip ? (
-              <span className="badge">
-                {copy.zip} {post.center_zip}
-              </span>
-            ) : null}
-
-            {post.author_role ? (
-              <span className="badge" style={roleBadgeStyle(post.author_role)}>
-                {roleLabel(post.author_role, lang)}
-              </span>
-            ) : null}
-
-            {post.author_available ? (
-              <span className="badge" style={availabilityBadgeStyle(true)}>
-                {post.author_availability_status
-                  ? availabilityStatusLabel(post.author_availability_status, lang)
-                  : copy.available}
-              </span>
-            ) : null}
-
-            {post.is_urgent ? (
-              <span className="badge" style={urgentBadgeStyle()}>
-                ⚡ {copy.urgent}
-              </span>
-            ) : null}
-
-            {post.post_type === 'need_crew' ? (
-              <span className="badge" style={crewStatusBadgeStyle(post.crew_status || 'open')}>
-                {crewStatusLabel(post.crew_status || 'open', lang)}
-              </span>
-            ) : null}
-          </div>
-
-          <div className="h1" style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', marginTop: 0 }}>
-            {post.title}
-          </div>
-
+  
+    if (loading) {
+      return <div className="card">Loading…</div>
+    }
+  
+    if (!post) {
+      return <div className="card">Post not found.</div>
+    }
+  
+    const styles = getPostTypeStyles(post.post_type, post.category_group, post.is_urgent)
+  
+    const crewFull =
+      post.needed_count && crewMembers.length >= post.needed_count
+  
+    const canJoinCrew =
+      post.post_type === 'need_crew' &&
+      post.crew_status === 'open' &&
+      !crewFull &&
+      !myCrewMembership &&
+      currentUserId &&
+      currentUserId !== post.author_id
+      return (
+        <div className="grid" style={{ gap: 20 }}>
+          {msg && (
+            <div className="card-message" style={{ padding: 14 }}>
+              {msg}
+            </div>
+          )}
+    
           <div
+            className="card rounded-xl"
             style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: 12,
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              marginTop: 10
+              padding: 28,
+              background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
             }}
           >
-            <div className="postMeta">
-              <span>{t(lang, 'detail_posted_by')}</span>
-              <Link to={`/u/${post.author_id}`} style={{ fontWeight: 800, color: 'var(--text)' }}>
-                {post.author_name}
-              </Link>
-              <span>•</span>
-              <span>{timeAgo(post.created_at, lang)}</span>
+            <div className="badge" style={{ marginBottom: 14, background: '#f1e7a8' }}>
+              {copy.heroBadge}
             </div>
-
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Link className="btn small" to="/feed">
+    
+            <div className="h1" style={{ maxWidth: 820 }}>
+              {copy.heroTitle}
+            </div>
+    
+            <p className="muted" style={{ marginTop: 12, maxWidth: 900, fontSize: 17, lineHeight: 1.7 }}>
+              {copy.heroBody}
+            </p>
+    
+            <div style={{ marginTop: 18 }}>
+              <Link className="btn" to="/feed">
                 {copy.backToFeed}
               </Link>
-              <button className="btn small" onClick={copyInviteLink}>
-                {copy.copyInviteLink}
-              </button>
-              <button className="btn small" onClick={shareInviteLink}>
-                {copy.share}
-              </button>
             </div>
           </div>
-
-          <div className="grid two" style={{ marginTop: 18 }}>
-            <MetaStat label="Score" value={score} />
-            <MetaStat label="Radius" value={`${post.radius_miles || 0} mi`} />
-            {post.compensation ? <MetaStat label={copy.payRate} value={post.compensation} /> : null}
-            {post.start_date ? (
-              <MetaStat
-                label={copy.start}
-                value={new Date(post.start_date).toLocaleDateString()}
-              />
-            ) : null}
-            {post.post_type === 'need_crew' && post.needed_crew_size ? (
-              <MetaStat label={copy.crewNeeded} value={post.needed_crew_size} />
-            ) : null}
-            {post.post_type === 'need_crew' ? (
-              <MetaStat label={copy.filled} value={`${crewMembers.length}`} />
-            ) : null}
-            {post.category_group === 'jobsite_support' ? (
-              <MetaStat
-                label={copy.supportType}
-                value={supportTypeLabel(post.support_type, lang)}
-              />
-            ) : null}
-          </div>
-
-          {post.category_group === 'jobsite_support' && (post.service_tags.length > 0 || post.equipment_tags.length > 0) ? (
-            <div className="grid two" style={{ marginTop: 18 }}>
-              {post.service_tags.length > 0 ? (
-                <div className="card-soft" style={{ background: typeStyles.softPanel }}>
-                  <div className="card-section-title" style={{ fontSize: 15 }}>
-                    {copy.serviceTags}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                    {post.service_tags.map((tag) => (
-                      <span key={`service-${tag}`} className="badge">
-                        {formatTagLabel(tag)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+    
+          <div className="card rounded-xl" style={{ ...styles.shell, padding: 24 }}>
+            <div className="postMeta" style={{ marginBottom: 10 }}>
+              <span className="badge" style={styles.badge}>
+                {postTypeLabel(post.post_type, lang)}
+              </span>
+    
+              <span className="badge">
+                {post.category_group === 'jobsite_support' ? copy.jobsiteSupport : copy.trades}
+              </span>
+    
+              {post.category_group === 'jobsite_support' && post.support_type ? (
+                <span className="badge">
+                  {supportTypeLabel(post.support_type, lang)}
+                </span>
               ) : null}
-
-              {post.equipment_tags.length > 0 ? (
-                <div className="card-soft" style={{ background: typeStyles.softPanel }}>
-                  <div className="card-section-title" style={{ fontSize: 15 }}>
-                    {copy.equipmentTags}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                    {post.equipment_tags.map((tag) => (
-                      <span key={`equipment-${tag}`} className="badge">
-                        {formatTagLabel(tag)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+    
+              {post.trade_name ? (
+                <span className="badge" style={tradeBadgeStyle()}>
+                  {post.trade_name}
+                </span>
               ) : null}
+    
+              {post.is_urgent ? (
+                <span className="badge" style={urgentBadgeStyle()}>
+                  {copy.urgent}
+                </span>
+              ) : null}
+    
+              <span className="badge">{timeAgo(post.created_at, lang)}</span>
             </div>
-          ) : null}
-
-          <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button
-              className={myVote === 1 ? 'btn primary' : 'btn'}
-              onClick={() => vote(1)}
-            >
-              {myVote === 1 ? t(lang, 'detail_upvoted') : t(lang, 'detail_upvote')}
-            </button>
-
-            <button
-              className={myVote === -1 ? 'btn primary' : 'btn'}
-              onClick={() => vote(-1)}
-            >
-              {myVote === -1 ? t(lang, 'detail_downvoted') : t(lang, 'detail_downvote')}
-            </button>
-
-            <button className="btn" onClick={togglePostTranslation} disabled={translatingPost}>
-              {translatingPost
-                ? copy.translating
-                : showTranslatedPost
-                  ? copy.showOriginal
-                  : copy.translate}
-            </button>
-          </div>
-
-          <div
-            style={{
-              marginTop: 18,
-              fontSize: 15,
-              lineHeight: 1.75,
-              whiteSpace: 'pre-wrap'
-            }}
-          >
-            {postBodyToRender}
-          </div>
-
-          {showTranslatedPost ? (
-            <div className="card-soft" style={{ marginTop: 14 }}>
-              <div className="card-section-title" style={{ fontSize: 15 }}>
-                {copy.translatedVersion}
+    
+            <div className="h2">{post.title}</div>
+    
+            {post.body ? (
+              <div
+                style={{
+                  marginTop: 12,
+                  lineHeight: 1.75,
+                  fontSize: 16,
+                  whiteSpace: 'pre-wrap'
+                }}
+              >
+                {renderedPostBody}
               </div>
-            </div>
-          ) : null}
-
-          {post.image_urls?.length > 0 ? (
-            <div className="card-soft" style={{ marginTop: 18, background: typeStyles.softPanel }}>
-              <div className="card-section-title" style={{ fontSize: 15 }}>
-                {copy.photos}
+            ) : null}
+    
+            {postLang !== lang && post.body ? (
+              <div style={{ marginTop: 12 }}>
+                <button
+                  className="btn small"
+                  onClick={translatePostBody}
+                  disabled={translatingPost}
+                >
+                  {translatingPost
+                    ? copy.translating
+                    : translatedPostBody && showTranslatedPost
+                      ? copy.showOriginal
+                      : copy.translate}
+                </button>
+    
+                {showTranslatedPost && translatedPostBody ? (
+                  <div className="muted" style={{ marginTop: 8 }}>
+                    {copy.translatedVersion}
+                  </div>
+                ) : null}
               </div>
-
-              <div className="grid two" style={{ marginTop: 12 }}>
-                {post.image_urls.map((path) => {
-                  const src = imageUrls[path]
-                  return (
-                    <div
-                      key={path}
-                      style={{
-                        background: '#ffffff',
-                        borderRadius: 18,
-                        overflow: 'hidden',
-                        minHeight: 180
-                      }}
-                    >
-                      {src ? (
-                        <img
-                          src={src}
-                          alt="Post attachment"
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover',
-                            display: 'block'
-                          }}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            padding: 20,
-                            color: 'var(--muted)',
-                            minHeight: 180,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          {copy.unableLoadImage}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          ) : null}
-
-          {post.post_type === 'need_crew' ? (
-            <div className="grid two" style={{ marginTop: 20 }}>
-              <div className="card-soft" style={{ background: typeStyles.softPanel }}>
+            ) : null}
+    
+            {post.image_paths && post.image_paths.length > 0 ? (
+              <div style={{ marginTop: 18 }}>
                 <div className="card-section-title" style={{ fontSize: 16 }}>
-                  {copy.crewBuilder}
+                  {copy.photos}
+                </div>
+    
+                <div
+                  style={{
+                    marginTop: 12,
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                    gap: 10
+                  }}
+                >
+                  {post.image_paths.map((path, idx) => {
+                    const url = imageUrls[path]
+                    if (!url) return null
+    
+                    return (
+                      <img
+                        key={`${path}-${idx}`}
+                        src={url}
+                        alt="Post"
+                        style={{
+                          width: '100%',
+                          borderRadius: 14,
+                          objectFit: 'cover'
+                        }}
+                        onError={() => setMsg(copy.unableLoadImage)}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
+    
+            <div style={{ marginTop: 18, display: 'flex', gap: 8 }}>
+              <button
+                className={`btn small ${myVote === 1 ? 'primary' : ''}`}
+                onClick={() => vote(1)}
+              >
+                ▲
+              </button>
+    
+              <div className="badge">{score}</div>
+    
+              <button
+                className={`btn small ${myVote === -1 ? 'primary' : ''}`}
+                onClick={() => vote(-1)}
+              >
+                ▼
+              </button>
+            </div>
+          </div>
+    
+          <div className="grid two">
+            <div className="card rounded-xl" style={{ padding: 22 }}>
+              <div className="card-section-title">{copy.opportunityDetails}</div>
+    
+              <div className="grid two" style={{ marginTop: 14 }}>
+                {post.center_zip ? <MetaStat label={copy.zip} value={post.center_zip} /> : null}
+                {post.start_date ? (
+                  <MetaStat
+                    label={copy.start}
+                    value={new Date(post.start_date).toLocaleDateString()}
+                  />
+                ) : null}
+                {post.compensation ? <MetaStat label={copy.payRate} value={post.compensation} /> : null}
+    
+                {post.post_type === 'need_crew' ? (
+                  <>
+                    <MetaStat label={copy.crewNeeded} value={post.needed_count || 0} />
+                    <MetaStat label={copy.filled} value={crewMembers.length} />
+                    <MetaStat
+                      label={copy.hired}
+                      value={crewMembers.filter((m) => m.status === 'hired').length}
+                    />
+                    <div className="card-soft" style={{ minHeight: 92 }}>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 800,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.08em',
+                          color: 'var(--muted-soft)'
+                        }}
+                      >
+                        Status
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        <span className="badge" style={crewStatusBadgeStyle(post.crew_status)}>
+                          {crewStatusLabel(post.crew_status, lang)}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                ) : null}
+              </div>
+    
+              {post.category_group === 'jobsite_support' && post.service_tags?.length > 0 ? (
+                <div style={{ marginTop: 16 }}>
+                  <div className="muted">{copy.serviceTags}</div>
+                  <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {post.service_tags.map((tag) => (
+                      <span key={`post-service-${tag}`} className="badge">
+                        {formatTagLabel(tag)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+    
+              {post.category_group === 'jobsite_support' && post.equipment_tags?.length > 0 ? (
+                <div style={{ marginTop: 16 }}>
+                  <div className="muted">{copy.equipmentTags}</div>
+                  <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {post.equipment_tags.map((tag) => (
+                      <span key={`post-equipment-${tag}`} className="badge">
+                        {formatTagLabel(tag)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+    
+            <div className="card rounded-xl" style={{ padding: 22 }}>
+              <div className="card-section-title">{copy.contactCard}</div>
+    
+              <div className="postMeta" style={{ marginTop: 12 }}>
+                {post.author_role ? (
+                  <span className="badge" style={roleBadgeStyle(post.author_role)}>
+                    {roleLabel(post.author_role, lang)}
+                  </span>
+                ) : null}
+    
+                <span className="badge">{post.author_name}</span>
+    
+                {post.author_trade_name ? (
+                  <span className="badge" style={tradeBadgeStyle()}>
+                    {post.author_trade_name}
+                  </span>
+                ) : null}
+    
+                {post.author_category_group === 'jobsite_support' && post.author_support_type ? (
+                  <span className="badge">
+                    {supportTypeLabel(post.author_support_type, lang)}
+                  </span>
+                ) : null}
+    
+                {post.author_is_available ? (
+                  <span className="badge" style={availabilityBadgeStyle(true)}>
+                    {availabilityStatusLabel(post.author_availability_status, lang)}
+                  </span>
+                ) : (
+                  <span className="badge">{copy.notAvailable}</span>
+                )}
+    
+                {post.author_contractor_verified ? (
+                  <span className="badge" style={{ background: '#111111', color: '#ffffff' }}>
+                    Verified Contractor
+                  </span>
+                ) : null}
+              </div>
+    
+              {(post.author_home_zip || post.author_travel_radius_miles) ? (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+                  {post.author_home_zip ? (
+                    <span className="badge">
+                      {copy.zip}: {post.author_home_zip}
+                    </span>
+                  ) : null}
+                  <span className="badge">
+                    Radius: {post.author_travel_radius_miles || 0}
+                  </span>
+                </div>
+              ) : null}
+    
+              {post.author_service_tags?.length > 0 ? (
+                <div style={{ marginTop: 14 }}>
+                  <div className="muted">{copy.serviceTags}</div>
+                  <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {post.author_service_tags.map((tag) => (
+                      <span key={`author-service-${tag}`} className="badge">
+                        {formatTagLabel(tag)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+    
+              {post.author_equipment_tags?.length > 0 ? (
+                <div style={{ marginTop: 14 }}>
+                  <div className="muted">{copy.equipmentTags}</div>
+                  <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {post.author_equipment_tags.map((tag) => (
+                      <span key={`author-equipment-${tag}`} className="badge">
+                        {formatTagLabel(tag)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+    
+              {post.author_bio ? (
+                <p style={{ marginTop: 14, lineHeight: 1.7 }}>
+                  {post.author_bio}
+                </p>
+              ) : null}
+    
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+                <Link className="btn primary" to={`/u/${post.author_id}`}>
+                  {copy.viewProfile}
+                </Link>
+    
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() => copyWorkerProfileLink(post.author_id)}
+                >
+                  Copy Profile Link
+                </button>
+              </div>
+            </div>
+          </div>      
+          <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">{copy.crewBuilder}</div>
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+          {copy.crewBuilderBody}
+        </p>
+
+        <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button className="btn" onClick={copyInviteLink}>
+            {copy.copyInviteLink}
+          </button>
+
+          <button className="btn" onClick={shareInviteLink}>
+            {copy.share}
+          </button>
+
+          <button className="btn" onClick={textInviteLink}>
+            {copy.textInvite}
+          </button>
+
+          <button className="btn" onClick={emailInviteLink}>
+            {copy.emailInvite}
+          </button>
+        </div>
+
+        {post.post_type === 'need_crew' ? (
+          <div style={{ marginTop: 16 }}>
+            {canJoinCrew ? (
+              <button
+                className="btn primary"
+                onClick={joinCrew}
+                disabled={crewActionLoading}
+              >
+                {crewActionLoading ? copy.joining : copy.joinCrew}
+              </button>
+            ) : null}
+
+            {myCrewMembership ? (
+              <button
+                className="btn"
+                onClick={leaveCrew}
+                disabled={crewActionLoading}
+              >
+                {crewActionLoading ? copy.leaving : copy.leaveCrew}
+              </button>
+            ) : null}
+
+            {post.author_id === currentUserId ? (
+              <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  className="btn"
+                  onClick={() => changeCrewStatus('open')}
+                  disabled={crewActionLoading}
+                >
+                  {copy.markOpen}
+                </button>
+
+                <button
+                  className="btn"
+                  onClick={() => changeCrewStatus('full')}
+                  disabled={crewActionLoading}
+                >
+                  {copy.markCrewFull}
+                </button>
+
+                <button
+                  className="btn"
+                  onClick={() => changeCrewStatus('closed')}
+                  disabled={crewActionLoading}
+                >
+                  {copy.closePost}
+                </button>
+              </div>
+            ) : null}
+
+            {post.author_id === currentUserId ? (
+              <div className="card-soft" style={{ marginTop: 14, background: '#fffaf0' }}>
+                <div className="card-section-title" style={{ fontSize: 15 }}>
+                  {copy.contractorControls}
                 </div>
                 <p className="card-section-subtitle" style={{ marginTop: 8 }}>
                   {copy.crewBuilderBody}
                 </p>
-
-                <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  {isOwner ? (
-                    <span className="badge" style={{ background: '#111111', color: '#ffffff' }}>
-                      {copy.youPostedThis}
-                    </span>
-                  ) : null}
-
-                  {!isOwner && !myCrewMembership && (post.crew_status || 'open') === 'open' ? (
-                    <button className="btn primary" onClick={joinCrew} disabled={crewActionLoading}>
-                      {crewActionLoading ? copy.joining : copy.joinCrew}
-                    </button>
-                  ) : null}
-
-                  {!isOwner && myCrewMembership ? (
-                    <button className="btn" onClick={leaveCrew} disabled={crewActionLoading}>
-                      {crewActionLoading ? copy.leaving : copy.leaveCrew}
-                    </button>
-                  ) : null}
-
-                  {(post.crew_status || 'open') === 'full' ? (
-                    <span className="badge" style={{ background: '#fff0b4', color: '#111111' }}>
-                      {copy.crewFull}
-                    </span>
-                  ) : null}
-
-                  {(post.crew_status || 'open') === 'closed' ? (
-                    <span className="badge" style={{ background: '#111111', color: '#ffffff' }}>
-                      {copy.postClosed}
-                    </span>
-                  ) : null}
-                </div>
               </div>
-
-              <div className="card-soft" style={{ background: '#f8f8f4' }}>
-                <div className="card-section-title" style={{ fontSize: 16 }}>
-                  {copy.inviteCrew}
-                </div>
-                <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-                  {copy.inviteCrewBody}
-                </p>
-
-                <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <button className="btn small primary" onClick={copyInviteLink}>
-                    {copy.copyInviteLink}
-                  </button>
-                  <button className="btn small" onClick={shareInviteLink}>
-                    {copy.share}
-                  </button>
-                  <button className="btn small" onClick={openTextInvite}>
-                    {copy.textInvite}
-                  </button>
-                  <button className="btn small" onClick={openEmailInvite}>
-                    {copy.emailInvite}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {isOwner && post.post_type === 'need_crew' ? (
-            <div className="card rounded-xl" style={{ marginTop: 18, padding: 22 }}>
-              <div className="card-section-title">{copy.contractorControls}</div>
-              <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <button className="btn" onClick={() => updateCrewStatus('open')} disabled={crewActionLoading}>
-                  {crewActionLoading ? copy.saving : copy.markOpen}
-                </button>
-                <button className="btn" onClick={() => updateCrewStatus('full')} disabled={crewActionLoading}>
-                  {crewActionLoading ? copy.saving : copy.markCrewFull}
-                </button>
-                <button className="btn danger" onClick={() => updateCrewStatus('closed')} disabled={crewActionLoading}>
-                  {crewActionLoading ? copy.saving : copy.closePost}
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {post.post_type === 'need_crew' ? (
         <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">{copy.crewRoster}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {crewMembers.length === 0 ? copy.noOneJoined : ''}
-          </p>
 
-          {crewMembers.length > 0 ? (
+          {crewMembers.length === 0 ? (
+            <div className="card-soft" style={{ marginTop: 14 }}>
+              <div className="muted">{copy.noOneJoined}</div>
+            </div>
+          ) : (
             <div className="list" style={{ marginTop: 14 }}>
               {crewMembers.map((member) => {
-                const workedBefore = workedBeforeMap[member.user_id]
+                const workedKey = `${post.author_id}:${member.user_id}`
+                const workedBefore = Boolean(workedBeforeMap[workedKey])
 
                 return (
-                  <div key={member.user_id} className="card-soft" style={{ background: '#ffffff' }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        gap: 12,
-                        flexWrap: 'wrap',
-                        alignItems: 'flex-start'
-                      }}
-                    >
-                      <div style={{ flex: '1 1 360px' }}>
-                        <div className="postMeta">
-                          <Link to={`/u/${member.user_id}`} style={{ fontWeight: 800, color: 'var(--text)' }}>
-                            {member.display_name}
-                          </Link>
-
-                          {member.role ? (
-                            <span className="badge" style={roleBadgeStyle(member.role)}>
-                              {roleLabel(member.role, lang)}
-                            </span>
-                          ) : null}
-
-                          {member.is_available ? (
-                            <span className="badge" style={availabilityBadgeStyle(true)}>
-                              {member.availability_status
-                                ? availabilityStatusLabel(member.availability_status, lang)
-                                : copy.available}
-                            </span>
-                          ) : (
-                            <span className="badge">{copy.notAvailable}</span>
-                          )}
-
-                          <span className="badge" style={memberStatusBadgeStyle(member.status)}>
-                            {memberStatusLabel(member.status, lang)}
+                  <div
+                    key={member.user_id}
+                    className="card-soft"
+                    style={{
+                      background: '#ffffff',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      gap: 14,
+                      flexWrap: 'wrap',
+                      alignItems: 'flex-start'
+                    }}
+                  >
+                    <div style={{ flex: '1 1 420px' }}>
+                      <div className="postMeta">
+                        {member.role ? (
+                          <span className="badge" style={roleBadgeStyle(member.role)}>
+                            {roleLabel(member.role, lang)}
                           </span>
-                        </div>
-
-                        <div className="muted" style={{ marginTop: 10 }}>
-                          {copy.joinedAt}: {new Date(member.created_at).toLocaleString()}
-                        </div>
-
-                        {workedBefore ? (
-                          <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                            <span className="badge">
-                              {copy.workedBefore}: {workedBefore.count}
-                            </span>
-                            <span className="badge">{workedBefore.latest_type}</span>
-                          </div>
                         ) : null}
 
-                        {isOwner ? (
-                          <div className="grid two" style={{ marginTop: 12 }}>
-                            {member.phone ? (
-                              <div className="card-soft">
-                                <div className="card-section-title" style={{ fontSize: 14 }}>
-                                  {copy.phone}
-                                </div>
-                                <div style={{ marginTop: 6 }}>{formatPhone(member.phone)}</div>
-                              </div>
-                            ) : null}
+                        {member.trade_name ? (
+                          <span className="badge" style={tradeBadgeStyle()}>
+                            {member.trade_name}
+                          </span>
+                        ) : null}
 
-                            {member.email ? (
-                              <div className="card-soft">
-                                <div className="card-section-title" style={{ fontSize: 14 }}>
-                                  {copy.email}
-                                </div>
-                                <div style={{ marginTop: 6 }}>{member.email}</div>
-                              </div>
-                            ) : null}
+                        {member.support_type ? (
+                          <span className="badge">
+                            {supportTypeLabel(member.support_type, lang)}
+                          </span>
+                        ) : null}
 
-                            {member.city ? (
-                              <div className="card-soft">
-                                <div className="card-section-title" style={{ fontSize: 14 }}>
-                                  {copy.city}
-                                </div>
-                                <div style={{ marginTop: 6 }}>{member.city}</div>
-                              </div>
-                            ) : null}
-                          </div>
+                        <span className="badge" style={memberStatusBadgeStyle(member.status)}>
+                          {memberStatusLabel(member.status, lang)}
+                        </span>
+
+                        {member.is_available ? (
+                          <span className="badge" style={availabilityBadgeStyle(true)}>
+                            {availabilityStatusLabel(member.availability_status, lang)}
+                          </span>
+                        ) : null}
+
+                        {workedBefore ? (
+                          <span className="badge">{copy.workedBefore}</span>
                         ) : null}
                       </div>
 
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <Link className="btn small primary" to={`/u/${member.user_id}`}>
-                          {copy.viewProfile}
-                        </Link>
+                      <div style={{ marginTop: 10, fontWeight: 900, fontSize: 18 }}>
+                        {member.display_name}
+                      </div>
 
-                        <button className="btn small" onClick={() => copyWorkerProfile(member.user_id)}>
-                          {copy.rehireShare}
-                        </button>
-
-                        {isOwner && member.status !== 'hired' ? (
-                          <button
-                            className="btn small"
-                            onClick={() => updateMemberStatus(member.user_id, 'hired')}
-                            disabled={crewActionLoading}
-                          >
-                            {copy.markHired}
-                          </button>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                        {member.home_zip ? (
+                          <span className="badge">
+                            {copy.zip}: {member.home_zip}
+                          </span>
                         ) : null}
+                        <span className="badge">
+                          Radius: {member.travel_radius_miles || 0}
+                        </span>
+                        <span className="badge">
+                          {copy.joinedAt}: {timeAgo(member.created_at, lang)}
+                        </span>
+                      </div>
 
-                        {isOwner && member.status === 'hired' ? (
+                      {member.service_tags?.length > 0 ? (
+                        <div style={{ marginTop: 12 }}>
+                          <div className="muted">{copy.serviceTags}</div>
+                          <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            {member.service_tags.map((tag) => (
+                              <span key={`${member.user_id}-service-${tag}`} className="badge">
+                                {formatTagLabel(tag)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {member.equipment_tags?.length > 0 ? (
+                        <div style={{ marginTop: 12 }}>
+                          <div className="muted">{copy.equipmentTags}</div>
+                          <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            {member.equipment_tags.map((tag) => (
+                              <span key={`${member.user_id}-equipment-${tag}`} className="badge">
+                                {formatTagLabel(tag)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {member.bio ? (
+                        <p style={{ marginTop: 12, lineHeight: 1.7 }}>
+                          {member.bio}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <div style={{ minWidth: 220, display: 'grid', gap: 10 }}>
+                      <Link className="btn small primary" to={`/u/${member.user_id}`}>
+                        {copy.viewProfile}
+                      </Link>
+
+                      <button
+                        className="btn small"
+                        type="button"
+                        onClick={() => copyWorkerProfileLink(member.user_id)}
+                      >
+                        Copy Profile Link
+                      </button>
+
+                      {post.author_id === currentUserId ? (
+                        <>
                           <button
                             className="btn small"
-                            onClick={() => updateMemberStatus(member.user_id, 'joined')}
+                            type="button"
+                            onClick={() => changeMemberStatus(member.user_id, 'joined')}
                             disabled={crewActionLoading}
                           >
                             {copy.moveBackToJoined}
                           </button>
-                        ) : null}
-                      </div>
+
+                          <button
+                            className="btn small"
+                            type="button"
+                            onClick={() => changeMemberStatus(member.user_id, 'hired')}
+                            disabled={crewActionLoading}
+                          >
+                            {copy.markHired}
+                          </button>
+                        </>
+                      ) : null}
                     </div>
                   </div>
                 )
               })}
             </div>
-          ) : null}
+          )}
         </div>
       ) : null}
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{copy.discussionThread}</div>
-        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-          {comments.length === 0 ? copy.noReplies : `${copy.replies}: ${comments.length}`}
-        </p>
 
-        <div className="card-soft" style={{ marginTop: 14 }}>
-          <div className="card-section-title" style={{ fontSize: 16 }}>
-            {copy.addReply}
-          </div>
+        <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
           <textarea
             className="input"
-            style={{ marginTop: 12 }}
+            rows={4}
             value={newComment}
-            placeholder={copy.replyPlaceholder}
             onChange={(e) => setNewComment(e.target.value)}
+            placeholder={copy.replyPlaceholder}
           />
 
-          <div style={{ marginTop: 12 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
             <button className="btn primary" onClick={addComment}>
               {copy.postReply}
             </button>
+
+            <span className="muted">
+              {currentCommentLang === 'es' ? 'Español' : 'English'}
+            </span>
           </div>
         </div>
 
-        {comments.length > 0 ? (
-          <div className="list" style={{ marginTop: 14 }}>
-            {comments.map((comment) => (
-              <div key={comment.id} className="card-soft" style={{ background: '#ffffff' }}>
-                <div className="postMeta">
-                  <Link to={`/u/${comment.author_id}`} style={{ fontWeight: 800, color: 'var(--text)' }}>
-                    {comment.author_name}
-                  </Link>
-
-                  {comment.author_role ? (
-                    <span className="badge" style={roleBadgeStyle(comment.author_role)}>
-                      {roleLabel(comment.author_role, lang)}
-                    </span>
-                  ) : null}
-
-                  {comment.author_available ? (
-                    <span className="badge" style={availabilityBadgeStyle(true)}>
-                      {comment.author_availability_status
-                        ? availabilityStatusLabel(comment.author_availability_status, lang)
-                        : copy.available}
-                    </span>
-                  ) : null}
-
-                  <span>{timeAgo(comment.created_at, lang)}</span>
-                </div>
-
-                <div style={{ marginTop: 12, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                  {visibleTranslatedComments[comment.id]
-                    ? translatedComments[comment.id]
-                    : comment.body}
-                </div>
-
-                <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <Link className="btn small" to={`/u/${comment.author_id}`}>
-                    {copy.viewProfile}
-                  </Link>
-                  <button
-                    className="btn small"
-                    onClick={() => toggleCommentTranslation(comment.id)}
-                    disabled={translatingCommentId === comment.id}
-                  >
-                    {translatingCommentId === comment.id
-                      ? copy.translating
-                      : visibleTranslatedComments[comment.id]
-                        ? copy.showOriginal
-                        : copy.translate}
-                  </button>
-                </div>
-              </div>
-            ))}
+        {comments.length === 0 ? (
+          <div className="card-soft" style={{ marginTop: 14 }}>
+            <div className="muted">{copy.noReplies}</div>
           </div>
-        ) : null}
+        ) : (
+          <div className="list" style={{ marginTop: 14 }}>
+            {comments.map((comment) => {
+              const detectedLang = detectLikelyLanguage(comment.body || '')
+              const translated = translatedComments[comment.id]
+              const showTranslated = Boolean(visibleTranslatedComments[comment.id])
+
+              return (
+                <div key={comment.id} className="card-soft" style={{ background: '#ffffff' }}>
+                  <div className="postMeta">
+                    {comment.author_role ? (
+                      <span className="badge" style={roleBadgeStyle(comment.author_role)}>
+                        {roleLabel(comment.author_role, lang)}
+                      </span>
+                    ) : null}
+
+                    <span className="badge">{comment.author_name}</span>
+                    <span className="badge">{timeAgo(comment.created_at, lang)}</span>
+                  </div>
+
+                  <div style={{ marginTop: 10, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                    {showTranslated && translated ? translated : comment.body}
+                  </div>
+
+                  {detectedLang !== lang ? (
+                    <button
+                      className="btn small"
+                      style={{ marginTop: 10 }}
+                      onClick={() => translateReply(comment.id, comment.body)}
+                      disabled={translatingCommentId === comment.id}
+                    >
+                      {translatingCommentId === comment.id
+                        ? copy.translating
+                        : translated && showTranslated
+                          ? copy.showOriginal
+                          : copy.translate}
+                    </button>
+                  ) : null}
+
+                  {showTranslated && translated ? (
+                    <div className="muted" style={{ marginTop: 8 }}>
+                      {copy.translatedVersion}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     </div>
   )
