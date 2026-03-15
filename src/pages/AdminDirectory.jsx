@@ -60,14 +60,14 @@ const COPY = {
     newestHires: 'Newest Hires',
     mostActiveMembers: 'Most Active Members',
 
-    role: 'Role',
+    role: 'Account Type',
     trade: 'Trade',
     city: 'City',
     zip: 'ZIP',
     radius: 'Radius',
     availability: 'Availability',
     availabilityStatus: 'Availability Status',
-    categoryGroup: 'Category',
+    categoryGroup: 'Account Class',
     supportType: 'Support Type',
     serviceTags: 'Service Tags',
     equipmentTags: 'Equipment Tags',
@@ -75,7 +75,7 @@ const COPY = {
     businessAddress: 'Business Address',
     businessZip: 'Business ZIP',
     materialsCategories: 'Materials Categories',
-    storefront: 'Storefront',
+    storefront: 'Storefront Location',
     vehicleType: 'Vehicle Type',
     trailerType: 'Trailer Type',
     trailerLength: 'Trailer Length',
@@ -105,12 +105,12 @@ const COPY = {
     notVerified: 'Not Verified',
 
     searchLabel: 'Search',
-    searchPlaceholder: 'Search by name, trade, city, ZIP, role, bio, service, or equipment',
+    searchPlaceholder: 'Search by name, business, trade, city, ZIP, account type, bio, service, or equipment',
     tradeLabel: 'Trade',
     allTrades: 'All Trades',
-    roleLabel: 'Role',
+    roleLabel: 'Account Type',
     allRoles: 'All Roles',
-    categoryLabel: 'Category',
+    categoryLabel: 'Account Class',
     allCategories: 'All Categories',
     supportTypeLabel: 'Support Type',
     allSupportTypes: 'All Support Types',
@@ -235,14 +235,14 @@ const COPY = {
     newestHires: 'Contrataciones Más Nuevas',
     mostActiveMembers: 'Miembros Más Activos',
 
-    role: 'Rol',
+    role: 'Tipo de cuenta',
     trade: 'Oficio',
     city: 'Ciudad',
     zip: 'ZIP',
     radius: 'Radio',
     availability: 'Disponibilidad',
     availabilityStatus: 'Estado de Disponibilidad',
-    categoryGroup: 'Categoría',
+    categoryGroup: 'Clase de cuenta',
     supportType: 'Tipo de Soporte',
     serviceTags: 'Etiquetas de Servicio',
     equipmentTags: 'Etiquetas de Equipo',
@@ -250,7 +250,7 @@ const COPY = {
     businessAddress: 'Dirección Comercial',
     businessZip: 'ZIP Comercial',
     materialsCategories: 'Categorías de Materiales',
-    storefront: 'Ubicación Física',
+    storefront: 'Ubicación de tienda',
     vehicleType: 'Tipo de Vehículo',
     trailerType: 'Tipo de Remolque',
     trailerLength: 'Largo del Remolque',
@@ -280,12 +280,12 @@ const COPY = {
     notVerified: 'No Verificado',
 
     searchLabel: 'Buscar',
-    searchPlaceholder: 'Busca por nombre, oficio, ciudad, ZIP, rol, biografía, servicio o equipo',
+    searchPlaceholder: 'Busca por nombre, negocio, oficio, ciudad, ZIP, tipo de cuenta, biografía, servicio o equipo',
     tradeLabel: 'Oficio',
     allTrades: 'Todos los Oficios',
-    roleLabel: 'Rol',
+    roleLabel: 'Tipo de cuenta',
     allRoles: 'Todos los Roles',
-    categoryLabel: 'Categoría',
+    categoryLabel: 'Clase de cuenta',
     allCategories: 'Todas las Categorías',
     supportTypeLabel: 'Tipo de Soporte',
     allSupportTypes: 'Todos los Tipos de Soporte',
@@ -440,6 +440,22 @@ function supportTypeLabel(value, copy) {
 function formatList(value) {
   if (Array.isArray(value)) return value.filter(Boolean).join(', ')
   return String(value || '')
+}
+
+function formatMaterialsLabel(value) {
+  const map = {
+    equipment_rental: 'Equipment Rental',
+    safety_equipment: 'Safety Equipment',
+    lumber: 'Lumber',
+    concrete: 'Concrete',
+    steel: 'Steel',
+    electrical: 'Electrical',
+    plumbing: 'Plumbing',
+    drywall: 'Drywall',
+    fasteners: 'Fasteners',
+    tools: 'Tools'
+  }
+  return map[value] || value
 }
 
 function formatDateTime(value) {
