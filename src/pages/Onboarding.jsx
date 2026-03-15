@@ -79,7 +79,7 @@ const COPY = {
     noticeBody:
       'Only your display name, trade, and ZIP are required to get inside the app. Everything else can be completed later.',
     displayName: 'Display Name',
-    primaryRole: 'Primary Role',
+    primaryRole: 'Account Type',
     trade: 'Trade',
     selectTrade: 'Select your trade',
     firstName: 'First Name',
@@ -150,7 +150,7 @@ const COPY = {
     noticeBody:
       'Solo tu nombre visible, oficio y ZIP son requeridos para entrar a la app. Todo lo demás se puede completar después.',
     displayName: 'Nombre visible',
-    primaryRole: 'Rol principal',
+    primaryRole: 'Tipo de cuenta',
     trade: 'Oficio',
     selectTrade: 'Selecciona tu oficio',
     firstName: 'Nombre',
@@ -251,6 +251,7 @@ export default function Onboarding({ lang = 'en', setLang }) {
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [trades, setTrades] = useState([])
+  const [customMaterialCategory, setCustomMaterialCategory] = useState('')
   const navigate = useNavigate()
 
   const [form, setForm] = useState({
@@ -316,6 +317,49 @@ export default function Onboarding({ lang = 'en', setLang }) {
 
   function roleLabel(option) {
     return option.label[form.preferred_language] || option.label.en
+  }
+
+  function toggleMaterialsCategory(value) {
+    setForm((prev) => {
+      const current = Array.isArray(prev.materials_categories) ? prev.materials_categories : []
+      const exists = current.includes(value)
+      return {
+        ...prev,
+        materials_categories: exists ? current.filter((item) => item !== value) : [...current, value]
+      }
+    })
+  }
+
+  function addCustomMaterialsCategory() {
+    const value = String(customMaterialCategory || '').trim()
+    if (!value) return
+
+    setForm((prev) => {
+      const current = Array.isArray(prev.materials_categories) ? prev.materials_categories : []
+      if (current.includes(value)) return prev
+      return {
+        ...prev,
+        materials_categories: [...current, value]
+      }
+    })
+
+    setCustomMaterialCategory('')
+  }
+
+  function prettyMaterialLabel(value) {
+    const map = {
+      equipment_rental: 'Equipment Rental',
+      safety_equipment: 'Safety Equipment',
+      lumber: 'Lumber',
+      concrete: 'Concrete',
+      steel: 'Steel',
+      electrical: 'Electrical',
+      plumbing: 'Plumbing',
+      drywall: 'Drywall',
+      fasteners: 'Fasteners',
+      tools: 'Tools'
+    }
+    return map[value] || value
   }
 
   const selectedSupportConfig = useMemo(() => {
@@ -575,17 +619,6 @@ export default function Onboarding({ lang = 'en', setLang }) {
               {ROLE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {roleLabel(option)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{copy.categoryGroup}</div>
-            <select className="input" value={form.category_group} onChange={(e) => setField('category_group', e.target.value)}>
-              {CATEGORY_GROUP_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {labelForOption(option, form.preferred_language)}
                 </option>
               ))}
             </select>
