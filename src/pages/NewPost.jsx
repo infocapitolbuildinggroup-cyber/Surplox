@@ -465,7 +465,9 @@ export default function NewPost({ lang: langProp = 'en' }) {
         supplierTitle:
           'Ejemplo: Patio de materiales con block, concreto y acero disponible en Fort Worth',
         supplierBody:
-          'Describe tu ubicación, tipos de materiales, si tienes entrega o pickup y cómo contactarte.',
+          'Describe la ubicación de tu negocio, qué materiales suministras, si ofreces entrega o pickup y cómo pueden contactarte.',
+        supplierBusinessNotice:
+          'Las cuentas de proveedor funcionan mejor como publicaciones de tienda/ubicación y no como perfiles de trabajador individual.',
         crewBody:
           'Describe el oficio, dónde está el trabajo, cuánta gente necesitas, cuándo inicia y los detalles de pago.',
         workBody:
