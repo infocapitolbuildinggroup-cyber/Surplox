@@ -71,6 +71,16 @@ const COPY = {
     supportType: 'Support Type',
     serviceTags: 'Service Tags',
     equipmentTags: 'Equipment Tags',
+    businessName: 'Business Name',
+    businessAddress: 'Business Address',
+    businessZip: 'Business ZIP',
+    materialsCategories: 'Materials Categories',
+    storefront: 'Storefront',
+    vehicleType: 'Vehicle Type',
+    trailerType: 'Trailer Type',
+    trailerLength: 'Trailer Length',
+    payloadCapacity: 'Payload Capacity',
+    deliveryRadius: 'Delivery Radius',
     contractorVerification: 'Contractor Verification',
     privateRating: 'Private Admin Rating',
     privateNotes: 'Private Notes',
@@ -236,6 +246,16 @@ const COPY = {
     supportType: 'Tipo de Soporte',
     serviceTags: 'Etiquetas de Servicio',
     equipmentTags: 'Etiquetas de Equipo',
+    businessName: 'Nombre Comercial',
+    businessAddress: 'Dirección Comercial',
+    businessZip: 'ZIP Comercial',
+    materialsCategories: 'Categorías de Materiales',
+    storefront: 'Ubicación Física',
+    vehicleType: 'Tipo de Vehículo',
+    trailerType: 'Tipo de Remolque',
+    trailerLength: 'Largo del Remolque',
+    payloadCapacity: 'Capacidad de Carga',
+    deliveryRadius: 'Radio de Entrega',
     contractorVerification: 'Verificación de Contratista',
     privateRating: 'Calificación Privada de Admin',
     privateNotes: 'Notas Privadas',
@@ -416,6 +436,12 @@ function supportTypeLabel(value, copy) {
   return copy.unknown
 }
 
+
+function formatList(value) {
+  if (Array.isArray(value)) return value.filter(Boolean).join(', ')
+  return String(value || '')
+}
+
 function formatDateTime(value) {
   if (!value) return ''
   return new Date(value).toLocaleString()
@@ -588,7 +614,7 @@ export default function AdminDirectory() {
           supabase
             .from('profiles')
             .select(
-              'user_id, display_name, first_name, last_name, role, trade_id, home_zip, travel_radius_miles, crew_size, bio, is_available, availability_status, category_group, service_tags, equipment_tags, contractor_verified, created_at'
+              'user_id, display_name, first_name, last_name, role, trade_id, home_zip, travel_radius_miles, crew_size, bio, is_available, availability_status, category_group, service_tags, equipment_tags, contractor_verified, business_name, business_address, business_zip, materials_categories, storefront, vehicle_type, trailer_type, trailer_length, payload_capacity, delivery_radius, created_at'
             )
             .order('created_at', { ascending: false }),
           supabase
@@ -736,6 +762,16 @@ export default function AdminDirectory() {
         service_tags,
         equipment_tags,
         support_type,
+        business_name: p.business_name || '',
+        business_address: p.business_address || '',
+        business_zip: p.business_zip || '',
+        materials_categories: Array.isArray(p.materials_categories) ? p.materials_categories : [],
+        storefront: Boolean(p.storefront),
+        vehicle_type: p.vehicle_type || '',
+        trailer_type: p.trailer_type || '',
+        trailer_length: p.trailer_length ?? '',
+        payload_capacity: p.payload_capacity ?? '',
+        delivery_radius: p.delivery_radius ?? '',
         phone: priv.phone || '',
         email: priv.email || '',
         city: priv.city || '',
@@ -809,6 +845,12 @@ export default function AdminDirectory() {
             worker.home_zip,
             worker.trade_name,
             worker.bio,
+          worker.business_name,
+          worker.business_address,
+          worker.business_zip,
+          worker.vehicle_type,
+          worker.trailer_type,
+          Array.isArray(worker.materials_categories) ? worker.materials_categories.join(' ') : '',
             worker.role,
             worker.category_group,
             worker.support_type,
