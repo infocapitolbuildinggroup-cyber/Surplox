@@ -155,7 +155,7 @@ const COPY = {
     passwordRequired: 'Password must be at least 6 characters.',
     signUpSuccess: 'Your account is ready.',
     stageTitle1: 'Your Name',
-    stageTitle2: 'Your Trade/Service/Supplier',
+    stageTitle2: 'Trade/Service/Supplier',
     stageTitle3: 'Your Area and Login',
     stageBody1: 'Start with your name so people know who is entering the network.',
     stageBody2:
@@ -238,7 +238,7 @@ const COPY = {
     passwordRequired: 'La contraseña debe tener al menos 6 caracteres.',
     signUpSuccess: 'Tu cuenta está lista.',
     stageTitle1: 'Tu Nombre',
-    stageTitle2: 'Tu Oficio/Servicio/Proveedor',
+    stageTitle2: 'Oficio/Servicio/Proveedor',
     stageTitle3: 'Tu Zona y Acceso',
     stageBody1:
       'Empieza con tu nombre para que la gente sepa quién está entrando a la red.',
@@ -277,7 +277,6 @@ function dedupeTradeOptions(dynamicTrades) {
       section: 'trade'
     })
   })
-
   CHANNEL_TRADE_FALLBACKS.forEach((name) => {
     addOption({
       id: `fallback:${name}`,
@@ -296,13 +295,15 @@ function StepPill({ active, complete, number, label }) {
   return (
     <div
       style={{
-        flex: 1,
-        minWidth: 110,
+        flex: '1 1 160px',
+        minWidth: 0,
+        maxWidth: '100%',
         padding: 12,
         borderRadius: 22,
         background: active ? '#111111' : complete ? '#fff2a8' : 'var(--card-soft)',
         color: active ? '#ffffff' : 'var(--text)',
-        transition: 'all 0.2s ease'
+        transition: 'all 0.2s ease',
+        overflow: 'hidden'
       }}
     >
       <div
@@ -316,7 +317,18 @@ function StepPill({ active, complete, number, label }) {
       >
         {complete ? 'Done' : `0${number}`}
       </div>
-      <div style={{ marginTop: 6, fontWeight: 800, lineHeight: 1.2 }}>{label}</div>
+      <div
+        style={{
+          marginTop: 6,
+          fontWeight: 800,
+          lineHeight: 1.2,
+          whiteSpace: 'normal',
+          overflowWrap: 'anywhere',
+          wordBreak: 'break-word'
+        }}
+      >
+        {label}
+      </div>
     </div>
   )
 }
@@ -825,7 +837,7 @@ export default function Auth({ lang = 'en', setLang }) {
               flexWrap: 'wrap',
               marginTop: 18
             }}
-          >
+            >
             <StepPill active={step === 1} complete={step > 1} number={1} label={copy.stageTitle1} />
             <StepPill active={step === 2} complete={step > 2} number={2} label={copy.stageTitle2} />
             <StepPill active={step === 3} complete={false} number={3} label={copy.stageTitle3} />
