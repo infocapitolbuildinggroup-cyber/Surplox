@@ -9,13 +9,13 @@ const COPY = {
     workBadge: 'Looking for Work',
     discussionBadge: 'Trade Board',
     supportBadge: 'Jobsite Support',
-    deliveryBadge: 'Material Delivery / Hot Shot',
-    cargoVanBadge: 'Cargo Van / Local Delivery',
+    deliveryBadge: 'Delivery',
+    cargoVanBadge: 'Delivery',
     repairBadge: 'Equipment / Fleet Repair',
     heroBadge: 'Trades + actions',
     heroTitle: 'Move faster through the right channels.',
     heroBody:
-      'Jump directly into labor requests, availability posts, trade discussions, supplier visibility, delivery support, cargo van movement, or fleet repair activity without digging through the wrong feed.',
+      'Jump directly into labor requests, availability posts, trade discussions, supplier visibility, delivery support, or fleet repair activity without digging through the wrong feed.',
     stat1: 'Quick post shortcuts',
     stat2: 'Trade-based browsing',
     stat3: 'Cleaner jobsite support discovery',
@@ -33,14 +33,14 @@ const COPY = {
     workBody:
       'Post your availability so contractors, crews, and nearby jobsites can find you faster.',
     workButton: 'Create Looking for Work Post',
-    supportDeliveryTitle: 'Material Delivery / Hot Shot',
+    supportDeliveryTitle: 'Delivery',
     supportDeliveryBody:
-      'Post cargo van, pickup, flatbed, or gooseneck support for local material runs, tool transport, and jobsite deliveries.',
+      'Post hot shot, cargo van, pickup, flatbed, or gooseneck support for local material runs, tool transport, same-day pickups, last-mile delivery, and jobsite deliveries.',
     supportDeliveryButton: 'Create Delivery Support Post',
-    supportCargoVanTitle: 'Cargo Van / Local Delivery',
+    supportCargoVanTitle: 'Delivery',
     supportCargoVanBody:
-      'Post cargo van support for local runs, last-mile delivery, same-day pickups, tool transport, and lighter material movement between yards, stores, and jobsites.',
-    supportCargoVanButton: 'Create Cargo Van Support Post',
+      'Post delivery support for cargo vans, local runs, last-mile delivery, same-day pickups, tool transport, and lighter material movement between yards, stores, and jobsites.',
+    supportCargoVanButton: 'Create Delivery Support Post',
     supportRepairTitle: 'Equipment / Fleet Repair',
     supportRepairBody:
       'Post diesel mechanic, trailer repair, or heavy equipment support for field service and jobsite uptime.',
@@ -50,15 +50,15 @@ const COPY = {
       'Open a trade-specific feed to browse local discussion and labor activity.',
     jobsiteSupportTitle: 'Jobsite Support Boards',
     jobsiteSupportIntro:
-      'Browse support lanes for material movement, cargo van delivery, and fleet or equipment repair around active jobsites.',
+      'Browse support lanes for delivery movement and fleet or equipment repair around active jobsites.',
     emptyTitle: 'No Channels Found',
     emptyBody: 'No trade boards are available yet.',
     viewPosts: 'Open channel',
     viewSupportPosts: 'Browse support feed',
-    materialDeliveryTitle: 'Material Delivery / Hot Shot',
+    materialDeliveryTitle: 'Delivery',
     materialDeliveryBody:
-      'Best for cargo vans, pickups, flatbeds, goosenecks, local runs, same-day delivery, and urgent material support.',
-    cargoVanDeliveryTitle: 'Cargo Van / Local Delivery',
+      'Best for hot shot, pickups, flatbeds, goosenecks, local runs, same-day delivery, and urgent material support.',
+    cargoVanDeliveryTitle: 'Delivery',
     cargoVanDeliveryBody:
       'Best for cargo van operators handling local runs, last-mile delivery, same-day pickups, tools, and lighter materials between stores, yards, and jobsites.',
     fleetRepairTitle: 'Equipment / Fleet Repair',
@@ -70,13 +70,13 @@ const COPY = {
     workBadge: 'Buscando trabajo',
     discussionBadge: 'Tablero de oficio',
     supportBadge: 'Soporte de obra',
-    deliveryBadge: 'Entrega de materiales / Hot Shot',
-    cargoVanBadge: 'Cargo Van / Entrega local',
+    deliveryBadge: 'Entrega',
+    cargoVanBadge: 'Entrega',
     repairBadge: 'Reparación de equipo / flota',
     heroBadge: 'Oficios + acciones',
     heroTitle: 'Muévete más rápido por los canales correctos.',
     heroBody:
-      'Entra directo a solicitudes de mano de obra, publicaciones de disponibilidad, discusiones del oficio, visibilidad de proveedores, soporte de entrega, movimiento con cargo van o actividad de reparación de flota sin perder tiempo en el feed equivocado.',
+      'Entra directo a solicitudes de mano de obra, publicaciones de disponibilidad, discusiones del oficio, visibilidad de proveedores, soporte de entrega o actividad de reparación de flota sin perder tiempo en el feed equivocado.',
     stat1: 'Atajos para publicar',
     stat2: 'Exploración por oficio',
     stat3: 'Descubrimiento más limpio de soporte de obra',
@@ -94,14 +94,14 @@ const COPY = {
     workBody:
       'Publica tu disponibilidad para que contratistas, cuadrillas y obras cercanas te encuentren más rápido.',
     workButton: 'Crear publicación de disponibilidad',
-    supportDeliveryTitle: 'Entrega de materiales / Hot Shot',
+    supportDeliveryTitle: 'Entrega',
     supportDeliveryBody:
-      'Publica soporte con cargo van, pickup, flatbed o gooseneck para viajes locales de materiales, transporte de herramientas y entregas en obra.',
+      'Publica soporte de hot shot, cargo van, pickup, flatbed o gooseneck para viajes locales de materiales, transporte de herramientas, recogidas el mismo día, última milla y entregas en obra.',
     supportDeliveryButton: 'Crear publicación de entrega',
-    supportCargoVanTitle: 'Cargo Van / Entrega local',
+    supportCargoVanTitle: 'Entrega',
     supportCargoVanBody:
-      'Publica soporte con cargo van para viajes locales, última milla, recogidas el mismo día, transporte de herramientas y movimiento ligero de materiales entre patios, tiendas y obras.',
-    supportCargoVanButton: 'Crear publicación de cargo van',
+      'Publica soporte de entrega para cargo vans, viajes locales, última milla, recogidas el mismo día, transporte de herramientas y movimiento ligero de materiales entre patios, tiendas y obras.',
+    supportCargoVanButton: 'Crear publicación de entrega',
     supportRepairTitle: 'Reparación de equipo / flota',
     supportRepairBody:
       'Publica soporte de mecánico diésel, reparación de remolques o equipo pesado para servicio de campo y continuidad en obra.',
@@ -111,15 +111,15 @@ const COPY = {
       'Abre un feed específico por oficio para ver discusión local y actividad de mano de obra.',
     jobsiteSupportTitle: 'Tableros de soporte de obra',
     jobsiteSupportIntro:
-      'Explora secciones de soporte para movimiento de materiales, entrega con cargo van y reparación de flota o equipo alrededor de obras activas.',
+      'Explora secciones de soporte para movimiento de entregas y reparación de flota o equipo alrededor de obras activas.',
     emptyTitle: 'No se encontraron canales',
     emptyBody: 'Todavía no hay tableros de oficio disponibles.',
     viewPosts: 'Abrir canal',
     viewSupportPosts: 'Explorar soporte',
-    materialDeliveryTitle: 'Entrega de materiales / Hot Shot',
+    materialDeliveryTitle: 'Entrega',
     materialDeliveryBody:
-      'Ideal para cargo vans, pickups, flatbeds, goosenecks, viajes locales, entregas el mismo día y soporte urgente de materiales.',
-    cargoVanDeliveryTitle: 'Cargo Van / Entrega local',
+      'Ideal para hot shot, pickups, flatbeds, goosenecks, viajes locales, entregas el mismo día y soporte urgente de materiales.',
+    cargoVanDeliveryTitle: 'Entrega',
     cargoVanDeliveryBody:
       'Ideal para operadores con cargo van que manejan viajes locales, última milla, recogidas el mismo día, herramientas y materiales ligeros entre tiendas, patios y obras.',
     fleetRepairTitle: 'Reparación de equipo / flota',
