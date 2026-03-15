@@ -109,6 +109,44 @@ function formatTagLabel(tag) {
   return map[tag] || tag
 }
 
+function vehicleTypeLabel(value) {
+  const map = {
+    pickup_truck: 'Pickup Truck',
+    cargo_van: 'Cargo Van',
+    box_truck: 'Box Truck',
+    flatbed_truck: 'Flatbed Truck'
+  }
+  return map[value] || value || 'Not set'
+}
+
+function trailerTypeLabel(value) {
+  const map = {
+    no_trailer: 'No Trailer',
+    utility_trailer: 'Utility Trailer',
+    flatbed_trailer: 'Flatbed Trailer',
+    gooseneck_trailer: 'Gooseneck Trailer',
+    equipment_trailer: 'Equipment Trailer',
+    enclosed_trailer: 'Enclosed Trailer'
+  }
+  return map[value] || value || 'Not set'
+}
+
+function materialCategoryLabel(value) {
+  const map = {
+    lumber: 'Lumber',
+    concrete: 'Concrete',
+    steel: 'Steel',
+    electrical: 'Electrical',
+    plumbing: 'Plumbing',
+    drywall: 'Drywall',
+    fasteners: 'Fasteners',
+    equipment_rental: 'Equipment Rental',
+    tools: 'Tools',
+    safety_equipment: 'Safety Equipment'
+  }
+  return map[value] || value
+}
+
 function StatCard({ label, value, dark = false }) {
   return (
     <div
@@ -182,6 +220,16 @@ export default function WorkerProfile() {
             service_tags,
             equipment_tags,
             contractor_verified,
+            business_name,
+            business_address,
+            business_zip,
+            materials_categories,
+            storefront,
+            vehicle_type,
+            trailer_type,
+            trailer_length,
+            payload_capacity,
+            delivery_radius,
             trades(name)
           `)
           .eq('user_id', userId)
@@ -199,6 +247,7 @@ export default function WorkerProfile() {
           category_group: prof.category_group || 'trade',
           service_tags: serviceTags,
           equipment_tags: equipmentTags,
+          materials_categories: Array.isArray(prof.materials_categories) ? prof.materials_categories : [],
           support_type:
             (prof.category_group || 'trade') === 'jobsite_support'
               ? detectSupportType(serviceTags)
@@ -627,6 +676,66 @@ export default function WorkerProfile() {
           <div className="card-soft" style={{ marginTop: 16, background: '#ffffff' }}>
             <div className="card-section-title" style={{ fontSize: 15 }}>Bio / Experience</div>
             <div style={{ marginTop: 8, lineHeight: 1.7 }}>{profile.bio}</div>
+          </div>
+        ) : null}
+
+        {profile.role === 'supplier' ? (
+          <div className="grid two" style={{ marginTop: 16 }}>
+            <div className="card-soft" style={{ background: '#fffaf0' }}>
+              <div className="card-section-title" style={{ fontSize: 15 }}>Supplier Location</div>
+              <div className="muted" style={{ marginTop: 6 }}>
+                {profile.business_name || profile.display_name || 'Not set'}
+              </div>
+              <div className="muted" style={{ marginTop: 6 }}>
+                {profile.business_address || 'Address not set'}
+              </div>
+              <div className="muted" style={{ marginTop: 6 }}>
+                {profile.business_zip || profile.home_zip || 'ZIP not set'}
+              </div>
+              <div style={{ marginTop: 10 }}>
+                <span className="badge" style={{ background: profile.storefront ? '#dcf4e5' : '#ecebe3', color: '#111111' }}>
+                  {profile.storefront ? 'Storefront Location' : 'Supplier Profile'}
+                </span>
+              </div>
+            </div>
+
+            <div className="card-soft" style={{ background: '#f8f7ef' }}>
+              <div className="card-section-title" style={{ fontSize: 15 }}>Materials Offered</div>
+              {profile.materials_categories?.length > 0 ? (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  {profile.materials_categories.map((tag) => (
+                    <span key={tag} className="badge">
+                      {materialCategoryLabel(tag)}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <div className="muted" style={{ marginTop: 6 }}>No materials listed yet.</div>
+              )}
+            </div>
+          </div>
+        ) : null}
+
+        {profile.role === 'driver' ? (
+          <div className="grid two" style={{ marginTop: 16 }}>
+            <div className="card-soft" style={{ background: '#eef6ff' }}>
+              <div className="card-section-title" style={{ fontSize: 15 }}>Vehicle Setup</div>
+              <div className="muted" style={{ marginTop: 6 }}>Vehicle: {vehicleTypeLabel(profile.vehicle_type)}</div>
+              <div className="muted" style={{ marginTop: 6 }}>Trailer: {trailerTypeLabel(profile.trailer_type)}</div>
+              <div className="muted" style={{ marginTop: 6 }}>
+                Trailer Length: {profile.trailer_length ? `${profile.trailer_length} ft` : 'Not set'}
+              </div>
+            </div>
+
+            <div className="card-soft" style={{ background: '#fffaf0' }}>
+              <div className="card-section-title" style={{ fontSize: 15 }}>Delivery Capacity</div>
+              <div className="muted" style={{ marginTop: 6 }}>
+                Payload: {profile.payload_capacity ? `${profile.payload_capacity} lbs` : 'Not set'}
+              </div>
+              <div className="muted" style={{ marginTop: 6 }}>
+                Delivery Radius: {profile.delivery_radius ? `${profile.delivery_radius} miles` : (profile.travel_radius_miles ? `${profile.travel_radius_miles} miles` : 'Not set')}
+              </div>
+            </div>
           </div>
         ) : null}
 
