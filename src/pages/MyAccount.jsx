@@ -67,10 +67,7 @@ const MATERIAL_DELIVERY_EQUIPMENT_TAGS = [
 
 const FLEET_REPAIR_SERVICE_TAGS = [
   { value: 'diesel_mechanic', label: { en: 'Diesel Mechanic', es: 'Mecánico diésel' } },
-  {
-    value: 'heavy_equipment_repair',
-    label: { en: 'Heavy Equipment Repair', es: 'Reparación de equipo pesado' }
-  },
+  { value: 'heavy_equipment_repair', label: { en: 'Heavy Equipment Repair', es: 'Reparación de equipo pesado' } },
   { value: 'trailer_repair', label: { en: 'Trailer Repair', es: 'Reparación de remolques' } },
   { value: 'emergency_repair', label: { en: 'Emergency Repair', es: 'Reparación de emergencia' } },
   { value: 'jobsite_service', label: { en: 'Jobsite Service', es: 'Servicio en obra' } }
@@ -79,10 +76,7 @@ const FLEET_REPAIR_SERVICE_TAGS = [
 const FLEET_REPAIR_EQUIPMENT_TAGS = [
   { value: 'mobile_repair_truck', label: { en: 'Mobile Repair Truck', es: 'Camión de reparación móvil' } },
   { value: 'diesel_diagnostics', label: { en: 'Diesel Diagnostics', es: 'Diagnóstico diésel' } },
-  {
-    value: 'trailer_brake_tools',
-    label: { en: 'Trailer Brake Tools', es: 'Herramientas de frenos de remolque' }
-  }
+  { value: 'trailer_brake_tools', label: { en: 'Trailer Brake Tools', es: 'Herramientas de frenos de remolque' } }
 ]
 
 const DRIVER_VEHICLE_OPTIONS = [
@@ -134,6 +128,7 @@ function defaultBusinessHours() {
 function normalizeBusinessHours(value) {
   const base = defaultBusinessHours()
   if (!value || typeof value !== 'object') return base
+
   const next = { ...base }
   BUSINESS_HOUR_DAYS.forEach((day) => {
     const row = value?.[day.key]
@@ -145,6 +140,7 @@ function normalizeBusinessHours(value) {
       }
     }
   })
+
   return next
 }
 
@@ -154,23 +150,27 @@ function parseTimeLabelToMinutes(label) {
   let hour = Number(match[1])
   const minute = Number(match[2])
   const suffix = match[3]
+
   if (suffix === 'AM') {
     if (hour === 12) hour = 0
   } else if (hour !== 12) {
     hour += 12
   }
+
   return hour * 60 + minute
 }
 
 function getCurrentBusinessStatus(businessHours) {
   const normalized = normalizeBusinessHours(businessHours)
-  const dayKeys = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday']
+  const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
   const today = normalized[dayKeys[new Date().getDay()]]
   if (!today || today.closed) return 'closed'
+
   const now = new Date()
   const currentMinutes = now.getHours() * 60 + now.getMinutes()
   const openMinutes = parseTimeLabelToMinutes(today.open)
   const closeMinutes = parseTimeLabelToMinutes(today.close)
+
   if (openMinutes === null || closeMinutes === null) return 'closed'
   return currentMinutes >= openMinutes && currentMinutes < closeMinutes ? 'open' : 'closed'
 }
@@ -1009,7 +1009,7 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
       business_zip: resolvedIsSupplier ? form.business_zip.trim() : null,
       materials_categories: resolvedIsSupplier ? form.materials_categories : [],
       storefront: resolvedIsSupplier ? Boolean(form.storefront) : false,
-      business_hours: resolvedIsSupplier ? normalizeBusinessHours(form.business_hours) : null,
+      business_hours: resolvedIsupplier ? normalizeBusinessHours(form.business_hours) : null,
       vehicle_type: resolvedRole === 'driver' ? form.vehicle_type || null : null,
       trailer_type: resolvedRole === 'driver' ? form.trailer_type || 'none' : null,
       trailer_length: resolvedRole === 'driver' && String(form.trailer_length || '').trim() ? Number(form.trailer_length) : null,
@@ -1242,10 +1242,9 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                           jobsite_support_type: nextType,
                           role: nextConfig.role,
                           category_group: 'jobsite_support',
-                          vehicle_type:
-                            nextConfig.role === 'driver'
-                              ? prev.vehicle_type || nextConfig.default_vehicle_type || ''
-                              : prev.vehicle_type
+                          service_tags: nextConfig.service_tags,
+                          equipment_tags: nextConfig.equipment_tags,
+                          vehicle_type: prev.vehicle_type || nextConfig.default_vehicle_type || ''
                         }))
                       }}
                     >
