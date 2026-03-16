@@ -73,7 +73,7 @@ function availabilityStatusLabel(status, lang) {
   return map[status]?.[lang] || map[status]?.en || status
 }
 
-function detectSupportType(serviceTags = []) {
+function detectSupportType(serviceTags = [], vehicleType = '') {
   const repairTags = new Set([
     'diesel_mechanic',
     'heavy_equipment_repair',
@@ -86,7 +86,7 @@ function detectSupportType(serviceTags = []) {
     return 'equipment_fleet_repair'
   }
 
-  if (serviceTags.includes('local_runs') || serviceTags.includes('last_mile_delivery')) {
+  if (serviceTags.includes('local_runs') || serviceTags.includes('last_mile_delivery') || vehicleType === 'cargo_van') {
     return 'cargo_van_delivery'
   }
 
@@ -252,6 +252,29 @@ function formatMaterialCategoryLabel(value, lang = 'en') {
   return map[value]?.[lang] || map[value]?.en || value
 }
 
+function vehicleTypeLabel(value, lang = 'en') {
+  const map = {
+    pickup_truck: { en: 'Pickup Truck', es: 'Pickup' },
+    cargo_van: { en: 'Cargo Van', es: 'Cargo van' },
+    box_truck: { en: 'Box Truck', es: 'Camión caja' },
+    flatbed_truck: { en: 'Flatbed Truck', es: 'Camión plataforma' }
+  }
+  return map[value]?.[lang] || map[value]?.en || value || '—'
+}
+
+function trailerTypeLabel(value, lang = 'en') {
+  const map = {
+    none: { en: 'No Trailer', es: 'Sin remolque' },
+    no_trailer: { en: 'No Trailer', es: 'Sin remolque' },
+    utility_trailer: { en: 'Utility Trailer', es: 'Remolque utilitario' },
+    flatbed_trailer: { en: 'Flatbed Trailer', es: 'Remolque plataforma' },
+    gooseneck_trailer: { en: 'Gooseneck Trailer', es: 'Remolque gooseneck' },
+    equipment_trailer: { en: 'Equipment Trailer', es: 'Remolque para equipo' },
+    enclosed_trailer: { en: 'Enclosed Trailer', es: 'Remolque cerrado' }
+  }
+  return map[value]?.[lang] || map[value]?.en || value || '—'
+}
+
 const UI = {
   en: {
     unknownMember: 'Unknown Member',
@@ -354,7 +377,15 @@ const UI = {
     businessZip: 'Business ZIP',
     deliveryRadius: 'Delivery Radius',
     storefront: 'Storefront',
-    miles: 'miles'
+    miles: 'miles',
+    vehicleType: 'Vehicle Type',
+    trailerType: 'Trailer Type',
+    trailerLength: 'Trailer Length',
+    payloadCapacity: 'Payload Capacity',
+    feetShort: 'ft',
+    poundsShort: 'lbs',
+    driverCapabilities: 'Driver Capabilities',
+    noTrailer: 'No Trailer'
   },
   es: {
     unknownMember: 'Miembro desconocido',
@@ -457,7 +488,15 @@ const UI = {
     businessZip: 'ZIP comercial',
     deliveryRadius: 'Radio de entrega',
     storefront: 'Tienda física',
-    miles: 'millas'
+    miles: 'millas',
+    vehicleType: 'Tipo de vehículo',
+    trailerType: 'Tipo de remolque',
+    trailerLength: 'Largo del remolque',
+    payloadCapacity: 'Capacidad de carga',
+    feetShort: 'ft',
+    poundsShort: 'lbs',
+    driverCapabilities: 'Capacidades del conductor',
+    noTrailer: 'Sin remolque'
   }
 }
 
@@ -692,6 +731,10 @@ export default function PostDetail({ lang: langProp = 'en' }) {
               materials_categories,
               storefront,
               delivery_radius,
+              vehicle_type,
+              trailer_type,
+              trailer_length,
+              payload_capacity,
               trades(name)
             ),
             trades(name)
@@ -717,7 +760,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
         const authorCategoryGroup = author.category_group || 'trade'
         const authorSupportType =
           authorCategoryGroup === 'jobsite_support'
-            ? detectSupportType(authorServiceTags)
+            ? detectSupportType(authorServiceTags, author.vehicle_type || '')
             : null
 
         const normalizedPost = {
@@ -747,7 +790,11 @@ export default function PostDetail({ lang: langProp = 'en' }) {
             ? author.materials_categories
             : [],
           author_storefront: Boolean(author.storefront),
-          author_delivery_radius: author.delivery_radius || 0
+          author_delivery_radius: author.delivery_radius || 0,
+          author_vehicle_type: author.vehicle_type || '',
+          author_trailer_type: author.trailer_type || '',
+          author_trailer_length: author.trailer_length || 0,
+          author_payload_capacity: author.payload_capacity || 0
         }
 
         if (!active) return
@@ -1608,7 +1655,59 @@ export default function PostDetail({ lang: langProp = 'en' }) {
                 </div>
               ) : null}
             </div>
-          ) : (post.author_home_zip || post.author_travel_radius_miles) ? (
+          ) : null}
+
+          {post.author_role === 'driver' ? (
+            <div style={{ marginTop: 14 }}>
+              <div className="muted">{copy.driverCapabilities}</div>
+
+              <div className="grid two" style={{ marginTop: 10 }}>
+                <div className="card-soft" style={{ minHeight: 'auto', padding: 14, background: '#eef6ff' }}>
+                  <div className="muted" style={{ marginBottom: 6 }}>{copy.vehicleType}</div>
+                  <div style={{ fontWeight: 800 }}>
+                    {vehicleTypeLabel(post.author_vehicle_type, lang)}
+                  </div>
+
+                  <div className="muted" style={{ marginTop: 10, marginBottom: 6 }}>{copy.trailerType}</div>
+                  <div style={{ fontWeight: 800 }}>
+                    {trailerTypeLabel(post.author_trailer_type, lang)}
+                  </div>
+                </div>
+
+                <div className="card-soft" style={{ minHeight: 'auto', padding: 14, background: '#fffaf0' }}>
+                  <div className="muted" style={{ marginBottom: 6 }}>{copy.trailerLength}</div>
+                  <div style={{ fontWeight: 800 }}>
+                    {Number(post.author_trailer_length || 0) > 0
+                      ? `${post.author_trailer_length} ${copy.feetShort}`
+                      : '—'}
+                  </div>
+
+                  <div className="muted" style={{ marginTop: 10, marginBottom: 6 }}>{copy.payloadCapacity}</div>
+                  <div style={{ fontWeight: 800 }}>
+                    {Number(post.author_payload_capacity || 0) > 0
+                      ? `${post.author_payload_capacity} ${copy.poundsShort}`
+                      : '—'}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                {post.author_home_zip ? (
+                  <span className="badge">
+                    {copy.zip}: {post.author_home_zip}
+                  </span>
+                ) : null}
+
+                {Number(post.author_delivery_radius || 0) > 0 ? (
+                  <span className="badge">
+                    {copy.deliveryRadius}: {post.author_delivery_radius} {copy.miles}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {post.author_role !== 'supplier' && post.author_role !== 'driver' && (post.author_home_zip || post.author_travel_radius_miles) ? (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
               {post.author_home_zip ? (
                 <span className="badge">
