@@ -14,6 +14,7 @@ import Channels from './pages/Channels'
 import Onboarding from './pages/Onboarding'
 import AdminDirectory from './pages/AdminDirectory'
 import SupplierStorefront from './pages/SupplierStorefront'
+import Materials from './pages/Materials'
 
 import './styles.css'
 
@@ -149,6 +150,7 @@ function AppShell({ lang, setLang }) {
 
     return [
       { to: '/feed', label: lang === 'es' ? 'Feed' : 'Feed' },
+      { to: '/materials', label: lang === 'es' ? 'Materiales' : 'Materials' },
       { to: '/channels', label: lang === 'es' ? 'Canales' : 'Channels' },
       { to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
       { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
@@ -161,6 +163,7 @@ function AppShell({ lang, setLang }) {
   const quickLinks = useMemo(() => {
     return {
       labor: '/feed',
+      materials: '/materials',
       delivery: '/feed?category=jobsite_support&support=material_delivery',
       repair: '/feed?category=jobsite_support&support=equipment_fleet_repair'
     }
@@ -232,6 +235,9 @@ function AppShell({ lang, setLang }) {
                 <div className="nav-session-shortcuts">
                   <Link className="badge" to={quickLinks.labor}>
                     {lang === 'es' ? 'Labor' : 'Labor'}
+                  </Link>
+                  <Link className="badge" to={quickLinks.materials}>
+                    {lang === 'es' ? 'Materiales' : 'Materials'}
                   </Link>
                   <Link className="badge" to={quickLinks.delivery}>
                     {lang === 'es' ? 'Entrega' : 'Delivery'}
@@ -360,6 +366,13 @@ function AppShell({ lang, setLang }) {
                       </Link>
 
                       <Link
+                        to={quickLinks.materials}
+                        className={isActive('/materials') ? 'btn primary small' : 'btn small'}
+                      >
+                        {lang === 'es' ? 'Materiales' : 'Materials'}
+                      </Link>
+
+                      <Link
                         to={quickLinks.delivery}
                         className={isDeliveryActive ? 'btn primary small' : 'btn small'}
                       >
@@ -420,6 +433,10 @@ function AppShell({ lang, setLang }) {
             <Route
               path="/feed"
               element={session ? <Feed lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
+            />
+            <Route
+              path="/materials"
+              element={session ? <Materials lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
             />
             <Route
               path="/new"
