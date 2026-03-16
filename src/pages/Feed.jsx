@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { t } from '../i18n'
 
 const POST_TYPE_PRIORITY = {
   need_crew: 0,
@@ -96,9 +95,6 @@ const COPY = {
     quickSupportDelivery: 'Post Delivery Support',
     quickSupportCargoVan: 'Post Cargo Van Support',
     quickSupportRepair: 'Post Repair Support',
-    premiumTitle: 'Premium Surplox Feed',
-    premiumBody:
-      'Cleaner cards, stronger hierarchy, easier scanning, faster trust, and support for labor plus jobsite operations.',
     zip: 'ZIP',
     radius: 'mi radius',
     urgent: 'Urgent',
@@ -106,14 +102,20 @@ const COPY = {
     equipmentTags: 'Equipment',
     jobsiteSupport: 'Jobsite Support',
     trades: 'Trades',
-    materialDelivery: 'Material Delivery / Hot Shot',
-    cargoVanDelivery: 'Cargo Van / Local Delivery',
-    fleetRepair: 'Equipment / Fleet Repair',
     supplierLocation: 'Supplier Location',
     supplierMaterials: 'Materials',
     deliveryRadius: 'Delivery Radius',
     storefront: 'Storefront',
-    supplierLane: 'Supplier'
+    supplierLane: 'Supplier',
+    driverLane: 'Driver',
+    vehicleType: 'Vehicle',
+    trailerType: 'Trailer',
+    trailerLength: 'Trailer Length',
+    payloadCapacity: 'Payload',
+    noTrailer: 'No Trailer',
+    milesShort: 'mi',
+    feetShort: 'ft',
+    poundsShort: 'lbs'
   },
   es: {
     unknownMember: 'Miembro desconocido',
@@ -171,9 +173,6 @@ const COPY = {
     quickSupportDelivery: 'Publicar soporte de entrega',
     quickSupportCargoVan: 'Publicar soporte Cargo Van',
     quickSupportRepair: 'Publicar soporte de reparación',
-    premiumTitle: 'Feed premium de Surplox',
-    premiumBody:
-      'Tarjetas más limpias, jerarquía más fuerte, lectura más rápida y soporte para mano de obra más operaciones de obra.',
     zip: 'ZIP',
     radius: 'mi de radio',
     urgent: 'Urgente',
@@ -181,14 +180,20 @@ const COPY = {
     equipmentTags: 'Equipo',
     jobsiteSupport: 'Soporte de obra',
     trades: 'Oficios',
-    materialDelivery: 'Entrega de materiales / Hot Shot',
-    cargoVanDelivery: 'Cargo Van / Entrega local',
-    fleetRepair: 'Reparación de equipo / flota',
     supplierLocation: 'Ubicación proveedora',
     supplierMaterials: 'Materiales',
     deliveryRadius: 'Radio de entrega',
     storefront: 'Tienda física',
-    supplierLane: 'Proveedor'
+    supplierLane: 'Proveedor',
+    driverLane: 'Conductor',
+    vehicleType: 'Vehículo',
+    trailerType: 'Remolque',
+    trailerLength: 'Largo del remolque',
+    payloadCapacity: 'Capacidad de carga',
+    noTrailer: 'Sin remolque',
+    milesShort: 'mi',
+    feetShort: 'ft',
+    poundsShort: 'lbs'
   }
 }
 
@@ -231,7 +236,7 @@ function supportTypeLabel(value, lang) {
   return found ? (lang === 'es' ? found.es : found.en) : value
 }
 
-function detectSupportType(serviceTags = []) {
+function detectSupportType(serviceTags = [], vehicleType = '') {
   const repairTags = new Set([
     'diesel_mechanic',
     'heavy_equipment_repair',
@@ -244,7 +249,11 @@ function detectSupportType(serviceTags = []) {
     return 'equipment_fleet_repair'
   }
 
-  if (serviceTags.includes('local_runs') || serviceTags.includes('last_mile_delivery')) {
+  if (
+    serviceTags.includes('local_runs') ||
+    serviceTags.includes('last_mile_delivery') ||
+    vehicleType === 'cargo_van'
+  ) {
     return 'cargo_van_delivery'
   }
 
@@ -295,10 +304,10 @@ function getPostTypeStyles(type, categoryGroup, isUrgent) {
       badge: {
         background: isUrgent ? '#ffde59' : '#f1e7a8',
         color: '#111111'
-      },
-      accent: isUrgent ? '#d4b21f' : '#111111'
+      }
     }
   }
+
   if (type === 'need_crew') {
     return {
       shell: {
@@ -307,8 +316,7 @@ function getPostTypeStyles(type, categoryGroup, isUrgent) {
       badge: {
         background: '#ffde59',
         color: '#111111'
-      },
-      accent: '#ffde59'
+      }
     }
   }
 
@@ -320,8 +328,7 @@ function getPostTypeStyles(type, categoryGroup, isUrgent) {
       badge: {
         background: '#fff0b4',
         color: '#111111'
-      },
-      accent: '#d4b21f'
+      }
     }
   }
 
@@ -332,8 +339,7 @@ function getPostTypeStyles(type, categoryGroup, isUrgent) {
     badge: {
       background: '#ecebe3',
       color: '#111111'
-    },
-    accent: '#d9d7cc'
+    }
   }
 }
 
@@ -390,6 +396,29 @@ function formatMaterialCategoryLabel(tag, lang = 'en') {
     safety_equipment: { en: 'Safety Equipment', es: 'Equipo de seguridad' }
   }
   return map[tag]?.[lang] || map[tag]?.en || tag
+}
+
+function vehicleTypeLabel(value, lang = 'en') {
+  const map = {
+    pickup_truck: { en: 'Pickup Truck', es: 'Pickup' },
+    cargo_van: { en: 'Cargo Van', es: 'Cargo van' },
+    box_truck: { en: 'Box Truck', es: 'Camión caja' },
+    flatbed_truck: { en: 'Flatbed Truck', es: 'Camión plataforma' }
+  }
+  return map[value]?.[lang] || map[value]?.en || value || '—'
+}
+
+function trailerTypeLabel(value, lang = 'en') {
+  const map = {
+    none: { en: 'No Trailer', es: 'Sin remolque' },
+    no_trailer: { en: 'No Trailer', es: 'Sin remolque' },
+    utility_trailer: { en: 'Utility Trailer', es: 'Remolque utilitario' },
+    flatbed_trailer: { en: 'Flatbed Trailer', es: 'Remolque plataforma' },
+    gooseneck_trailer: { en: 'Gooseneck Trailer', es: 'Remolque gooseneck' },
+    equipment_trailer: { en: 'Equipment Trailer', es: 'Remolque para equipo' },
+    enclosed_trailer: { en: 'Enclosed Trailer', es: 'Remolque cerrado' }
+  }
+  return map[value]?.[lang] || map[value]?.en || value || '—'
 }
 
 function timeAgo(ts, lang = 'en') {
@@ -480,6 +509,10 @@ export default function Feed({ lang: langProp = 'en' }) {
               materials_categories,
               storefront,
               delivery_radius,
+              vehicle_type,
+              trailer_type,
+              trailer_length,
+              payload_capacity,
               trades(name)
             ),
             trades(name)
@@ -488,7 +521,6 @@ export default function Feed({ lang: langProp = 'en' }) {
           .order('created_at', { ascending: false })
 
         if (error) throw error
-
         if (!active) return
 
         const normalized = (data || []).map((row) => {
@@ -506,7 +538,7 @@ export default function Feed({ lang: langProp = 'en' }) {
           const authorCategoryGroup = author.category_group || 'trade'
           const authorSupportType =
             authorCategoryGroup === 'jobsite_support'
-              ? detectSupportType(authorServiceTags)
+              ? detectSupportType(authorServiceTags, author.vehicle_type || '')
               : null
 
           return {
@@ -536,7 +568,11 @@ export default function Feed({ lang: langProp = 'en' }) {
               ? author.materials_categories
               : [],
             author_storefront: Boolean(author.storefront),
-            author_delivery_radius: author.delivery_radius || 0
+            author_delivery_radius: author.delivery_radius || 0,
+            author_vehicle_type: author.vehicle_type || '',
+            author_trailer_type: author.trailer_type || '',
+            author_trailer_length: author.trailer_length || 0,
+            author_payload_capacity: author.payload_capacity || 0
           }
         })
 
@@ -615,6 +651,8 @@ export default function Feed({ lang: langProp = 'en' }) {
             post.author_business_name,
             post.author_business_address,
             post.author_business_zip,
+            post.author_vehicle_type,
+            post.author_trailer_type,
             ...(post.service_tags || []),
             ...(post.equipment_tags || []),
             ...(post.author_materials_categories || [])
@@ -701,24 +739,15 @@ export default function Feed({ lang: langProp = 'en' }) {
             {copy.quickDiscuss}
           </Link>
 
-          <Link
-            className="btn"
-            to="/new?category=jobsite_support&support=material_delivery"
-          >
+          <Link className="btn" to="/new?category=jobsite_support&support=material_delivery">
             {copy.quickSupportDelivery}
           </Link>
 
-          <Link
-            className="btn"
-            to="/new?category=jobsite_support&support=cargo_van_delivery"
-          >
+          <Link className="btn" to="/new?category=jobsite_support&support=cargo_van_delivery">
             {copy.quickSupportCargoVan}
           </Link>
 
-          <Link
-            className="btn"
-            to="/new?category=jobsite_support&support=equipment_fleet_repair"
-          >
+          <Link className="btn" to="/new?category=jobsite_support&support=equipment_fleet_repair">
             {copy.quickSupportRepair}
           </Link>
         </div>
@@ -741,11 +770,7 @@ export default function Feed({ lang: langProp = 'en' }) {
         >
           <div>
             <div className="muted">{copy.postType}</div>
-            <select
-              className="input"
-              value={filters.postType}
-              onChange={(e) => setFilter('postType', e.target.value)}
-            >
+            <select className="input" value={filters.postType} onChange={(e) => setFilter('postType', e.target.value)}>
               <option value="all">{copy.allPostTypes}</option>
               <option value="need_crew">Need Crew</option>
               <option value="looking_for_work">Looking for Work</option>
@@ -755,11 +780,7 @@ export default function Feed({ lang: langProp = 'en' }) {
 
           <div>
             <div className="muted">{copy.posterRole}</div>
-            <select
-              className="input"
-              value={filters.posterRole}
-              onChange={(e) => setFilter('posterRole', e.target.value)}
-            >
+            <select className="input" value={filters.posterRole} onChange={(e) => setFilter('posterRole', e.target.value)}>
               <option value="all">{copy.allRoles}</option>
               <option value="contractor">Contractor</option>
               <option value="subcontractor">Subcontractor</option>
@@ -772,11 +793,7 @@ export default function Feed({ lang: langProp = 'en' }) {
 
           <div>
             <div className="muted">{copy.crewStatus}</div>
-            <select
-              className="input"
-              value={filters.crewStatus}
-              onChange={(e) => setFilter('crewStatus', e.target.value)}
-            >
+            <select className="input" value={filters.crewStatus} onChange={(e) => setFilter('crewStatus', e.target.value)}>
               <option value="all">{copy.allStatuses}</option>
               <option value="open">Open</option>
               <option value="full">Full</option>
@@ -786,11 +803,7 @@ export default function Feed({ lang: langProp = 'en' }) {
 
           <div>
             <div className="muted">{copy.categoryGroup}</div>
-            <select
-              className="input"
-              value={filters.categoryGroup}
-              onChange={(e) => setFilter('categoryGroup', e.target.value)}
-            >
+            <select className="input" value={filters.categoryGroup} onChange={(e) => setFilter('categoryGroup', e.target.value)}>
               {CATEGORY_GROUP_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {lang === 'es' ? opt.es : opt.en}
@@ -801,13 +814,8 @@ export default function Feed({ lang: langProp = 'en' }) {
 
           <div>
             <div className="muted">{copy.supportType}</div>
-            <select
-              className="input"
-              value={filters.supportType}
-              onChange={(e) => setFilter('supportType', e.target.value)}
-            >
+            <select className="input" value={filters.supportType} onChange={(e) => setFilter('supportType', e.target.value)}>
               <option value="all">{copy.allSupportTypes}</option>
-
               {JOBSITE_SUPPORT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {lang === 'es' ? opt.es : opt.en}
@@ -818,11 +826,7 @@ export default function Feed({ lang: langProp = 'en' }) {
 
           <div>
             <div className="muted">{copy.urgency}</div>
-            <select
-              className="input"
-              value={filters.urgency}
-              onChange={(e) => setFilter('urgency', e.target.value)}
-            >
+            <select className="input" value={filters.urgency} onChange={(e) => setFilter('urgency', e.target.value)}>
               <option value="all">{copy.allUrgency}</option>
               <option value="urgent">{copy.urgentOnly}</option>
             </select>
@@ -868,85 +872,58 @@ export default function Feed({ lang: langProp = 'en' }) {
       {visiblePosts > 0 && (
         <div className="list">
           {filteredPosts.map((post) => {
-            const styles = getPostTypeStyles(
-              post.post_type,
-              post.category_group,
-              post.is_urgent
-            )
-
-            const supplierDisplayName =
-              post.author_business_name || post.author_name || copy.unknownMember
+            const styles = getPostTypeStyles(post.post_type, post.category_group, post.is_urgent)
+            const supplierDisplayName = post.author_business_name || post.author_name || copy.unknownMember
+            const isDriverAuthor = post.author_role === 'driver'
+            const isSupplierAuthor = post.author_role === 'supplier'
 
             return (
-              <div
-                key={post.id}
-                className="card rounded-xl"
-                style={{ ...styles.shell, padding: 22 }}
-              >
+              <div key={post.id} className="card rounded-xl" style={{ ...styles.shell, padding: 22 }}>
                 <div className="postMeta" style={{ marginBottom: 10 }}>
                   <span className="badge" style={styles.badge}>
                     {postTypeLabel(post.post_type, lang)}
                   </span>
 
                   <span className="badge">
-                    {post.category_group === 'jobsite_support'
-                      ? copy.jobsiteSupport
-                      : copy.trades}
+                    {post.category_group === 'jobsite_support' ? copy.jobsiteSupport : copy.trades}
                   </span>
 
-                  {post.category_group === 'jobsite_support' &&
-                    post.support_type && (
-                      <span className="badge">
-                        {supportTypeLabel(post.support_type, lang)}
-                      </span>
-                    )}
-
-                  {post.trade_name && (
-                    <span className="badge">{post.trade_name}</span>
+                  {post.category_group === 'jobsite_support' && post.support_type && (
+                    <span className="badge">{supportTypeLabel(post.support_type, lang)}</span>
                   )}
 
-                  {post.author_role === 'supplier' && (
+                  {post.trade_name && <span className="badge">{post.trade_name}</span>}
+
+                  {isSupplierAuthor && (
                     <span className="badge" style={{ background: '#f1e7a8', color: '#111111' }}>
                       {copy.supplierLane}
                     </span>
                   )}
 
+                  {isDriverAuthor && (
+                    <span className="badge" style={{ background: '#d8ecff', color: '#0d3f73' }}>
+                      {copy.driverLane}
+                    </span>
+                  )}
+
                   {post.is_urgent && (
-                    <span
-                      className="badge"
-                      style={{ background: '#ffde59', color: '#111111' }}
-                    >
+                    <span className="badge" style={{ background: '#ffde59', color: '#111111' }}>
                       {copy.urgent}
                     </span>
                   )}
 
-                  <span className="badge">
-                    {timeAgo(post.created_at, lang)}
-                  </span>
+                  <span className="badge">{timeAgo(post.created_at, lang)}</span>
                 </div>
 
                 <div className="h2">{post.title}</div>
 
                 {post.body && (
-                  <div
-                    style={{
-                      marginTop: 10,
-                      lineHeight: 1.7,
-                      fontSize: 15
-                    }}
-                  >
+                  <div style={{ marginTop: 10, lineHeight: 1.7, fontSize: 15 }}>
                     {post.body}
                   </div>
                 )}
 
-                <div
-                  style={{
-                    marginTop: 14,
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 8
-                  }}
-                >
+                <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {post.center_zip && (
                     <span className="badge">
                       {copy.zip}: {post.center_zip}
@@ -955,8 +932,7 @@ export default function Feed({ lang: langProp = 'en' }) {
 
                   {post.start_date && (
                     <span className="badge">
-                      {copy.start}:{' '}
-                      {new Date(post.start_date).toLocaleDateString()}
+                      {copy.start}: {new Date(post.start_date).toLocaleDateString()}
                     </span>
                   )}
 
@@ -967,62 +943,64 @@ export default function Feed({ lang: langProp = 'en' }) {
                   )}
 
                   {post.author_is_available && (
-                    <span
-                      className="badge"
-                      style={availabilityBadgeStyle(true)}
-                    >
-                      {availabilityStatusLabel(
-                        post.author_availability_status,
-                        lang
-                      )}
+                    <span className="badge" style={availabilityBadgeStyle(true)}>
+                      {availabilityStatusLabel(post.author_availability_status, lang)}
                     </span>
                   )}
 
-                  {post.author_role === 'supplier' && post.author_business_zip && (
+                  {isSupplierAuthor && post.author_business_zip && (
                     <span className="badge">
                       {copy.supplierLocation}: {post.author_business_zip}
                     </span>
                   )}
 
-                  {post.author_role === 'supplier' &&
-                    Number(post.author_delivery_radius || 0) > 0 && (
-                      <span className="badge">
-                        {copy.deliveryRadius}: {post.author_delivery_radius} {lang === 'es' ? 'mi' : 'mi'}
-                      </span>
-                    )}
-
-                  {post.author_role === 'supplier' && post.author_storefront && (
+                  {isSupplierAuthor && Number(post.author_delivery_radius || 0) > 0 && (
                     <span className="badge">
-                      {copy.storefront}
+                      {copy.deliveryRadius}: {post.author_delivery_radius} {copy.milesShort}
+                    </span>
+                  )}
+
+                  {isSupplierAuthor && post.author_storefront && (
+                    <span className="badge">{copy.storefront}</span>
+                  )}
+
+                  {isDriverAuthor && post.author_vehicle_type && (
+                    <span className="badge">
+                      {copy.vehicleType}: {vehicleTypeLabel(post.author_vehicle_type, lang)}
+                    </span>
+                  )}
+
+                  {isDriverAuthor && post.author_trailer_type && (
+                    <span className="badge">
+                      {copy.trailerType}: {trailerTypeLabel(post.author_trailer_type, lang)}
+                    </span>
+                  )}
+
+                  {isDriverAuthor && Number(post.author_trailer_length || 0) > 0 && (
+                    <span className="badge">
+                      {copy.trailerLength}: {post.author_trailer_length} {copy.feetShort}
+                    </span>
+                  )}
+
+                  {isDriverAuthor && Number(post.author_payload_capacity || 0) > 0 && (
+                    <span className="badge">
+                      {copy.payloadCapacity}: {post.author_payload_capacity} {copy.poundsShort}
+                    </span>
+                  )}
+
+                  {isDriverAuthor && Number(post.author_delivery_radius || 0) > 0 && (
+                    <span className="badge">
+                      {copy.deliveryRadius}: {post.author_delivery_radius} {copy.milesShort}
                     </span>
                   )}
                 </div>
 
                 {post.post_type === 'need_crew' && (
-                  <div
-                    style={{
-                      marginTop: 12,
-                      display: 'flex',
-                      gap: 8,
-                      flexWrap: 'wrap'
-                    }}
-                  >
-                    <span className="badge">
-                      {copy.crewNeeded}: {post.needed_count || 0}
-                    </span>
-
-                    <span className="badge">
-                      {copy.filled}: {post.filled_count || 0}
-                    </span>
-
-                    <span className="badge">
-                      {copy.hired}: {post.hired_count || 0}
-                    </span>
-
-                    <span
-                      className="badge"
-                      style={crewStatusBadgeStyle(post.crew_status)}
-                    >
+                  <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <span className="badge">{copy.crewNeeded}: {post.needed_count || 0}</span>
+                    <span className="badge">{copy.filled}: {post.filled_count || 0}</span>
+                    <span className="badge">{copy.hired}: {post.hired_count || 0}</span>
+                    <span className="badge" style={crewStatusBadgeStyle(post.crew_status)}>
                       {crewStatusLabel(post.crew_status, lang)}
                     </span>
                   </div>
@@ -1031,20 +1009,9 @@ export default function Feed({ lang: langProp = 'en' }) {
                 {post.service_tags?.length > 0 && (
                   <div style={{ marginTop: 12 }}>
                     <div className="muted">{copy.serviceTags}</div>
-
-                    <div
-                      style={{
-                        marginTop: 6,
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: 6
-                      }}
-                    >
+                    <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {post.service_tags.map((tag) => (
-                        <span
-                          key={`${post.id}-service-${tag}`}
-                          className="badge"
-                        >
+                        <span key={`${post.id}-service-${tag}`} className="badge">
                           {formatTagLabel(tag)}
                         </span>
                       ))}
@@ -1055,20 +1022,9 @@ export default function Feed({ lang: langProp = 'en' }) {
                 {post.equipment_tags?.length > 0 && (
                   <div style={{ marginTop: 12 }}>
                     <div className="muted">{copy.equipmentTags}</div>
-
-                    <div
-                      style={{
-                        marginTop: 6,
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: 6
-                      }}
-                    >
+                    <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {post.equipment_tags.map((tag) => (
-                        <span
-                          key={`${post.id}-equip-${tag}`}
-                          className="badge"
-                        >
+                        <span key={`${post.id}-equip-${tag}`} className="badge">
                           {formatTagLabel(tag)}
                         </span>
                       ))}
@@ -1076,31 +1032,22 @@ export default function Feed({ lang: langProp = 'en' }) {
                   </div>
                 )}
 
-                {post.author_role === 'supplier' &&
-                  post.author_materials_categories?.length > 0 && (
-                    <div style={{ marginTop: 12 }}>
-                      <div className="muted">{copy.supplierMaterials}</div>
-
-                      <div
-                        style={{
-                          marginTop: 6,
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          gap: 6
-                        }}
-                      >
-                        {post.author_materials_categories.slice(0, 6).map((tag) => (
-                          <span
-                            key={`${post.id}-material-${tag}`}
-                            className="badge"
-                            style={{ background: '#f1e7a8', color: '#111111' }}
-                          >
-                            {formatMaterialCategoryLabel(tag, lang)}
-                          </span>
-                        ))}
-                      </div>
+                {isSupplierAuthor && post.author_materials_categories?.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <div className="muted">{copy.supplierMaterials}</div>
+                    <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {post.author_materials_categories.slice(0, 6).map((tag) => (
+                        <span
+                          key={`${post.id}-material-${tag}`}
+                          className="badge"
+                          style={{ background: '#f1e7a8', color: '#111111' }}
+                        >
+                          {formatMaterialCategoryLabel(tag, lang)}
+                        </span>
+                      ))}
                     </div>
-                  )}
+                  </div>
+                )}
 
                 <div
                   style={{
@@ -1113,16 +1060,13 @@ export default function Feed({ lang: langProp = 'en' }) {
                 >
                   <div className="postMeta">
                     {post.author_role && (
-                      <span
-                        className="badge"
-                        style={roleBadgeStyle(post.author_role)}
-                      >
+                      <span className="badge" style={roleBadgeStyle(post.author_role)}>
                         {roleLabel(post.author_role, lang)}
                       </span>
                     )}
 
                     <span className="badge">
-                      {post.author_role === 'supplier' ? supplierDisplayName : post.author_name}
+                      {isSupplierAuthor ? supplierDisplayName : post.author_name}
                     </span>
                   </div>
 
@@ -1131,26 +1075,17 @@ export default function Feed({ lang: langProp = 'en' }) {
                       {copy.openPost}
                     </Link>
 
-                    <Link
-                      className="btn small"
-                      to={`/u/${post.author_id}`}
-                    >
+                    <Link className="btn small" to={`/u/${post.author_id}`}>
                       {copy.viewProfile}
                     </Link>
 
-                    {post.author_role === 'supplier' && (
-                      <Link
-                        className="btn small"
-                        to={`/supplier/${post.author_id}`}
-                      >
+                    {isSupplierAuthor && (
+                      <Link className="btn small" to={`/supplier/${post.author_id}`}>
                         {copy.viewStorefront}
                       </Link>
                     )}
 
-                    <button
-                      className="btn small"
-                      onClick={() => sharePost(post.id)}
-                    >
+                    <button className="btn small" onClick={() => sharePost(post.id)}>
                       {copy.sharePost}
                     </button>
                   </div>
