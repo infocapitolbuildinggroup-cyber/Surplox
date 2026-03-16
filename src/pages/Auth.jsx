@@ -17,6 +17,7 @@ const SUPPLIER_SIGNUP_OPTION = {
   trade_id: null,
   service_tags: [],
   equipment_tags: [],
+  storefront: true,
   bio: {
     en: 'Supplier account for construction materials, tools, equipment, and jobsite support inventory.',
     es: 'Cuenta de proveedor para materiales de construcción, herramientas, equipo e inventario de soporte de obra.'
@@ -149,6 +150,8 @@ const COPY = {
       'Trades unavailable right now. Showing Surplox default trades.',
     supportAccountsHint:
       'Choose the account type that best matches what you are joining Surplox as: worker, supplier location, delivery driver, or jobsite support.',
+    supplierAccountsHint:
+      'Supplier accounts are storefront-style business locations. Use your business name now, then finish materials, hours, and storefront details inside My Account.',
     zipLabel: 'What ZIP do you usually work in?',
     zipPlaceholder: '76102',
     tradeRequired: 'Select your account type.',
@@ -160,7 +163,8 @@ const COPY = {
     stageTitle1: 'Your Name',
     stageTitle2: 'Account Type',
     stageTitle3: 'Your Area and Login',
-    stageBody1: 'Start with the name people should see on this account. Workers can use their own name and supplier accounts can use the business location name.',
+    stageBody1:
+      'Start with the name people should see on this account. Workers can use their own name and supplier accounts can use the business location name.',
     stageBody2:
       'Choose the account type that best matches how you are entering the network.',
     stageBody3:
@@ -168,7 +172,10 @@ const COPY = {
     alreadyInside: 'Already in Surplox?',
     signInCardTitle: 'Welcome back',
     signInCardBody:
-      'Sign in to get back to nearby activity, posts, crews, and alerts.'
+      'Sign in to get back to nearby activity, posts, crews, and alerts.',
+    supplierStorefrontTitle: 'Supplier storefront-ready accounts',
+    supplierStorefrontBody:
+      'Supplier accounts are created ready for storefront setup, materials categories, business hours, delivery radius, and business location details after signup.'
   },
   es: {
     formLabel: 'Acceso a Surplox',
@@ -219,7 +226,7 @@ const COPY = {
     back: 'Atrás',
     finish: 'Entrar a Surplox',
     nameLabel: '¿Cómo se debe llamar esta cuenta?',
-    namePlaceholder: 'Juan Martinez or Fort Worth Masonry Supply',
+    namePlaceholder: 'Juan Martinez o Fort Worth Masonry Supply',
     tradeLabel: '¿Qué tipo de cuenta te representa mejor?',
     tradePlaceholder: 'Selecciona tu tipo de cuenta',
     generalConstruction: 'Construcción general',
@@ -232,6 +239,8 @@ const COPY = {
       'Los oficios no están disponibles en este momento. Mostrando oficios predeterminados de Surplox.',
     supportAccountsHint:
       'Elige el tipo de cuenta que mejor describa cómo entras a Surplox: trabajador, proveedor, conductor de entrega o soporte de obra.',
+    supplierAccountsHint:
+      'Las cuentas de proveedor son ubicaciones comerciales tipo tienda. Usa el nombre del negocio ahora y termina materiales, horarios y detalles de tienda dentro de Mi Cuenta.',
     zipLabel: '¿En qué ZIP trabajas normalmente?',
     zipPlaceholder: '76102',
     tradeRequired: 'Selecciona tu tipo de cuenta.',
@@ -242,17 +251,20 @@ const COPY = {
     signUpSuccess: 'Tu cuenta está lista.',
     stageTitle1: 'Tu Nombre',
     stageTitle2: 'Tipo de Cuenta',
-    stageTitle3: 'Tu Zona y Acceso',
     stageBody1:
       'Empieza con el nombre que la gente debe ver en esta cuenta. Los trabajadores pueden usar su propio nombre y las cuentas de proveedor pueden usar el nombre del negocio o ubicación.',
     stageBody2:
       'Elige el tipo de cuenta que mejor representa cómo entras a la red.',
     stageBody3:
       'Termina con tu ZIP, correo y contraseña para que Surplox te coloque en el feed local correcto.',
+    stageTitle3: 'Tu Zona y Acceso',
     alreadyInside: '¿Ya estás en Surplox?',
     signInCardTitle: 'Bienvenido de nuevo',
     signInCardBody:
-      'Inicia sesión para volver a actividad cercana, publicaciones, cuadrillas y alertas.'
+      'Inicia sesión para volver a actividad cercana, publicaciones, cuadrillas y alertas.',
+    supplierStorefrontTitle: 'Cuentas listas para tienda proveedora',
+    supplierStorefrontBody:
+      'Las cuentas de proveedor se crean listas para configurar tienda, categorías de materiales, horario comercial, radio de entrega y ubicación del negocio después del registro.'
   }
 }
 
@@ -280,6 +292,7 @@ function dedupeTradeOptions(dynamicTrades) {
       section: 'trade'
     })
   })
+
   CHANNEL_TRADE_FALLBACKS.forEach((name) => {
     addOption({
       id: `fallback:${name}`,
@@ -375,6 +388,12 @@ function getOptionLabel(option, copy) {
   return option.name
 }
 
+function getSectionLabel(section, copy) {
+  if (section === 'supplier') return copy.suppliersGroup
+  if (section === 'service') return copy.servicesGroup
+  return copy.tradesGroup
+}
+
 export default function Auth({ lang = 'en', setLang }) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -402,403 +421,257 @@ export default function Auth({ lang = 'en', setLang }) {
 
   const copy = COPY[lang] || COPY.en
 
+  const selectedTradeOption = useMemo(() => {
+    return tradeOptions.find((option) => String(option.id) === String(signUpForm.trade_id)) || null
+  }, [tradeOptions, signUpForm.trade_id])
+
+  const isSupplierSelected = selectedTradeOption?.id === SUPPLIER_SIGNUP_OPTION.id
+  const isSupportSelected = selectedTradeOption?.section === 'service'
+
   useEffect(() => {
     setMode(normalizeMode(searchParams.get('mode')))
   }, [searchParams])
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+    if (mode === 'signin') {
+      setStep(1)
     }
-  }, [mode, step])
+  }, [mode])
 
   useEffect(() => {
+    let alive = true
+
     async function loadTrades() {
       setTradesLoading(true)
       setTradesError('')
 
       try {
         const { data, error } = await supabase.from('trades').select('id,name').order('name')
+        if (error) throw error
 
-        if (error) {
-          console.error(error)
-          setTradesError(copy.tradesUnavailable)
-          setTradeOptions(dedupeTradeOptions([]))
-          return
-        }
-
+        if (!alive) return
         setTradeOptions(dedupeTradeOptions(data || []))
-      } catch (err) {
-        console.error(err)
+      } catch (error) {
+        console.error(error)
+        if (!alive) return
         setTradesError(copy.tradesUnavailable)
         setTradeOptions(dedupeTradeOptions([]))
       } finally {
+        if (!alive) return
         setTradesLoading(false)
       }
     }
 
     loadTrades()
+
+    return () => {
+      alive = false
+    }
   }, [copy.tradesUnavailable])
 
-  const points = useMemo(
-    () => [
-      { title: copy.point1Title, body: copy.point1Body },
-      { title: copy.point2Title, body: copy.point2Body },
-      { title: copy.point3Title, body: copy.point3Body },
-      { title: copy.point4Title, body: copy.point4Body }
-    ],
-    [copy]
-  )
-
-  const groupedTradeOptions = useMemo(
-    () => ({
-      trade: tradeOptions.filter((option) => option.section === 'trade'),
-      service: tradeOptions.filter((option) => option.section === 'service'),
-      supplier: tradeOptions.filter((option) => option.section === 'supplier')
-    }),
-    [tradeOptions]
-  )
-
-  function switchMode(nextMode) {
+  function updateMode(nextMode) {
     const normalized = normalizeMode(nextMode)
     setMode(normalized)
     setMsg('')
     setStep(1)
-    setSearchParams({ mode: normalized }, { replace: true })
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set('mode', normalized)
+      return next
+    })
   }
 
-  function handleLanguageChange(nextLang) {
-    if (typeof setLang === 'function') setLang(nextLang)
+  function updateSignUpField(key, value) {
+    setSignUpForm((prev) => ({ ...prev, [key]: value }))
   }
 
-  function validateStep(nextStep = step) {
-    if (mode !== 'signup') return true
+  function updateSignInField(key, value) {
+    setSignInForm((prev) => ({ ...prev, [key]: value }))
+  }
 
-    if (nextStep === 1) {
-      if (!signUpForm.display_name.trim()) {
-        setMsg(copy.nameRequired)
-        return false
-      }
+  function validateStepOne() {
+    if (!String(signUpForm.display_name || '').trim()) {
+      setMsg(copy.nameRequired)
+      return false
     }
-
-    if (nextStep === 2) {
-      if (!signUpForm.trade_id) {
-        setMsg(copy.tradeRequired)
-        return false
-      }
-    }
-
-    if (nextStep === 3) {
-      if (!/^[0-9]{5}$/.test(signUpForm.home_zip)) {
-        setMsg(copy.zipRequired)
-        return false
-      }
-
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signUpForm.email.trim())) {
-        setMsg(copy.emailRequired)
-        return false
-      }
-
-      if (String(signUpForm.password || '').length < 6) {
-        setMsg(copy.passwordRequired)
-        return false
-      }
-    }
-
-    setMsg('')
     return true
   }
 
-  function goNext() {
-    if (!validateStep(step)) return
+  function validateStepTwo() {
+    if (!String(signUpForm.trade_id || '').trim()) {
+      setMsg(copy.tradeRequired)
+      return false
+    }
+    return true
+  }
+
+  function validateStepThree() {
+    if (!/^\d{5}$/.test(String(signUpForm.home_zip || '').trim())) {
+      setMsg(copy.zipRequired)
+      return false
+    }
+
+    const email = String(signUpForm.email || '').trim()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setMsg(copy.emailRequired)
+      return false
+    }
+
+    if (String(signUpForm.password || '').length < 6) {
+      setMsg(copy.passwordRequired)
+      return false
+    }
+
+    return true
+  }
+
+  function goNextStep() {
+    setMsg('')
+
+    if (step === 1 && !validateStepOne()) return
+    if (step === 2 && !validateStepTwo()) return
+
     setStep((prev) => Math.min(prev + 1, 3))
   }
 
-  function goBack() {
+  function goBackStep() {
     setMsg('')
     setStep((prev) => Math.max(prev - 1, 1))
   }
 
-  function setSignUpField(key, value) {
-    setSignUpForm((prev) => ({ ...prev, [key]: value }))
-  }
-
-  function setSignInField(key, value) {
-    setSignInForm((prev) => ({ ...prev, [key]: value }))
-  }
-
-  const selectedSignupOption = useMemo(() => {
-    return tradeOptions.find((option) => String(option.id) === String(signUpForm.trade_id)) || null
-  }, [tradeOptions, signUpForm.trade_id])
-
-  const isSupplierSignup = selectedSignupOption?.section === 'supplier'
-
-  function buildNameFields(rawName, isSupplier) {
-    const clean = String(rawName || '').trim()
-    if (isSupplier) {
-      return {
-        displayName: clean,
-        firstName: clean,
-        lastName: ''
-      }
-    }
-
-    const nameParts = clean.split(/\s+/).filter(Boolean)
-    return {
-      displayName: clean,
-      firstName: nameParts[0] || clean,
-      lastName: nameParts.slice(1).join(' ')
-    }
-  }
-
-  async function handleSignIn(e) {
-    e.preventDefault()
-    setMsg('')
+  async function handleSignIn(event) {
+    event.preventDefault()
     setLoading(true)
+    setMsg('')
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email: signInForm.email.trim(),
+        email: String(signInForm.email || '').trim(),
         password: signInForm.password
       })
 
       if (error) throw error
       navigate('/feed', { replace: true })
-    } catch (err) {
-      console.error(err)
-      setMsg(err.message || copy.authError)
+    } catch (error) {
+      console.error(error)
+      setMsg(error?.message || copy.authError)
     } finally {
       setLoading(false)
     }
   }
 
-  async function resolveSignupSelection(selectedValue) {
-    if (selectedValue === GENERAL_CONSTRUCTION_OPTION.id) {
-      return {
-        tradeId: null,
-        role: 'laborer',
-        categoryGroup: 'trade',
-        serviceTags: [],
-        equipmentTags: [],
-        bio: '',
-        businessName: '',
-        storefront: false,
-        vehicleType: '',
-        trailerType: '',
-        deliveryRadius: 50
-      }
-    }
-
-    if (selectedValue === SUPPLIER_SIGNUP_OPTION.id) {
-      return {
-        tradeId: null,
-        role: 'supplier',
-        categoryGroup: SUPPLIER_SIGNUP_OPTION.category_group,
-        serviceTags: SUPPLIER_SIGNUP_OPTION.service_tags,
-        equipmentTags: SUPPLIER_SIGNUP_OPTION.equipment_tags,
-        bio: SUPPLIER_SIGNUP_OPTION.bio[lang] || SUPPLIER_SIGNUP_OPTION.bio.en,
-        businessName: '',
-        storefront: true,
-        vehicleType: '',
-        trailerType: '',
-        deliveryRadius: 0
-      }
-    }
-
-    const exactOption = tradeOptions.find((option) => String(option.id) === String(selectedValue))
-
-    if (!exactOption) {
-      return {
-        tradeId: null,
-        role: 'laborer',
-        categoryGroup: 'trade',
-        serviceTags: [],
-        equipmentTags: [],
-        bio: '',
-        businessName: '',
-        storefront: false,
-        vehicleType: '',
-        trailerType: '',
-        deliveryRadius: 50
-      }
-    }
-
-    if (exactOption.section === 'service') {
-      return {
-        tradeId: exactOption.trade_id,
-        role: exactOption.role,
-        categoryGroup: exactOption.category_group,
-        serviceTags: exactOption.service_tags,
-        equipmentTags: exactOption.equipment_tags,
-        bio: exactOption.bio[lang] || exactOption.bio.en,
-        businessName: '',
-        storefront: false,
-        vehicleType: exactOption.default_vehicle_type || '',
-        trailerType: exactOption.value === 'cargo_van_delivery' ? 'no_trailer' : '',
-        deliveryRadius: 50
-      }
-    }
-
-    if (!String(exactOption.id).startsWith('fallback:')) {
-      return {
-        tradeId: Number(exactOption.id),
-        role: 'laborer',
-        categoryGroup: 'trade',
-        serviceTags: [],
-        equipmentTags: [],
-        bio: ''
-      }
-    }
-
-    const { data, error } = await supabase
-      .from('trades')
-      .select('id,name')
-      .ilike('name', exactOption.name)
-      .limit(1)
-
-    if (error) throw error
-
-    const resolvedTrade = data?.[0]
-    if (!resolvedTrade?.id) throw new Error(copy.tradeRequired)
-
-    return {
-      tradeId: Number(resolvedTrade.id),
-      role: 'laborer',
-      categoryGroup: 'trade',
-      serviceTags: [],
-      equipmentTags: [],
-      bio: '',
-      businessName: '',
-      storefront: false,
-      vehicleType: '',
-      trailerType: '',
-      deliveryRadius: 50
-    }
-  }
-
-  async function handleSignUpSubmit(e) {
-    e.preventDefault()
-    if (!validateStep(3)) return
-
+  async function handleSignUp() {
     setMsg('')
+
+    if (!validateStepOne() || !validateStepTwo() || !validateStepThree()) return
+    if (!selectedTradeOption) {
+      setMsg(copy.tradeRequired)
+      return
+    }
+
     setLoading(true)
 
     try {
-      const signupEmail = signUpForm.email.trim().toLowerCase()
+      const email = String(signUpForm.email || '').trim().toLowerCase()
+      const password = String(signUpForm.password || '')
+      const displayName = String(signUpForm.display_name || '').trim()
+      const homeZip = String(signUpForm.home_zip || '').trim()
 
-      const { data: signupData, error: signUpError } = await supabase.auth.signUp({
-        email: signupEmail,
-        password: signUpForm.password
+      const chosenOption = selectedTradeOption
+      const isSupplier = chosenOption.id === SUPPLIER_SIGNUP_OPTION.id
+      const chosenRole =
+        chosenOption.role ||
+        (isSupplier ? 'supplier' : chosenOption.section === 'service' ? 'driver' : 'laborer')
+
+      const chosenCategoryGroup =
+        chosenOption.category_group || (chosenOption.section === 'service' ? 'jobsite_support' : 'trade')
+
+      const chosenTradeId =
+        typeof chosenOption.trade_id !== 'undefined'
+          ? chosenOption.trade_id
+          : chosenOption.section === 'trade' &&
+              !String(chosenOption.id).startsWith('fallback:') &&
+              chosenOption.id !== GENERAL_CONSTRUCTION_OPTION.id
+            ? Number(chosenOption.id)
+            : null
+
+      const chosenBio = chosenOption.bio?.[lang] || chosenOption.bio?.en || ''
+
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: displayName
+          }
+        }
       })
 
       if (signUpError) throw signUpError
 
-      let user = signupData.user
-
-      if (!signupData.session) {
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email: signupEmail,
-          password: signUpForm.password
-        })
-
-        if (signInError) throw signInError
-        user = signInData.user
+      const userId = authData.user?.id
+      if (!userId) {
+        throw new Error(copy.authError)
       }
 
-      if (!user?.id) throw new Error(copy.authError)
-
-      const rawName = signUpForm.display_name.trim()
-
-      const { tradeId, role, categoryGroup, serviceTags, equipmentTags, bio, businessName, storefront, vehicleType, trailerType, deliveryRadius } =
-        await resolveSignupSelection(signUpForm.trade_id)
-
-      const { displayName, firstName, lastName } = buildNameFields(rawName, role === 'supplier')
-
-      const { error: profileError } = await supabase.from('profiles').upsert({
-        user_id: user.id,
+      const profilePayload = {
+        user_id: userId,
         display_name: displayName,
-        first_name: firstName,
-        last_name: lastName,
-        role,
-        trade_id: tradeId,
-        travel_radius_miles: deliveryRadius || 50,
-        crew_size: 1,
-        bio,
+        role: chosenRole,
+        trade_id: chosenTradeId,
+        home_zip: homeZip,
         preferred_language: lang,
-        category_group: categoryGroup,
-        service_tags: serviceTags,
-        equipment_tags: equipmentTags,
-        business_name: role === 'supplier' ? displayName : businessName,
-        business_zip: role === 'supplier' ? signUpForm.home_zip : null,
-        storefront: Boolean(storefront && role === 'supplier'),
-        vehicle_type: role === 'driver' || role === 'mechanic' ? vehicleType : null,
-        trailer_type: role === 'driver' ? trailerType : null,
-        delivery_radius: role === 'driver' ? (deliveryRadius || 50) : null
-      })
+        category_group: chosenCategoryGroup,
+        service_tags: Array.isArray(chosenOption.service_tags) ? chosenOption.service_tags : [],
+        equipment_tags: Array.isArray(chosenOption.equipment_tags) ? chosenOption.equipment_tags : [],
+        bio: chosenBio,
+        business_name: isSupplier ? displayName : null,
+        business_zip: isSupplier ? homeZip : null,
+        storefront: isSupplier ? true : false,
+        vehicle_type: chosenOption.default_vehicle_type || null
+      }
 
+      const { error: profileError } = await supabase.from('profiles').upsert(profilePayload)
       if (profileError) throw profileError
 
-      const { error: zipErr } = await supabase.rpc('set_my_home_zip', {
-        p_zip: signUpForm.home_zip
+      const { error: privateError } = await supabase.from('contact_private').upsert({
+        user_id: userId,
+        email
       })
+      if (privateError) throw privateError
 
-      if (zipErr) throw zipErr
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+      if (signInError) throw signInError
 
-      localStorage.setItem('surplox_lang', lang)
       setMsg(copy.signUpSuccess)
-      navigate('/feed', { replace: true })
-    } catch (err) {
-      console.error(err)
-      setMsg(err.message || copy.authError)
+      navigate('/onboarding', { replace: true })
+    } catch (error) {
+      console.error(error)
+      setMsg(error?.message || copy.authError)
     } finally {
       setLoading(false)
     }
   }
 
-  const currentStageTitle =
-    step === 1 ? copy.stageTitle1 : step === 2 ? copy.stageTitle2 : copy.stageTitle3
-
-  const currentStageBody =
-    step === 1 ? copy.stageBody1 : step === 2 ? copy.stageBody2 : copy.stageBody3
-
-  const authPanel = (
-    <div className="grid" style={{ gap: 16 }}>
-      {mode === 'signin' ? (
-        <form className="card rounded-xl" onSubmit={handleSignIn} style={{ padding: 24 }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: 12,
-              flexWrap: 'wrap',
-              alignItems: 'center'
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  color: 'var(--muted-soft)'
-                }}
-              >
-                {copy.formLabel}
-              </div>
-              <div className="h1" style={{ marginTop: 8, fontSize: 'clamp(1.9rem, 4vw, 2.7rem)' }}>
-                {copy.signInTitle}
-              </div>
-            </div>
-
-            <LanguageSlider lang={lang} setLang={handleLanguageChange} copy={copy} />
+  function renderSignIn() {
+    return (
+      <div className="grid two" style={{ alignItems: 'stretch', gap: 18 }}>
+        <div className="card rounded-xl" style={{ padding: 24 }}>
+          <div className="badge" style={{ marginBottom: 12, background: '#f1e7a8' }}>
+            {copy.formLabel}
           </div>
 
-          <p className="muted" style={{ marginTop: 10 }}>
+          <div className="h1">{copy.signInTitle}</div>
+          <p className="muted" style={{ marginTop: 10, lineHeight: 1.7 }}>
             {copy.signInIntro}
           </p>
 
-          <div className="grid" style={{ marginTop: 16 }}>
+          <form onSubmit={handleSignIn} style={{ marginTop: 18, display: 'grid', gap: 14 }}>
+            <LanguageSlider lang={lang} setLang={setLang} copy={copy} />
+
             <div>
               <div className="muted" style={{ marginBottom: 6 }}>
                 {copy.email}
@@ -808,7 +681,7 @@ export default function Auth({ lang = 'en', setLang }) {
                 type="email"
                 value={signInForm.email}
                 placeholder={copy.emailPlaceholder}
-                onChange={(e) => setSignInField('email', e.target.value)}
+                onChange={(e) => updateSignInField('email', e.target.value)}
               />
             </div>
 
@@ -821,347 +694,337 @@ export default function Auth({ lang = 'en', setLang }) {
                 type="password"
                 value={signInForm.password}
                 placeholder={copy.passwordPlaceholder}
-                onChange={(e) => setSignInField('password', e.target.value)}
+                onChange={(e) => updateSignInField('password', e.target.value)}
               />
             </div>
-          </div>
 
-          {msg ? (
-            <div className="card-message" style={{ marginTop: 14, padding: 14, borderRadius: 18 }}>
-              {msg}
-            </div>
-          ) : null}
+            {msg ? (
+              <div className="card-soft" style={{ minHeight: 'auto', padding: 14 }}>
+                {msg}
+              </div>
+            ) : null}
 
-          <div className="row" style={{ marginTop: 16 }}>
             <button className="btn primary" type="submit" disabled={loading}>
               {loading ? copy.wait : copy.signInButton}
             </button>
+
             <button
-              className="btn"
               type="button"
-              onClick={() => switchMode('signup')}
+              className="btn"
+              onClick={() => updateMode('signup')}
               disabled={loading}
             >
               {copy.switchToSignUp}
             </button>
+          </form>
+        </div>
+
+        <div className="card rounded-xl" style={{ padding: 24, background: '#fffaf0' }}>
+          <div className="badge" style={{ marginBottom: 12 }}>
+            {copy.alreadyInside}
           </div>
 
-          <div className="card-soft" style={{ marginTop: 18 }}>
-            <div className="card-section-title" style={{ fontSize: 16 }}>
-              {copy.alreadyInside}
-            </div>
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-              {copy.signInCardBody}
+          <div className="h1">{copy.signInCardTitle}</div>
+          <p className="muted" style={{ marginTop: 10, lineHeight: 1.75 }}>
+            {copy.signInCardBody}
+          </p>
+
+          <div className="card-soft" style={{ marginTop: 18, background: '#ffffff' }}>
+            <div style={{ fontWeight: 900, fontSize: 18 }}>{copy.sideTitle}</div>
+            <p className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>
+              {copy.sideBody}
             </p>
           </div>
-        </form>
-      ) : (
-        <form className="card rounded-xl" onSubmit={handleSignUpSubmit} style={{ padding: 24 }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: 12,
-              flexWrap: 'wrap',
-              alignItems: 'center'
-            }}
-          >
-            <div>
+        </div>
+      </div>
+    )
+  }
+
+  function renderStepOne() {
+    return (
+      <div className="card rounded-xl" style={{ padding: 24 }}>
+        <div className="card-section-title">{copy.stageTitle1}</div>
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+          {copy.stageBody1}
+        </p>
+
+        <div style={{ marginTop: 18 }}>
+          <div className="muted" style={{ marginBottom: 6 }}>
+            {copy.nameLabel}
+          </div>
+          <input
+            className="input"
+            value={signUpForm.display_name}
+            placeholder={copy.namePlaceholder}
+            onChange={(e) => updateSignUpField('display_name', e.target.value)}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  function renderStepTwo() {
+    const groupedOptions = tradeOptions.reduce((acc, option) => {
+      const section = option.section || 'trade'
+      if (!acc[section]) acc[section] = []
+      acc[section].push(option)
+      return acc
+    }, {})
+
+    const orderedSections = ['trade', 'service', 'supplier'].filter((section) => groupedOptions[section]?.length)
+
+    return (
+      <div className="card rounded-xl" style={{ padding: 24 }}>
+        <div className="card-section-title">{copy.stageTitle2}</div>
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+          {copy.stageBody2}
+        </p>
+
+        <div className="card-soft" style={{ marginTop: 16, background: '#fffaf0' }}>
+          <div style={{ fontWeight: 800 }}>{copy.supportAccountsHint}</div>
+          <p className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>
+            {copy.supplierAccountsHint}
+          </p>
+        </div>
+
+        {tradesLoading ? (
+          <div className="card-soft" style={{ marginTop: 16 }}>
+            {copy.tradesLoading}
+          </div>
+        ) : null}
+
+        {tradesError ? (
+          <div className="card-soft" style={{ marginTop: 16 }}>
+            {tradesError}
+          </div>
+        ) : null}
+
+        <div style={{ marginTop: 18, display: 'grid', gap: 16 }}>
+          {orderedSections.map((section) => (
+            <div key={section}>
               <div
                 style={{
                   fontSize: 12,
                   fontWeight: 800,
-                  letterSpacing: '0.08em',
                   textTransform: 'uppercase',
-                  color: 'var(--muted-soft)'
+                  letterSpacing: '0.08em',
+                  color: 'var(--muted-soft)',
+                  marginBottom: 10
                 }}
               >
-                {copy.formLabel}
+                {getSectionLabel(section, copy)}
               </div>
-              <div className="h1" style={{ marginTop: 8, fontSize: 'clamp(1.9rem, 4vw, 2.7rem)' }}>
-                {copy.signUpTitle}
+
+              <div style={{ display: 'grid', gap: 10 }}>
+                {groupedOptions[section].map((option) => {
+                  const active = String(signUpForm.trade_id) === String(option.id)
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={active ? 'btn primary' : 'btn'}
+                      style={{ justifyContent: 'flex-start', textAlign: 'left', borderRadius: 18 }}
+                      onClick={() => updateSignUpField('trade_id', String(option.id))}
+                    >
+                      {getOptionLabel(option, copy)}
+                    </button>
+                  )
+                })}
               </div>
             </div>
+          ))}
+        </div>
 
-            <LanguageSlider lang={lang} setLang={handleLanguageChange} copy={copy} />
-          </div>
-
-          <p className="muted" style={{ marginTop: 10 }}>
-            {copy.signUpIntro}
-          </p>
-
-          <div
-            style={{
-              display: 'flex',
-              gap: 10,
-              flexWrap: 'wrap',
-              marginTop: 18
-            }}
-            >
-            <StepPill active={step === 1} complete={step > 1} number={1} label={copy.stageTitle1} />
-            <StepPill active={step === 2} complete={step > 2} number={2} label={copy.stageTitle2} />
-            <StepPill active={step === 3} complete={false} number={3} label={copy.stageTitle3} />
-          </div>
-
-          <div
-            className="card-soft"
-            style={{
-              marginTop: 16,
-              background: '#f5f3e7'
-            }}
-          >
-            <div className="card-section-title" style={{ fontSize: 16 }}>
-              {copy.step} {step}: {currentStageTitle}
-            </div>
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-              {currentStageBody}
+        {isSupplierSelected ? (
+          <div className="card-soft" style={{ marginTop: 18, background: '#fff7cf' }}>
+            <div style={{ fontWeight: 900 }}>{copy.supplierStorefrontTitle}</div>
+            <p className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>
+              {copy.supplierStorefrontBody}
             </p>
           </div>
+        ) : null}
+      </div>
+    )
+  }
 
-          {step === 1 ? (
-            <div style={{ marginTop: 16 }}>
-              <div className="muted" style={{ marginBottom: 6 }}>
-                {copy.nameLabel}
-              </div>
-              <input
-                className="input"
-                value={signUpForm.display_name}
-                placeholder={copy.namePlaceholder}
-                onChange={(e) => setSignUpField('display_name', e.target.value)}
-              />
+  function renderStepThree() {
+    return (
+      <div className="card rounded-xl" style={{ padding: 24 }}>
+        <div className="card-section-title">{copy.stageTitle3}</div>
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+          {copy.stageBody3}
+        </p>
+
+        <div className="grid" style={{ marginTop: 18, gap: 14 }}>
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>
+              {copy.zipLabel}
             </div>
-          ) : null}
+            <input
+              className="input"
+              value={signUpForm.home_zip}
+              placeholder={copy.zipPlaceholder}
+              onChange={(e) => updateSignUpField('home_zip', e.target.value)}
+            />
+          </div>
 
-          {step === 2 ? (
-            <div style={{ marginTop: 16 }}>
-              <div className="muted" style={{ marginBottom: 6 }}>
-                {copy.tradeLabel}
-              </div>
-              <select
-                className="input"
-                value={signUpForm.trade_id}
-                onChange={(e) => setSignUpField('trade_id', e.target.value)}
-                disabled={tradesLoading}
-              >
-                <option value="">{tradesLoading ? copy.tradesLoading : copy.tradePlaceholder}</option>
-
-                {groupedTradeOptions.trade.length > 0 ? (
-                  <optgroup label={copy.tradesGroup}>
-                    {groupedTradeOptions.trade.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {getOptionLabel(option, copy)}
-                      </option>
-                    ))}
-                  </optgroup>
-                ) : null}
-
-                {groupedTradeOptions.service.length > 0 ? (
-                  <optgroup label={copy.servicesGroup}>
-                    {groupedTradeOptions.service.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {getOptionLabel(option, copy)}
-                      </option>
-                    ))}
-                  </optgroup>
-                ) : null}
-
-                {groupedTradeOptions.supplier.length > 0 ? (
-                  <optgroup label={copy.suppliersGroup}>
-                    {groupedTradeOptions.supplier.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {getOptionLabel(option, copy)}
-                      </option>
-                    ))}
-                  </optgroup>
-                ) : null}
-              </select>
-
-              <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
-                {isSupplierSignup
-                  ? (lang === 'es'
-                    ? 'Las cuentas de proveedor representan un negocio o ubicación física. Usa el nombre de la tienda o patio en el paso 1.'
-                    : 'Supplier accounts represent a business or storefront location. Use the store or yard name in step 1.')
-                  : copy.supportAccountsHint}
-              </div>
-
-              {tradesError ? (
-                <div className="card-message" style={{ marginTop: 12, padding: 14, borderRadius: 18 }}>
-                  {tradesError}
-                </div>
-              ) : null}
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>
+              {copy.email}
             </div>
-          ) : null}
+            <input
+              className="input"
+              type="email"
+              value={signUpForm.email}
+              placeholder={copy.emailPlaceholder}
+              onChange={(e) => updateSignUpField('email', e.target.value)}
+            />
+          </div>
 
-          {step === 3 ? (
-            <div className="grid" style={{ marginTop: 16 }}>
-              <div>
-                <div className="muted" style={{ marginBottom: 6 }}>
-                  {copy.zipLabel}
-                </div>
-                <input
-                  className="input"
-                  value={signUpForm.home_zip}
-                  placeholder={copy.zipPlaceholder}
-                  onChange={(e) => setSignUpField('home_zip', e.target.value.replace(/\D/g, '').slice(0, 5))}
-                  inputMode="numeric"
-                />
-              </div>
-
-              <div>
-                <div className="muted" style={{ marginBottom: 6 }}>
-                  {copy.email}
-                </div>
-                <input
-                  className="input"
-                  type="email"
-                  value={signUpForm.email}
-                  placeholder={copy.emailPlaceholder}
-                  onChange={(e) => setSignUpField('email', e.target.value)}
-                />
-              </div>
-
-              <div>
-                <div className="muted" style={{ marginBottom: 6 }}>
-                  {copy.password}
-                </div>
-                <input
-                  className="input"
-                  type="password"
-                  value={signUpForm.password}
-                  placeholder={copy.passwordPlaceholder}
-                  onChange={(e) => setSignUpField('password', e.target.value)}
-                />
-              </div>
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>
+              {copy.password}
             </div>
-          ) : null}
+            <input
+              className="input"
+              type="password"
+              value={signUpForm.password}
+              placeholder={copy.passwordPlaceholder}
+              onChange={(e) => updateSignUpField('password', e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  function renderSignUp() {
+    return (
+      <div className="grid two" style={{ alignItems: 'start', gap: 18 }}>
+        <div className="grid" style={{ gap: 18 }}>
+          <div className="card rounded-xl" style={{ padding: 24 }}>
+            <div className="badge" style={{ marginBottom: 12, background: '#f1e7a8' }}>
+              {copy.formLabel}
+            </div>
+
+            <div className="h1">{copy.signUpTitle}</div>
+            <p className="muted" style={{ marginTop: 10, lineHeight: 1.7 }}>
+              {copy.signUpIntro}
+            </p>
+
+            <div style={{ marginTop: 18 }}>
+              <LanguageSlider lang={lang} setLang={setLang} copy={copy} />
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                gap: 10,
+                flexWrap: 'wrap',
+                marginTop: 18
+              }}
+            >
+              <StepPill active={step === 1} complete={step > 1} number={1} label={copy.stageTitle1} />
+              <StepPill active={step === 2} complete={step > 2} number={2} label={copy.stageTitle2} />
+              <StepPill active={step === 3} complete={false} number={3} label={copy.stageTitle3} />
+            </div>
+          </div>
+
+          {step === 1 ? renderStepOne() : null}
+          {step === 2 ? renderStepTwo() : null}
+          {step === 3 ? renderStepThree() : null}
 
           {msg ? (
-            <div className="card-message" style={{ marginTop: 14, padding: 14, borderRadius: 18 }}>
+            <div className="card-soft" style={{ minHeight: 'auto', padding: 14 }}>
               {msg}
             </div>
           ) : null}
 
-          <div className="row" style={{ marginTop: 16 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {step > 1 ? (
-              <button className="btn" type="button" onClick={goBack} disabled={loading}>
+              <button type="button" className="btn" onClick={goBackStep} disabled={loading}>
                 {copy.back}
               </button>
-            ) : (
-              <button
-                className="btn"
-                type="button"
-                onClick={() => switchMode('signin')}
-                disabled={loading}
-              >
-                {copy.switchToSignIn}
-              </button>
-            )}
+            ) : null}
 
             {step < 3 ? (
-              <button className="btn primary" type="button" onClick={goNext} disabled={loading}>
+              <button type="button" className="btn primary" onClick={goNextStep} disabled={loading}>
                 {copy.next}
               </button>
             ) : (
-              <button className="btn primary" type="submit" disabled={loading}>
+              <button type="button" className="btn primary" onClick={handleSignUp} disabled={loading}>
                 {loading ? copy.wait : copy.finish}
               </button>
             )}
+
+            <button type="button" className="btn" onClick={() => updateMode('signin')} disabled={loading}>
+              {copy.switchToSignIn}
+            </button>
           </div>
-        </form>
-      )}
-    </div>
-  )
+        </div>
 
-  const marketingPanel = (
-    <div
-      className="card rounded-xl"
-      style={{
-        padding: 28,
-        background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
-      }}
-    >
-      <div
-        className="badge"
-        style={{
-          marginBottom: 16,
-          background: '#f1e7a8'
-        }}
-      >
-        {copy.sideBadge}
-      </div>
-
-      <div className="h1" style={{ maxWidth: 640 }}>
-        {copy.sideTitle}
-      </div>
-
-      <p className="muted" style={{ marginTop: 14, fontSize: 17, lineHeight: 1.7 }}>
-        {copy.sideBody}
-      </p>
-
-      <div className="grid" style={{ marginTop: 18 }}>
-        {points.map((point) => (
-          <div
-            key={point.title}
-            className="card-soft"
-            style={{
-              padding: 18,
-              background: 'rgba(255,255,255,0.58)'
-            }}
-          >
-            <div className="card-section-title" style={{ fontSize: 17 }}>
-              {point.title}
+        <div className="grid" style={{ gap: 18 }}>
+          <div className="card rounded-xl" style={{ padding: 24, background: '#fffaf0' }}>
+            <div className="badge" style={{ marginBottom: 12 }}>
+              {copy.previewTitle}
             </div>
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-              {point.body}
+
+            <div className="h1">{copy.previewTitle}</div>
+            <p className="muted" style={{ marginTop: 10, lineHeight: 1.75 }}>
+              {copy.previewBody}
+            </p>
+
+            <div className="grid" style={{ gap: 10, marginTop: 16 }}>
+              <div className="card-soft" style={{ background: '#ffffff' }}>{copy.previewBullet1}</div>
+              <div className="card-soft" style={{ background: '#ffffff' }}>{copy.previewBullet2}</div>
+              <div className="card-soft" style={{ background: '#ffffff' }}>{copy.previewBullet3}</div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 16 }}>
+              <span className="badge">{copy.previewFree}</span>
+              <span className="badge">{copy.previewTexas}</span>
+            </div>
+          </div>
+
+          <div className="card rounded-xl" style={{ padding: 24 }}>
+            <div className="badge" style={{ marginBottom: 12, background: '#f1e7a8' }}>
+              {copy.sideBadge}
+            </div>
+            <div className="h1" style={{ fontSize: 28 }}>{copy.sideTitle}</div>
+            <p className="muted" style={{ marginTop: 10, lineHeight: 1.75 }}>
+              {copy.sideBody}
+            </p>
+
+            <div className="grid" style={{ gap: 12, marginTop: 16 }}>
+              <div className="card-soft">
+                <div style={{ fontWeight: 900 }}>{copy.point1Title}</div>
+                <p className="muted" style={{ marginTop: 8, lineHeight: 1.65 }}>{copy.point1Body}</p>
+              </div>
+
+              <div className="card-soft">
+                <div style={{ fontWeight: 900 }}>{copy.point2Title}</div>
+                <p className="muted" style={{ marginTop: 8, lineHeight: 1.65 }}>{copy.point2Body}</p>
+              </div>
+
+              <div className="card-soft">
+                <div style={{ fontWeight: 900 }}>{copy.point3Title}</div>
+                <p className="muted" style={{ marginTop: 8, lineHeight: 1.65 }}>{copy.point3Body}</p>
+              </div>
+
+              <div className="card-soft">
+                <div style={{ fontWeight: 900 }}>{copy.point4Title}</div>
+                <p className="muted" style={{ marginTop: 8, lineHeight: 1.65 }}>{copy.point4Body}</p>
+              </div>
+            </div>
+
+            <p className="muted" style={{ marginTop: 16 }}>
+              {copy.footer}
             </p>
           </div>
-        ))}
-      </div>
-
-      <div
-        className="card surface-dark rounded-xl"
-        style={{
-          marginTop: 18,
-          padding: 20
-        }}
-      >
-        <div className="card-section-title" style={{ color: '#ffffff' }}>
-          {copy.previewTitle}
-        </div>
-        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-          {copy.previewBody}
-        </p>
-
-        <div className="grid two" style={{ marginTop: 14 }}>
-          <div className="card-soft" style={{ background: 'rgba(255,255,255,0.1)' }}>
-            <div style={{ fontWeight: 800 }}>{copy.previewBullet1}</div>
-          </div>
-          <div className="card-soft" style={{ background: 'rgba(255,255,255,0.1)' }}>
-            <div style={{ fontWeight: 800 }}>{copy.previewBullet2}</div>
-          </div>
-          <div className="card-soft" style={{ background: 'rgba(255,255,255,0.1)' }}>
-            <div style={{ fontWeight: 800 }}>{copy.previewBullet3}</div>
-          </div>
-          <div className="card-soft" style={{ background: 'rgba(255,255,255,0.1)' }}>
-            <div style={{ fontWeight: 800 }}>
-              {copy.previewFree} {copy.previewTexas}
-            </div>
-          </div>
         </div>
       </div>
+    )
+  }
 
-      <p className="footerNote" style={{ textAlign: 'left', marginTop: 18 }}>
-        {copy.footer}
-      </p>
-    </div>
-  )
-
-  return (
-    <div className="grid" style={{ gap: 18 }}>
-      <div className="grid two" style={{ alignItems: 'start' }}>
-        {authPanel}
-        {marketingPanel}
-      </div>
-    </div>
-  )
+  return mode === 'signin' ? renderSignIn() : renderSignUp()
 }

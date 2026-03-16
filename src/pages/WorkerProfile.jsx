@@ -263,7 +263,9 @@ export default function WorkerProfile() {
           category_group: prof.category_group || 'trade',
           service_tags: serviceTags,
           equipment_tags: equipmentTags,
-          materials_categories: Array.isArray(prof.materials_categories) ? prof.materials_categories : [],
+          materials_categories: Array.isArray(prof.materials_categories)
+            ? prof.materials_categories
+            : [],
           support_type:
             (prof.category_group || 'trade') === 'jobsite_support'
               ? detectSupportType(serviceTags)
@@ -643,9 +645,7 @@ export default function WorkerProfile() {
 
           <span className="badge">{categoryGroupLabel(profile.category_group)}</span>
 
-          {profile.trade_name ? (
-            <span className="badge">{profile.trade_name}</span>
-          ) : null}
+          {profile.trade_name ? <span className="badge">{profile.trade_name}</span> : null}
 
           {profile.category_group === 'jobsite_support' && profile.support_type ? (
             <span className="badge">{supportTypeLabel(profile.support_type)}</span>
@@ -671,17 +671,24 @@ export default function WorkerProfile() {
         </div>
 
         <p className="muted" style={{ marginTop: 10, maxWidth: 760, fontSize: 17, lineHeight: 1.7 }}>
-          A cleaner reputation-first Surplox profile view built for rehiring, crew decisions, material delivery support, cargo van support, and trusted repeat connections.
+          A cleaner reputation-first Surplox profile view built for rehiring, crew decisions,
+          material delivery support, cargo van support, and trusted repeat connections.
         </p>
 
         <div className="grid two" style={{ marginTop: 18 }}>
           <div className="card-soft">
-            <div className="card-section-title" style={{ fontSize: 15 }}>Home ZIP</div>
-            <div className="muted" style={{ marginTop: 6 }}>{profile.home_zip || 'Not set'}</div>
+            <div className="card-section-title" style={{ fontSize: 15 }}>
+              Home ZIP
+            </div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              {profile.home_zip || 'Not set'}
+            </div>
           </div>
 
           <div className="card-soft">
-            <div className="card-section-title" style={{ fontSize: 15 }}>Travel Radius</div>
+            <div className="card-section-title" style={{ fontSize: 15 }}>
+              Travel Radius
+            </div>
             <div className="muted" style={{ marginTop: 6 }}>
               {profile.travel_radius_miles ? `${profile.travel_radius_miles} miles` : 'Not set'}
             </div>
@@ -690,7 +697,9 @@ export default function WorkerProfile() {
 
         {profile.bio ? (
           <div className="card-soft" style={{ marginTop: 16, background: '#ffffff' }}>
-            <div className="card-section-title" style={{ fontSize: 15 }}>Bio / Experience</div>
+            <div className="card-section-title" style={{ fontSize: 15 }}>
+              Bio / Experience
+            </div>
             <div style={{ marginTop: 8, lineHeight: 1.7 }}>{profile.bio}</div>
           </div>
         ) : null}
@@ -698,7 +707,9 @@ export default function WorkerProfile() {
         {profile.role === 'supplier' ? (
           <div className="grid two" style={{ marginTop: 16 }}>
             <div className="card-soft" style={{ background: '#fffaf0' }}>
-              <div className="card-section-title" style={{ fontSize: 15 }}>Supplier Location</div>
+              <div className="card-section-title" style={{ fontSize: 15 }}>
+                Supplier Location
+              </div>
               <div className="muted" style={{ marginTop: 6 }}>
                 {profile.business_name || profile.display_name || 'Not set'}
               </div>
@@ -708,15 +719,27 @@ export default function WorkerProfile() {
               <div className="muted" style={{ marginTop: 6 }}>
                 {profile.business_zip || profile.home_zip || 'ZIP not set'}
               </div>
-              <div style={{ marginTop: 10 }}>
-                <span className="badge" style={{ background: profile.storefront ? '#dcf4e5' : '#ecebe3', color: '#111111' }}>
+              <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <span
+                  className="badge"
+                  style={{
+                    background: profile.storefront ? '#dcf4e5' : '#ecebe3',
+                    color: '#111111'
+                  }}
+                >
                   {profile.storefront ? 'Storefront Location' : 'Supplier Profile'}
                 </span>
+
+                <Link className="btn small primary" to={`/supplier/${profile.user_id}`}>
+                  View Storefront
+                </Link>
               </div>
             </div>
 
             <div className="card-soft" style={{ background: '#f8f7ef' }}>
-              <div className="card-section-title" style={{ fontSize: 15 }}>Materials Offered</div>
+              <div className="card-section-title" style={{ fontSize: 15 }}>
+                Materials Offered
+              </div>
               {profile.materials_categories?.length > 0 ? (
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                   {profile.materials_categories.map((tag) => (
@@ -728,6 +751,17 @@ export default function WorkerProfile() {
               ) : (
                 <div className="muted" style={{ marginTop: 6 }}>No materials listed yet.</div>
               )}
+
+              <div style={{ marginTop: 12 }}>
+                <div className="muted">
+                  Delivery Radius:{' '}
+                  {profile.delivery_radius
+                    ? `${profile.delivery_radius} miles`
+                    : profile.travel_radius_miles
+                      ? `${profile.travel_radius_miles} miles`
+                      : 'Not set'}
+                </div>
+              </div>
             </div>
           </div>
         ) : null}
@@ -735,21 +769,34 @@ export default function WorkerProfile() {
         {profile.role === 'driver' ? (
           <div className="grid two" style={{ marginTop: 16 }}>
             <div className="card-soft" style={{ background: '#eef6ff' }}>
-              <div className="card-section-title" style={{ fontSize: 15 }}>Vehicle Setup</div>
-              <div className="muted" style={{ marginTop: 6 }}>Vehicle: {vehicleTypeLabel(profile.vehicle_type)}</div>
-              <div className="muted" style={{ marginTop: 6 }}>Trailer: {trailerTypeLabel(profile.trailer_type)}</div>
+              <div className="card-section-title" style={{ fontSize: 15 }}>
+                Vehicle Setup
+              </div>
+              <div className="muted" style={{ marginTop: 6 }}>
+                Vehicle: {vehicleTypeLabel(profile.vehicle_type)}
+              </div>
+              <div className="muted" style={{ marginTop: 6 }}>
+                Trailer: {trailerTypeLabel(profile.trailer_type)}
+              </div>
               <div className="muted" style={{ marginTop: 6 }}>
                 Trailer Length: {profile.trailer_length ? `${profile.trailer_length} ft` : 'Not set'}
               </div>
             </div>
 
             <div className="card-soft" style={{ background: '#fffaf0' }}>
-              <div className="card-section-title" style={{ fontSize: 15 }}>Delivery Capacity</div>
+              <div className="card-section-title" style={{ fontSize: 15 }}>
+                Delivery Capacity
+              </div>
               <div className="muted" style={{ marginTop: 6 }}>
                 Payload: {profile.payload_capacity ? `${profile.payload_capacity} lbs` : 'Not set'}
               </div>
               <div className="muted" style={{ marginTop: 6 }}>
-                Delivery Radius: {profile.delivery_radius ? `${profile.delivery_radius} miles` : (profile.travel_radius_miles ? `${profile.travel_radius_miles} miles` : 'Not set')}
+                Delivery Radius:{' '}
+                {profile.delivery_radius
+                  ? `${profile.delivery_radius} miles`
+                  : profile.travel_radius_miles
+                    ? `${profile.travel_radius_miles} miles`
+                    : 'Not set'}
               </div>
             </div>
           </div>
@@ -760,7 +807,9 @@ export default function WorkerProfile() {
           <div className="grid two" style={{ marginTop: 16 }}>
             {profile.service_tags.length > 0 ? (
               <div className="card-soft" style={{ background: '#fffaf0' }}>
-                <div className="card-section-title" style={{ fontSize: 15 }}>Service Tags</div>
+                <div className="card-section-title" style={{ fontSize: 15 }}>
+                  Service Tags
+                </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                   {profile.service_tags.map((tag) => (
                     <span key={tag} className="badge">
@@ -773,7 +822,9 @@ export default function WorkerProfile() {
 
             {profile.equipment_tags.length > 0 ? (
               <div className="card-soft" style={{ background: '#f8f7ef' }}>
-                <div className="card-section-title" style={{ fontSize: 15 }}>Equipment Tags</div>
+                <div className="card-section-title" style={{ fontSize: 15 }}>
+                  Equipment Tags
+                </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                   {profile.equipment_tags.map((tag) => (
                     <span key={tag} className="badge">
@@ -801,8 +852,18 @@ export default function WorkerProfile() {
             Rehire / Share Profile
           </button>
 
+          {profile.role === 'supplier' ? (
+            <Link className="btn primary" to={`/supplier/${profile.user_id}`}>
+              View Storefront
+            </Link>
+          ) : null}
+
           {!isOwnProfile && currentUserId ? (
-            <button className={isSaved ? 'btn primary' : 'btn'} onClick={toggleSavedContact} disabled={saveContactBusy}>
+            <button
+              className={isSaved ? 'btn primary' : 'btn'}
+              onClick={toggleSavedContact}
+              disabled={saveContactBusy}
+            >
               {saveContactBusy ? 'Saving…' : isSaved ? 'Saved Contact' : 'Save Contact'}
             </button>
           ) : null}
@@ -894,9 +955,7 @@ export default function WorkerProfile() {
                         </span>
                       ) : null}
 
-                      {person.trade_name ? (
-                        <span className="badge">{person.trade_name}</span>
-                      ) : null}
+                      {person.trade_name ? <span className="badge">{person.trade_name}</span> : null}
 
                       {person.category_group === 'jobsite_support' && person.support_type ? (
                         <span className="badge">{supportTypeLabel(person.support_type)}</span>
@@ -928,6 +987,12 @@ export default function WorkerProfile() {
                     <Link className="btn small primary" to={`/u/${person.user_id}`}>
                       View Profile
                     </Link>
+
+                    {person.role === 'supplier' ? (
+                      <Link className="btn small" to={`/supplier/${person.user_id}`}>
+                        View Storefront
+                      </Link>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -949,7 +1014,12 @@ export default function WorkerProfile() {
         ) : (
           <div className="list" style={{ marginTop: 14 }}>
             {recentPosts.map((post) => (
-              <Link key={post.id} to={`/p/${post.id}`} className="card-soft" style={{ background: '#ffffff' }}>
+              <Link
+                key={post.id}
+                to={`/p/${post.id}`}
+                className="card-soft"
+                style={{ background: '#ffffff' }}
+              >
                 <div className="postMeta">
                   <span className="badge">{postTypeLabel(post.post_type)}</span>
                   <span className="badge">{categoryGroupLabel(post.category_group)}</span>
@@ -975,7 +1045,7 @@ export default function WorkerProfile() {
                   {post.title}
                 </div>
 
-                {(post.service_tags?.length > 0 || post.equipment_tags?.length > 0) ? (
+                {post.service_tags?.length > 0 || post.equipment_tags?.length > 0 ? (
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                     {post.service_tags?.slice(0, 3).map((tag) => (
                       <span key={`${post.id}-service-${tag}`} className="badge">
@@ -996,4 +1066,4 @@ export default function WorkerProfile() {
       </div>
     </div>
   )
-}    
+}

@@ -66,6 +66,7 @@ const COPY = {
     resetFilters: 'Reset Filters',
     openPost: 'Open Post',
     viewProfile: 'View Profile',
+    viewStorefront: 'View Storefront',
     sharePost: 'Share Post',
     postCopied: 'Post link copied.',
     postShareError: 'Unable to share this post right now.',
@@ -107,7 +108,12 @@ const COPY = {
     trades: 'Trades',
     materialDelivery: 'Material Delivery / Hot Shot',
     cargoVanDelivery: 'Cargo Van / Local Delivery',
-    fleetRepair: 'Equipment / Fleet Repair'
+    fleetRepair: 'Equipment / Fleet Repair',
+    supplierLocation: 'Supplier Location',
+    supplierMaterials: 'Materials',
+    deliveryRadius: 'Delivery Radius',
+    storefront: 'Storefront',
+    supplierLane: 'Supplier'
   },
   es: {
     unknownMember: 'Miembro desconocido',
@@ -135,6 +141,7 @@ const COPY = {
     resetFilters: 'Restablecer filtros',
     openPost: 'Abrir publicación',
     viewProfile: 'Ver perfil',
+    viewStorefront: 'Ver tienda',
     sharePost: 'Compartir publicación',
     postCopied: 'Enlace de la publicación copiado.',
     postShareError: 'No se pudo compartir esta publicación en este momento.',
@@ -176,7 +183,12 @@ const COPY = {
     trades: 'Oficios',
     materialDelivery: 'Entrega de materiales / Hot Shot',
     cargoVanDelivery: 'Cargo Van / Entrega local',
-    fleetRepair: 'Reparación de equipo / flota'
+    fleetRepair: 'Reparación de equipo / flota',
+    supplierLocation: 'Ubicación proveedora',
+    supplierMaterials: 'Materiales',
+    deliveryRadius: 'Radio de entrega',
+    storefront: 'Tienda física',
+    supplierLane: 'Proveedor'
   }
 }
 
@@ -364,6 +376,22 @@ function formatTagLabel(tag) {
   return map[tag] || tag
 }
 
+function formatMaterialCategoryLabel(tag, lang = 'en') {
+  const map = {
+    lumber: { en: 'Lumber', es: 'Madera' },
+    concrete: { en: 'Concrete', es: 'Concreto' },
+    steel: { en: 'Steel', es: 'Acero' },
+    electrical: { en: 'Electrical', es: 'Eléctrico' },
+    plumbing: { en: 'Plumbing', es: 'Plomería' },
+    drywall: { en: 'Drywall', es: 'Tablaroca' },
+    fasteners: { en: 'Fasteners', es: 'Sujetadores' },
+    equipment_rental: { en: 'Equipment Rental', es: 'Renta de equipo' },
+    tools: { en: 'Tools', es: 'Herramientas' },
+    safety_equipment: { en: 'Safety Equipment', es: 'Equipo de seguridad' }
+  }
+  return map[tag]?.[lang] || map[tag]?.en || tag
+}
+
 function timeAgo(ts, lang = 'en') {
   const d = new Date(ts)
   const diff = (Date.now() - d.getTime()) / 1000
@@ -446,6 +474,12 @@ export default function Feed({ lang: langProp = 'en' }) {
               home_zip,
               travel_radius_miles,
               bio,
+              business_name,
+              business_address,
+              business_zip,
+              materials_categories,
+              storefront,
+              delivery_radius,
               trades(name)
             ),
             trades(name)
@@ -494,7 +528,15 @@ export default function Feed({ lang: langProp = 'en' }) {
             author_trade_name: author.trades?.name || '',
             author_home_zip: author.home_zip || '',
             author_travel_radius_miles: author.travel_radius_miles || 0,
-            author_bio: author.bio || ''
+            author_bio: author.bio || '',
+            author_business_name: author.business_name || '',
+            author_business_address: author.business_address || '',
+            author_business_zip: author.business_zip || '',
+            author_materials_categories: Array.isArray(author.materials_categories)
+              ? author.materials_categories
+              : [],
+            author_storefront: Boolean(author.storefront),
+            author_delivery_radius: author.delivery_radius || 0
           }
         })
 
@@ -570,8 +612,12 @@ export default function Feed({ lang: langProp = 'en' }) {
             post.author_name,
             post.author_role,
             post.center_zip,
+            post.author_business_name,
+            post.author_business_address,
+            post.author_business_zip,
             ...(post.service_tags || []),
-            ...(post.equipment_tags || [])
+            ...(post.equipment_tags || []),
+            ...(post.author_materials_categories || [])
           ]
             .join(' ')
             .toLowerCase()
@@ -588,6 +634,7 @@ export default function Feed({ lang: langProp = 'en' }) {
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       })
   }, [posts, filters])
+
   const totalPosts = posts.length
   const visiblePosts = filteredPosts.length
 
@@ -608,8 +655,6 @@ export default function Feed({ lang: langProp = 'en' }) {
           {shareMsg}
         </div>
       )}
-
-      {/* HERO */}
 
       <div
         className="card rounded-xl"
@@ -678,8 +723,6 @@ export default function Feed({ lang: langProp = 'en' }) {
           </Link>
         </div>
       </div>
-
-      {/* FILTERS */}
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{copy.filtersTitle}</div>
@@ -807,8 +850,6 @@ export default function Feed({ lang: langProp = 'en' }) {
         </div>
       </div>
 
-      {/* EMPTY STATE */}
-
       {visiblePosts === 0 && (
         <div className="card rounded-xl" style={{ padding: 24 }}>
           <div className="h3">{copy.emptyBetter}</div>
@@ -823,9 +864,8 @@ export default function Feed({ lang: langProp = 'en' }) {
           </div>
         </div>
       )}
-            {/* POSTS */}
 
-            {visiblePosts > 0 && (
+      {visiblePosts > 0 && (
         <div className="list">
           {filteredPosts.map((post) => {
             const styles = getPostTypeStyles(
@@ -833,6 +873,9 @@ export default function Feed({ lang: langProp = 'en' }) {
               post.category_group,
               post.is_urgent
             )
+
+            const supplierDisplayName =
+              post.author_business_name || post.author_name || copy.unknownMember
 
             return (
               <div
@@ -860,6 +903,12 @@ export default function Feed({ lang: langProp = 'en' }) {
 
                   {post.trade_name && (
                     <span className="badge">{post.trade_name}</span>
+                  )}
+
+                  {post.author_role === 'supplier' && (
+                    <span className="badge" style={{ background: '#f1e7a8', color: '#111111' }}>
+                      {copy.supplierLane}
+                    </span>
                   )}
 
                   {post.is_urgent && (
@@ -928,9 +977,26 @@ export default function Feed({ lang: langProp = 'en' }) {
                       )}
                     </span>
                   )}
-                </div>
 
-                {/* CREW STATS */}
+                  {post.author_role === 'supplier' && post.author_business_zip && (
+                    <span className="badge">
+                      {copy.supplierLocation}: {post.author_business_zip}
+                    </span>
+                  )}
+
+                  {post.author_role === 'supplier' &&
+                    Number(post.author_delivery_radius || 0) > 0 && (
+                      <span className="badge">
+                        {copy.deliveryRadius}: {post.author_delivery_radius} {lang === 'es' ? 'mi' : 'mi'}
+                      </span>
+                    )}
+
+                  {post.author_role === 'supplier' && post.author_storefront && (
+                    <span className="badge">
+                      {copy.storefront}
+                    </span>
+                  )}
+                </div>
 
                 {post.post_type === 'need_crew' && (
                   <div
@@ -962,8 +1028,6 @@ export default function Feed({ lang: langProp = 'en' }) {
                   </div>
                 )}
 
-                {/* SERVICE TAGS */}
-
                 {post.service_tags?.length > 0 && (
                   <div style={{ marginTop: 12 }}>
                     <div className="muted">{copy.serviceTags}</div>
@@ -987,8 +1051,6 @@ export default function Feed({ lang: langProp = 'en' }) {
                     </div>
                   </div>
                 )}
-
-                {/* EQUIPMENT TAGS */}
 
                 {post.equipment_tags?.length > 0 && (
                   <div style={{ marginTop: 12 }}>
@@ -1014,7 +1076,31 @@ export default function Feed({ lang: langProp = 'en' }) {
                   </div>
                 )}
 
-                {/* AUTHOR */}
+                {post.author_role === 'supplier' &&
+                  post.author_materials_categories?.length > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      <div className="muted">{copy.supplierMaterials}</div>
+
+                      <div
+                        style={{
+                          marginTop: 6,
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: 6
+                        }}
+                      >
+                        {post.author_materials_categories.slice(0, 6).map((tag) => (
+                          <span
+                            key={`${post.id}-material-${tag}`}
+                            className="badge"
+                            style={{ background: '#f1e7a8', color: '#111111' }}
+                          >
+                            {formatMaterialCategoryLabel(tag, lang)}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                 <div
                   style={{
@@ -1035,10 +1121,12 @@ export default function Feed({ lang: langProp = 'en' }) {
                       </span>
                     )}
 
-                    <span className="badge">{post.author_name}</span>
+                    <span className="badge">
+                      {post.author_role === 'supplier' ? supplierDisplayName : post.author_name}
+                    </span>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <Link className="btn small primary" to={`/p/${post.id}`}>
                       {copy.openPost}
                     </Link>
@@ -1049,6 +1137,15 @@ export default function Feed({ lang: langProp = 'en' }) {
                     >
                       {copy.viewProfile}
                     </Link>
+
+                    {post.author_role === 'supplier' && (
+                      <Link
+                        className="btn small"
+                        to={`/supplier/${post.author_id}`}
+                      >
+                        {copy.viewStorefront}
+                      </Link>
+                    )}
 
                     <button
                       className="btn small"

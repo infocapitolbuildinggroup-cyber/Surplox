@@ -84,6 +84,14 @@ function getValidPostType(type) {
   return POST_TYPE_OPTIONS.some((x) => x.value === type) ? type : 'discussion'
 }
 
+function getValidCategoryGroup(value) {
+  return CATEGORY_GROUP_OPTIONS.some((x) => x.value === value) ? value : 'trade'
+}
+
+function getValidSupportType(value) {
+  return JOBSITE_SUPPORT_OPTIONS.some((x) => x.value === value) ? value : 'material_delivery'
+}
+
 function getPostTypeTheme(type) {
   if (type === 'need_crew') {
     return {
@@ -161,12 +169,10 @@ async function uploadPostImages(files, userId) {
     const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
     const safeName = `${userId}/${crypto.randomUUID()}.${ext}`
 
-    const { error } = await supabase.storage
-      .from('post-images')
-      .upload(safeName, file, {
-        cacheControl: '3600',
-        upsert: false
-      })
+    const { error } = await supabase.storage.from('post-images').upload(safeName, file, {
+      cacheControl: '3600',
+      upsert: false
+    })
 
     if (error) throw error
     uploadedPaths.push(safeName)
@@ -190,11 +196,13 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
   const params = useMemo(() => new URLSearchParams(location.search), [location.search])
   const preselectedType = getValidPostType(params.get('type'))
+  const preselectedCategory = getValidCategoryGroup(params.get('category') || params.get('group'))
+  const preselectedSupport = getValidSupportType(params.get('support'))
 
   const [form, setForm] = useState({
     post_type: preselectedType,
-    category_group: 'trade',
-    jobsite_support_type: 'material_delivery',
+    category_group: preselectedCategory,
+    jobsite_support_type: preselectedSupport,
     trade_id: '',
     title: '',
     body: '',
@@ -215,9 +223,11 @@ export default function NewPost({ lang: langProp = 'en' }) {
   useEffect(() => {
     setForm((prev) => ({
       ...prev,
-      post_type: preselectedType
+      post_type: preselectedType,
+      category_group: preselectedCategory,
+      jobsite_support_type: preselectedSupport
     }))
-  }, [preselectedType])
+  }, [preselectedType, preselectedCategory, preselectedSupport])
 
   useEffect(() => {
     async function loadTradesAndProfile() {
@@ -243,13 +253,24 @@ export default function NewPost({ lang: langProp = 'en' }) {
         setLang(userLang)
         localStorage.setItem('surplox_lang', userLang)
 
+        const role = String(prof?.role || '')
+        const profileCategoryGroup = prof?.category_group || preselectedCategory || 'trade'
+        const profileSupportType =
+          profileCategoryGroup === 'jobsite_support' ? preselectedSupport : 'material_delivery'
+
         setForm((prev) => ({
           ...prev,
           source_language: prev.source_language || userLang,
           trade_id: prev.trade_id || (prof?.trade_id ? String(prof.trade_id) : ''),
           center_zip: prev.center_zip || String(prof?.business_zip || prof?.home_zip || ''),
-          category_group: prof?.category_group || prev.category_group || 'trade',
-          poster_role: String(prof?.role || ''),
+          category_group:
+            preselectedCategory === 'jobsite_support'
+              ? 'jobsite_support'
+              : role === 'supplier'
+                ? 'trade'
+                : profileCategoryGroup,
+          jobsite_support_type: preselectedSupport || profileSupportType,
+          poster_role: role,
           business_name: String(prof?.business_name || ''),
           business_zip: String(prof?.business_zip || ''),
           service_tags: Array.isArray(prof?.service_tags) ? prof.service_tags : prev.service_tags,
@@ -267,7 +288,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
         }
 
         if (
-          !['supplier', 'driver', 'mechanic'].includes(String(prof?.role || '')) &&
+          !['supplier', 'driver', 'mechanic'].includes(role) &&
           (!Number(prof?.crew_size || 0) || Number(prof?.crew_size || 0) <= 1)
         ) {
           prompts.push(userLang === 'es' ? 'Agrega tamaño de cuadrilla' : 'Add crew size')
@@ -300,11 +321,11 @@ export default function NewPost({ lang: langProp = 'en' }) {
               String(prof.bio || '').trim() ||
               (Array.isArray(prof?.service_tags) && prof.service_tags.length > 0) ||
               (
-                String(prof.role || '') === 'supplier' &&
+                role === 'supplier' &&
                 String(prof.business_name || '').trim() &&
                 String(prof.business_zip || prof.home_zip || '').trim() &&
                 (
-                  (Array.isArray(prof.materials_categories) && prof.materials_categories.length > 0) ||
+                  (Array.isArray(prof?.materials_categories) && prof.materials_categories.length > 0) ||
                   String(prof.bio || '').trim()
                 )
               )
@@ -327,7 +348,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
     }
 
     loadTradesAndProfile()
-  }, [langProp])
+  }, [langProp, preselectedCategory, preselectedSupport])
 
   useEffect(() => {
     if (!profileReadyForPosting) {
@@ -391,7 +412,16 @@ export default function NewPost({ lang: langProp = 'en' }) {
     }
 
     setProfileGateMessage('')
-  }, [form.post_type, lang, profilePromptItems, profileReadyForPosting])
+  }, [form.post_type, form.poster_role, lang, profilePromptItems, profileReadyForPosting])
+
+  useEffect(() => {
+    if (form.poster_role === 'supplier' && form.category_group !== 'trade') {
+      setForm((prev) => ({
+        ...prev,
+        category_group: 'trade'
+      }))
+    }
+  }, [form.poster_role, form.category_group])
 
   useEffect(() => {
     if (form.category_group === 'jobsite_support') {
@@ -468,6 +498,9 @@ export default function NewPost({ lang: langProp = 'en' }) {
           'Describe la ubicación de tu negocio, qué materiales suministras, si ofreces entrega o pickup y cómo pueden contactarte.',
         supplierBusinessNotice:
           'Las cuentas de proveedor funcionan mejor como publicaciones de tienda/ubicación y no como perfiles de trabajador individual.',
+        supplierSnapshot: 'Resumen del proveedor',
+        businessName: 'Nombre comercial',
+        businessZip: 'ZIP comercial',
         crewBody:
           'Describe el oficio, dónde está el trabajo, cuánta gente necesitas, cuándo inicia y los detalles de pago.',
         workBody:
@@ -493,9 +526,9 @@ export default function NewPost({ lang: langProp = 'en' }) {
         strengthenBody:
           'Ya puedes usar Surplox, pero completar tu perfil hará que tus publicaciones tengan más peso.',
         finishAccount: 'Terminar cuenta',
-        heroTitle: 'Create a cleaner, stronger post.',
+        heroTitle: 'Crea una publicación más limpia y más fuerte.',
         heroBody:
-          'Use the new flatter Surplox composer to publish faster and look more credible to nearby members.',
+          'Usa el compositor más claro de Surplox para publicar más rápido y verte más creíble para miembros cercanos.',
         titleLabel: 'Título',
         bodyLabel: 'Detalles',
         radiusLabel: 'Radio (millas)',
@@ -509,7 +542,9 @@ export default function NewPost({ lang: langProp = 'en' }) {
         photos: 'Fotos de la publicación',
         photoHelp: 'Puedes subir hasta 4 imágenes.',
         categoryHelp:
-          'Usa Oficios para mano de obra y discusiones. Usa Soporte de obra para entrega de materiales o reparación de flota/equipo.'
+          'Usa Oficios para mano de obra, discusiones y visibilidad de proveedores. Usa Soporte de obra para entrega de materiales o reparación de flota/equipo.',
+        supplierTradeNote:
+          'Las publicaciones de proveedor normalmente funcionan como discusión/visibilidad y no requieren un oficio.'
       }
     }
 
@@ -534,10 +569,19 @@ export default function NewPost({ lang: langProp = 'en' }) {
         'Example: Cargo van available for local runs, last-mile delivery, and same-day pickups in DFW',
       supportRepairTitle:
         'Example: Trailer repair and diesel service available at jobsites',
-      workBody:
-        'Describe your trade, availability, travel radius, experience, and what kind of work you want.',
+      supplierTitle:
+        'Example: Material yard with block, concrete, and steel available in Fort Worth',
+      supplierBody:
+        'Describe your business location, what materials you supply, whether you offer delivery or pickup, and how nearby contractors should reach out.',
+      supplierBusinessNotice:
+        'Supplier accounts work best as storefront/location visibility posts rather than individual worker posts.',
+      supplierSnapshot: 'Supplier snapshot',
+      businessName: 'Business Name',
+      businessZip: 'Business ZIP',
       crewBody:
         'Describe the trade, where the job is, how many people you need, start timing, and pay details.',
+      workBody:
+        'Describe your trade, availability, travel radius, experience, and what kind of work you want.',
       deliveryBody:
         'Describe the delivery service, vehicle/equipment available, coverage area, and whether you do local runs, urgent pickups, or same-day service.',
       repairBody:
@@ -573,7 +617,9 @@ export default function NewPost({ lang: langProp = 'en' }) {
       photos: 'Post Photos',
       photoHelp: 'You can upload up to 4 images.',
       categoryHelp:
-        'Use Trades for labor and discussions. Use Jobsite Support for material delivery or fleet/equipment repair.'
+        'Use Trades for labor, discussions, and supplier visibility. Use Jobsite Support for material delivery or fleet/equipment repair.',
+      supplierTradeNote:
+        'Supplier posts usually work as discussion/visibility posts and do not require selecting a trade.'
     }
   }, [lang])
 
@@ -585,6 +631,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
       if (form.jobsite_support_type === 'cargo_van_delivery') return helperCopy.supportCargoVanTitle
       return helperCopy.supportRepairTitle
     }
+    if (form.poster_role === 'supplier') return helperCopy.supplierTitle
     if (form.post_type === 'need_crew') return helperCopy.crewTitle
     if (form.post_type === 'looking_for_work') return helperCopy.workTitle
     return helperCopy.discussionTitle
@@ -596,6 +643,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
       if (form.jobsite_support_type === 'cargo_van_delivery') return helperCopy.deliveryBody
       return helperCopy.repairBody
     }
+    if (form.poster_role === 'supplier') return helperCopy.supplierBody
     if (form.post_type === 'need_crew') return helperCopy.crewBody
     if (form.post_type === 'looking_for_work') return helperCopy.workBody
     return t(lang, 'new_post_body_placeholder')
@@ -607,6 +655,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
       if (form.jobsite_support_type === 'cargo_van_delivery') return helperCopy.deliveryBody
       return helperCopy.repairBody
     }
+    if (form.poster_role === 'supplier') return helperCopy.supplierBody
     if (form.post_type === 'need_crew') return helperCopy.crewExample
     if (form.post_type === 'looking_for_work') return helperCopy.workExample
     return t(lang, 'new_post_example_body')
@@ -638,9 +687,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
       if (!POST_TYPE_OPTIONS.some((x) => x.value === form.post_type)) {
         throw new Error(
-          lang === 'es'
-            ? 'Selecciona un tipo de publicación válido.'
-            : 'Select a valid post type.'
+          lang === 'es' ? 'Selecciona un tipo de publicación válido.' : 'Select a valid post type.'
         )
       }
 
@@ -649,9 +696,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
       }
 
       if (!['trade', 'jobsite_support'].includes(form.category_group)) {
-        throw new Error(
-          lang === 'es' ? 'Selecciona una categoría válida.' : 'Select a valid category.'
-        )
+        throw new Error(lang === 'es' ? 'Selecciona una categoría válida.' : 'Select a valid category.')
       }
 
       if (
@@ -659,9 +704,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
         !['material_delivery', 'cargo_van_delivery', 'equipment_fleet_repair'].includes(form.jobsite_support_type)
       ) {
         throw new Error(
-          lang === 'es'
-            ? 'Selecciona un tipo de soporte válido.'
-            : 'Select a valid support type.'
+          lang === 'es' ? 'Selecciona un tipo de soporte válido.' : 'Select a valid support type.'
         )
       }
 
@@ -700,7 +743,10 @@ export default function NewPost({ lang: langProp = 'en' }) {
         author_id: user.id,
         post_type: form.post_type,
         category_group: form.category_group,
-        trade_id: form.category_group === 'trade' && form.trade_id ? Number(form.trade_id) : null,
+        trade_id:
+          form.category_group === 'trade' && form.trade_id && form.poster_role !== 'supplier'
+            ? Number(form.trade_id)
+            : null,
         title: form.title.trim(),
         body: form.body.trim(),
         center_zip: form.center_zip,
@@ -742,6 +788,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
   }
 
   const theme = getPostTypeTheme(form.post_type)
+  const isSupplierPost = form.poster_role === 'supplier'
 
   return (
     <div className="grid" style={{ gap: 18 }}>
@@ -753,7 +800,9 @@ export default function NewPost({ lang: langProp = 'en' }) {
         }}
       >
         <div className="badge" style={{ ...theme.badge, marginBottom: 14 }}>
-          {postTypeLabel(form.post_type, lang)}
+          {isSupplierPost && form.category_group === 'trade'
+            ? (lang === 'es' ? 'Proveedor' : 'Supplier')
+            : postTypeLabel(form.post_type, lang)}
         </div>
 
         <div className="h1" style={{ maxWidth: 860 }}>
@@ -766,15 +815,34 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
         <div className="card-soft" style={{ marginTop: 16, background: 'rgba(255,255,255,0.58)' }}>
           <div className="card-section-title" style={{ fontSize: 16 }}>
-            {form.post_type === 'discussion'
-              ? t(lang, 'new_post_notice_title')
-              : helperCopy.highVisibilityOpportunity}
+            {isSupplierPost && form.category_group === 'trade'
+              ? helperCopy.supplierSnapshot
+              : form.post_type === 'discussion'
+                ? t(lang, 'new_post_notice_title')
+                : helperCopy.highVisibilityOpportunity}
           </div>
           <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {form.post_type === 'discussion'
-              ? t(lang, 'new_post_notice_body')
-              : helperCopy.opportunityNotice}
+            {isSupplierPost && form.category_group === 'trade'
+              ? helperCopy.supplierBusinessNotice
+              : form.post_type === 'discussion'
+                ? t(lang, 'new_post_notice_body')
+                : helperCopy.opportunityNotice}
           </p>
+
+          {isSupplierPost ? (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+              {form.business_name ? (
+                <span className="badge">
+                  {helperCopy.businessName}: {form.business_name}
+                </span>
+              ) : null}
+              {form.business_zip ? (
+                <span className="badge">
+                  {helperCopy.businessZip}: {form.business_zip}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -840,6 +908,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
                 className="input"
                 value={form.category_group}
                 onChange={(e) => setField('category_group', e.target.value)}
+                disabled={isSupplierPost}
               >
                 {CATEGORY_GROUP_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -850,6 +919,11 @@ export default function NewPost({ lang: langProp = 'en' }) {
               <div className="muted" style={{ marginTop: 8 }}>
                 {helperCopy.categoryHelp}
               </div>
+              {isSupplierPost ? (
+                <div className="muted" style={{ marginTop: 8 }}>
+                  {helperCopy.supplierTradeNote}
+                </div>
+              ) : null}
             </div>
 
             {form.category_group === 'jobsite_support' ? (
@@ -895,6 +969,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
                     className="input"
                     value={form.trade_id}
                     onChange={(e) => setField('trade_id', e.target.value)}
+                    disabled={isSupplierPost}
                   >
                     <option value="">{helperCopy.selectTrade}</option>
                     {trades.map((trade) => (
@@ -903,6 +978,11 @@ export default function NewPost({ lang: langProp = 'en' }) {
                       </option>
                     ))}
                   </select>
+                  {isSupplierPost ? (
+                    <div className="muted" style={{ marginTop: 8 }}>
+                      {helperCopy.supplierTradeNote}
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <div>
@@ -998,7 +1078,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
               ) : null}
             </div>
 
-            {form.post_type !== 'discussion' || form.category_group === 'jobsite_support' ? (
+            {form.post_type !== 'discussion' || form.category_group === 'jobsite_support' || isSupplierPost ? (
               <div
                 className="card-soft"
                 style={{
@@ -1007,7 +1087,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
                 }}
               >
                 <div className="card-section-title" style={{ fontSize: 16 }}>
-                  {helperCopy.opportunityIntro}
+                  {isSupplierPost ? helperCopy.supplierSnapshot : helperCopy.opportunityIntro}
                 </div>
                 <p className="card-section-subtitle" style={{ marginTop: 8 }}>
                   {exampleBody()}

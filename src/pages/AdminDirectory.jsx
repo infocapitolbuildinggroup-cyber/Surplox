@@ -164,6 +164,7 @@ const COPY = {
     travelRadius: 'Travel Radius',
     openPost: 'Open Post',
     openProfile: 'Open Profile',
+    openStorefront: 'Open Storefront',
     connections: 'connections',
     profileStatus: 'Profile Status',
     profileComplete: 'Complete',
@@ -339,6 +340,7 @@ const COPY = {
     travelRadius: 'Radio de Viaje',
     openPost: 'Abrir Publicación',
     openProfile: 'Abrir Perfil',
+    openStorefront: 'Abrir Tienda',
     connections: 'conexiones',
     profileStatus: 'Estado del Perfil',
     profileComplete: 'Completo',
@@ -490,16 +492,32 @@ function getMissingProfileFields(worker, copy) {
   const crewSizeOptional = ['supplier', 'driver', 'mechanic'].includes(worker.role)
   const tradeOptional = worker.role === 'supplier'
 
+  if (!String(worker.display_name || '').trim()) missing.push('Display Name')
+  if (!String(worker.role || '').trim()) missing.push(copy.role)
+
+  if (worker.role === 'supplier') {
+    if (!String(worker.business_name || '').trim()) missing.push(copy.businessName)
+    if (!String(worker.business_address || '').trim()) missing.push(copy.businessAddress)
+    if (!String(worker.business_zip || '').trim()) missing.push(copy.businessZip)
+    if (!Array.isArray(worker.materials_categories) || worker.materials_categories.length === 0) {
+      missing.push(copy.materialsCategories)
+    }
+    if (!Number(worker.delivery_radius || 0)) missing.push(copy.deliveryRadius)
+    if (!Boolean(worker.storefront)) missing.push(copy.storefront)
+    if (!String(worker.phone || '').trim()) missing.push(copy.contact === 'Contact' ? 'Phone' : 'Teléfono')
+    if (!String(worker.city || '').trim()) missing.push(copy.city)
+    if (!String(worker.bio || '').trim()) missing.push(copy.bio)
+    return missing
+  }
+
   if (!String(worker.first_name || '').trim()) missing.push('First Name')
   if (!String(worker.last_name || '').trim()) missing.push('Last Name')
   if (!String(worker.phone || '').trim()) missing.push(copy.contact === 'Contact' ? 'Phone' : 'Teléfono')
   if (!String(worker.city || '').trim()) missing.push(copy.city)
-  if (!String(worker.role || '').trim()) missing.push(copy.role)
   if (!String(worker.bio || '').trim()) missing.push(copy.bio)
   if (!crewSizeOptional && (!Number(worker.crew_size || 0) || Number(worker.crew_size || 0) <= 1)) {
     missing.push(copy.crewSize)
   }
-  if (!String(worker.display_name || '').trim()) missing.push('Display Name')
   if (!String(worker.home_zip || '').trim()) missing.push(copy.zip)
 
   if (worker.category_group === 'trade') {
@@ -1884,6 +1902,47 @@ export default function AdminDirectory() {
                       </div>
                     ) : null}
 
+                    {worker.role === 'supplier' ? (
+                      <div className="card-soft" style={{ marginTop: 14, background: '#fffaf0' }}>
+                        <div className="card-section-title" style={{ fontSize: 15 }}>
+                          {copy.businessName}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                          {worker.business_name ? <span className="badge">{worker.business_name}</span> : null}
+                          {worker.business_zip ? <span className="badge">{copy.businessZip}: {worker.business_zip}</span> : null}
+                          {Number(worker.delivery_radius || 0) > 0 ? (
+                            <span className="badge">{copy.deliveryRadius}: {worker.delivery_radius}</span>
+                          ) : null}
+                          <span
+                            className="badge"
+                            style={worker.storefront ? { background: '#dcf4e5', color: '#177245' } : {}}
+                          >
+                            {worker.storefront ? copy.storefront : copy.notAvailable}
+                          </span>
+                        </div>
+
+                        {worker.business_address ? (
+                          <div style={{ marginTop: 10, lineHeight: 1.7 }}>
+                            {worker.business_address}
+                          </div>
+                        ) : null}
+
+                        {worker.materials_categories?.length > 0 ? (
+                          <div style={{ marginTop: 12 }}>
+                            <div className="muted" style={{ marginBottom: 6 }}>{copy.materialsCategories}</div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                              {worker.materials_categories.map((tag) => (
+                                <span key={`${worker.user_id}-material-${tag}`} className="badge">
+                                  {formatMaterialsLabel(tag)}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+
                     {worker.bio ? (
                       <div style={{ marginTop: 14, lineHeight: 1.7 }}>
                         {worker.bio}
@@ -1909,6 +1968,11 @@ export default function AdminDirectory() {
                       <Link className="btn small primary" to={`/u/${worker.user_id}`}>
                         {copy.openProfile}
                       </Link>
+                      {worker.role === 'supplier' ? (
+                        <Link className="btn small" to={`/supplier/${worker.user_id}`}>
+                          {copy.openStorefront}
+                        </Link>
+                      ) : null}
                     </div>
                   </div>
 

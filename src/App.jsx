@@ -13,6 +13,7 @@ import Notifications from './pages/Notifications'
 import Channels from './pages/Channels'
 import Onboarding from './pages/Onboarding'
 import AdminDirectory from './pages/AdminDirectory'
+import SupplierStorefront from './pages/SupplierStorefront'
 
 import './styles.css'
 
@@ -349,7 +350,11 @@ function AppShell({ lang, setLang }) {
                     <div className="nav-mobile-shortcuts">
                       <Link
                         to={quickLinks.labor}
-                        className={isActive('/feed') && !isDeliveryActive && !isRepairActive ? 'btn primary small' : 'btn small'}
+                        className={
+                          isActive('/feed') && !isDeliveryActive && !isRepairActive
+                            ? 'btn primary small'
+                            : 'btn small'
+                        }
                       >
                         {lang === 'es' ? 'Labor' : 'Labor'}
                       </Link>
@@ -427,6 +432,12 @@ function AppShell({ lang, setLang }) {
             <Route
               path="/u/:userId"
               element={session ? <WorkerProfile lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
+            />
+            <Route
+              path="/supplier/:userId"
+              element={
+                session ? <SupplierStorefront lang={lang} /> : <Navigate to="/auth?mode=signin" replace />
+              }
             />
             <Route
               path="/account"
