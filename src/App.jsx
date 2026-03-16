@@ -15,6 +15,7 @@ import Onboarding from './pages/Onboarding'
 import AdminDirectory from './pages/AdminDirectory'
 import SupplierStorefront from './pages/SupplierStorefront'
 import Materials from './pages/Materials'
+import Delivery from './pages/Delivery'
 
 import './styles.css'
 
@@ -151,6 +152,7 @@ function AppShell({ lang, setLang }) {
     return [
       { to: '/feed', label: lang === 'es' ? 'Feed' : 'Feed' },
       { to: '/materials', label: lang === 'es' ? 'Materiales' : 'Materials' },
+      { to: '/delivery', label: lang === 'es' ? 'Conductores' : 'Delivery' },
       { to: '/channels', label: lang === 'es' ? 'Canales' : 'Channels' },
       { to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
       { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
@@ -164,7 +166,8 @@ function AppShell({ lang, setLang }) {
     return {
       labor: '/feed',
       materials: '/materials',
-      delivery: '/feed?category=jobsite_support&support=material_delivery',
+      deliveryDirectory: '/delivery',
+      deliveryFeed: '/feed?category=jobsite_support&support=material_delivery',
       repair: '/feed?category=jobsite_support&support=equipment_fleet_repair'
     }
   }, [])
@@ -174,7 +177,7 @@ function AppShell({ lang, setLang }) {
     return location.pathname.startsWith(to)
   }
 
-  const isDeliveryActive =
+  const isDeliveryFeedActive =
     location.pathname.startsWith('/feed') &&
     isSupportSearchActive(location.search, ['material_delivery', 'cargo_van_delivery'])
 
@@ -239,7 +242,10 @@ function AppShell({ lang, setLang }) {
                   <Link className="badge" to={quickLinks.materials}>
                     {lang === 'es' ? 'Materiales' : 'Materials'}
                   </Link>
-                  <Link className="badge" to={quickLinks.delivery}>
+                  <Link className="badge" to={quickLinks.deliveryDirectory}>
+                    {lang === 'es' ? 'Conductores' : 'Drivers'}
+                  </Link>
+                  <Link className="badge" to={quickLinks.deliveryFeed}>
                     {lang === 'es' ? 'Entrega' : 'Delivery'}
                   </Link>
                   <Link className="badge" to={quickLinks.repair}>
@@ -318,11 +324,11 @@ function AppShell({ lang, setLang }) {
                 {session ? (
                   <>
                     <Link
-                      to={quickLinks.delivery}
-                      className={isDeliveryActive ? 'btn primary small' : 'btn small'}
+                      to={quickLinks.deliveryFeed}
+                      className={isDeliveryFeedActive ? 'btn primary small' : 'btn small'}
                       style={{ textDecoration: 'none' }}
                     >
-                      {lang === 'es' ? 'Entrega' : 'Delivery'}
+                      {lang === 'es' ? 'Entrega' : 'Delivery Feed'}
                     </Link>
 
                     <Link
@@ -357,7 +363,7 @@ function AppShell({ lang, setLang }) {
                       <Link
                         to={quickLinks.labor}
                         className={
-                          isActive('/feed') && !isDeliveryActive && !isRepairActive
+                          isActive('/feed') && !isDeliveryFeedActive && !isRepairActive
                             ? 'btn primary small'
                             : 'btn small'
                         }
@@ -373,8 +379,15 @@ function AppShell({ lang, setLang }) {
                       </Link>
 
                       <Link
-                        to={quickLinks.delivery}
-                        className={isDeliveryActive ? 'btn primary small' : 'btn small'}
+                        to={quickLinks.deliveryDirectory}
+                        className={isActive('/delivery') ? 'btn primary small' : 'btn small'}
+                      >
+                        {lang === 'es' ? 'Conductores' : 'Drivers'}
+                      </Link>
+
+                      <Link
+                        to={quickLinks.deliveryFeed}
+                        className={isDeliveryFeedActive ? 'btn primary small' : 'btn small'}
                       >
                         {lang === 'es' ? 'Entrega' : 'Delivery'}
                       </Link>
@@ -437,6 +450,10 @@ function AppShell({ lang, setLang }) {
             <Route
               path="/materials"
               element={session ? <Materials lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
+            />
+            <Route
+              path="/delivery"
+              element={session ? <Delivery lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
             />
             <Route
               path="/new"
