@@ -14,22 +14,6 @@ function roleLabel(role) {
   return map[role] || role || 'Member'
 }
 
-function formatMaterialsLabel(value) {
-  const map = {
-    equipment_rental: 'Equipment Rental',
-    safety_equipment: 'Safety Equipment',
-    lumber: 'Lumber',
-    concrete: 'Concrete',
-    steel: 'Steel',
-    electrical: 'Electrical',
-    plumbing: 'Plumbing',
-    drywall: 'Drywall',
-    fasteners: 'Fasteners',
-    tools: 'Tools'
-  }
-  return map[value] || value
-}
-
 function roleBadgeStyle(role) {
   if (role === 'contractor') return { background: '#111111', color: '#ffffff' }
   if (role === 'subcontractor') return { background: '#fff0b4', color: '#111111' }
@@ -72,7 +56,7 @@ function categoryGroupLabel(value) {
   return 'Trades'
 }
 
-function detectSupportType(serviceTags = []) {
+function detectSupportType(serviceTags = [], vehicleType = '') {
   const repairTags = new Set([
     'diesel_mechanic',
     'heavy_equipment_repair',
@@ -85,7 +69,11 @@ function detectSupportType(serviceTags = []) {
     return 'equipment_fleet_repair'
   }
 
-  if (serviceTags.includes('local_runs') || serviceTags.includes('last_mile_delivery')) {
+  if (
+    serviceTags.includes('local_runs') ||
+    serviceTags.includes('last_mile_delivery') ||
+    vehicleType === 'cargo_van'
+  ) {
     return 'cargo_van_delivery'
   }
 
@@ -137,6 +125,7 @@ function vehicleTypeLabel(value) {
 
 function trailerTypeLabel(value) {
   const map = {
+    none: 'No Trailer',
     no_trailer: 'No Trailer',
     utility_trailer: 'Utility Trailer',
     flatbed_trailer: 'Flatbed Trailer',
@@ -268,7 +257,7 @@ export default function WorkerProfile() {
             : [],
           support_type:
             (prof.category_group || 'trade') === 'jobsite_support'
-              ? detectSupportType(serviceTags)
+              ? detectSupportType(serviceTags, prof.vehicle_type || '')
               : null
         })
 
@@ -363,7 +352,7 @@ export default function WorkerProfile() {
                 trade_name: p.trades?.name || '',
                 support_type:
                   categoryGroup === 'jobsite_support'
-                    ? detectSupportType(serviceTags)
+                    ? detectSupportType(serviceTags, '')
                     : null
               }
             ]
@@ -435,7 +424,7 @@ export default function WorkerProfile() {
             equipment_tags: Array.isArray(post.equipment_tags) ? post.equipment_tags : [],
             support_type:
               (post.category_group || 'trade') === 'jobsite_support'
-                ? detectSupportType(Array.isArray(post.service_tags) ? post.service_tags : [])
+                ? detectSupportType(Array.isArray(post.service_tags) ? post.service_tags : [], '')
                 : null
           }))
         )
@@ -631,11 +620,27 @@ export default function WorkerProfile() {
         className="card rounded-xl"
         style={{
           padding: 28,
-          background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
+          background:
+            profile.role === 'driver'
+              ? 'linear-gradient(180deg, #e9f4ff 0%, #f7f7f2 100%)'
+              : profile.role === 'supplier'
+                ? 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
+                : 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
         }}
       >
-        <div className="badge" style={{ marginBottom: 14, background: '#f1e7a8' }}>
-          Worker profile
+        <div
+          className="badge"
+          style={
+            profile.role === 'driver'
+              ? { marginBottom: 14, background: '#d8ecff', color: '#0d3f73' }
+              : { marginBottom: 14, background: '#f1e7a8' }
+          }
+        >
+          {profile.role === 'driver'
+            ? 'Driver profile'
+            : profile.role === 'supplier'
+              ? 'Supplier profile'
+              : 'Worker profile'}
         </div>
 
         <div className="postMeta" style={{ marginBottom: 12 }}>
@@ -657,40 +662,49 @@ export default function WorkerProfile() {
             </span>
           ) : null}
 
-          {profile.is_available ? (
-            <span className="badge" style={availabilityBadgeStyle(true)}>
-              {availabilityStatusLabel(profile.availability_status)}
-            </span>
-          ) : (
-            <span className="badge">Not Marked Available</span>
-          )}
+          {profile.role !== 'supplier' ? (
+            profile.is_available ? (
+              <span className="badge" style={availabilityBadgeStyle(true)}>
+                {availabilityStatusLabel(profile.availability_status)}
+              </span>
+            ) : (
+              <span className="badge">Not Marked Available</span>
+            )
+          ) : null}
         </div>
 
         <div className="h1" style={{ marginTop: 0 }}>
-          {profile.display_name || 'Unknown Member'}
+          {profile.business_name || profile.display_name || 'Unknown Member'}
         </div>
 
         <p className="muted" style={{ marginTop: 10, maxWidth: 760, fontSize: 17, lineHeight: 1.7 }}>
-          A cleaner reputation-first Surplox profile view built for rehiring, crew decisions,
-          material delivery support, cargo van support, and trusted repeat connections.
+          {profile.role === 'driver'
+            ? 'A cleaner driver-first Surplox profile view built for supplier → driver → jobsite matching, repeat hauling, and trusted delivery coverage.'
+            : profile.role === 'supplier'
+              ? 'A storefront-ready Surplox profile view built for material sourcing, repeat purchasing, and trusted supplier discovery.'
+              : 'A cleaner reputation-first Surplox profile view built for rehiring, crew decisions, jobsite support, and trusted repeat connections.'}
         </p>
 
         <div className="grid two" style={{ marginTop: 18 }}>
           <div className="card-soft">
             <div className="card-section-title" style={{ fontSize: 15 }}>
-              Home ZIP
+              {profile.role === 'supplier' ? 'Business ZIP' : 'Home ZIP'}
             </div>
             <div className="muted" style={{ marginTop: 6 }}>
-              {profile.home_zip || 'Not set'}
+              {profile.business_zip || profile.home_zip || 'Not set'}
             </div>
           </div>
 
           <div className="card-soft">
             <div className="card-section-title" style={{ fontSize: 15 }}>
-              Travel Radius
+              {profile.role === 'supplier' || profile.role === 'driver' ? 'Delivery Radius' : 'Travel Radius'}
             </div>
             <div className="muted" style={{ marginTop: 6 }}>
-              {profile.travel_radius_miles ? `${profile.travel_radius_miles} miles` : 'Not set'}
+              {profile.delivery_radius
+                ? `${profile.delivery_radius} miles`
+                : profile.travel_radius_miles
+                  ? `${profile.travel_radius_miles} miles`
+                  : 'Not set'}
             </div>
           </div>
         </div>
@@ -698,7 +712,7 @@ export default function WorkerProfile() {
         {profile.bio ? (
           <div className="card-soft" style={{ marginTop: 16, background: '#ffffff' }}>
             <div className="card-section-title" style={{ fontSize: 15 }}>
-              Bio / Experience
+              {profile.role === 'supplier' ? 'Business Bio' : 'Bio / Experience'}
             </div>
             <div style={{ marginTop: 8, lineHeight: 1.7 }}>{profile.bio}</div>
           </div>
@@ -838,18 +852,20 @@ export default function WorkerProfile() {
         ) : null}
 
         <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {isOwnProfile ? (
+          {isOwnProfile && profile.role !== 'supplier' ? (
             <button className="btn primary" onClick={toggleAvailability} disabled={savingAvailability}>
               {savingAvailability
                 ? 'Saving…'
                 : profile.is_available
                   ? 'Turn Off Availability'
-                  : 'Mark Available for Work'}
+                  : profile.role === 'driver'
+                    ? 'Mark Available for Deliveries'
+                    : 'Mark Available for Work'}
             </button>
           ) : null}
 
           <button className="btn" onClick={copyProfileInvite}>
-            Rehire / Share Profile
+            {profile.role === 'driver' ? 'Share Driver Profile' : 'Rehire / Share Profile'}
           </button>
 
           {profile.role === 'supplier' ? (

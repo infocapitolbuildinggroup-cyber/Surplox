@@ -24,11 +24,11 @@ const SUPPLIER_SIGNUP_OPTION = {
   }
 }
 
-const JOBSITE_SUPPORT_SIGNUP_OPTIONS = [
+const DRIVER_SIGNUP_OPTIONS = [
   {
     id: 'support:material_delivery',
     name: 'Material Delivery / Hot Shot',
-    section: 'service',
+    section: 'driver',
     role: 'driver',
     category_group: 'jobsite_support',
     trade_id: null,
@@ -43,7 +43,7 @@ const JOBSITE_SUPPORT_SIGNUP_OPTIONS = [
   {
     id: 'support:cargo_van',
     name: 'Cargo Van / Local Delivery',
-    section: 'service',
+    section: 'driver',
     role: 'driver',
     category_group: 'jobsite_support',
     trade_id: null,
@@ -54,7 +54,10 @@ const JOBSITE_SUPPORT_SIGNUP_OPTIONS = [
       en: 'Cargo van and local delivery support for material runs, pickups, and jobsite deliveries.',
       es: 'Soporte con cargo van y entrega local para viajes de materiales, recogidas y entregas en obra.'
     }
-  },
+  }
+]
+
+const JOBSITE_SUPPORT_SIGNUP_OPTIONS = [
   {
     id: 'support:equipment_fleet_repair',
     name: 'Equipment / Fleet Repair',
@@ -95,7 +98,7 @@ const COPY = {
     signInIntro:
       'Get back to nearby opportunities, crew activity, alerts, profile visibility, and local construction connections.',
     signUpIntro:
-      'Fast signup for workers, supplier locations, delivery operators, and local construction connections. Get into the app first and finish the rest later.',
+      'Fast signup for workers, supplier locations, delivery drivers, and local construction connections. Get into the app first and finish the rest later.',
     previewTitle: 'Quick Setup',
     previewBody:
       'Surplox gets people in quickly: name or business name, account type, ZIP, then straight into the feed.',
@@ -127,7 +130,7 @@ const COPY = {
     point2Body:
       'Post labor needs, discover available workers, and move faster when it is time to fill jobs.',
     point3Title: 'Profiles that carry weight',
-    point3Body: 'Show your trade, service, or supplier lane and area so the right people can find you.',
+    point3Body: 'Show your trade, service, driver lane, or supplier lane and area so the right people can find you.',
     point4Title: 'Alerts and repeat connections',
     point4Body:
       'Stay on top of replies, joins, hires, and local activity that can turn into future work.',
@@ -142,16 +145,22 @@ const COPY = {
     tradePlaceholder: 'Select your account type',
     generalConstruction: 'General Construction',
     supplierOption: 'Supplier',
+    deliveryDriverOption: 'Delivery Driver',
     tradesGroup: 'Trades',
-    servicesGroup: 'Services',
+    driversGroup: 'Drivers',
+    servicesGroup: 'Jobsite Support',
     suppliersGroup: 'Suppliers',
     tradesLoading: 'Loading trades…',
     tradesUnavailable:
       'Trades unavailable right now. Showing Surplox default trades.',
     supportAccountsHint:
       'Choose the account type that best matches what you are joining Surplox as: worker, supplier location, delivery driver, or jobsite support.',
+    driverAccountsHint:
+      'Driver accounts are their own Surplox lane. Choose the delivery setup that best matches your vehicle and hauling capability, then finish driver profile details inside onboarding and My Account.',
     supplierAccountsHint:
       'Supplier accounts are storefront-style business locations. Use your business name now, then finish materials, hours, and storefront details inside My Account.',
+    supportServiceHint:
+      'Jobsite support accounts cover service lanes like equipment and fleet repair.',
     zipLabel: 'What ZIP do you usually work in?',
     zipPlaceholder: '76102',
     tradeRequired: 'Select your account type.',
@@ -175,7 +184,13 @@ const COPY = {
       'Sign in to get back to nearby activity, posts, crews, and alerts.',
     supplierStorefrontTitle: 'Supplier storefront-ready accounts',
     supplierStorefrontBody:
-      'Supplier accounts are created ready for storefront setup, materials categories, business hours, delivery radius, and business location details after signup.'
+      'Supplier accounts are created ready for storefront setup, materials categories, business hours, delivery radius, and business location details after signup.',
+    driverProfileTitle: 'Driver-ready accounts',
+    driverProfileBody:
+      'Driver accounts are created for delivery-specific setup, including vehicle type, trailer type, trailer length, payload capacity, and delivery radius after signup.',
+    supportProfileTitle: 'Jobsite support-ready accounts',
+    supportProfileBody:
+      'Support accounts like repair are created ready for service tags, equipment tags, and support profile completion after signup.'
   },
   es: {
     formLabel: 'Acceso a Surplox',
@@ -184,7 +199,7 @@ const COPY = {
     signInIntro:
       'Vuelve a oportunidades cercanas, actividad de cuadrillas, alertas, visibilidad de perfil y conexiones locales de construcción.',
     signUpIntro:
-      'Registro rápido para trabajadores, ubicaciones proveedoras, operadores de entrega y conexiones locales de construcción. Entra a la app primero y completa lo demás después.',
+      'Registro rápido para trabajadores, ubicaciones proveedoras, conductores de entrega y conexiones locales de construcción. Entra a la app primero y completa lo demás después.',
     previewTitle: 'Configuración rápida',
     previewBody:
       'Surplox permite entrar rápido: nombre o nombre comercial, tipo de cuenta, ZIP y directo al feed.',
@@ -216,7 +231,7 @@ const COPY = {
     point2Body:
       'Publica necesidades de personal, descubre trabajadores disponibles y avanza más rápido al llenar puestos.',
     point3Title: 'Perfiles con peso',
-    point3Body: 'Muestra tu oficio, servicio o categoría de proveedor y tu zona para que la gente correcta te encuentre.',
+    point3Body: 'Muestra tu oficio, servicio, línea de conductor o categoría de proveedor y tu zona para que la gente correcta te encuentre.',
     point4Title: 'Alertas y conexiones repetidas',
     point4Body:
       'Mantente al tanto de respuestas, uniones, contrataciones y actividad local que puede convertirse en trabajo futuro.',
@@ -231,16 +246,22 @@ const COPY = {
     tradePlaceholder: 'Selecciona tu tipo de cuenta',
     generalConstruction: 'Construcción general',
     supplierOption: 'Proveedor',
+    deliveryDriverOption: 'Conductor de entrega',
     tradesGroup: 'Oficios',
-    servicesGroup: 'Servicios',
+    driversGroup: 'Conductores',
+    servicesGroup: 'Soporte de obra',
     suppliersGroup: 'Proveedores',
     tradesLoading: 'Cargando oficios…',
     tradesUnavailable:
       'Los oficios no están disponibles en este momento. Mostrando oficios predeterminados de Surplox.',
     supportAccountsHint:
       'Elige el tipo de cuenta que mejor describa cómo entras a Surplox: trabajador, proveedor, conductor de entrega o soporte de obra.',
+    driverAccountsHint:
+      'Las cuentas de conductor son su propia línea dentro de Surplox. Elige la configuración de entrega que mejor coincida con tu vehículo y capacidad de carga, y termina los detalles del perfil de conductor dentro de onboarding y Mi Cuenta.',
     supplierAccountsHint:
       'Las cuentas de proveedor son ubicaciones comerciales tipo tienda. Usa el nombre del negocio ahora y termina materiales, horarios y detalles de tienda dentro de Mi Cuenta.',
+    supportServiceHint:
+      'Las cuentas de soporte de obra cubren líneas de servicio como reparación de equipo y flota.',
     zipLabel: '¿En qué ZIP trabajas normalmente?',
     zipPlaceholder: '76102',
     tradeRequired: 'Selecciona tu tipo de cuenta.',
@@ -251,20 +272,26 @@ const COPY = {
     signUpSuccess: 'Tu cuenta está lista.',
     stageTitle1: 'Tu Nombre',
     stageTitle2: 'Tipo de Cuenta',
+    stageTitle3: 'Tu Zona y Acceso',
     stageBody1:
       'Empieza con el nombre que la gente debe ver en esta cuenta. Los trabajadores pueden usar su propio nombre y las cuentas de proveedor pueden usar el nombre del negocio o ubicación.',
     stageBody2:
       'Elige el tipo de cuenta que mejor representa cómo entras a la red.',
     stageBody3:
       'Termina con tu ZIP, correo y contraseña para que Surplox te coloque en el feed local correcto.',
-    stageTitle3: 'Tu Zona y Acceso',
     alreadyInside: '¿Ya estás en Surplox?',
     signInCardTitle: 'Bienvenido de nuevo',
     signInCardBody:
       'Inicia sesión para volver a actividad cercana, publicaciones, cuadrillas y alertas.',
     supplierStorefrontTitle: 'Cuentas listas para tienda proveedora',
     supplierStorefrontBody:
-      'Las cuentas de proveedor se crean listas para configurar tienda, categorías de materiales, horario comercial, radio de entrega y ubicación del negocio después del registro.'
+      'Las cuentas de proveedor se crean listas para configurar tienda, categorías de materiales, horario comercial, radio de entrega y ubicación del negocio después del registro.',
+    driverProfileTitle: 'Cuentas listas para conductor',
+    driverProfileBody:
+      'Las cuentas de conductor se crean para configuración específica de entrega, incluyendo tipo de vehículo, tipo de remolque, largo del remolque, capacidad de carga y radio de entrega después del registro.',
+    supportProfileTitle: 'Cuentas listas para soporte de obra',
+    supportProfileBody:
+      'Las cuentas de soporte como reparación se crean listas para etiquetas de servicio, etiquetas de equipo y finalización del perfil después del registro.'
   }
 }
 
@@ -277,8 +304,8 @@ function dedupeTradeOptions(dynamicTrades) {
   const result = []
 
   const addOption = (option) => {
-    const key = String(option.name || '').trim().toLowerCase()
-    if (!key || seen.has(key)) return
+    const key = `${String(option.section || '').trim().toLowerCase()}::${String(option.name || '').trim().toLowerCase()}`
+    if (!String(option.name || '').trim() || seen.has(key)) return
     seen.add(key)
     result.push(option)
   }
@@ -301,6 +328,7 @@ function dedupeTradeOptions(dynamicTrades) {
     })
   })
 
+  DRIVER_SIGNUP_OPTIONS.forEach((option) => addOption(option))
   JOBSITE_SUPPORT_SIGNUP_OPTIONS.forEach((option) => addOption(option))
   addOption(SUPPLIER_SIGNUP_OPTION)
 
@@ -382,14 +410,14 @@ function LanguageSlider({ lang, setLang, copy }) {
 function getOptionLabel(option, copy) {
   if (option.id === GENERAL_CONSTRUCTION_OPTION.id) return copy.generalConstruction
   if (option.id === SUPPLIER_SIGNUP_OPTION.id) return copy.supplierOption
-  if (option.id === 'support:material_delivery') return 'Delivery Driver'
-  if (option.id === 'support:cargo_van') return 'Delivery Driver'
-  if (option.id === 'support:equipment_fleet_repair') return 'Jobsite Support'
+  if (option.section === 'driver') return option.name
+  if (option.id === 'support:equipment_fleet_repair') return option.name
   return option.name
 }
 
 function getSectionLabel(section, copy) {
   if (section === 'supplier') return copy.suppliersGroup
+  if (section === 'driver') return copy.driversGroup
   if (section === 'service') return copy.servicesGroup
   return copy.tradesGroup
 }
@@ -426,6 +454,7 @@ export default function Auth({ lang = 'en', setLang }) {
   }, [tradeOptions, signUpForm.trade_id])
 
   const isSupplierSelected = selectedTradeOption?.id === SUPPLIER_SIGNUP_OPTION.id
+  const isDriverSelected = selectedTradeOption?.section === 'driver'
   const isSupportSelected = selectedTradeOption?.section === 'service'
 
   useEffect(() => {
@@ -579,12 +608,14 @@ export default function Auth({ lang = 'en', setLang }) {
 
       const chosenOption = selectedTradeOption
       const isSupplier = chosenOption.id === SUPPLIER_SIGNUP_OPTION.id
+      const isDriver = chosenOption.section === 'driver'
       const chosenRole =
         chosenOption.role ||
-        (isSupplier ? 'supplier' : chosenOption.section === 'service' ? 'driver' : 'laborer')
+        (isSupplier ? 'supplier' : isDriver ? 'driver' : chosenOption.section === 'service' ? 'mechanic' : 'laborer')
 
       const chosenCategoryGroup =
-        chosenOption.category_group || (chosenOption.section === 'service' ? 'jobsite_support' : 'trade')
+        chosenOption.category_group ||
+        (chosenOption.section === 'driver' || chosenOption.section === 'service' ? 'jobsite_support' : 'trade')
 
       const chosenTradeId =
         typeof chosenOption.trade_id !== 'undefined'
@@ -771,7 +802,9 @@ export default function Auth({ lang = 'en', setLang }) {
       return acc
     }, {})
 
-    const orderedSections = ['trade', 'service', 'supplier'].filter((section) => groupedOptions[section]?.length)
+    const orderedSections = ['trade', 'driver', 'service', 'supplier'].filter(
+      (section) => groupedOptions[section]?.length
+    )
 
     return (
       <div className="card rounded-xl" style={{ padding: 24 }}>
@@ -783,7 +816,13 @@ export default function Auth({ lang = 'en', setLang }) {
         <div className="card-soft" style={{ marginTop: 16, background: '#fffaf0' }}>
           <div style={{ fontWeight: 800 }}>{copy.supportAccountsHint}</div>
           <p className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>
-            {copy.supplierAccountsHint}
+            {isDriverSelected
+              ? copy.driverAccountsHint
+              : isSupplierSelected
+                ? copy.supplierAccountsHint
+                : isSupportSelected
+                  ? copy.supportServiceHint
+                  : copy.supportAccountsHint}
           </p>
         </div>
 
@@ -818,6 +857,7 @@ export default function Auth({ lang = 'en', setLang }) {
               <div style={{ display: 'grid', gap: 10 }}>
                 {groupedOptions[section].map((option) => {
                   const active = String(signUpForm.trade_id) === String(option.id)
+
                   return (
                     <button
                       key={option.id}
@@ -835,11 +875,29 @@ export default function Auth({ lang = 'en', setLang }) {
           ))}
         </div>
 
+        {isDriverSelected ? (
+          <div className="card-soft" style={{ marginTop: 18, background: '#eef6ff' }}>
+            <div style={{ fontWeight: 900 }}>{copy.driverProfileTitle}</div>
+            <p className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>
+              {copy.driverProfileBody}
+            </p>
+          </div>
+        ) : null}
+
         {isSupplierSelected ? (
           <div className="card-soft" style={{ marginTop: 18, background: '#fff7cf' }}>
             <div style={{ fontWeight: 900 }}>{copy.supplierStorefrontTitle}</div>
             <p className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>
               {copy.supplierStorefrontBody}
+            </p>
+          </div>
+        ) : null}
+
+        {isSupportSelected ? (
+          <div className="card-soft" style={{ marginTop: 18, background: '#f4efff' }}>
+            <div style={{ fontWeight: 900 }}>{copy.supportProfileTitle}</div>
+            <p className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>
+              {copy.supportProfileBody}
             </p>
           </div>
         ) : null}
@@ -864,7 +922,7 @@ export default function Auth({ lang = 'en', setLang }) {
               className="input"
               value={signUpForm.home_zip}
               placeholder={copy.zipPlaceholder}
-              onChange={(e) => updateSignUpField('home_zip', e.target.value)}
+              onChange={(e) => updateSignUpField('home_zip', e.target.value.replace(/[^\d]/g, '').slice(0, 5))}
             />
           </div>
 
