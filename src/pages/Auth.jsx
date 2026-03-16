@@ -33,7 +33,7 @@ const DRIVER_SIGNUP_OPTIONS = [
     category_group: 'jobsite_support',
     trade_id: null,
     service_tags: ['material_delivery', 'hot_shot'],
-    equipment_tags: [],
+    equipment_tags: ['pickup_truck'],
     default_vehicle_type: 'pickup_truck',
     bio: {
       en: 'Material delivery and hot shot support for active jobsites.',
@@ -130,19 +130,18 @@ const COPY = {
     point2Body:
       'Post labor needs, discover available workers, and move faster when it is time to fill jobs.',
     point3Title: 'Profiles that carry weight',
-    point3Body: 'Show your trade, service, driver lane, or supplier lane and area so the right people can find you.',
+    point3Body:
+      'Show your trade, supplier lane, driver lane, or service lane so the right people can find you.',
     point4Title: 'Alerts and repeat connections',
     point4Body:
       'Stay on top of replies, joins, hires, and local activity that can turn into future work.',
     footer: 'Built for laborers, subcontractors, contractors, drivers, mechanics, and suppliers.',
-    step: 'Step',
     next: 'Next',
     back: 'Back',
     finish: 'Enter Surplox',
     nameLabel: 'What should this account be called?',
     namePlaceholder: 'Juan Martinez or Fort Worth Masonry Supply',
     tradeLabel: 'What account type fits you best?',
-    tradePlaceholder: 'Select your account type',
     generalConstruction: 'General Construction',
     supplierOption: 'Supplier',
     deliveryDriverOption: 'Delivery Driver',
@@ -156,7 +155,7 @@ const COPY = {
     supportAccountsHint:
       'Choose the account type that best matches what you are joining Surplox as: worker, supplier location, delivery driver, or jobsite support.',
     driverAccountsHint:
-      'Driver accounts are their own Surplox lane. Choose the delivery setup that best matches your vehicle and hauling capability, then finish driver profile details inside onboarding and My Account.',
+      'Driver accounts are their own Surplox lane. Choose the delivery setup that matches your hauling capability, then finish your vehicle, trailer, payload, and radius details inside onboarding.',
     supplierAccountsHint:
       'Supplier accounts are storefront-style business locations. Use your business name now, then finish materials, hours, and storefront details inside My Account.',
     supportServiceHint:
@@ -231,19 +230,18 @@ const COPY = {
     point2Body:
       'Publica necesidades de personal, descubre trabajadores disponibles y avanza más rápido al llenar puestos.',
     point3Title: 'Perfiles con peso',
-    point3Body: 'Muestra tu oficio, servicio, línea de conductor o categoría de proveedor y tu zona para que la gente correcta te encuentre.',
+    point3Body:
+      'Muestra tu oficio, categoría de proveedor, línea de conductor o línea de servicio para que la gente correcta te encuentre.',
     point4Title: 'Alertas y conexiones repetidas',
     point4Body:
       'Mantente al tanto de respuestas, uniones, contrataciones y actividad local que puede convertirse en trabajo futuro.',
     footer: 'Hecho para trabajadores, subcontratistas, contratistas, conductores, mecánicos y proveedores.',
-    step: 'Paso',
     next: 'Siguiente',
     back: 'Atrás',
     finish: 'Entrar a Surplox',
     nameLabel: '¿Cómo se debe llamar esta cuenta?',
     namePlaceholder: 'Juan Martinez o Fort Worth Masonry Supply',
     tradeLabel: '¿Qué tipo de cuenta te representa mejor?',
-    tradePlaceholder: 'Selecciona tu tipo de cuenta',
     generalConstruction: 'Construcción general',
     supplierOption: 'Proveedor',
     deliveryDriverOption: 'Conductor de entrega',
@@ -257,7 +255,7 @@ const COPY = {
     supportAccountsHint:
       'Elige el tipo de cuenta que mejor describa cómo entras a Surplox: trabajador, proveedor, conductor de entrega o soporte de obra.',
     driverAccountsHint:
-      'Las cuentas de conductor son su propia línea dentro de Surplox. Elige la configuración de entrega que mejor coincida con tu vehículo y capacidad de carga, y termina los detalles del perfil de conductor dentro de onboarding y Mi Cuenta.',
+      'Las cuentas de conductor son su propia línea dentro de Surplox. Elige la configuración de entrega que mejor coincida con tu capacidad de carga y después completa vehículo, remolque, carga útil y radio en onboarding.',
     supplierAccountsHint:
       'Las cuentas de proveedor son ubicaciones comerciales tipo tienda. Usa el nombre del negocio ahora y termina materiales, horarios y detalles de tienda dentro de Mi Cuenta.',
     supportServiceHint:
@@ -410,8 +408,6 @@ function LanguageSlider({ lang, setLang, copy }) {
 function getOptionLabel(option, copy) {
   if (option.id === GENERAL_CONSTRUCTION_OPTION.id) return copy.generalConstruction
   if (option.id === SUPPLIER_SIGNUP_OPTION.id) return copy.supplierOption
-  if (option.section === 'driver') return option.name
-  if (option.id === 'support:equipment_fleet_repair') return option.name
   return option.name
 }
 
@@ -609,13 +605,22 @@ export default function Auth({ lang = 'en', setLang }) {
       const chosenOption = selectedTradeOption
       const isSupplier = chosenOption.id === SUPPLIER_SIGNUP_OPTION.id
       const isDriver = chosenOption.section === 'driver'
+
       const chosenRole =
         chosenOption.role ||
-        (isSupplier ? 'supplier' : isDriver ? 'driver' : chosenOption.section === 'service' ? 'mechanic' : 'laborer')
+        (isSupplier
+          ? 'supplier'
+          : isDriver
+            ? 'driver'
+            : chosenOption.section === 'service'
+              ? 'mechanic'
+              : 'laborer')
 
       const chosenCategoryGroup =
         chosenOption.category_group ||
-        (chosenOption.section === 'driver' || chosenOption.section === 'service' ? 'jobsite_support' : 'trade')
+        (chosenOption.section === 'driver' || chosenOption.section === 'service'
+          ? 'jobsite_support'
+          : 'trade')
 
       const chosenTradeId =
         typeof chosenOption.trade_id !== 'undefined'
