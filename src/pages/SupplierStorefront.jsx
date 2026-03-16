@@ -45,7 +45,18 @@ const COPY = {
     thursday: 'Thursday',
     friday: 'Friday',
     saturday: 'Saturday',
-    sunday: 'Sunday'
+    sunday: 'Sunday',
+    deliveryBridgeTitle: 'Supplier → Driver → Jobsite',
+    deliveryBridgeBody:
+      'Use the driver lane to find delivery support that can move material from this supplier location to the jobsite.',
+    searchDrivers: 'Search Delivery Drivers',
+    searchDriversByZip: 'Search Drivers Near This ZIP',
+    localHaulingTitle: 'Local hauling support',
+    localHaulingBody:
+      'Driver profiles now show vehicle type, trailer type, trailer length, payload capacity, and delivery radius so delivery capability is easier to verify.',
+    supplierLaneTitle: 'Supplier lane',
+    supplierLaneBody:
+      'This storefront now works as the supply-side anchor while Surplox delivery driver profiles handle transport capability.'
   },
   es: {
     loading: 'Cargando tienda proveedora…',
@@ -89,7 +100,18 @@ const COPY = {
     thursday: 'Jueves',
     friday: 'Viernes',
     saturday: 'Sábado',
-    sunday: 'Domingo'
+    sunday: 'Domingo',
+    deliveryBridgeTitle: 'Proveedor → Conductor → Obra',
+    deliveryBridgeBody:
+      'Usa la línea de conductores para encontrar soporte de entrega que pueda mover material desde esta ubicación proveedora hasta la obra.',
+    searchDrivers: 'Buscar conductores de entrega',
+    searchDriversByZip: 'Buscar conductores cerca de este ZIP',
+    localHaulingTitle: 'Soporte local de acarreo',
+    localHaulingBody:
+      'Los perfiles de conductor ahora muestran tipo de vehículo, tipo de remolque, largo del remolque, capacidad de carga y radio de entrega para validar mejor la capacidad.',
+    supplierLaneTitle: 'Línea de proveedor',
+    supplierLaneBody:
+      'Esta tienda ahora funciona como el ancla del lado de suministro mientras los perfiles de conductores de Surplox manejan la capacidad de transporte.'
   }
 }
 
@@ -320,6 +342,11 @@ export default function SupplierStorefront() {
     return getCurrentBusinessStatus(profile.business_hours)
   }, [profile])
 
+  const driverDirectoryLink = useMemo(() => {
+    if (!zipValue || zipValue === '—') return '/delivery'
+    return `/delivery?zip=${encodeURIComponent(zipValue)}`
+  }, [zipValue])
+
   if (loading) {
     return <div className="card">{copy.loading}</div>
   }
@@ -369,6 +396,9 @@ export default function SupplierStorefront() {
           </Link>
           <Link to="/feed" className="btn">
             {copy.backToFeed}
+          </Link>
+          <Link to="/delivery" className="btn primary">
+            {copy.searchDrivers}
           </Link>
         </div>
       </div>
@@ -422,15 +452,16 @@ export default function SupplierStorefront() {
           </p>
 
           <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <Link
-              to="/new?type=discussion"
-              className="btn primary"
-            >
+            <Link to="/new?type=discussion" className="btn primary">
               {copy.requestQuote}
             </Link>
 
             <Link to={`/u/${profile.user_id}`} className="btn">
               {copy.openProfile}
+            </Link>
+
+            <Link to={driverDirectoryLink} className="btn">
+              {copy.searchDriversByZip}
             </Link>
           </div>
         </div>
@@ -507,6 +538,32 @@ export default function SupplierStorefront() {
         </div>
       </div>
 
+      <div className="grid two">
+        <div className="card rounded-xl" style={{ padding: 22, background: '#eef6ff' }}>
+          <div className="card-section-title">{copy.deliveryBridgeTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {copy.deliveryBridgeBody}
+          </p>
+
+          <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <Link to="/delivery" className="btn primary">
+              {copy.searchDrivers}
+            </Link>
+
+            <Link to={driverDirectoryLink} className="btn">
+              {copy.searchDriversByZip}
+            </Link>
+          </div>
+        </div>
+
+        <div className="card rounded-xl" style={{ padding: 22, background: '#fffaf0' }}>
+          <div className="card-section-title">{copy.localHaulingTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {copy.localHaulingBody}
+          </p>
+        </div>
+      </div>
+
       <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{copy.quickTitle}</div>
 
@@ -529,6 +586,13 @@ export default function SupplierStorefront() {
             <div style={{ fontWeight: 800 }}>{copy.storefrontLabel}</div>
             <div className="muted" style={{ marginTop: 6 }}>
               {profile?.storefront ? copy.storefrontYes : copy.storefrontNo}
+            </div>
+          </div>
+
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div style={{ fontWeight: 800 }}>{copy.supplierLaneTitle}</div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              {copy.supplierLaneBody}
             </div>
           </div>
         </div>
