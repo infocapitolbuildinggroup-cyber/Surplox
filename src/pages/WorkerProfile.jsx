@@ -14,6 +14,22 @@ function roleLabel(role) {
   return map[role] || role || 'Member'
 }
 
+function formatMaterialsLabel(value) {
+  const map = {
+    equipment_rental: 'Equipment Rental',
+    safety_equipment: 'Safety Equipment',
+    lumber: 'Lumber',
+    concrete: 'Concrete',
+    steel: 'Steel',
+    electrical: 'Electrical',
+    plumbing: 'Plumbing',
+    drywall: 'Drywall',
+    fasteners: 'Fasteners',
+    tools: 'Tools'
+  }
+  return map[value] || value
+}
+
 function roleBadgeStyle(role) {
   if (role === 'contractor') return { background: '#111111', color: '#ffffff' }
   if (role === 'subcontractor') return { background: '#fff0b4', color: '#111111' }
@@ -69,11 +85,7 @@ function detectSupportType(serviceTags = [], vehicleType = '') {
     return 'equipment_fleet_repair'
   }
 
-  if (
-    serviceTags.includes('local_runs') ||
-    serviceTags.includes('last_mile_delivery') ||
-    vehicleType === 'cargo_van'
-  ) {
+  if (serviceTags.includes('local_runs') || serviceTags.includes('last_mile_delivery') || vehicleType === 'cargo_van') {
     return 'cargo_van_delivery'
   }
 
