@@ -11,11 +11,6 @@ const ROLE_OPTIONS = [
   { value: 'mechanic', label: { en: 'Mechanic', es: 'Mecánico' } }
 ]
 
-const CATEGORY_GROUP_OPTIONS = [
-  { value: 'trade', label: { en: 'Trades', es: 'Oficios' } },
-  { value: 'jobsite_support', label: { en: 'Jobsite Support', es: 'Soporte de obra' } }
-]
-
 const JOBSITE_SUPPORT_OPTIONS = [
   {
     value: 'material_delivery',
@@ -110,19 +105,18 @@ const COPY = {
     heroBadge: 'Finish setup',
     heroTitle: 'Get your profile into stronger shape.',
     heroBody:
-      'You are already in Surplox. Finish the rest of your profile to carry more weight with nearby workers, crews, and contractors.',
+      'You are already in Surplox. Finish the rest of your profile to carry more weight with nearby workers, crews, contractors, suppliers, and drivers.',
     stat1: 'Display name + trade + ZIP',
     stat2: 'Everything else can be completed now',
     stat3: 'Stronger profile = more trust',
-    categoryGroup: 'Category Group',
-    supportType: 'Jobsite Support Type',
+    supportType: 'Driver / Support Type',
     selectSupportType: 'Select a support type',
     supportIntro:
-      'Use Jobsite Support for material delivery, cargo van delivery, hot shot, fleet repair, and equipment repair profiles.',
+      'Use this setup for material delivery, cargo van delivery, hot shot, fleet repair, and equipment repair profiles.',
     supplierTradeOptional:
       'Supplier accounts can leave trade blank and use business fields, material categories, city, and contact details to explain what they supply.',
     supportTradeOptional:
-      'Jobsite support accounts do not need a trade selected here.',
+      'Driver and repair accounts do not need a trade selected here.',
     supportCrewOptional:
       'Crew size is optional for supplier, driver, and mechanic accounts.',
     supplierSectionTitle: 'Supplier Storefront Profile',
@@ -137,7 +131,7 @@ const COPY = {
     add: 'Add',
     driverSectionTitle: 'Driver Vehicle Capabilities',
     driverSectionBody:
-      'Delivery accounts should show vehicle and trailer capability so jobsites know what this driver can move.',
+      'Driver accounts should show hauling capability right away so suppliers and jobsites know what this driver can move.',
     vehicleType: 'Vehicle Type',
     trailerType: 'Trailer Type',
     trailerLength: 'Trailer Length (ft)',
@@ -147,7 +141,6 @@ const COPY = {
     driverLaneBody:
       'Driver accounts stay separate from worker, subcontractor, and contractor accounts. Finish your hauling setup here so supplier → driver → jobsite discovery works correctly.',
     lockedBySignup: 'This was selected during signup and is being kept locked here.',
-    doLater: 'Do This Later',
     goFeed: 'Go to Feed'
   },
   es: {
@@ -187,19 +180,18 @@ const COPY = {
     heroBadge: 'Terminar configuración',
     heroTitle: 'Haz que tu perfil se vea más fuerte.',
     heroBody:
-      'Ya estás dentro de Surplox. Termina el resto de tu perfil para tener más peso con trabajadores, cuadrillas y contratistas cercanos.',
+      'Ya estás dentro de Surplox. Termina el resto de tu perfil para tener más peso con trabajadores, cuadrillas, contratistas, proveedores y conductores cercanos.',
     stat1: 'Nombre visible + oficio + ZIP',
     stat2: 'Todo lo demás se puede completar ahora',
     stat3: 'Perfil más fuerte = más confianza',
-    categoryGroup: 'Grupo de categoría',
-    supportType: 'Tipo de soporte de obra',
+    supportType: 'Tipo de conductor / soporte',
     selectSupportType: 'Selecciona un tipo de soporte',
     supportIntro:
-      'Usa Soporte de obra para entrega de materiales, cargo van, hot shot, reparación de flota y reparación de equipo.',
+      'Usa esta configuración para entrega de materiales, cargo van, hot shot, reparación de flota y reparación de equipo.',
     supplierTradeOptional:
       'Las cuentas de proveedor pueden dejar el oficio en blanco y usar campos del negocio, categorías de materiales, ciudad y contacto para explicar lo que suministran.',
     supportTradeOptional:
-      'Las cuentas de soporte de obra no necesitan seleccionar un oficio aquí.',
+      'Las cuentas de conductor y reparación no necesitan seleccionar un oficio aquí.',
     supportCrewOptional:
       'El tamaño de cuadrilla es opcional para cuentas de proveedor, conductor y mecánico.',
     supplierSectionTitle: 'Perfil de tienda proveedora',
@@ -214,7 +206,7 @@ const COPY = {
     add: 'Agregar',
     driverSectionTitle: 'Capacidades del vehículo del conductor',
     driverSectionBody:
-      'Las cuentas de entrega deben mostrar vehículo y remolque para que las obras sepan qué puede mover este conductor.',
+      'Las cuentas de conductor deben mostrar su capacidad de carga desde el principio para que proveedores y obras sepan qué puede mover este conductor.',
     vehicleType: 'Tipo de vehículo',
     trailerType: 'Tipo de remolque',
     trailerLength: 'Largo del remolque (ft)',
@@ -224,7 +216,6 @@ const COPY = {
     driverLaneBody:
       'Las cuentas de conductor se mantienen separadas de las cuentas de trabajador, subcontratista y contratista. Termina aquí tu configuración de carga para que funcione bien el descubrimiento proveedor → conductor → obra.',
     lockedBySignup: 'Esto se seleccionó en el registro y aquí se mantiene bloqueado.',
-    doLater: 'Hacer esto después',
     goFeed: 'Ir al feed'
   }
 }
