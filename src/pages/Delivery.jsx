@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 
 const COPY = {
@@ -16,20 +16,28 @@ const COPY = {
     cityPlaceholder: 'Filter by city',
     vehicleLabel: 'Vehicle type',
     trailerLabel: 'Trailer type',
+    supportTypeLabel: 'Delivery lane',
+    trailerLengthLabel: 'Min trailer length (ft)',
+    payloadLabel: 'Min payload (lbs)',
+    radiusLabel: 'Min delivery radius (mi)',
     allVehicles: 'All vehicles',
     allTrailers: 'All trailers',
+    allSupportTypes: 'All delivery lanes',
+    trailerOnly: 'Only drivers with trailer',
+    clear: 'Clear filters',
     sortLabel: 'Sort by',
     sortBest: 'Best match',
     sortRadius: 'Largest delivery radius',
     sortPayload: 'Highest payload',
+    sortTrailerLength: 'Longest trailer',
     sortName: 'Driver name',
-    storefrontOnly: 'Only drivers with trailer',
-    clear: 'Clear filters',
     resultsLabel: 'results',
     loading: 'Loading drivers…',
-    error: 'Unable to load drivers.',
-    emptyTitle: 'No delivery drivers found.',
-    emptyBody: 'Try a broader search or clear one of the filters.',
+    errorSoft:
+      'Driver records could not be loaded right now, but the delivery search is ready for incoming driver profiles.',
+    emptyTitle: 'No delivery drivers found yet.',
+    emptyBody:
+      'The search and filters are live now. As drivers join Surplox, they will appear here and can be searched by vehicle, trailer, payload, radius, hot shot, or cargo van.',
     driver: 'Driver',
     zip: 'ZIP',
     city: 'City',
@@ -38,6 +46,8 @@ const COPY = {
     trailerLength: 'Trailer Length',
     payload: 'Payload',
     deliveryRadius: 'Delivery Radius',
+    supportLane: 'Support Lane',
+    supportLaneValue: 'Material Delivery',
     miles: 'mi',
     feet: 'ft',
     lbs: 'lbs',
@@ -46,8 +56,16 @@ const COPY = {
     about: 'About',
     noBio: 'No driver bio added yet.',
     openProfile: 'Open Profile',
-    supportLane: 'Support Lane',
-    supportLaneValue: 'Material Delivery'
+    noCity: 'No city listed',
+    filtersReadyTitle: 'Search is ready',
+    filtersReadyBody:
+      'Use the filters below now so the page is already set up when your first drivers join.',
+    zeroStateCard1: 'Filter by trailer type',
+    zeroStateCard2: 'Filter by trailer length',
+    zeroStateCard3: 'Filter by payload capacity',
+    zeroStateCard4: 'Filter by hot shot or cargo van',
+    zeroStateCard5: 'Filter by vehicle type',
+    zeroStateCard6: 'Filter by delivery radius'
   },
   es: {
     badge: 'Búsqueda de conductores',
@@ -62,20 +80,28 @@ const COPY = {
     cityPlaceholder: 'Filtrar por ciudad',
     vehicleLabel: 'Tipo de vehículo',
     trailerLabel: 'Tipo de remolque',
+    supportTypeLabel: 'Línea de entrega',
+    trailerLengthLabel: 'Largo mínimo del remolque (ft)',
+    payloadLabel: 'Carga mínima (lbs)',
+    radiusLabel: 'Radio mínimo de entrega (mi)',
     allVehicles: 'Todos los vehículos',
     allTrailers: 'Todos los remolques',
+    allSupportTypes: 'Todas las líneas de entrega',
+    trailerOnly: 'Solo conductores con remolque',
+    clear: 'Limpiar filtros',
     sortLabel: 'Ordenar por',
     sortBest: 'Mejor coincidencia',
     sortRadius: 'Mayor radio de entrega',
     sortPayload: 'Mayor carga',
+    sortTrailerLength: 'Remolque más largo',
     sortName: 'Nombre del conductor',
-    storefrontOnly: 'Solo conductores con remolque',
-    clear: 'Limpiar filtros',
     resultsLabel: 'resultados',
     loading: 'Cargando conductores…',
-    error: 'No se pudieron cargar los conductores.',
-    emptyTitle: 'No se encontraron conductores.',
-    emptyBody: 'Prueba una búsqueda más amplia o limpia uno de los filtros.',
+    errorSoft:
+      'No se pudieron cargar los conductores en este momento, pero la búsqueda de entrega ya quedó lista para los próximos perfiles.',
+    emptyTitle: 'Todavía no hay conductores de entrega.',
+    emptyBody:
+      'La búsqueda y los filtros ya están activos. Cuando los conductores empiecen a unirse a Surplox, aparecerán aquí y se podrán buscar por vehículo, remolque, carga, radio, hot shot o cargo van.',
     driver: 'Conductor',
     zip: 'ZIP',
     city: 'Ciudad',
@@ -84,6 +110,8 @@ const COPY = {
     trailerLength: 'Largo del remolque',
     payload: 'Capacidad de carga',
     deliveryRadius: 'Radio de entrega',
+    supportLane: 'Línea de soporte',
+    supportLaneValue: 'Entrega de materiales',
     miles: 'mi',
     feet: 'ft',
     lbs: 'lbs',
@@ -92,8 +120,16 @@ const COPY = {
     about: 'Acerca de',
     noBio: 'Este conductor todavía no agregó biografía.',
     openProfile: 'Abrir perfil',
-    supportLane: 'Línea de soporte',
-    supportLaneValue: 'Entrega de materiales'
+    noCity: 'Sin ciudad',
+    filtersReadyTitle: 'La búsqueda ya está lista',
+    filtersReadyBody:
+      'Usa los filtros desde ahora para que la página ya esté preparada cuando entren los primeros conductores.',
+    zeroStateCard1: 'Filtra por tipo de remolque',
+    zeroStateCard2: 'Filtra por largo del remolque',
+    zeroStateCard3: 'Filtra por capacidad de carga',
+    zeroStateCard4: 'Filtra por hot shot o cargo van',
+    zeroStateCard5: 'Filtra por tipo de vehículo',
+    zeroStateCard6: 'Filtra por radio de entrega'
   }
 }
 
@@ -114,6 +150,11 @@ const TRAILER_LABELS = {
   enclosed_trailer: { en: 'Enclosed Trailer', es: 'Remolque cerrado' }
 }
 
+const SUPPORT_TYPE_LABELS = {
+  material_delivery: { en: 'Material Delivery / Hot Shot', es: 'Entrega de materiales / Hot Shot' },
+  cargo_van_delivery: { en: 'Cargo Van / Local Delivery', es: 'Cargo Van / Entrega local' }
+}
+
 const SERVICE_TAG_LABELS = {
   material_delivery: { en: 'Material Delivery', es: 'Entrega de materiales' },
   hot_shot: { en: 'Hot Shot', es: 'Hot Shot' },
@@ -121,10 +162,8 @@ const SERVICE_TAG_LABELS = {
   local_runs: { en: 'Local Runs', es: 'Viajes locales' },
   same_day_delivery: { en: 'Same Day Delivery', es: 'Entrega el mismo día' },
   long_distance: { en: 'Long Distance', es: 'Larga distancia' },
-  pickup_truck: { en: 'Pickup Truck', es: 'Pickup' },
   cargo_van: { en: 'Cargo Van', es: 'Cargo van' },
-  flatbed_trailer: { en: 'Flatbed Trailer', es: 'Remolque plataforma' },
-  gooseneck_trailer: { en: 'Gooseneck Trailer', es: 'Remolque gooseneck' }
+  pickup_truck: { en: 'Pickup Truck', es: 'Pickup' }
 }
 
 function labelForMap(map, value, lang = 'en') {
@@ -147,7 +186,31 @@ function numericValue(value) {
   return Number.isFinite(num) ? num : 0
 }
 
-function scoreDriver(driver, query, vehicleFilter, trailerFilter, zipFilter, cityFilter, trailerOnly) {
+function detectSupportType(serviceTags = [], vehicleType = '') {
+  if (
+    serviceTags.includes('local_runs') ||
+    serviceTags.includes('last_mile_delivery') ||
+    vehicleType === 'cargo_van'
+  ) {
+    return 'cargo_van_delivery'
+  }
+
+  return 'material_delivery'
+}
+
+function scoreDriver(
+  driver,
+  query,
+  vehicleFilter,
+  trailerFilter,
+  zipFilter,
+  cityFilter,
+  trailerOnly,
+  supportTypeFilter,
+  minTrailerLength,
+  minPayload,
+  minRadius
+) {
   let score = 0
 
   const haystack = [
@@ -160,6 +223,7 @@ function scoreDriver(driver, query, vehicleFilter, trailerFilter, zipFilter, cit
     driver.bio,
     driver.vehicle_type,
     driver.trailer_type,
+    driver.support_type,
     ...driver.service_tags
   ]
     .join(' ')
@@ -176,6 +240,7 @@ function scoreDriver(driver, query, vehicleFilter, trailerFilter, zipFilter, cit
       if (haystack.includes(term)) score += 5
       if (String(driver.vehicle_type || '').toLowerCase().includes(term)) score += 10
       if (String(driver.trailer_type || '').toLowerCase().includes(term)) score += 9
+      if (String(driver.support_type || '').toLowerCase().includes(term)) score += 10
       if (driver.service_tags.some((item) => item.toLowerCase().includes(term))) score += 10
       if (String(driver.city || '').toLowerCase().includes(term)) score += 7
       if (String(driver.home_zip || '').toLowerCase() === term) score += 8
@@ -188,6 +253,10 @@ function scoreDriver(driver, query, vehicleFilter, trailerFilter, zipFilter, cit
   }
 
   if (trailerFilter && String(driver.trailer_type || '').toLowerCase() === trailerFilter.toLowerCase()) {
+    score += 18
+  }
+
+  if (supportTypeFilter && String(driver.support_type || '').toLowerCase() === supportTypeFilter.toLowerCase()) {
     score += 18
   }
 
@@ -205,6 +274,18 @@ function scoreDriver(driver, query, vehicleFilter, trailerFilter, zipFilter, cit
     score += 6
   }
 
+  if (minTrailerLength > 0 && numericValue(driver.trailer_length) >= minTrailerLength) {
+    score += 6
+  }
+
+  if (minPayload > 0 && numericValue(driver.payload_capacity) >= minPayload) {
+    score += 6
+  }
+
+  if (minRadius > 0 && numericValue(driver.delivery_radius) >= minRadius) {
+    score += 6
+  }
+
   score += Math.min(numericValue(driver.delivery_radius), 200) / 10
   score += Math.min(numericValue(driver.payload_capacity), 20000) / 2000
 
@@ -213,9 +294,10 @@ function scoreDriver(driver, query, vehicleFilter, trailerFilter, zipFilter, cit
 
 export default function Delivery({ lang = 'en' }) {
   const copy = COPY[lang] || COPY.en
+  const location = useLocation()
 
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [loadIssue, setLoadIssue] = useState(false)
   const [drivers, setDrivers] = useState([])
 
   const [query, setQuery] = useState('')
@@ -223,31 +305,41 @@ export default function Delivery({ lang = 'en' }) {
   const [cityFilter, setCityFilter] = useState('')
   const [vehicleFilter, setVehicleFilter] = useState('')
   const [trailerFilter, setTrailerFilter] = useState('')
+  const [supportTypeFilter, setSupportTypeFilter] = useState('')
   const [trailerOnly, setTrailerOnly] = useState(false)
+  const [minTrailerLength, setMinTrailerLength] = useState('')
+  const [minPayload, setMinPayload] = useState('')
+  const [minRadius, setMinRadius] = useState('')
   const [sortBy, setSortBy] = useState('best')
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const zip = params.get('zip') || ''
+    const q = params.get('q') || ''
+
+    if (zip) setZipFilter(zip.replace(/[^\d]/g, '').slice(0, 5))
+    if (q) setQuery(q)
+  }, [location.search])
 
   useEffect(() => {
     let active = true
 
     async function loadDrivers() {
       setLoading(true)
-      setError('')
+      setLoadIssue(false)
 
       try {
-        const { data, error: driversError } = await supabase
+        const { data, error } = await supabase
           .from('profiles')
           .select(`
             user_id,
             display_name,
             first_name,
             last_name,
-            city,
             home_zip,
-            business_zip,
             bio,
             role,
             category_group,
-            jobsite_support_type,
             service_tags,
             vehicle_type,
             trailer_type,
@@ -258,19 +350,26 @@ export default function Delivery({ lang = 'en' }) {
           .eq('role', 'driver')
           .order('display_name', { ascending: true })
 
-        if (driversError) throw driversError
+        if (error) throw error
         if (!active) return
 
         setDrivers(
-          (data || []).map((item) => ({
-            ...item,
-            service_tags: normalizeTagList(item.service_tags)
-          }))
+          (data || []).map((item) => {
+            const serviceTags = normalizeTagList(item.service_tags)
+            return {
+              ...item,
+              city: '',
+              business_zip: '',
+              service_tags: serviceTags,
+              support_type: detectSupportType(serviceTags, item.vehicle_type || '')
+            }
+          })
         )
       } catch (err) {
         console.error(err)
         if (!active) return
-        setError(copy.error)
+        setDrivers([])
+        setLoadIssue(true)
       } finally {
         if (active) setLoading(false)
       }
@@ -281,7 +380,7 @@ export default function Delivery({ lang = 'en' }) {
     return () => {
       active = false
     }
-  }, [copy.error])
+  }, [])
 
   const vehicleOptions = useMemo(() => {
     const set = new Set(Object.keys(VEHICLE_LABELS))
@@ -301,8 +400,20 @@ export default function Delivery({ lang = 'en' }) {
     return Array.from(set)
   }, [drivers])
 
+  const supportTypeOptions = useMemo(() => {
+    const set = new Set(Object.keys(SUPPORT_TYPE_LABELS))
+    drivers.forEach((driver) => {
+      const value = normalizeText(driver.support_type)
+      if (value) set.add(value)
+    })
+    return Array.from(set)
+  }, [drivers])
+
   const filteredDrivers = useMemo(() => {
     let next = [...drivers]
+    const minTrailer = numericValue(minTrailerLength)
+    const minPay = numericValue(minPayload)
+    const minDelivery = numericValue(minRadius)
 
     if (query.trim()) {
       const q = query.trim().toLowerCase()
@@ -317,6 +428,7 @@ export default function Delivery({ lang = 'en' }) {
           driver.bio,
           driver.vehicle_type,
           driver.trailer_type,
+          driver.support_type,
           ...driver.service_tags
         ]
           .join(' ')
@@ -352,14 +464,34 @@ export default function Delivery({ lang = 'en' }) {
       )
     }
 
+    if (supportTypeFilter) {
+      next = next.filter(
+        (driver) => String(driver.support_type || '').toLowerCase() === supportTypeFilter.toLowerCase()
+      )
+    }
+
     if (trailerOnly) {
       next = next.filter((driver) => !['', 'none', 'no_trailer'].includes(String(driver.trailer_type || '').trim()))
+    }
+
+    if (minTrailer > 0) {
+      next = next.filter((driver) => numericValue(driver.trailer_length) >= minTrailer)
+    }
+
+    if (minPay > 0) {
+      next = next.filter((driver) => numericValue(driver.payload_capacity) >= minPay)
+    }
+
+    if (minDelivery > 0) {
+      next = next.filter((driver) => numericValue(driver.delivery_radius) >= minDelivery)
     }
 
     if (sortBy === 'radius') {
       next.sort((a, b) => numericValue(b.delivery_radius) - numericValue(a.delivery_radius))
     } else if (sortBy === 'payload') {
       next.sort((a, b) => numericValue(b.payload_capacity) - numericValue(a.payload_capacity))
+    } else if (sortBy === 'trailer_length') {
+      next.sort((a, b) => numericValue(b.trailer_length) - numericValue(a.trailer_length))
     } else if (sortBy === 'name') {
       next.sort((a, b) =>
         String(a.display_name || `${a.first_name || ''} ${a.last_name || ''}` || '').localeCompare(
@@ -368,14 +500,51 @@ export default function Delivery({ lang = 'en' }) {
       )
     } else {
       next.sort((a, b) => {
-        const scoreA = scoreDriver(a, query, vehicleFilter, trailerFilter, zipFilter, cityFilter, trailerOnly)
-        const scoreB = scoreDriver(b, query, vehicleFilter, trailerFilter, zipFilter, cityFilter, trailerOnly)
+        const scoreA = scoreDriver(
+          a,
+          query,
+          vehicleFilter,
+          trailerFilter,
+          zipFilter,
+          cityFilter,
+          trailerOnly,
+          supportTypeFilter,
+          minTrailer,
+          minPay,
+          minDelivery
+        )
+        const scoreB = scoreDriver(
+          b,
+          query,
+          vehicleFilter,
+          trailerFilter,
+          zipFilter,
+          cityFilter,
+          trailerOnly,
+          supportTypeFilter,
+          minTrailer,
+          minPay,
+          minDelivery
+        )
         return scoreB - scoreA
       })
     }
 
     return next
-  }, [drivers, query, zipFilter, cityFilter, vehicleFilter, trailerFilter, trailerOnly, sortBy])
+  }, [
+    drivers,
+    query,
+    zipFilter,
+    cityFilter,
+    vehicleFilter,
+    trailerFilter,
+    trailerOnly,
+    supportTypeFilter,
+    minTrailerLength,
+    minPayload,
+    minRadius,
+    sortBy
+  ])
 
   function clearFilters() {
     setQuery('')
@@ -383,16 +552,16 @@ export default function Delivery({ lang = 'en' }) {
     setCityFilter('')
     setVehicleFilter('')
     setTrailerFilter('')
+    setSupportTypeFilter('')
     setTrailerOnly(false)
+    setMinTrailerLength('')
+    setMinPayload('')
+    setMinRadius('')
     setSortBy('best')
   }
 
   if (loading) {
     return <div className="card">{copy.loading}</div>
-  }
-
-  if (error) {
-    return <div className="card">{error}</div>
   }
 
   return (
@@ -413,6 +582,12 @@ export default function Delivery({ lang = 'en' }) {
         <p className="muted" style={{ marginTop: 12, maxWidth: 860, fontSize: 17, lineHeight: 1.7 }}>
           {copy.body}
         </p>
+
+        {loadIssue ? (
+          <div className="card-soft" style={{ marginTop: 16, background: '#fffaf0', minHeight: 'auto' }}>
+            {copy.errorSoft}
+          </div>
+        ) : null}
       </div>
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
@@ -477,12 +652,18 @@ export default function Delivery({ lang = 'en' }) {
 
           <div className="grid two" style={{ gap: 14 }}>
             <div>
-              <div className="muted" style={{ marginBottom: 8 }}>{copy.sortLabel}</div>
-              <select className="input" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                <option value="best">{copy.sortBest}</option>
-                <option value="radius">{copy.sortRadius}</option>
-                <option value="payload">{copy.sortPayload}</option>
-                <option value="name">{copy.sortName}</option>
+              <div className="muted" style={{ marginBottom: 8 }}>{copy.supportTypeLabel}</div>
+              <select
+                className="input"
+                value={supportTypeFilter}
+                onChange={(e) => setSupportTypeFilter(e.target.value)}
+              >
+                <option value="">{copy.allSupportTypes}</option>
+                {supportTypeOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {labelForMap(SUPPORT_TYPE_LABELS, option, lang)}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -492,16 +673,63 @@ export default function Delivery({ lang = 'en' }) {
                 className={trailerOnly ? 'btn primary' : 'btn'}
                 onClick={() => setTrailerOnly((prev) => !prev)}
               >
-                {copy.storefrontOnly}
+                {copy.trailerOnly}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid three" style={{ gap: 14 }}>
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>{copy.trailerLengthLabel}</div>
+              <input
+                className="input"
+                type="number"
+                value={minTrailerLength}
+                onChange={(e) => setMinTrailerLength(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>{copy.payloadLabel}</div>
+              <input
+                className="input"
+                type="number"
+                value={minPayload}
+                onChange={(e) => setMinPayload(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>{copy.radiusLabel}</div>
+              <input
+                className="input"
+                type="number"
+                value={minRadius}
+                onChange={(e) => setMinRadius(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid two" style={{ gap: 14 }}>
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>{copy.sortLabel}</div>
+              <select className="input" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                <option value="best">{copy.sortBest}</option>
+                <option value="radius">{copy.sortRadius}</option>
+                <option value="payload">{copy.sortPayload}</option>
+                <option value="trailer_length">{copy.sortTrailerLength}</option>
+                <option value="name">{copy.sortName}</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <button type="button" className="btn small" onClick={clearFilters}>
+                {copy.clear}
               </button>
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-            <button type="button" className="btn small" onClick={clearFilters}>
-              {copy.clear}
-            </button>
-
             <span className="badge">
               {filteredDrivers.length} {copy.resultsLabel}
             </span>
@@ -510,12 +738,30 @@ export default function Delivery({ lang = 'en' }) {
       </div>
 
       {filteredDrivers.length === 0 ? (
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.emptyTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.emptyBody}
-          </p>
-        </div>
+        <>
+          <div className="card rounded-xl" style={{ padding: 22 }}>
+            <div className="card-section-title">{copy.emptyTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {copy.emptyBody}
+            </p>
+          </div>
+
+          <div className="card rounded-xl" style={{ padding: 22 }}>
+            <div className="card-section-title">{copy.filtersReadyTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {copy.filtersReadyBody}
+            </p>
+
+            <div className="grid three" style={{ marginTop: 14 }}>
+              <div className="card-soft">{copy.zeroStateCard1}</div>
+              <div className="card-soft">{copy.zeroStateCard2}</div>
+              <div className="card-soft">{copy.zeroStateCard3}</div>
+              <div className="card-soft">{copy.zeroStateCard4}</div>
+              <div className="card-soft">{copy.zeroStateCard5}</div>
+              <div className="card-soft">{copy.zeroStateCard6}</div>
+            </div>
+          </div>
+        </>
       ) : (
         <div className="grid" style={{ gap: 16 }}>
           {filteredDrivers.map((driver) => {
@@ -548,11 +794,11 @@ export default function Delivery({ lang = 'en' }) {
                       </span>
 
                       <span className="badge">
-                        {copy.supportLane}: {copy.supportLaneValue}
+                        {copy.supportLane}: {labelForMap(SUPPORT_TYPE_LABELS, driver.support_type, lang) || copy.supportLaneValue}
                       </span>
 
                       <span className="badge">
-                        {copy.city}: {normalizeText(driver.city) || '—'}
+                        {copy.city}: {normalizeText(driver.city) || copy.noCity}
                       </span>
 
                       <span className="badge">
@@ -568,7 +814,7 @@ export default function Delivery({ lang = 'en' }) {
                   </div>
                 </div>
 
-                <div className="grid two" style={{ gap: 14, marginTop: 16 }}>
+                <div className="grid three" style={{ gap: 14, marginTop: 16 }}>
                   <div className="card-soft" style={{ background: '#eef6ff' }}>
                     <div className="card-section-title" style={{ fontSize: 15 }}>
                       {copy.vehicle}
@@ -576,11 +822,15 @@ export default function Delivery({ lang = 'en' }) {
                     <div className="muted" style={{ marginTop: 6 }}>
                       {labelForMap(VEHICLE_LABELS, driver.vehicle_type, lang) || '—'}
                     </div>
+                  </div>
 
-                    <div className="muted" style={{ marginTop: 12 }}>
-                      {copy.trailer}: {labelForMap(TRAILER_LABELS, driver.trailer_type, lang) || '—'}
+                  <div className="card-soft" style={{ background: '#eef6ff' }}>
+                    <div className="card-section-title" style={{ fontSize: 15 }}>
+                      {copy.trailer}
                     </div>
-
+                    <div className="muted" style={{ marginTop: 6 }}>
+                      {labelForMap(TRAILER_LABELS, driver.trailer_type, lang) || '—'}
+                    </div>
                     <div className="muted" style={{ marginTop: 6 }}>
                       {copy.trailerLength}:{' '}
                       {numericValue(driver.trailer_length) > 0
