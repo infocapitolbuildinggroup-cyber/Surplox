@@ -20,6 +20,7 @@ import Delivery from './pages/Delivery'
 import './styles.css'
 
 const ADMIN_EMAILS = new Set(['david@capitolbuildinggroup.com'])
+const REPAIR_ROUTE = '/feed?category=jobsite_support&support=equipment_fleet_repair'
 
 function usePreferredLanguage() {
   const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
@@ -55,6 +56,50 @@ function LanguageSlider({ lang, setLang }) {
         ES
       </button>
     </div>
+  )
+}
+
+function HamburgerIcon() {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        display: 'inline-flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        gap: 4,
+        width: 18,
+        minWidth: 18
+      }}
+    >
+      <span
+        style={{
+          display: 'block',
+          width: '100%',
+          height: 2,
+          borderRadius: 999,
+          background: 'currentColor'
+        }}
+      />
+      <span
+        style={{
+          display: 'block',
+          width: '100%',
+          height: 2,
+          borderRadius: 999,
+          background: 'currentColor'
+        }}
+      />
+      <span
+        style={{
+          display: 'block',
+          width: '100%',
+          height: 2,
+          borderRadius: 999,
+          background: 'currentColor'
+        }}
+      />
+    </span>
   )
 }
 
@@ -126,64 +171,44 @@ function AppShell({ lang, setLang }) {
     setMobileMenuOpen(false)
   }, [location.pathname, location.search])
 
-  useEffect(() => {
-    if (!mobileMenuOpen) return
-
-    let lastY = window.scrollY
-
-    function handleScroll() {
-      const currentY = window.scrollY
-      if (Math.abs(currentY - lastY) > 4) {
-        setMobileMenuOpen(false)
-      }
-      lastY = currentY
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true })
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll)
-    }
-  }, [mobileMenuOpen])
+  const isAdmin = useMemo(() => hasAdminAccess(session?.user), [session?.user])
 
   const navItems = useMemo(() => {
     if (!session) return []
 
     return [
-      { to: '/feed', label: lang === 'es' ? 'Feed' : 'Feed' },
-      { to: '/materials', label: lang === 'es' ? 'Materiales' : 'Materials' },
-      { to: '/delivery', label: lang === 'es' ? 'Conductores' : 'Delivery' },
-      { to: '/channels', label: lang === 'es' ? 'Canales' : 'Channels' },
-      { to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
-      { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
-      { to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' }
+      { key: 'feed', to: '/feed', label: lang === 'es' ? 'Feed' : 'Feed' },
+      { key: 'materials', to: '/materials', label: lang === 'es' ? 'Materiales' : 'Materials' },
+      { key: 'delivery', to: '/delivery', label: lang === 'es' ? 'Entrega' : 'Delivery' },
+      {
+        key: 'repair',
+        to: REPAIR_ROUTE,
+        label: lang === 'es' ? 'Equipo / Reparación' : 'Equipment / Repair'
+      },
+      { key: 'channels', to: '/channels', label: lang === 'es' ? 'Canales' : 'Channels' },
+      { key: 'new', to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
+      { key: 'notifications', to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
+      { key: 'account', to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' }
     ]
   }, [session, lang])
 
-  const isAdmin = useMemo(() => hasAdminAccess(session?.user), [session?.user])
-
-  const quickLinks = useMemo(() => {
-    return {
-      labor: '/feed',
-      materials: '/materials',
-      deliveryDirectory: '/delivery',
-      deliveryFeed: '/feed?category=jobsite_support&support=material_delivery',
-      repair: '/feed?category=jobsite_support&support=equipment_fleet_repair'
+  const activeKey = useMemo(() => {
+    if (location.pathname.startsWith('/materials')) return 'materials'
+    if (location.pathname.startsWith('/delivery')) return 'delivery'
+    if (
+      location.pathname.startsWith('/feed') &&
+      isSupportSearchActive(location.search, ['equipment_fleet_repair'])
+    ) {
+      return 'repair'
     }
-  }, [])
-
-  const isActive = (to) => {
-    if (to === '/') return location.pathname === '/'
-    return location.pathname.startsWith(to)
-  }
-
-  const isDeliveryFeedActive =
-    location.pathname.startsWith('/feed') &&
-    isSupportSearchActive(location.search, ['material_delivery', 'cargo_van_delivery'])
-
-  const isRepairActive =
-    location.pathname.startsWith('/feed') &&
-    isSupportSearchActive(location.search, ['equipment_fleet_repair'])
+    if (location.pathname.startsWith('/channels')) return 'channels'
+    if (location.pathname.startsWith('/new')) return 'new'
+    if (location.pathname.startsWith('/notifications')) return 'notifications'
+    if (location.pathname.startsWith('/account')) return 'account'
+    if (location.pathname.startsWith('/feed')) return 'feed'
+    if (location.pathname.startsWith('/admin')) return 'admin'
+    return ''
+  }, [location.pathname, location.search])
 
   async function handleSignOut() {
     setMobileMenuOpen(false)
@@ -233,26 +258,6 @@ function AppShell({ lang, setLang }) {
                   <div className="nav-logo-fallback">S</div>
                 )}
               </Link>
-
-              {session ? (
-                <div className="nav-session-shortcuts">
-                  <Link className="badge" to={quickLinks.labor}>
-                    {lang === 'es' ? 'Labor' : 'Labor'}
-                  </Link>
-                  <Link className="badge" to={quickLinks.materials}>
-                    {lang === 'es' ? 'Materiales' : 'Materials'}
-                  </Link>
-                  <Link className="badge" to={quickLinks.deliveryDirectory}>
-                    {lang === 'es' ? 'Conductores' : 'Drivers'}
-                  </Link>
-                  <Link className="badge" to={quickLinks.deliveryFeed}>
-                    {lang === 'es' ? 'Entrega' : 'Delivery'}
-                  </Link>
-                  <Link className="badge" to={quickLinks.repair}>
-                    {lang === 'es' ? 'Reparación' : 'Repair'}
-                  </Link>
-                </div>
-              ) : null}
             </div>
 
             <div className="nav-header-actions">
@@ -272,8 +277,9 @@ function AppShell({ lang, setLang }) {
                     onClick={() => setMobileMenuOpen((prev) => !prev)}
                     aria-expanded={mobileMenuOpen}
                     aria-label={lang === 'es' ? 'Abrir menú' : 'Open menu'}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    {lang === 'es' ? 'Menú' : 'Menu'}
+                    <HamburgerIcon />
                   </button>
                 </>
               ) : (
@@ -293,8 +299,9 @@ function AppShell({ lang, setLang }) {
                     onClick={() => setMobileMenuOpen((prev) => !prev)}
                     aria-expanded={mobileMenuOpen}
                     aria-label={lang === 'es' ? 'Abrir menú' : 'Open menu'}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    {lang === 'es' ? 'Menú' : 'Menu'}
+                    <HamburgerIcon />
                   </button>
                 </>
               )}
@@ -312,118 +319,82 @@ function AppShell({ lang, setLang }) {
               >
                 {navItems.map((item) => (
                   <Link
-                    key={item.to}
+                    key={item.key}
                     to={item.to}
-                    className={isActive(item.to) ? 'btn primary small' : 'btn small'}
+                    className={activeKey === item.key ? 'btn primary small' : 'btn small'}
                     style={{ textDecoration: 'none' }}
                   >
                     {item.label}
                   </Link>
                 ))}
 
-                {session ? (
-                  <>
-                    <Link
-                      to={quickLinks.deliveryFeed}
-                      className={isDeliveryFeedActive ? 'btn primary small' : 'btn small'}
-                      style={{ textDecoration: 'none' }}
-                    >
-                      {lang === 'es' ? 'Entrega' : 'Delivery Feed'}
-                    </Link>
-
-                    <Link
-                      to={quickLinks.repair}
-                      className={isRepairActive ? 'btn primary small' : 'btn small'}
-                      style={{ textDecoration: 'none' }}
-                    >
-                      {lang === 'es' ? 'Equipo / Reparación' : 'Equipment / Repair'}
-                    </Link>
-
-                    {isAdmin ? (
-                      <Link
-                        to="/admin"
-                        className={isActive('/admin') ? 'btn primary small' : 'btn small'}
-                        style={{ textDecoration: 'none' }}
-                      >
-                        Admin
-                      </Link>
-                    ) : null}
-                  </>
+                {session && isAdmin ? (
+                  <Link
+                    to="/admin"
+                    className={activeKey === 'admin' ? 'btn primary small' : 'btn small'}
+                    style={{ textDecoration: 'none' }}
+                  >
+                    Admin
+                  </Link>
                 ) : null}
               </nav>
             </div>
           ) : null}
 
           {mobileMenuOpen ? (
-            <div className="nav-mobile-menu">
-              <div className="card rounded-xl">
+            <div
+              className="nav-mobile-menu"
+              style={{
+                paddingBottom: 12
+              }}
+            >
+              <div
+                className="card rounded-xl"
+                style={{
+                  maxHeight: 'calc(100vh - 112px)',
+                  overflowY: 'auto',
+                  overscrollBehavior: 'contain',
+                  WebkitOverflowScrolling: 'touch'
+                }}
+              >
                 {session ? (
-                  <>
-                    <div className="nav-mobile-shortcuts">
+                  <div
+                    className="nav-mobile-menu-list"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 10
+                    }}
+                  >
+                    {navItems.map((item) => (
                       <Link
-                        to={quickLinks.labor}
-                        className={
-                          isActive('/feed') && !isDeliveryFeedActive && !isRepairActive
-                            ? 'btn primary small'
-                            : 'btn small'
-                        }
+                        key={item.key}
+                        to={item.to}
+                        className={activeKey === item.key ? 'btn primary' : 'btn'}
                       >
-                        {lang === 'es' ? 'Labor' : 'Labor'}
+                        {item.label}
                       </Link>
+                    ))}
 
-                      <Link
-                        to={quickLinks.materials}
-                        className={isActive('/materials') ? 'btn primary small' : 'btn small'}
-                      >
-                        {lang === 'es' ? 'Materiales' : 'Materials'}
+                    {isAdmin ? (
+                      <Link to="/admin" className={activeKey === 'admin' ? 'btn primary' : 'btn'}>
+                        Admin
                       </Link>
+                    ) : null}
 
-                      <Link
-                        to={quickLinks.deliveryDirectory}
-                        className={isActive('/delivery') ? 'btn primary small' : 'btn small'}
-                      >
-                        {lang === 'es' ? 'Conductores' : 'Drivers'}
-                      </Link>
-
-                      <Link
-                        to={quickLinks.deliveryFeed}
-                        className={isDeliveryFeedActive ? 'btn primary small' : 'btn small'}
-                      >
-                        {lang === 'es' ? 'Entrega' : 'Delivery'}
-                      </Link>
-
-                      <Link
-                        to={quickLinks.repair}
-                        className={isRepairActive ? 'btn primary small' : 'btn small'}
-                      >
-                        {lang === 'es' ? 'Reparación' : 'Repair'}
-                      </Link>
-                    </div>
-
-                    <div className="nav-mobile-menu-list">
-                      {navItems.map((item) => (
-                        <Link
-                          key={item.to}
-                          to={item.to}
-                          className={isActive(item.to) ? 'btn primary' : 'btn'}
-                        >
-                          {item.label}
-                        </Link>
-                      ))}
-
-                      {isAdmin ? (
-                        <Link to="/admin" className={isActive('/admin') ? 'btn primary' : 'btn'}>
-                          Admin
-                        </Link>
-                      ) : null}
-
-                      <button type="button" className="btn nav-mobile-signout" onClick={handleSignOut}>
-                        {lang === 'es' ? 'Salir' : 'Sign Out'}
-                      </button>
-                    </div>
-                  </>
+                    <button type="button" className="btn nav-mobile-signout" onClick={handleSignOut}>
+                      {lang === 'es' ? 'Salir' : 'Sign Out'}
+                    </button>
+                  </div>
                 ) : (
-                  <div className="nav-mobile-menu-list">
+                  <div
+                    className="nav-mobile-menu-list"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 10
+                    }}
+                  >
                     <Link className="btn" to="/auth?mode=signin">
                       {lang === 'es' ? 'Entrar' : 'Sign In'}
                     </Link>
