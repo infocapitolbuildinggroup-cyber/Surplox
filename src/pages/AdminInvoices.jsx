@@ -7,7 +7,7 @@ const COPY = {
     badge: 'Invoices & Estimates',
     title: 'Create rough estimates and invoices inside Surplox.',
     body:
-      'This first version is intentionally simple: build line items, total them instantly, store records in the database, connect them to CRM clients/projects, and export a printable PDF view.',
+      'This first version is intentionally simple: build line items, total them instantly, store records in the database, connect them to CRM clients/projects, track payments, and export a printable PDF view.',
     back: 'Back to Admin',
     formTitle: 'Create Estimate / Invoice',
     type: 'Document Type',
@@ -29,6 +29,7 @@ const COPY = {
     totalDocs: 'Documents',
     totalValue: 'Pipeline Value',
     paidValue: 'Paid Value',
+    unpaidValue: 'Unpaid Value',
     emptyTitle: 'No documents yet.',
     emptyBody: 'Create your first estimate or invoice to start building this contractor workflow inside Surplox.',
     edit: 'Edit',
@@ -44,14 +45,21 @@ const COPY = {
     noCrmRecords: 'No CRM client records found yet. You can still type client and project manually.',
     crmClientHint: 'Choose an existing CRM client or type a new one.',
     crmProjectHint: 'Choose an existing project from CRM or type a new project name.',
-    crmLinked: 'CRM-linked suggestion',
-    notesPlaceholder: 'Scope notes, payment terms, inclusions, exclusions, due date details, or internal summary...'
+    notesPlaceholder: 'Scope notes, payment terms, inclusions, exclusions, due date details, or internal summary...',
+    paymentTracking: 'Payment Tracking',
+    amountPaid: 'Amount Paid',
+    paymentDate: 'Payment Date',
+    markPaid: 'Mark Paid',
+    paymentSaved: 'Payment updated.',
+    paymentError: 'Unable to update payment right now.',
+    balanceDue: 'Balance Due',
+    noPaymentDate: 'No payment date'
   },
   es: {
     badge: 'Facturas y Estimados',
     title: 'Crea estimados y facturas dentro de Surplox.',
     body:
-      'Esta primera versión es intencionalmente simple: crea partidas, suma totales al instante, guarda registros en la base de datos, conéctalos a clientes/proyectos del CRM y exporta una vista imprimible en PDF.',
+      'Esta primera versión es intencionalmente simple: crea partidas, suma totales al instante, guarda registros en la base de datos, conéctalos a clientes/proyectos del CRM, da seguimiento a pagos y exporta una vista imprimible en PDF.',
     back: 'Volver al Admin',
     formTitle: 'Crear Estimado / Factura',
     type: 'Tipo de Documento',
@@ -73,6 +81,7 @@ const COPY = {
     totalDocs: 'Documentos',
     totalValue: 'Valor Total',
     paidValue: 'Valor Pagado',
+    unpaidValue: 'Valor No Pagado',
     emptyTitle: 'Todavía no hay documentos.',
     emptyBody: 'Crea tu primer estimado o factura para empezar a construir este flujo del contratista dentro de Surplox.',
     edit: 'Editar',
@@ -88,8 +97,15 @@ const COPY = {
     noCrmRecords: 'Todavía no hay registros CRM. Aún puedes escribir cliente y proyecto manualmente.',
     crmClientHint: 'Elige un cliente existente del CRM o escribe uno nuevo.',
     crmProjectHint: 'Elige un proyecto existente del CRM o escribe un proyecto nuevo.',
-    crmLinked: 'Sugerencia vinculada al CRM',
-    notesPlaceholder: 'Notas de alcance, términos de pago, inclusiones, exclusiones, vencimiento o resumen interno...'
+    notesPlaceholder: 'Notas de alcance, términos de pago, inclusiones, exclusiones, vencimiento o resumen interno...',
+    paymentTracking: 'Seguimiento de Pago',
+    amountPaid: 'Monto Pagado',
+    paymentDate: 'Fecha de Pago',
+    markPaid: 'Marcar Pagado',
+    paymentSaved: 'Pago actualizado.',
+    paymentError: 'No se pudo actualizar el pago.',
+    balanceDue: 'Saldo Pendiente',
+    noPaymentDate: 'Sin fecha de pago'
   }
 }
 
@@ -106,6 +122,8 @@ function makeEmptyDoc() {
     status: 'draft',
     notes: '',
     items: [makeLineItem()],
+    amountPaid: '',
+    paymentDate: '',
     createdAt: ''
   }
 }
@@ -113,6 +131,10 @@ function makeEmptyDoc() {
 function money(value) {
   const number = Number(value || 0)
   return `$${number.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function docTotal(doc) {
+  return (doc.items || []).reduce((sum, item) => sum + Number(item.amount || 0), 0)
 }
 
 function mapDbRowToDoc(row = {}) {
@@ -124,6 +146,8 @@ function mapDbRowToDoc(row = {}) {
     status: row.status || 'draft',
     notes: row.notes || '',
     items: Array.isArray(row.items) && row.items.length > 0 ? row.items : [makeLineItem()],
+    amountPaid: row.amount_paid ?? '',
+    paymentDate: row.payment_received_at || '',
     createdAt: row.created_at || ''
   }
 }
@@ -138,7 +162,9 @@ function escapeHtml(value) {
 }
 
 function renderPdfHtml(doc, copy) {
-  const total = (doc.items || []).reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  const total = docTotal(doc)
+  const amountPaid = Number(doc.amountPaid || 0)
+  const balanceDue = Math.max(total - amountPaid, 0)
   const title = doc.type === 'estimate' ? copy.estimate : copy.invoice
   const statusLabel = doc.status === 'draft' ? copy.draft : doc.status === 'sent' ? copy.sent : copy.paid
 
@@ -169,8 +195,8 @@ function renderPdfHtml(doc, copy) {
           .section { margin-top: 26px; }
           table { width:100%; border-collapse: collapse; margin-top: 10px; }
           th { text-align:left; padding:10px 12px; background:#f8f7ef; }
-          .total { margin-top: 18px; display:flex; justify-content:flex-end; }
-          .totalbox { min-width: 220px; padding: 16px; border-radius: 14px; background:#f8f7ef; }
+          .totals { margin-top: 18px; display:flex; justify-content:flex-end; }
+          .totalbox { min-width: 280px; padding: 16px; border-radius: 14px; background:#f8f7ef; }
           .notes { white-space: pre-wrap; line-height:1.6; padding:16px; border-radius:14px; background:#faf9f4; }
           @media print { body { margin: 16px; } }
         </style>
@@ -189,6 +215,8 @@ function renderPdfHtml(doc, copy) {
               <div style="font-weight:700;">${escapeHtml(statusLabel)}</div>
               <div style="margin-top:10px;font-size:14px;color:#666;">Created</div>
               <div>${escapeHtml(new Date(doc.createdAt || Date.now()).toLocaleString())}</div>
+              <div style="margin-top:10px;font-size:14px;color:#666;">${escapeHtml(copy.paymentDate)}</div>
+              <div>${escapeHtml(doc.paymentDate ? new Date(doc.paymentDate).toLocaleDateString() : copy.noPaymentDate)}</div>
             </div>
           </div>
 
@@ -204,10 +232,11 @@ function renderPdfHtml(doc, copy) {
             </table>
           </div>
 
-          <div class="total">
+          <div class="totals">
             <div class="totalbox">
-              <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:#666;">${escapeHtml(copy.subtotal)}</div>
-              <div style="margin-top:8px;font-size:28px;font-weight:800;">${escapeHtml(money(total))}</div>
+              <div style="display:flex;justify-content:space-between;gap:12px;"><span>${escapeHtml(copy.subtotal)}</span><strong>${escapeHtml(money(total))}</strong></div>
+              <div style="display:flex;justify-content:space-between;gap:12px;margin-top:8px;"><span>${escapeHtml(copy.amountPaid)}</span><strong>${escapeHtml(money(amountPaid))}</strong></div>
+              <div style="display:flex;justify-content:space-between;gap:12px;margin-top:8px;"><span>${escapeHtml(copy.balanceDue)}</span><strong>${escapeHtml(money(balanceDue))}</strong></div>
             </div>
           </div>
 
@@ -245,7 +274,7 @@ export default function AdminInvoices({ lang = 'en' }) {
         const [invoiceRes, crmRes] = await Promise.all([
           supabase
             .from('admin_invoices')
-            .select('id, type, client, project, status, notes, items, created_at')
+            .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, created_at')
             .order('created_at', { ascending: false }),
           supabase
             .from('admin_crm_records')
@@ -307,18 +336,14 @@ export default function AdminInvoices({ lang = 'en' }) {
   )
 
   const stats = useMemo(() => {
-    const totalValue = documents.reduce(
-      (sum, doc) => sum + (doc.items || []).reduce((inner, item) => inner + Number(item.amount || 0), 0),
-      0
-    )
-    const paidValue = documents
-      .filter((doc) => doc.status === 'paid')
-      .reduce(
-        (sum, doc) => sum + (doc.items || []).reduce((inner, item) => inner + Number(item.amount || 0), 0),
-        0
-      )
+    const totalValue = documents.reduce((sum, doc) => sum + docTotal(doc), 0)
+    const paidValue = documents.reduce((sum, doc) => sum + Number(doc.amountPaid || 0), 0)
+    const unpaidValue = documents.reduce((sum, doc) => {
+      const balance = Math.max(docTotal(doc) - Number(doc.amountPaid || 0), 0)
+      return sum + balance
+    }, 0)
 
-    return { totalDocs: documents.length, totalValue, paidValue }
+    return { totalDocs: documents.length, totalValue, paidValue, unpaidValue }
   }, [documents])
 
   function setField(key, value) {
@@ -394,13 +419,18 @@ export default function AdminInvoices({ lang = 'en' }) {
       }))
       .filter((item) => item.label || item.amount)
 
+    const total = cleanedItems.reduce((sum, item) => sum + Number(item.amount || 0), 0)
+    const amountPaid = Math.min(Number(form.amountPaid || 0), total)
+
     const payload = {
       type: String(form.type || 'estimate'),
       client: String(form.client || '').trim(),
       project: String(form.project || '').trim() || null,
       status: String(form.status || 'draft'),
       notes: String(form.notes || '').trim() || null,
-      items: cleanedItems.length > 0 ? cleanedItems : [makeLineItem()]
+      items: cleanedItems.length > 0 ? cleanedItems : [makeLineItem()],
+      amount_paid: amountPaid || 0,
+      payment_received_at: form.paymentDate || null
     }
 
     try {
@@ -409,7 +439,7 @@ export default function AdminInvoices({ lang = 'en' }) {
           .from('admin_invoices')
           .update(payload)
           .eq('id', form.id)
-          .select('id, type, client, project, status, notes, items, created_at')
+          .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, created_at')
           .single()
 
         if (error) throw error
@@ -420,7 +450,7 @@ export default function AdminInvoices({ lang = 'en' }) {
         const { data, error } = await supabase
           .from('admin_invoices')
           .insert(payload)
-          .select('id, type, client, project, status, notes, items, created_at')
+          .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, created_at')
           .single()
 
         if (error) throw error
@@ -460,6 +490,34 @@ export default function AdminInvoices({ lang = 'en' }) {
     } catch (error) {
       console.error(error)
       setMessage(copy.deleteError)
+    }
+  }
+
+  async function handleMarkPaid(doc) {
+    try {
+      setMessage('')
+      const total = docTotal(doc)
+      const payload = {
+        status: 'paid',
+        amount_paid: total,
+        payment_received_at: new Date().toISOString().slice(0, 10)
+      }
+
+      const { data, error } = await supabase
+        .from('admin_invoices')
+        .update(payload)
+        .eq('id', doc.id)
+        .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, created_at')
+        .single()
+
+      if (error) throw error
+
+      const mapped = mapDbRowToDoc(data)
+      setDocuments((prev) => prev.map((item) => (item.id === mapped.id ? mapped : item)))
+      setMessage(copy.paymentSaved)
+    } catch (error) {
+      console.error(error)
+      setMessage(copy.paymentError)
     }
   }
 
@@ -550,6 +608,27 @@ export default function AdminInvoices({ lang = 'en' }) {
 
             <button type="button" className="btn" onClick={addItem}>{copy.addItem}</button>
             <textarea className="input" value={form.notes} onChange={(e) => setField('notes', e.target.value)} placeholder={copy.notesPlaceholder} />
+
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="card-section-title" style={{ fontSize: 15 }}>{copy.paymentTracking}</div>
+              <div className="grid two" style={{ marginTop: 12 }}>
+                <input
+                  className="input"
+                  type="number"
+                  step="0.01"
+                  value={form.amountPaid}
+                  onChange={(e) => setField('amountPaid', e.target.value)}
+                  placeholder={copy.amountPaid}
+                />
+                <input
+                  className="input"
+                  type="date"
+                  value={form.paymentDate}
+                  onChange={(e) => setField('paymentDate', e.target.value)}
+                />
+              </div>
+            </div>
+
             <div className="card-soft" style={{ background: '#ffffff' }}>
               <div className="muted">{copy.subtotal}</div>
               <div style={{ fontSize: 28, fontWeight: 900, marginTop: 8 }}>{money(subtotal)}</div>
@@ -563,6 +642,7 @@ export default function AdminInvoices({ lang = 'en' }) {
             <div className="card-soft"><div className="muted">{copy.totalDocs}</div><div style={{ fontSize: 28, fontWeight: 900, marginTop: 8 }}>{stats.totalDocs}</div></div>
             <div className="card-soft"><div className="muted">{copy.totalValue}</div><div style={{ fontSize: 28, fontWeight: 900, marginTop: 8 }}>{money(stats.totalValue)}</div></div>
             <div className="card-soft"><div className="muted">{copy.paidValue}</div><div style={{ fontSize: 28, fontWeight: 900, marginTop: 8 }}>{money(stats.paidValue)}</div></div>
+            <div className="card-soft"><div className="muted">{copy.unpaidValue}</div><div style={{ fontSize: 28, fontWeight: 900, marginTop: 8 }}>{money(stats.unpaidValue)}</div></div>
           </div>
 
           <div className="card rounded-xl" style={{ padding: 22 }}>
@@ -577,7 +657,10 @@ export default function AdminInvoices({ lang = 'en' }) {
                   .slice()
                   .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
                   .map((doc) => {
-                    const total = (doc.items || []).reduce((sum, item) => sum + Number(item.amount || 0), 0)
+                    const total = docTotal(doc)
+                    const amountPaid = Number(doc.amountPaid || 0)
+                    const balanceDue = Math.max(total - amountPaid, 0)
+
                     return (
                       <div key={doc.id} className="card-soft" style={{ background: '#ffffff' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -588,11 +671,19 @@ export default function AdminInvoices({ lang = 'en' }) {
                           </div>
                         </div>
                         {doc.project ? <div className="muted" style={{ marginTop: 8 }}>{doc.project}</div> : null}
-                        <div style={{ marginTop: 12, fontWeight: 900 }}>{money(total)}</div>
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+                          <span className="badge">{copy.subtotal}: {money(total)}</span>
+                          <span className="badge">{copy.amountPaid}: {money(amountPaid)}</span>
+                          <span className="badge">{copy.balanceDue}: {money(balanceDue)}</span>
+                          <span className="badge">{copy.paymentDate}: {doc.paymentDate ? new Date(doc.paymentDate).toLocaleDateString() : copy.noPaymentDate}</span>
+                        </div>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
                           <button type="button" className="btn small" onClick={() => handleEdit(doc)}>{copy.edit}</button>
                           <button type="button" className="btn small" onClick={() => handleDelete(doc.id)}>{copy.delete}</button>
                           <button type="button" className="btn small primary" onClick={() => generatePdf(doc)}>{copy.pdf}</button>
+                          {doc.status !== 'paid' ? (
+                            <button type="button" className="btn small" onClick={() => handleMarkPaid(doc)}>{copy.markPaid}</button>
+                          ) : null}
                         </div>
                       </div>
                     )

@@ -25,16 +25,22 @@ function normalizeProject(record) {
   }
 }
 
+function materialTotal(row) {
+  return Number(row.quantity || 0) * Number(row.unit_cost || 0)
+}
+
 export default function AdminProjectDetail() {
   const { id } = useParams()
   const [project, setProject] = useState(null)
   const [invoices, setInvoices] = useState([])
   const [timeEntries, setTimeEntries] = useState([])
+  const [materials, setMaterials] = useState([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [savingInvoice, setSavingInvoice] = useState(false)
   const [clockingIn, setClockingIn] = useState(false)
   const [savingProjectMeta, setSavingProjectMeta] = useState(false)
+  const [savingMaterial, setSavingMaterial] = useState(false)
 
   const [invoiceForm, setInvoiceForm] = useState({
     type: 'invoice',
@@ -52,6 +58,14 @@ export default function AdminProjectDetail() {
     project_status: 'active',
     project_phase: '',
     project_next_action: ''
+  })
+
+  const [materialForm, setMaterialForm] = useState({
+    item_name: '',
+    supplier_name: '',
+    quantity: '',
+    unit_cost: '',
+    notes: ''
   })
 
   useEffect(() => {
@@ -73,6 +87,7 @@ export default function AdminProjectDetail() {
             setProject(null)
             setInvoices([])
             setTimeEntries([])
+            setMaterials([])
             setLoading(false)
           }
           return
@@ -80,13 +95,15 @@ export default function AdminProjectDetail() {
 
         const normalizedProject = normalizeProject(crm)
 
-        const [invRes, timeRes] = await Promise.all([
+        const [invRes, timeRes, materialsRes] = await Promise.all([
           supabase.from('admin_invoices').select('*'),
-          supabase.from('admin_time_entries').select('*')
+          supabase.from('admin_time_entries').select('*'),
+          supabase.from('admin_project_materials').select('*').eq('project_record_id', id).order('created_at', { ascending: false })
         ])
 
         if (invRes.error) throw invRes.error
         if (timeRes.error) throw timeRes.error
+        if (materialsRes.error) throw materialsRes.error
         if (!active) return
 
         const projectInvoices = (invRes.data || []).filter(
@@ -105,6 +122,7 @@ export default function AdminProjectDetail() {
         })
         setInvoices(projectInvoices)
         setTimeEntries(projectTime)
+        setMaterials(materialsRes.data || [])
       } catch (error) {
         console.error(error)
         if (!active) return
@@ -127,6 +145,10 @@ export default function AdminProjectDetail() {
     }, 0)
   }, [invoices])
 
+  const totalPaid = useMemo(() => {
+    return invoices.reduce((sum, doc) => sum + Number(doc.amount_paid || 0), 0)
+  }, [invoices])
+
   const totalHours = useMemo(() => {
     return timeEntries.reduce((sum, entry) => {
       if (!entry.clock_out_at) return sum
@@ -136,7 +158,8 @@ export default function AdminProjectDetail() {
   }, [timeEntries])
 
   const laborCost = useMemo(() => totalHours * 35, [totalHours])
-  const profitability = useMemo(() => totalValue - laborCost, [totalValue, laborCost])
+  const materialCost = useMemo(() => materials.reduce((sum, row) => sum + materialTotal(row), 0), [materials])
+  const profitability = useMemo(() => totalValue - laborCost - materialCost, [totalValue, laborCost, materialCost])
 
   function updateInvoiceItem(id, key, value) {
     setInvoiceForm((prev) => ({
@@ -186,7 +209,9 @@ export default function AdminProjectDetail() {
         project: project.project || '',
         status: invoiceForm.status,
         notes: String(invoiceForm.notes || '').trim() || null,
-        items: cleanedItems
+        items: cleanedItems,
+        amount_paid: 0,
+        payment_received_at: null
       }
 
       const { data, error } = await supabase
@@ -291,6 +316,54 @@ export default function AdminProjectDetail() {
     }
   }
 
+  async function handleAddMaterial(event) {
+    event.preventDefault()
+    if (!project) return
+    if (!String(materialForm.item_name || '').trim()) {
+      setMessage('Material item name is required.')
+      return
+    }
+
+    setSavingMaterial(true)
+    setMessage('')
+
+    try {
+      const payload = {
+        project_record_id: project.id,
+        project_name: project.project || '',
+        client_name: project.company || '',
+        item_name: String(materialForm.item_name || '').trim(),
+        supplier_name: String(materialForm.supplier_name || '').trim() || null,
+        quantity: Number(materialForm.quantity || 0),
+        unit_cost: Number(materialForm.unit_cost || 0),
+        notes: String(materialForm.notes || '').trim() || null
+      }
+
+      const { data, error } = await supabase
+        .from('admin_project_materials')
+        .insert(payload)
+        .select('*')
+        .single()
+
+      if (error) throw error
+
+      setMaterials((prev) => [data, ...prev])
+      setMaterialForm({
+        item_name: '',
+        supplier_name: '',
+        quantity: '',
+        unit_cost: '',
+        notes: ''
+      })
+      setMessage('Material cost added to this project.')
+    } catch (error) {
+      console.error(error)
+      setMessage('Unable to add material right now.')
+    } finally {
+      setSavingMaterial(false)
+    }
+  }
+
   if (loading) return <div className="card">Loading project...</div>
   if (!project) return <div className="card">Project not found.</div>
 
@@ -313,6 +386,7 @@ export default function AdminProjectDetail() {
           <span className="badge">Invoices: {invoices.length}</span>
           <span className="badge">Time Entries: {timeEntries.length}</span>
           <span className="badge">Revenue: {money(totalValue)}</span>
+          <span className="badge">Paid In: {money(totalPaid)}</span>
           <span className="badge">Hours: {totalHours.toFixed(1)}</span>
         </div>
 
@@ -445,11 +519,79 @@ export default function AdminProjectDetail() {
 
       <div className="grid two">
         <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">Materials / Cost Tracking</div>
+          <form onSubmit={handleAddMaterial} className="grid" style={{ gap: 12, marginTop: 14 }}>
+            <input
+              className="input"
+              value={materialForm.item_name}
+              onChange={(e) => setMaterialForm((prev) => ({ ...prev, item_name: e.target.value }))}
+              placeholder="Material / Cost Item"
+            />
+            <input
+              className="input"
+              value={materialForm.supplier_name}
+              onChange={(e) => setMaterialForm((prev) => ({ ...prev, supplier_name: e.target.value }))}
+              placeholder="Supplier"
+            />
+            <div className="grid two">
+              <input
+                className="input"
+                type="number"
+                step="0.01"
+                value={materialForm.quantity}
+                onChange={(e) => setMaterialForm((prev) => ({ ...prev, quantity: e.target.value }))}
+                placeholder="Quantity"
+              />
+              <input
+                className="input"
+                type="number"
+                step="0.01"
+                value={materialForm.unit_cost}
+                onChange={(e) => setMaterialForm((prev) => ({ ...prev, unit_cost: e.target.value }))}
+                placeholder="Unit Cost"
+              />
+            </div>
+            <textarea
+              className="input"
+              value={materialForm.notes}
+              onChange={(e) => setMaterialForm((prev) => ({ ...prev, notes: e.target.value }))}
+              placeholder="Notes"
+            />
+            <button className="btn primary" type="submit" disabled={savingMaterial}>
+              {savingMaterial ? 'Saving…' : 'Add Material Cost'}
+            </button>
+          </form>
+
+          {materials.length === 0 ? (
+            <div className="card-soft" style={{ marginTop: 14 }}>No materials or costs logged yet.</div>
+          ) : (
+            <div className="list" style={{ marginTop: 14 }}>
+              {materials.map((row) => (
+                <div key={row.id} className="card-soft" style={{ background: '#ffffff' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 900 }}>{row.item_name}</div>
+                    <span className="badge">{money(materialTotal(row))}</span>
+                  </div>
+                  <div className="muted" style={{ marginTop: 8 }}>
+                    {row.supplier_name || 'No supplier'} · Qty {Number(row.quantity || 0)} @ {money(row.unit_cost || 0)}
+                  </div>
+                  {row.notes ? <div style={{ marginTop: 8, lineHeight: 1.7 }}>{row.notes}</div> : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">Project Profitability Summary</div>
           <div className="list" style={{ marginTop: 14 }}>
             <div className="card-soft" style={{ background: '#ffffff' }}>
               <div className="muted">Revenue</div>
               <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{money(totalValue)}</div>
+            </div>
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">Payments Received</div>
+              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{money(totalPaid)}</div>
             </div>
             <div className="card-soft" style={{ background: '#ffffff' }}>
               <div className="muted">Labor Hours</div>
@@ -458,6 +600,10 @@ export default function AdminProjectDetail() {
             <div className="card-soft" style={{ background: '#ffffff' }}>
               <div className="muted">Estimated Labor Cost @ $35/hr</div>
               <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{money(laborCost)}</div>
+            </div>
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">Material Cost</div>
+              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{money(materialCost)}</div>
             </div>
             <div className="card-soft" style={{ background: '#ffffff' }}>
               <div className="muted">Estimated Gross Margin</div>
@@ -471,7 +617,9 @@ export default function AdminProjectDetail() {
             ) : null}
           </div>
         </div>
+      </div>
 
+      <div className="grid two">
         <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">Invoices</div>
           {invoices.length === 0 ? (
@@ -480,6 +628,7 @@ export default function AdminProjectDetail() {
             <div className="list" style={{ marginTop: 14 }}>
               {invoices.map((invoice) => {
                 const total = (invoice.items || []).reduce((sum, item) => sum + Number(item.amount || 0), 0)
+                const paid = Number(invoice.amount_paid || 0)
                 return (
                   <div key={invoice.id} className="card-soft" style={{ background: '#ffffff' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -487,35 +636,39 @@ export default function AdminProjectDetail() {
                       <span className="badge">{invoice.status || 'draft'}</span>
                     </div>
                     <div className="muted" style={{ marginTop: 8 }}>{invoice.client}</div>
-                    <div style={{ marginTop: 10, fontWeight: 900 }}>{money(total)}</div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                      <span className="badge">Total: {money(total)}</span>
+                      <span className="badge">Paid: {money(paid)}</span>
+                      <span className="badge">Balance: {money(Math.max(total - paid, 0))}</span>
+                    </div>
                   </div>
                 )
               })}
             </div>
           )}
         </div>
-      </div>
 
-      <div className="card rounded-xl" style={{ padding: 22 }}>
-        <div className="card-section-title">Time Entries</div>
-        {timeEntries.length === 0 ? (
-          <div className="card-soft" style={{ marginTop: 14 }}>No time entries tied to this project yet.</div>
-        ) : (
-          <div className="list" style={{ marginTop: 14 }}>
-            {timeEntries.map((entry) => (
-              <div key={entry.id} className="card-soft" style={{ background: '#ffffff' }}>
-                <div style={{ fontWeight: 900 }}>{entry.worker}</div>
-                <div className="muted" style={{ marginTop: 8 }}>
-                  {entry.role ? `${entry.role} · ` : ''}{entry.jobsite}
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">Time Entries</div>
+          {timeEntries.length === 0 ? (
+            <div className="card-soft" style={{ marginTop: 14 }}>No time entries tied to this project yet.</div>
+          ) : (
+            <div className="list" style={{ marginTop: 14 }}>
+              {timeEntries.map((entry) => (
+                <div key={entry.id} className="card-soft" style={{ background: '#ffffff' }}>
+                  <div style={{ fontWeight: 900 }}>{entry.worker}</div>
+                  <div className="muted" style={{ marginTop: 8 }}>
+                    {entry.role ? `${entry.role} · ` : ''}{entry.jobsite}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                    <span className="badge">In: {new Date(entry.clock_in_at).toLocaleString()}</span>
+                    <span className="badge">Out: {entry.clock_out_at ? new Date(entry.clock_out_at).toLocaleString() : '—'}</span>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                  <span className="badge">In: {new Date(entry.clock_in_at).toLocaleString()}</span>
-                  <span className="badge">Out: {entry.clock_out_at ? new Date(entry.clock_out_at).toLocaleString() : '—'}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {project.notes ? (
