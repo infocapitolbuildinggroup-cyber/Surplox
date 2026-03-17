@@ -16,9 +16,21 @@ const CATEGORY_GROUP_OPTIONS = [
 ]
 
 const JOBSITE_SUPPORT_OPTIONS = [
-  { value: 'material_delivery', en: 'Material Delivery / Hot Shot', es: 'Entrega de materiales / Hot Shot' },
-  { value: 'cargo_van_delivery', en: 'Cargo Van / Local Delivery', es: 'Cargo Van / Entrega local' },
-  { value: 'equipment_fleet_repair', en: 'Mechanic / Equipment Repair', es: 'Mecánica / Reparación de equipo' }
+  {
+    value: 'material_delivery',
+    en: 'Material Delivery / Hot Shot',
+    es: 'Entrega de materiales / Hot Shot'
+  },
+  {
+    value: 'cargo_van_delivery',
+    en: 'Cargo Van / Local Delivery',
+    es: 'Cargo Van / Entrega local'
+  },
+  {
+    value: 'equipment_fleet_repair',
+    en: 'Equipment / Fleet Repair',
+    es: 'Reparación de equipo / flota'
+  }
 ]
 
 const MATERIAL_DELIVERY_SERVICE_TAGS = [
@@ -39,14 +51,8 @@ const MATERIAL_DELIVERY_EQUIPMENT_TAGS = [
 
 const FLEET_REPAIR_SERVICE_TAGS = [
   { value: 'diesel_mechanic', en: 'Diesel Mechanic', es: 'Mecánico diésel' },
-  { value: 'small_engine_repair', en: 'Small Engine Repair', es: 'Reparación de motores pequeños' },
-  { value: 'skid_steer_repair', en: 'Skid Steer Repair', es: 'Reparación de skid steer' },
-  { value: 'tractor_repair', en: 'Tractor Repair', es: 'Reparación de tractor' },
-  { value: 'mini_ex_repair', en: 'Mini Excavator Repair', es: 'Reparación de mini excavadora' },
   { value: 'heavy_equipment_repair', en: 'Heavy Equipment Repair', es: 'Reparación de equipo pesado' },
-  { value: 'hydraulic_repair', en: 'Hydraulic Repair', es: 'Reparación hidráulica' },
   { value: 'trailer_repair', en: 'Trailer Repair', es: 'Reparación de remolques' },
-  { value: 'field_service', en: 'Mobile Field Service', es: 'Servicio móvil en campo' },
   { value: 'emergency_repair', en: 'Emergency Repair', es: 'Reparación de emergencia' },
   { value: 'jobsite_service', en: 'Jobsite Service', es: 'Servicio en obra' }
 ]
@@ -54,12 +60,7 @@ const FLEET_REPAIR_SERVICE_TAGS = [
 const FLEET_REPAIR_EQUIPMENT_TAGS = [
   { value: 'mobile_repair_truck', en: 'Mobile Repair Truck', es: 'Camión de reparación móvil' },
   { value: 'diesel_diagnostics', en: 'Diesel Diagnostics', es: 'Diagnóstico diésel' },
-  { value: 'hydraulic_tools', en: 'Hydraulic Tools', es: 'Herramientas hidráulicas' },
-  { value: 'welder_generator', en: 'Welder / Generator', es: 'Soldadora / Generador' },
-  { value: 'trailer_brake_tools', en: 'Trailer Brake Tools', es: 'Herramientas de frenos de remolque' },
-  { value: 'battery_jump_setup', en: 'Battery / Jump Setup', es: 'Batería / Arranque auxiliar' },
-  { value: 'service_truck', en: 'Service Truck', es: 'Camión de servicio' },
-  { value: 'on_site_tools', en: 'On-Site Tools', es: 'Herramientas en sitio' }
+  { value: 'trailer_brake_tools', en: 'Trailer Brake Tools', es: 'Herramientas de frenos de remolque' }
 ]
 
 function postTypeLabel(type, lang) {
@@ -261,16 +262,28 @@ export default function NewPost({ lang: langProp = 'en' }) {
       const user = sessionData.session?.user
 
       if (user) {
-        const { data: prof } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle()
-        const { data: cp } = await supabase.from('contact_private').select('*').eq('user_id', user.id).maybeSingle()
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle()
 
-        const userLang = prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
+        const { data: cp } = await supabase
+          .from('contact_private')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        const userLang =
+          prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
+
         setLang(userLang)
         localStorage.setItem('surplox_lang', userLang)
 
         const role = String(prof?.role || '')
         const profileCategoryGroup = prof?.category_group || preselectedCategory || 'trade'
-        const profileSupportType = profileCategoryGroup === 'jobsite_support' ? preselectedSupport : 'material_delivery'
+        const profileSupportType =
+          profileCategoryGroup === 'jobsite_support' ? preselectedSupport : 'material_delivery'
 
         setForm((prev) => ({
           ...prev,
@@ -292,21 +305,34 @@ export default function NewPost({ lang: langProp = 'en' }) {
         }))
 
         const prompts = []
+
         if (!String(prof?.first_name || '').trim() || !String(prof?.last_name || '').trim()) {
           prompts.push(userLang === 'es' ? 'Agrega nombre y apellido' : 'Add first and last name')
         }
+
         if (!String(prof?.role || '').trim()) {
           prompts.push(userLang === 'es' ? 'Agrega rol principal' : 'Add primary role')
         }
-        if (!['supplier', 'driver', 'mechanic'].includes(role) && (!Number(prof?.crew_size || 0) || Number(prof?.crew_size || 0) <= 1)) {
+
+        if (
+          !['supplier', 'driver', 'mechanic'].includes(role) &&
+          (!Number(prof?.crew_size || 0) || Number(prof?.crew_size || 0) <= 1)
+        ) {
           prompts.push(userLang === 'es' ? 'Agrega tamaño de cuadrilla' : 'Add crew size')
         }
+
         if (!String(prof?.bio || '').trim()) {
-          prompts.push(userLang === 'es' ? 'Agrega experiencia y certificaciones en tu biografía' : 'Add experience and certifications in your bio')
+          prompts.push(
+            userLang === 'es'
+              ? 'Agrega experiencia y certificaciones en tu biografía'
+              : 'Add experience and certifications in your bio'
+          )
         }
+
         if (!String(cp?.phone || '').trim()) {
           prompts.push(userLang === 'es' ? 'Agrega número de teléfono' : 'Add phone number')
         }
+
         if (!String(cp?.city || '').trim()) {
           prompts.push(userLang === 'es' ? 'Agrega ciudad' : 'Add city')
         }
@@ -325,7 +351,10 @@ export default function NewPost({ lang: langProp = 'en' }) {
                 role === 'supplier' &&
                 String(prof.business_name || '').trim() &&
                 String(prof.business_zip || prof.home_zip || '').trim() &&
-                ((Array.isArray(prof?.materials_categories) && prof.materials_categories.length > 0) || String(prof.bio || '').trim())
+                (
+                  (Array.isArray(prof?.materials_categories) && prof.materials_categories.length > 0) ||
+                  String(prof.bio || '').trim()
+                )
               )
             )
         )
@@ -334,7 +363,10 @@ export default function NewPost({ lang: langProp = 'en' }) {
       } else {
         const localLang = langProp || localStorage.getItem('surplox_lang') || 'en'
         setLang(localLang)
-        setForm((prev) => ({ ...prev, source_language: prev.source_language || localLang }))
+        setForm((prev) => ({
+          ...prev,
+          source_language: prev.source_language || localLang
+        }))
       }
 
       const { data, error } = await supabase.from('trades').select('id,name').order('name')
@@ -347,10 +379,16 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
   useEffect(() => {
     if (!prefilledTradeName || !Array.isArray(trades) || trades.length === 0) return
+
     const match = trades.find((trade) => String(trade?.name || '').trim().toLowerCase() === prefilledTradeName)
     if (!match?.id) return
-    setForm((prev) => ({ ...prev, trade_id: prev.trade_id || String(match.id) }))
+
+    setForm((prev) => ({
+      ...prev,
+      trade_id: prev.trade_id || String(match.id)
+    }))
   }, [trades, prefilledTradeName])
+
 
   useEffect(() => {
     if (!profileReadyForPosting) {
@@ -364,7 +402,14 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
     if (form.post_type === 'need_crew') {
       const needs = profilePromptItems.filter((item) =>
-        ['Add crew size', 'Add phone number', 'Add city', 'Agrega tamaño de cuadrilla', 'Agrega número de teléfono', 'Agrega ciudad'].includes(item)
+        [
+          'Add crew size',
+          'Add phone number',
+          'Add city',
+          'Agrega tamaño de cuadrilla',
+          'Agrega número de teléfono',
+          'Agrega ciudad'
+        ].includes(item)
       )
 
       setProfileGateMessage(
@@ -379,7 +424,12 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
     if (form.post_type === 'looking_for_work') {
       const needs = profilePromptItems.filter((item) =>
-        ['Add phone number', 'Add experience and certifications in your bio', 'Agrega número de teléfono', 'Agrega experiencia y certificaciones en tu biografía'].includes(item)
+        [
+          'Add phone number',
+          'Add experience and certifications in your bio',
+          'Agrega número de teléfono',
+          'Agrega experiencia y certificaciones en tu biografía'
+        ].includes(item)
       )
 
       setProfileGateMessage(
@@ -406,7 +456,10 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
   useEffect(() => {
     if (form.poster_role === 'supplier' && form.category_group !== 'trade') {
-      setForm((prev) => ({ ...prev, category_group: 'trade' }))
+      setForm((prev) => ({
+        ...prev,
+        category_group: 'trade'
+      }))
     }
   }, [form.poster_role, form.category_group])
 
@@ -418,16 +471,20 @@ export default function NewPost({ lang: langProp = 'en' }) {
         service_tags:
           prev.service_tags.length > 0
             ? prev.service_tags
-            : getServiceAndEquipmentOptions(prev.jobsite_support_type).serviceOptions.slice(0, 1).map((x) => x.value)
+            : getServiceAndEquipmentOptions(prev.jobsite_support_type).serviceOptions
+                .slice(0, 1)
+                .map((x) => x.value)
       }))
     }
   }, [form.category_group])
 
   useEffect(() => {
     if (form.category_group !== 'jobsite_support') return
+
     const { serviceOptions, equipmentOptions } = getServiceAndEquipmentOptions(form.jobsite_support_type)
     const validServiceSet = new Set(serviceOptions.map((x) => x.value))
     const validEquipmentSet = new Set(equipmentOptions.map((x) => x.value))
+
     setForm((prev) => ({
       ...prev,
       service_tags: prev.service_tags.filter((tag) => validServiceSet.has(tag)),
@@ -443,7 +500,10 @@ export default function NewPost({ lang: langProp = 'en' }) {
     setForm((prev) => {
       const current = Array.isArray(prev[field]) ? prev[field] : []
       const exists = current.includes(value)
-      return { ...prev, [field]: exists ? current.filter((x) => x !== value) : [...current, value] }
+      return {
+        ...prev,
+        [field]: exists ? current.filter((x) => x !== value) : [...current, value]
+      }
     })
   }
 
@@ -462,35 +522,53 @@ export default function NewPost({ lang: langProp = 'en' }) {
         selectTrade: 'Discusión general',
         crewExample: 'Ejemplo: 2 trabajadores, empieza el lunes, $250/día',
         workExample: 'Ejemplo: soldador disponible esta semana en Dallas',
-        crewTitle: 'Ejemplo: Se necesitan 2 acabadores de concreto en Fort Worth para empezar el lunes',
-        workTitle: 'Ejemplo: Soldador de tubería disponible para trabajo de paro en DFW',
-        supportDeliveryTitle: 'Ejemplo: Cargo van disponible para entregas de materiales y herramientas en DFW',
-        supportCargoVanTitle: 'Ejemplo: Cargo van disponible para viajes locales, última milla y recogidas el mismo día en DFW',
-        supportRepairTitle: 'Ejemplo: Mecánico diésel disponible para reparación de skid steer, tractor y remolque en obra',
-        supplierTitle: 'Ejemplo: Patio de materiales con block, concreto y acero disponible en Fort Worth',
-        supplierBody: 'Describe la ubicación de tu negocio, qué materiales suministras, si ofreces entrega o pickup y cómo pueden contactarte.',
-        supplierBusinessNotice: 'Las cuentas de proveedor funcionan mejor como publicaciones de tienda/ubicación y no como perfiles de trabajador individual.',
+        crewTitle:
+          'Ejemplo: Se necesitan 2 acabadores de concreto en Fort Worth para empezar el lunes',
+        workTitle:
+          'Ejemplo: Soldador de tubería disponible para trabajo de paro en DFW',
+        supportDeliveryTitle:
+          'Ejemplo: Cargo van disponible para entregas de materiales y herramientas en DFW',
+        supportCargoVanTitle:
+          'Ejemplo: Cargo van disponible para viajes locales, última milla y recogidas el mismo día en DFW',
+        supportRepairTitle:
+          'Ejemplo: Reparación de remolque y servicio diésel disponible en obra',
+        supplierTitle:
+          'Ejemplo: Patio de materiales con block, concreto y acero disponible en Fort Worth',
+        supplierBody:
+          'Describe la ubicación de tu negocio, qué materiales suministras, si ofreces entrega o pickup y cómo pueden contactarte.',
+        supplierBusinessNotice:
+          'Las cuentas de proveedor funcionan mejor como publicaciones de tienda/ubicación y no como perfiles de trabajador individual.',
         supplierSnapshot: 'Resumen del proveedor',
         businessName: 'Nombre comercial',
         businessZip: 'ZIP comercial',
-        crewBody: 'Describe el oficio, dónde está el trabajo, cuánta gente necesitas, cuándo inicia y los detalles de pago.',
-        workBody: 'Describe tu oficio, disponibilidad, radio de viaje, experiencia y qué tipo de trabajo estás buscando.',
-        deliveryBody: 'Describe el tipo de entrega, vehículo/equipo disponible, zona de cobertura y si haces viajes locales, urgentes o el mismo día.',
-        repairBody: 'Describe si haces mecánica diésel, motores pequeños, skid steer, tractor, remolques, hidráulica o servicio móvil en campo, y cuál es tu zona de cobertura.',
-        crewRequired: 'El tamaño de cuadrilla debe ser por lo menos 1 para publicaciones de Se necesita cuadrilla.',
-        opportunityIntro: 'Crea una publicación local de alta visibilidad para que trabajadores y cuadrillas cercanas la encuentren rápidamente.',
-        opportunityNotice: 'Las publicaciones de oportunidad seguirán respetando el ZIP y el radio, pero deben estar escritas con claridad para que los miembros cercanos puedan actuar rápido.',
-        discussionTitle: 'Ejemplo: ¿Cuál es la mejor forma de poner bollards en suelo rocoso?',
+        crewBody:
+          'Describe el oficio, dónde está el trabajo, cuánta gente necesitas, cuándo inicia y los detalles de pago.',
+        workBody:
+          'Describe tu oficio, disponibilidad, radio de viaje, experiencia y qué tipo de trabajo estás buscando.',
+        deliveryBody:
+          'Describe el tipo de entrega, vehículo/equipo disponible, zona de cobertura y si haces viajes locales, urgentes o el mismo día.',
+        repairBody:
+          'Describe el servicio de reparación, el equipo o sistema que atiendes, si haces servicio móvil y tu zona de cobertura.',
+        crewRequired:
+          'El tamaño de cuadrilla debe ser por lo menos 1 para publicaciones de Se necesita cuadrilla.',
+        opportunityIntro:
+          'Crea una publicación local de alta visibilidad para que trabajadores y cuadrillas cercanas la encuentren rápidamente.',
+        opportunityNotice:
+          'Las publicaciones de oportunidad seguirán respetando el ZIP y el radio, pero deben estar escritas con claridad para que los miembros cercanos puedan actuar rápido.',
+        discussionTitle:
+          'Ejemplo: ¿Cuál es la mejor forma de poner bollards en suelo rocoso?',
         highVisibilityOpportunity: 'Oportunidad de alta visibilidad',
         availabilityPost: 'Publicación de disponibilidad',
         crewCompPlaceholder: '$250/día o $35/hora',
         workCompPlaceholder: '$30/hora deseado o por propuesta',
         invalidPostLanguage: 'Selecciona un idioma válido para la publicación.',
         strengthenTitle: 'Fortalece tu perfil mientras publicas',
-        strengthenBody: 'Ya puedes usar Surplox, pero completar tu perfil hará que tus publicaciones tengan más peso.',
+        strengthenBody:
+          'Ya puedes usar Surplox, pero completar tu perfil hará que tus publicaciones tengan más peso.',
         finishAccount: 'Terminar cuenta',
         heroTitle: 'Crea una publicación más limpia y más fuerte.',
-        heroBody: 'Usa el compositor más claro de Surplox para publicar más rápido y verte más creíble para miembros cercanos.',
+        heroBody:
+          'Usa el compositor más claro de Surplox para publicar más rápido y verte más creíble para miembros cercanos.',
         titleLabel: 'Título',
         bodyLabel: 'Detalles',
         radiusLabel: 'Radio (millas)',
@@ -503,8 +581,10 @@ export default function NewPost({ lang: langProp = 'en' }) {
         urgentBody: 'Haz que esta publicación se marque como urgente.',
         photos: 'Fotos de la publicación',
         photoHelp: 'Puedes subir hasta 4 imágenes.',
-        categoryHelp: 'Usa Oficios para mano de obra, discusiones y visibilidad de proveedores. Usa Soporte de obra para entrega de materiales o Mecánica / Reparación de equipo.',
-        supplierTradeNote: 'Las publicaciones de proveedor normalmente funcionan como discusión/visibilidad y no requieren un oficio.'
+        categoryHelp:
+          'Usa Oficios para mano de obra, discusiones y visibilidad de proveedores. Usa Soporte de obra para entrega de materiales o reparación de flota/equipo.',
+        supplierTradeNote:
+          'Las publicaciones de proveedor normalmente funcionan como discusión/visibilidad y no requieren un oficio.'
       }
     }
 
@@ -523,22 +603,34 @@ export default function NewPost({ lang: langProp = 'en' }) {
       workExample: 'Example: welder available this week in Dallas',
       crewTitle: 'Example: Need 2 concrete finishers in Fort Worth starting Monday',
       workTitle: 'Example: Pipe welder available for shutdown work in DFW',
-      supportDeliveryTitle: 'Example: Cargo van available for material and tool delivery across DFW',
-      supportCargoVanTitle: 'Example: Cargo van available for local runs, last-mile delivery, and same-day pickups in DFW',
-      supportRepairTitle: 'Example: Diesel mechanic available for skid steer, tractor, and trailer repair at jobsites',
-      supplierTitle: 'Example: Material yard with block, concrete, and steel available in Fort Worth',
-      supplierBody: 'Describe your business location, what materials you supply, whether you offer delivery or pickup, and how nearby contractors should reach out.',
-      supplierBusinessNotice: 'Supplier accounts work best as storefront/location visibility posts rather than individual worker posts.',
+      supportDeliveryTitle:
+        'Example: Cargo van available for material and tool delivery across DFW',
+      supportCargoVanTitle:
+        'Example: Cargo van available for local runs, last-mile delivery, and same-day pickups in DFW',
+      supportRepairTitle:
+        'Example: Trailer repair and diesel service available at jobsites',
+      supplierTitle:
+        'Example: Material yard with block, concrete, and steel available in Fort Worth',
+      supplierBody:
+        'Describe your business location, what materials you supply, whether you offer delivery or pickup, and how nearby contractors should reach out.',
+      supplierBusinessNotice:
+        'Supplier accounts work best as storefront/location visibility posts rather than individual worker posts.',
       supplierSnapshot: 'Supplier snapshot',
       businessName: 'Business Name',
       businessZip: 'Business ZIP',
-      crewBody: 'Describe the trade, where the job is, how many people you need, start timing, and pay details.',
-      workBody: 'Describe your trade, availability, travel radius, experience, and what kind of work you want.',
-      deliveryBody: 'Describe the delivery service, vehicle/equipment available, coverage area, and whether you do local runs, urgent pickups, or same-day service.',
-      repairBody: 'Describe whether you handle diesel mechanic work, small engines, skid steers, tractors, trailers, hydraulics, or mobile field service, and what coverage area you serve.',
+      crewBody:
+        'Describe the trade, where the job is, how many people you need, start timing, and pay details.',
+      workBody:
+        'Describe your trade, availability, travel radius, experience, and what kind of work you want.',
+      deliveryBody:
+        'Describe the delivery service, vehicle/equipment available, coverage area, and whether you do local runs, urgent pickups, or same-day service.',
+      repairBody:
+        'Describe the repair service, what equipment or systems you work on, whether you provide mobile service, and your coverage area.',
       crewRequired: 'Crew size must be at least 1 for Need Crew posts.',
-      opportunityIntro: 'Create a high-visibility local opportunity post so nearby workers and crews can find it quickly.',
-      opportunityNotice: 'Opportunity posts will still respect ZIP and radius, but they should be written clearly so nearby members can act fast.',
+      opportunityIntro:
+        'Create a high-visibility local opportunity post so nearby workers and crews can find it quickly.',
+      opportunityNotice:
+        'Opportunity posts will still respect ZIP and radius, but they should be written clearly so nearby members can act fast.',
       discussionTitle: 'Example: Best way to set bollards in rocky soil?',
       highVisibilityOpportunity: 'High Visibility Opportunity',
       availabilityPost: 'Availability Post',
@@ -546,10 +638,12 @@ export default function NewPost({ lang: langProp = 'en' }) {
       workCompPlaceholder: '$30/hr desired or bid-based',
       invalidPostLanguage: 'Select a valid post language.',
       strengthenTitle: 'Strengthen your profile while you post',
-      strengthenBody: 'You can already use Surplox, but completing your profile will make your posts carry more weight.',
+      strengthenBody:
+        'You can already use Surplox, but completing your profile will make your posts carry more weight.',
       finishAccount: 'Finish Account',
       heroTitle: 'Create a cleaner, stronger post.',
-      heroBody: 'Use the new flatter Surplox composer to publish faster and look more credible to nearby members.',
+      heroBody:
+        'Use the new flatter Surplox composer to publish faster and look more credible to nearby members.',
       titleLabel: 'Title',
       bodyLabel: 'Details',
       radiusLabel: 'Radius (miles)',
@@ -562,8 +656,10 @@ export default function NewPost({ lang: langProp = 'en' }) {
       urgentBody: 'Mark this post as urgent.',
       photos: 'Post Photos',
       photoHelp: 'You can upload up to 4 images.',
-      categoryHelp: 'Use Trades for labor, discussions, and supplier visibility. Use Jobsite Support for material delivery or Mechanic / Equipment Repair.',
-      supplierTradeNote: 'Supplier posts usually work as discussion/visibility posts and do not require selecting a trade.'
+      categoryHelp:
+        'Use Trades for labor, discussions, and supplier visibility. Use Jobsite Support for material delivery or fleet/equipment repair.',
+      supplierTradeNote:
+        'Supplier posts usually work as discussion/visibility posts and do not require selecting a trade.'
     }
   }, [lang])
 
@@ -613,20 +709,43 @@ export default function NewPost({ lang: langProp = 'en' }) {
       const { data: sessionData } = await supabase.auth.getSession()
       const user = sessionData.session?.user
 
-      if (!user) throw new Error(lang === 'es' ? 'No has iniciado sesión' : 'Not signed in')
-      if (!profileReadyForPosting) throw new Error(profileGateMessage)
-      if (form.post_type === 'need_crew' && profileGateMessage) throw new Error(profileGateMessage)
-      if (form.post_type === 'looking_for_work' && profileGateMessage) throw new Error(profileGateMessage)
+      if (!user) {
+        throw new Error(lang === 'es' ? 'No has iniciado sesión' : 'Not signed in')
+      }
+
+      if (!profileReadyForPosting) {
+        throw new Error(profileGateMessage)
+      }
+
+      if (form.post_type === 'need_crew' && profileGateMessage) {
+        throw new Error(profileGateMessage)
+      }
+
+      if (form.post_type === 'looking_for_work' && profileGateMessage) {
+        throw new Error(profileGateMessage)
+      }
 
       if (!POST_TYPE_OPTIONS.some((x) => x.value === form.post_type)) {
-        throw new Error(lang === 'es' ? 'Selecciona un tipo de publicación válido.' : 'Select a valid post type.')
+        throw new Error(
+          lang === 'es' ? 'Selecciona un tipo de publicación válido.' : 'Select a valid post type.'
+        )
       }
-      if (!['en', 'es'].includes(form.source_language)) throw new Error(helperCopy.invalidPostLanguage)
+
+      if (!['en', 'es'].includes(form.source_language)) {
+        throw new Error(helperCopy.invalidPostLanguage)
+      }
+
       if (!['trade', 'jobsite_support'].includes(form.category_group)) {
         throw new Error(lang === 'es' ? 'Selecciona una categoría válida.' : 'Select a valid category.')
       }
-      if (form.category_group === 'jobsite_support' && !['material_delivery', 'cargo_van_delivery', 'equipment_fleet_repair'].includes(form.jobsite_support_type)) {
-        throw new Error(lang === 'es' ? 'Selecciona un tipo de soporte válido.' : 'Select a valid support type.')
+
+      if (
+        form.category_group === 'jobsite_support' &&
+        !['material_delivery', 'cargo_van_delivery', 'equipment_fleet_repair'].includes(form.jobsite_support_type)
+      ) {
+        throw new Error(
+          lang === 'es' ? 'Selecciona un tipo de soporte válido.' : 'Select a valid support type.'
+        )
       }
 
       if (!form.title.trim()) throw new Error(t(lang, 'post_title_required'))
@@ -634,29 +753,42 @@ export default function NewPost({ lang: langProp = 'en' }) {
       if (!/^[0-9]{5}$/.test(form.center_zip)) throw new Error(t(lang, 'post_zip_invalid'))
 
       const radius = Number(form.radius_miles)
-      if (!radius || radius < 1 || radius > 300) throw new Error(t(lang, 'post_radius_invalid'))
+      if (!radius || radius < 1 || radius > 300) {
+        throw new Error(t(lang, 'post_radius_invalid'))
+      }
 
       if (form.post_type === 'need_crew') {
         const neededCrew = Number(form.needed_crew_size || 0)
-        if (!neededCrew || neededCrew < 1) throw new Error(helperCopy.crewRequired)
+        if (!neededCrew || neededCrew < 1) {
+          throw new Error(helperCopy.crewRequired)
+        }
       }
 
       if (selectedFiles.length > 4) {
         throw new Error(lang === 'es' ? 'Máximo 4 imágenes.' : 'Maximum 4 images.')
       }
 
-      const { data: zipRow, error: zipErr } = await supabase.from('zipcodes').select('zip').eq('zip', form.center_zip).maybeSingle()
+      const { data: zipRow, error: zipErr } = await supabase
+        .from('zipcodes')
+        .select('zip')
+        .eq('zip', form.center_zip)
+        .maybeSingle()
+
       if (zipErr) throw zipErr
       if (!zipRow?.zip) throw new Error(t(lang, 'post_zip_missing'))
 
       const uploadedPaths = await uploadPostImages(selectedFiles, user.id)
+
       const detectedLanguage = detectLikelyLanguage(`${form.title} ${form.body}`)
 
       const payload = {
         author_id: user.id,
         post_type: form.post_type,
         category_group: form.category_group,
-        trade_id: form.category_group === 'trade' && form.trade_id && form.poster_role !== 'supplier' ? Number(form.trade_id) : null,
+        trade_id:
+          form.category_group === 'trade' && form.trade_id && form.poster_role !== 'supplier'
+            ? Number(form.trade_id)
+            : null,
         title: form.title.trim(),
         body: form.body.trim(),
         center_zip: form.center_zip,
@@ -680,8 +812,14 @@ export default function NewPost({ lang: langProp = 'en' }) {
         payload.start_date = form.start_date || null
       }
 
-      const { data: inserted, error: insertErr } = await supabase.from('posts').insert(payload).select('id').single()
+      const { data: inserted, error: insertErr } = await supabase
+        .from('posts')
+        .insert(payload)
+        .select('id')
+        .single()
+
       if (insertErr) throw insertErr
+
       navigate(`/p/${inserted.id}`, { replace: true })
     } catch (err) {
       console.error(err)
@@ -696,12 +834,22 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
   return (
     <div className="grid" style={{ gap: 18 }}>
-      <div className="card rounded-xl" style={{ padding: 28, ...theme.hero }}>
+      <div
+        className="card rounded-xl"
+        style={{
+          padding: 28,
+          ...theme.hero
+        }}
+      >
         <div className="badge" style={{ ...theme.badge, marginBottom: 14 }}>
-          {isSupplierPost && form.category_group === 'trade' ? (lang === 'es' ? 'Proveedor' : 'Supplier') : postTypeLabel(form.post_type, lang)}
+          {isSupplierPost && form.category_group === 'trade'
+            ? (lang === 'es' ? 'Proveedor' : 'Supplier')
+            : postTypeLabel(form.post_type, lang)}
         </div>
 
-        <div className="h1" style={{ maxWidth: 860 }}>{helperCopy.heroTitle}</div>
+        <div className="h1" style={{ maxWidth: 860 }}>
+          {helperCopy.heroTitle}
+        </div>
 
         <p className="muted" style={{ marginTop: 12, maxWidth: 820, fontSize: 17, lineHeight: 1.7 }}>
           {helperCopy.heroBody}
@@ -725,8 +873,16 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
           {isSupplierPost ? (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-              {form.business_name ? <span className="badge">{helperCopy.businessName}: {form.business_name}</span> : null}
-              {form.business_zip ? <span className="badge">{helperCopy.businessZip}: {form.business_zip}</span> : null}
+              {form.business_name ? (
+                <span className="badge">
+                  {helperCopy.businessName}: {form.business_name}
+                </span>
+              ) : null}
+              {form.business_zip ? (
+                <span className="badge">
+                  {helperCopy.businessZip}: {form.business_zip}
+                </span>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -735,22 +891,35 @@ export default function NewPost({ lang: langProp = 'en' }) {
       {profileGateMessage ? (
         <div className="card rounded-xl" style={{ padding: 22, background: '#fff4da' }}>
           <div className="card-section-title">{helperCopy.strengthenTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>{helperCopy.strengthenBody}</p>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {helperCopy.strengthenBody}
+          </p>
+
           <div style={{ marginTop: 12, fontWeight: 700 }}>{profileGateMessage}</div>
 
           {profilePromptItems.length > 0 ? (
             <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {profilePromptItems.map((item) => <span key={item} className="badge">{item}</span>)}
+              {profilePromptItems.map((item) => (
+                <span key={item} className="badge">
+                  {item}
+                </span>
+              ))}
             </div>
           ) : null}
 
           <div style={{ marginTop: 14 }}>
-            <Link className="btn primary" to="/account">{helperCopy.finishAccount}</Link>
+            <Link className="btn primary" to="/account">
+              {helperCopy.finishAccount}
+            </Link>
           </div>
         </div>
       ) : null}
 
-      {msg ? <div className="card-message" style={{ padding: 14, borderRadius: 18 }}>{msg}</div> : null}
+      {msg ? (
+        <div className="card-message" style={{ padding: 14, borderRadius: 18 }}>
+          {msg}
+        </div>
+      ) : null}
 
       <div className="grid two" style={{ alignItems: 'start' }}>
         <div className="card rounded-xl" style={{ padding: 24 }}>
@@ -760,7 +929,12 @@ export default function NewPost({ lang: langProp = 'en' }) {
             {POST_TYPE_OPTIONS.map((option) => {
               const active = option.value === form.post_type
               return (
-                <button key={option.value} type="button" className={active ? 'btn primary' : 'btn'} onClick={() => setField('post_type', option.value)}>
+                <button
+                  key={option.value}
+                  type="button"
+                  className={active ? 'btn primary' : 'btn'}
+                  onClick={() => setField('post_type', option.value)}
+                >
                   {postTypeLabel(option.value, lang)}
                 </button>
               )
@@ -769,22 +943,45 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
           <div className="grid" style={{ gap: 14, marginTop: 18 }}>
             <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.categoryGroup}</div>
-              <select className="input" value={form.category_group} onChange={(e) => setField('category_group', e.target.value)} disabled={isSupplierPost}>
+              <div className="muted" style={{ marginBottom: 6 }}>
+                {helperCopy.categoryGroup}
+              </div>
+              <select
+                className="input"
+                value={form.category_group}
+                onChange={(e) => setField('category_group', e.target.value)}
+                disabled={isSupplierPost}
+              >
                 {CATEGORY_GROUP_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{categoryGroupLabel(option.value, lang)}</option>
+                  <option key={option.value} value={option.value}>
+                    {categoryGroupLabel(option.value, lang)}
+                  </option>
                 ))}
               </select>
-              <div className="muted" style={{ marginTop: 8 }}>{helperCopy.categoryHelp}</div>
-              {isSupplierPost ? <div className="muted" style={{ marginTop: 8 }}>{helperCopy.supplierTradeNote}</div> : null}
+              <div className="muted" style={{ marginTop: 8 }}>
+                {helperCopy.categoryHelp}
+              </div>
+              {isSupplierPost ? (
+                <div className="muted" style={{ marginTop: 8 }}>
+                  {helperCopy.supplierTradeNote}
+                </div>
+              ) : null}
             </div>
 
             {form.category_group === 'jobsite_support' ? (
               <div>
-                <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.jobsiteSupportType}</div>
-                <select className="input" value={form.jobsite_support_type} onChange={(e) => setField('jobsite_support_type', e.target.value)}>
+                <div className="muted" style={{ marginBottom: 6 }}>
+                  {helperCopy.jobsiteSupportType}
+                </div>
+                <select
+                  className="input"
+                  value={form.jobsite_support_type}
+                  onChange={(e) => setField('jobsite_support_type', e.target.value)}
+                >
                   {JOBSITE_SUPPORT_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>{jobsiteSupportLabel(option.value, lang)}</option>
+                    <option key={option.value} value={option.value}>
+                      {jobsiteSupportLabel(option.value, lang)}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -792,8 +989,14 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
             <div className="grid two">
               <div>
-                <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.postLanguage}</div>
-                <select className="input" value={form.source_language} onChange={(e) => setField('source_language', e.target.value)}>
+                <div className="muted" style={{ marginBottom: 6 }}>
+                  {helperCopy.postLanguage}
+                </div>
+                <select
+                  className="input"
+                  value={form.source_language}
+                  onChange={(e) => setField('source_language', e.target.value)}
+                >
                   <option value="en">{helperCopy.english}</option>
                   <option value="es">{helperCopy.spanish}</option>
                 </select>
@@ -801,20 +1004,44 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
               {form.category_group === 'trade' ? (
                 <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>{t(lang, 'new_post_trade')}</div>
-                  <select className="input" value={form.trade_id} onChange={(e) => setField('trade_id', e.target.value)} disabled={isSupplierPost}>
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {t(lang, 'new_post_trade')}
+                  </div>
+                  <select
+                    className="input"
+                    value={form.trade_id}
+                    onChange={(e) => setField('trade_id', e.target.value)}
+                    disabled={isSupplierPost}
+                  >
                     <option value="">{helperCopy.selectTrade}</option>
-                    {trades.map((trade) => <option key={trade.id} value={trade.id}>{trade.name}</option>)}
+                    {trades.map((trade) => (
+                      <option key={trade.id} value={trade.id}>
+                        {trade.name}
+                      </option>
+                    ))}
                   </select>
-                  {isSupplierPost ? <div className="muted" style={{ marginTop: 8 }}>{helperCopy.supplierTradeNote}</div> : null}
+                  {isSupplierPost ? (
+                    <div className="muted" style={{ marginTop: 8 }}>
+                      {helperCopy.supplierTradeNote}
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.urgent}</div>
-                  <button type="button" className={form.is_urgent ? 'btn primary' : 'btn'} style={{ width: '100%' }} onClick={() => setField('is_urgent', !form.is_urgent)}>
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {helperCopy.urgent}
+                  </div>
+                  <button
+                    type="button"
+                    className={form.is_urgent ? 'btn primary' : 'btn'}
+                    style={{ width: '100%' }}
+                    onClick={() => setField('is_urgent', !form.is_urgent)}
+                  >
                     {helperCopy.urgent}
                   </button>
-                  <div className="muted" style={{ marginTop: 8 }}>{helperCopy.urgentBody}</div>
+                  <div className="muted" style={{ marginTop: 8 }}>
+                    {helperCopy.urgentBody}
+                  </div>
                 </div>
               )}
             </div>
@@ -822,12 +1049,19 @@ export default function NewPost({ lang: langProp = 'en' }) {
             {form.category_group === 'jobsite_support' ? (
               <>
                 <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.serviceTags}</div>
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {helperCopy.serviceTags}
+                  </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {serviceOptions.map((tag) => {
                       const active = form.service_tags.includes(tag.value)
                       return (
-                        <button key={tag.value} type="button" className={active ? 'btn primary small' : 'btn small'} onClick={() => toggleMultiTag('service_tags', tag.value)}>
+                        <button
+                          key={tag.value}
+                          type="button"
+                          className={active ? 'btn primary small' : 'btn small'}
+                          onClick={() => toggleMultiTag('service_tags', tag.value)}
+                        >
                           {lang === 'es' ? tag.es : tag.en}
                         </button>
                       )
@@ -836,12 +1070,19 @@ export default function NewPost({ lang: langProp = 'en' }) {
                 </div>
 
                 <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.equipmentTags}</div>
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {helperCopy.equipmentTags}
+                  </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {equipmentOptions.map((tag) => {
                       const active = form.equipment_tags.includes(tag.value)
                       return (
-                        <button key={tag.value} type="button" className={active ? 'btn primary small' : 'btn small'} onClick={() => toggleMultiTag('equipment_tags', tag.value)}>
+                        <button
+                          key={tag.value}
+                          type="button"
+                          className={active ? 'btn primary small' : 'btn small'}
+                          onClick={() => toggleMultiTag('equipment_tags', tag.value)}
+                        >
                           {lang === 'es' ? tag.es : tag.en}
                         </button>
                       )
@@ -852,36 +1093,71 @@ export default function NewPost({ lang: langProp = 'en' }) {
             ) : null}
 
             <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.photos}</div>
-              <input className="input" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" multiple onChange={(e) => {
-                const files = Array.from(e.target.files || []).slice(0, 4)
-                setSelectedFiles(files)
-              }} />
-              <div className="muted" style={{ marginTop: 8 }}>{helperCopy.photoHelp}</div>
+              <div className="muted" style={{ marginBottom: 6 }}>
+                {helperCopy.photos}
+              </div>
+              <input
+                className="input"
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                multiple
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []).slice(0, 4)
+                  setSelectedFiles(files)
+                }}
+              />
+              <div className="muted" style={{ marginTop: 8 }}>
+                {helperCopy.photoHelp}
+              </div>
               {selectedFiles.length > 0 ? (
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                  {selectedFiles.map((file) => <span key={`${file.name}-${file.size}`} className="badge">{file.name}</span>)}
+                  {selectedFiles.map((file) => (
+                    <span key={`${file.name}-${file.size}`} className="badge">
+                      {file.name}
+                    </span>
+                  ))}
                 </div>
               ) : null}
             </div>
 
             {form.post_type !== 'discussion' || form.category_group === 'jobsite_support' || isSupplierPost ? (
-              <div className="card-soft" style={{ marginTop: 2, ...theme.panel }}>
+              <div
+                className="card-soft"
+                style={{
+                  marginTop: 2,
+                  ...theme.panel
+                }}
+              >
                 <div className="card-section-title" style={{ fontSize: 16 }}>
                   {isSupplierPost ? helperCopy.supplierSnapshot : helperCopy.opportunityIntro}
                 </div>
-                <p className="card-section-subtitle" style={{ marginTop: 8 }}>{exampleBody()}</p>
+                <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+                  {exampleBody()}
+                </p>
+
                 {form.category_group === 'jobsite_support' ? (
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-                    {form.service_tags.map((tag) => <span key={tag} className="badge">{formatTagLabel(tag, lang)}</span>)}
-                    {form.equipment_tags.map((tag) => <span key={tag} className="badge">{formatTagLabel(tag, lang)}</span>)}
+                    {form.service_tags.map((tag) => (
+                      <span key={tag} className="badge">
+                        {formatTagLabel(tag, lang)}
+                      </span>
+                    ))}
+                    {form.equipment_tags.map((tag) => (
+                      <span key={tag} className="badge">
+                        {formatTagLabel(tag, lang)}
+                      </span>
+                    ))}
                   </div>
                 ) : null}
               </div>
             ) : (
               <div className="card-soft" style={{ marginTop: 2 }}>
-                <div className="card-section-title" style={{ fontSize: 16 }}>{t(lang, 'new_post_example')}</div>
-                <p className="card-section-subtitle" style={{ marginTop: 8 }}>{t(lang, 'new_post_example_body')}</p>
+                <div className="card-section-title" style={{ fontSize: 16 }}>
+                  {t(lang, 'new_post_example')}
+                </div>
+                <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+                  {t(lang, 'new_post_example_body')}
+                </p>
               </div>
             )}
           </div>
@@ -890,39 +1166,91 @@ export default function NewPost({ lang: langProp = 'en' }) {
         <div className="card rounded-xl" style={{ padding: 24 }}>
           <div className="grid" style={{ gap: 14 }}>
             <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.titleLabel}</div>
-              <input className="input" value={form.title} placeholder={titlePlaceholder()} onChange={(e) => setField('title', e.target.value)} />
+              <div className="muted" style={{ marginBottom: 6 }}>
+                {helperCopy.titleLabel}
+              </div>
+              <input
+                className="input"
+                value={form.title}
+                placeholder={titlePlaceholder()}
+                onChange={(e) => setField('title', e.target.value)}
+              />
             </div>
 
             <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.bodyLabel}</div>
-              <textarea className="input" value={form.body} placeholder={bodyPlaceholder()} onChange={(e) => setField('body', e.target.value)} />
+              <div className="muted" style={{ marginBottom: 6 }}>
+                {helperCopy.bodyLabel}
+              </div>
+              <textarea
+                className="input"
+                value={form.body}
+                placeholder={bodyPlaceholder()}
+                onChange={(e) => setField('body', e.target.value)}
+              />
             </div>
 
             <div className="grid two">
               <div>
-                <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.zipLabel}</div>
-                <input className="input" value={form.center_zip} inputMode="numeric" onChange={(e) => setField('center_zip', e.target.value)} />
+                <div className="muted" style={{ marginBottom: 6 }}>
+                  {helperCopy.zipLabel}
+                </div>
+                <input
+                  className="input"
+                  value={form.center_zip}
+                  inputMode="numeric"
+                  onChange={(e) => setField('center_zip', e.target.value)}
+                />
               </div>
+
               <div>
-                <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.radiusLabel}</div>
-                <input className="input" type="number" value={form.radius_miles} onChange={(e) => setField('radius_miles', e.target.value)} />
+                <div className="muted" style={{ marginBottom: 6 }}>
+                  {helperCopy.radiusLabel}
+                </div>
+                <input
+                  className="input"
+                  type="number"
+                  value={form.radius_miles}
+                  onChange={(e) => setField('radius_miles', e.target.value)}
+                />
               </div>
             </div>
 
             {form.post_type === 'need_crew' ? (
               <div className="grid two">
                 <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.crewSize}</div>
-                  <input className="input" type="number" value={form.needed_crew_size} onChange={(e) => setField('needed_crew_size', e.target.value)} />
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {helperCopy.crewSize}
+                  </div>
+                  <input
+                    className="input"
+                    type="number"
+                    value={form.needed_crew_size}
+                    onChange={(e) => setField('needed_crew_size', e.target.value)}
+                  />
                 </div>
+
                 <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.compensation}</div>
-                  <input className="input" value={form.compensation} placeholder={helperCopy.crewCompPlaceholder} onChange={(e) => setField('compensation', e.target.value)} />
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {helperCopy.compensation}
+                  </div>
+                  <input
+                    className="input"
+                    value={form.compensation}
+                    placeholder={helperCopy.crewCompPlaceholder}
+                    onChange={(e) => setField('compensation', e.target.value)}
+                  />
                 </div>
+
                 <div style={{ gridColumn: '1 / -1' }}>
-                  <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.startDate}</div>
-                  <input className="input" type="date" value={form.start_date} onChange={(e) => setField('start_date', e.target.value)} />
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {helperCopy.startDate}
+                  </div>
+                  <input
+                    className="input"
+                    type="date"
+                    value={form.start_date}
+                    onChange={(e) => setField('start_date', e.target.value)}
+                  />
                 </div>
               </div>
             ) : null}
@@ -930,12 +1258,27 @@ export default function NewPost({ lang: langProp = 'en' }) {
             {form.post_type === 'looking_for_work' ? (
               <div className="grid two">
                 <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.compensation}</div>
-                  <input className="input" value={form.compensation} placeholder={helperCopy.workCompPlaceholder} onChange={(e) => setField('compensation', e.target.value)} />
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {helperCopy.compensation}
+                  </div>
+                  <input
+                    className="input"
+                    value={form.compensation}
+                    placeholder={helperCopy.workCompPlaceholder}
+                    onChange={(e) => setField('compensation', e.target.value)}
+                  />
                 </div>
+
                 <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>{helperCopy.startDate}</div>
-                  <input className="input" type="date" value={form.start_date} onChange={(e) => setField('start_date', e.target.value)} />
+                  <div className="muted" style={{ marginBottom: 6 }}>
+                    {helperCopy.startDate}
+                  </div>
+                  <input
+                    className="input"
+                    type="date"
+                    value={form.start_date}
+                    onChange={(e) => setField('start_date', e.target.value)}
+                  />
                 </div>
               </div>
             ) : null}
@@ -944,7 +1287,10 @@ export default function NewPost({ lang: langProp = 'en' }) {
               <button className="btn primary" type="button" onClick={create} disabled={saving}>
                 {saving ? helperCopy.publishing : helperCopy.publish}
               </button>
-              <Link className="btn" to="/feed">{t(lang, 'detail_back_feed')}</Link>
+
+              <Link className="btn" to="/feed">
+                {t(lang, 'detail_back_feed')}
+              </Link>
             </div>
           </div>
         </div>
