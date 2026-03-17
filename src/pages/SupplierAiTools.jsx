@@ -2,314 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 
-const COPY = {
-  en: {
-    badge: 'Surplox AI Tools',
-    title: 'AI tools for project planning, hiring, supply, and logistics.',
-    body:
-      'This hub is where Surplox AI tools live. Start with Supplier Suggestions, Crew Matching, and Delivery Coordination, then expand into project analysis.',
-    supplierTab: 'Supplier Suggestions AI',
-    crewTab: 'Crew Matching AI',
-    deliveryTab: 'Delivery Coordination AI',
-    projectTab: 'Project Analyzer AI',
-    supplierTitle: 'Find the best nearby suppliers for a jobsite.',
-    supplierBody:
-      'Search Surplox supplier records by material, ZIP, storefront status, business name, and delivery radius to get ranked supplier suggestions.',
-    materialLabel: 'Material category',
-    allMaterials: 'All materials',
-    supplierSearchLabel: 'Supplier / keyword search',
-    supplierSearchPlaceholder: 'Concrete, lumber, drywall, rebar, supplier name...',
-    supplierZipLabel: 'Jobsite ZIP',
-    supplierZipPlaceholder: '76102',
-    storefrontOnly: 'Storefront only',
-    runSupplier: 'Run Supplier Suggestions',
-    supplierResults: 'Suggested suppliers',
-    noSupplierResults: 'No supplier suggestions yet. Try a broader material or ZIP search.',
-    supplierWhy: 'Why this matched',
-    openStorefront: 'Open Storefront',
-    openProfile: 'Open Profile',
-    supplierRadius: 'Delivery Radius',
-    supplierMaterials: 'Materials',
-    supplierZip: 'Business ZIP',
-    miles: 'mi',
-    crewTitle: 'Match the best nearby workers and crews for a job.',
-    crewBody:
-      'Use current Surplox worker profiles to rank crew candidates by trade, local fit, availability, crew size, and profile strength.',
-    tradeLabel: 'Needed trade',
-    allTrades: 'All trades',
-    crewZipLabel: 'Jobsite ZIP',
-    crewZipPlaceholder: '76102',
-    radiusLabel: 'Search radius / local fit',
-    minCrewLabel: 'Minimum crew size',
-    availabilityLabel: 'Availability',
-    allAvailability: 'All availability',
-    availableNow: 'Available now',
-    availableThisWeek: 'Available this week',
-    runCrew: 'Run Crew Matching',
-    crewResults: 'Ranked crew matches',
-    noCrewResults: 'No crew matches yet. Try widening the filters or posting a Need Crew request.',
-    whyMatched: 'Why this matched',
-    matchScore: 'Match score',
-    openWorker: 'Open Worker Profile',
-    createNeedCrew: 'Create Need Crew Post',
-    role: 'Role',
-    trade: 'Trade',
-    zip: 'ZIP',
-    availability: 'Availability',
-    crewSize: 'Crew Size',
-    travelRadius: 'Travel Radius',
-    profileStrength: 'Profile Strength',
-    noBio: 'No bio added yet.',
-    storefront: 'Storefront',
-    loading: 'Loading AI tools…',
-    loadError: 'Unable to load Surplox data right now.',
-    exactZip: 'Exact ZIP match',
-    nearbyZip: 'Nearby ZIP pattern match',
-    materialMatch: 'Material match',
-    storefrontBoost: 'Storefront-ready supplier',
-    deliveryCoverage: 'Delivery coverage fit',
-    tradeMatch: 'Trade match',
-    availabilityMatch: 'Availability fit',
-    crewSizeMatch: 'Crew size fit',
-    profileComplete: 'Stronger profile',
-    radiusFit: 'Travel radius fit',
-    supplierReady: 'Supplier chosen',
-    laneMatch: 'Delivery lane fit',
-    payloadFit: 'Payload fit',
-    trailerFit: 'Trailer fit',
-    vehicleFit: 'Vehicle fit',
-    supplierZipFit: 'Pickup ZIP fit',
-    deliveryTitle: 'Coordinate the best delivery support from supplier to jobsite.',
-    deliveryBody:
-      'Start with a supplier or pickup ZIP, then rank nearby Surplox drivers by lane, vehicle, trailer, payload, delivery radius, and local fit.',
-    chooseSupplier: 'Supplier pickup point',
-    allSuppliers: 'All suppliers',
-    supplierOptional: 'Optional: choose a supplier storefront',
-    pickupZipLabel: 'Pickup ZIP',
-    pickupZipPlaceholder: '76102',
-    jobsiteZipLabel: 'Jobsite ZIP',
-    jobsiteZipPlaceholder: '76028',
-    deliveryLaneLabel: 'Delivery lane',
-    allDeliveryLanes: 'All delivery lanes',
-    vehicleLabel: 'Vehicle type',
-    allVehicles: 'All vehicles',
-    trailerLabel: 'Trailer type',
-    allTrailers: 'All trailers',
-    minPayloadLabel: 'Minimum payload (lbs)',
-    minTrailerLengthLabel: 'Minimum trailer length (ft)',
-    minDeliveryRadiusLabel: 'Minimum delivery radius (mi)',
-    runDelivery: 'Run Delivery Coordination',
-    deliveryResults: 'Ranked delivery matches',
-    noDeliveryResults:
-      'No delivery matches yet. Try widening the lane, trailer, payload, or ZIP filters while more drivers join Surplox.',
-    openDriver: 'Open Driver Profile',
-    createDeliveryPost: 'Create Delivery Support Post',
-    supportLane: 'Delivery Lane',
-    vehicleType: 'Vehicle',
-    trailerType: 'Trailer',
-    payloadCapacity: 'Payload',
-    deliveryRadiusLabel: 'Delivery Radius',
-    trailerLength: 'Trailer Length',
-    serviceTags: 'Service Tags',
-    noServiceTags: 'No service tags listed yet.',
-    city: 'City',
-    noCity: 'No city listed',
-    pounds: 'lbs',
-    feet: 'ft',
-    pickupSummary: 'Pickup / Supplier',
-    jobsiteSummary: 'Jobsite',
-    projectTitle: 'Turn project notes into a crew, supplier, and logistics plan.',
-    projectBody:
-      'This first Project Analyzer AI turns pasted blueprint notes, scope descriptions, or bid summaries into a project summary, required trades, suggested crew sizing, supplier categories, and delivery coordination notes. File parsing can be layered in next.',
-    projectPasteLabel: 'Paste blueprint notes / project scope',
-    projectPastePlaceholder:
-      'Example: 18,000 sq ft ground-up retail shell in Fort Worth with sitework, concrete slab, structural steel, framing, roofing, HVAC, plumbing, electrical, storefront glass, drywall, paint, and final finishes. 6 month schedule.',
-    projectTypeLabel: 'Project type',
-    projectTypeGeneral: 'General build',
-    projectTypeGroundUp: 'Ground-up',
-    projectTypeTenant: 'Tenant finish / remodel',
-    projectTypeSitework: 'Sitework / civil',
-    projectTypeIndustrial: 'Industrial / warehouse',
-    projectTypeResidential: 'Residential',
-    projectSizeLabel: 'Project size',
-    projectSizeSmall: 'Small',
-    projectSizeMedium: 'Medium',
-    projectSizeLarge: 'Large',
-    projectFloorsLabel: 'Floors / levels',
-    projectUrgencyLabel: 'Schedule urgency',
-    projectUrgencyNormal: 'Normal schedule',
-    projectUrgencyFast: 'Fast-track',
-    projectUrgencyEmergency: 'Emergency / immediate',
-    runProject: 'Run Project Analyzer',
-    projectSummary: 'Project summary',
-    requiredTradesTitle: 'Required trades',
-    suggestedCrewTitle: 'Suggested crew sizing',
-    supplierPlanTitle: 'Supplier suggestion categories',
-    deliveryPlanTitle: 'Delivery coordination notes',
-    projectAssumptionsTitle: 'Assumptions',
-    analyzerReady: 'Project Analyzer AI is ready',
-    analyzerReadyBody:
-      'Paste project notes now. This first version uses Surplox-side heuristics and your current marketplace data. Blueprint upload parsing can be added next as a second phase.',
-    noProjectInput: 'Add project notes or blueprint scope text to generate a project analysis.',
-    summaryFallback: 'General construction project with multiple scopes that will need phased labor, supplier support, and delivery coordination.',
-    projectTitle: 'Convierte notas del proyecto en un plan de cuadrilla, proveedores y logística.',
-    projectBody:
-      'Esta primera versión del AI de Análisis de Proyecto convierte notas pegadas de planos, alcances o resúmenes de oferta en un resumen del proyecto, oficios requeridos, tamaño sugerido de cuadrillas, categorías de proveedores y notas de coordinación de entrega. El análisis directo de archivos se puede agregar después.',
-    projectPasteLabel: 'Pega notas del plano / alcance del proyecto',
-    projectPastePlaceholder:
-      'Ejemplo: obra comercial nueva de 18,000 pies cuadrados en Fort Worth con sitework, losa de concreto, acero estructural, framing, roofing, HVAC, plumbing, electrical, vidrio de fachada, drywall, pintura y acabados finales. Programa de 6 meses.',
-    projectTypeLabel: 'Tipo de proyecto',
-    projectTypeGeneral: 'Construcción general',
-    projectTypeGroundUp: 'Obra nueva',
-    projectTypeTenant: 'Acabado interior / remodelación',
-    projectTypeSitework: 'Sitework / civil',
-    projectTypeIndustrial: 'Industrial / bodega',
-    projectTypeResidential: 'Residencial',
-    projectSizeLabel: 'Tamaño del proyecto',
-    projectSizeSmall: 'Pequeño',
-    projectSizeMedium: 'Mediano',
-    projectSizeLarge: 'Grande',
-    projectFloorsLabel: 'Pisos / niveles',
-    projectUrgencyLabel: 'Urgencia del programa',
-    projectUrgencyNormal: 'Programa normal',
-    projectUrgencyFast: 'Fast-track',
-    projectUrgencyEmergency: 'Emergencia / inmediato',
-    runProject: 'Ejecutar análisis',
-    projectSummary: 'Resumen del proyecto',
-    requiredTradesTitle: 'Oficios requeridos',
-    suggestedCrewTitle: 'Tamaño sugerido de cuadrillas',
-    supplierPlanTitle: 'Categorías sugeridas de proveedores',
-    deliveryPlanTitle: 'Notas de coordinación de entrega',
-    projectAssumptionsTitle: 'Suposiciones',
-    analyzerReady: 'El AI de Análisis de Proyecto ya está listo',
-    analyzerReadyBody:
-      'Pega notas del proyecto ahora. Esta primera versión usa heurísticas de Surplox y los datos actuales del marketplace. El análisis directo de planos/archivos se puede agregar en una segunda fase.',
-    noProjectInput: 'Agrega notas del proyecto o texto del alcance para generar el análisis.',
-    summaryFallback: 'Proyecto de construcción general con múltiples alcances que necesitará mano de obra por fases, soporte de proveedores y coordinación de entregas.',
-    quickNote:
-      'This first version ranks existing Surplox records. Later versions can add external supplier enrichment, project analysis, and smarter logistics coordination.'
-  },
-  es: {
-    badge: 'Herramientas AI de Surplox',
-    title: 'Herramientas AI para planeación, contratación, suministro y logística.',
-    body:
-      'Este centro reúne las herramientas AI de Surplox. Empieza con Sugerencias de Proveedores, Crew Matching y Coordinación de Entrega, y luego expándelo hacia análisis de proyectos.',
-    supplierTab: 'AI de Proveedores',
-    crewTab: 'AI de Crew Matching',
-    deliveryTab: 'AI de Coordinación de Entrega',
-    projectTab: 'AI de Análisis de Proyecto',
-    supplierTitle: 'Encuentra los mejores proveedores cercanos para una obra.',
-    supplierBody:
-      'Busca registros de proveedores de Surplox por material, ZIP, tienda física, nombre comercial y radio de entrega para obtener sugerencias clasificadas.',
-    materialLabel: 'Categoría de material',
-    allMaterials: 'Todos los materiales',
-    supplierSearchLabel: 'Búsqueda de proveedor / palabra clave',
-    supplierSearchPlaceholder: 'Concreto, madera, drywall, varilla, nombre del proveedor...',
-    supplierZipLabel: 'ZIP de la obra',
-    supplierZipPlaceholder: '76102',
-    storefrontOnly: 'Solo tienda física',
-    runSupplier: 'Ejecutar sugerencias',
-    supplierResults: 'Proveedores sugeridos',
-    noSupplierResults: 'Todavía no hay sugerencias. Prueba con un material o ZIP más amplio.',
-    supplierWhy: 'Por qué coincidió',
-    openStorefront: 'Abrir tienda',
-    openProfile: 'Abrir perfil',
-    supplierRadius: 'Radio de entrega',
-    supplierMaterials: 'Materiales',
-    supplierZip: 'ZIP comercial',
-    miles: 'mi',
-    crewTitle: 'Empareja a los mejores trabajadores y cuadrillas cercanas para un trabajo.',
-    crewBody:
-      'Usa los perfiles actuales de Surplox para clasificar candidatos por oficio, cercanía local, disponibilidad, tamaño de cuadrilla y fuerza del perfil.',
-    tradeLabel: 'Oficio necesario',
-    allTrades: 'Todos los oficios',
-    crewZipLabel: 'ZIP de la obra',
-    crewZipPlaceholder: '76102',
-    radiusLabel: 'Radio de búsqueda / encaje local',
-    minCrewLabel: 'Tamaño mínimo de cuadrilla',
-    availabilityLabel: 'Disponibilidad',
-    allAvailability: 'Toda disponibilidad',
-    availableNow: 'Disponible ahora',
-    availableThisWeek: 'Disponible esta semana',
-    runCrew: 'Ejecutar crew matching',
-    crewResults: 'Mejores coincidencias',
-    noCrewResults: 'Todavía no hay coincidencias. Amplía los filtros o crea una publicación de Se necesita cuadrilla.',
-    whyMatched: 'Por qué coincidió',
-    matchScore: 'Puntuación',
-    openWorker: 'Abrir perfil',
-    createNeedCrew: 'Crear publicación de cuadrilla',
-    role: 'Rol',
-    trade: 'Oficio',
-    zip: 'ZIP',
-    availability: 'Disponibilidad',
-    crewSize: 'Tamaño de cuadrilla',
-    travelRadius: 'Radio de viaje',
-    profileStrength: 'Fuerza del perfil',
-    noBio: 'Todavía no agregó biografía.',
-    storefront: 'Tienda física',
-    loading: 'Cargando herramientas AI…',
-    loadError: 'No se pudieron cargar los datos de Surplox.',
-    exactZip: 'Coincidencia exacta de ZIP',
-    nearbyZip: 'Coincidencia local por patrón de ZIP',
-    materialMatch: 'Coincidencia de material',
-    storefrontBoost: 'Proveedor listo para tienda',
-    deliveryCoverage: 'Encaje por cobertura de entrega',
-    tradeMatch: 'Coincidencia de oficio',
-    availabilityMatch: 'Encaje por disponibilidad',
-    crewSizeMatch: 'Encaje por tamaño de cuadrilla',
-    profileComplete: 'Perfil más fuerte',
-    radiusFit: 'Encaje por radio de viaje',
-    supplierReady: 'Proveedor seleccionado',
-    laneMatch: 'Encaje por línea de entrega',
-    payloadFit: 'Encaje por carga',
-    trailerFit: 'Encaje por remolque',
-    vehicleFit: 'Encaje por vehículo',
-    supplierZipFit: 'Encaje por ZIP de recolección',
-    deliveryTitle: 'Coordina el mejor soporte de entrega desde proveedor hasta obra.',
-    deliveryBody:
-      'Empieza con un proveedor o ZIP de recolección y luego clasifica conductores cercanos de Surplox por línea, vehículo, remolque, carga, radio de entrega y encaje local.',
-    chooseSupplier: 'Punto de recolección del proveedor',
-    allSuppliers: 'Todos los proveedores',
-    supplierOptional: 'Opcional: elige una tienda proveedora',
-    pickupZipLabel: 'ZIP de recolección',
-    pickupZipPlaceholder: '76102',
-    jobsiteZipLabel: 'ZIP de la obra',
-    jobsiteZipPlaceholder: '76028',
-    deliveryLaneLabel: 'Línea de entrega',
-    allDeliveryLanes: 'Todas las líneas de entrega',
-    vehicleLabel: 'Tipo de vehículo',
-    allVehicles: 'Todos los vehículos',
-    trailerLabel: 'Tipo de remolque',
-    allTrailers: 'Todos los remolques',
-    minPayloadLabel: 'Carga mínima (lbs)',
-    minTrailerLengthLabel: 'Largo mínimo del remolque (ft)',
-    minDeliveryRadiusLabel: 'Radio mínimo de entrega (mi)',
-    runDelivery: 'Ejecutar coordinación de entrega',
-    deliveryResults: 'Mejores coincidencias de entrega',
-    noDeliveryResults:
-      'Todavía no hay coincidencias de entrega. Amplía los filtros de línea, remolque, carga o ZIP mientras más conductores se unen a Surplox.',
-    openDriver: 'Abrir perfil del conductor',
-    createDeliveryPost: 'Crear publicación de entrega',
-    supportLane: 'Línea de entrega',
-    vehicleType: 'Vehículo',
-    trailerType: 'Remolque',
-    payloadCapacity: 'Capacidad de carga',
-    deliveryRadiusLabel: 'Radio de entrega',
-    trailerLength: 'Largo del remolque',
-    serviceTags: 'Etiquetas de servicio',
-    noServiceTags: 'Todavía no hay etiquetas de servicio.',
-    city: 'Ciudad',
-    noCity: 'Sin ciudad',
-    pounds: 'lbs',
-    feet: 'ft',
-    pickupSummary: 'Recolección / Proveedor',
-    jobsiteSummary: 'Obra',
-    quickNote:
-      'Esta primera versión clasifica registros existentes de Surplox. Las siguientes pueden agregar enriquecimiento externo de proveedores, análisis de proyectos y coordinación logística más inteligente.'
-  }
-}
-
-const DEFAULT_MATERIALS = [
+const MATERIAL_OPTIONS = [
   'Concrete',
   'Lumber',
   'Steel',
@@ -322,93 +15,72 @@ const DEFAULT_MATERIALS = [
   'Safety Equipment'
 ]
 
+const DELIVERY_LANES = [
+  { value: 'material_delivery', label: 'Material Delivery / Hot Shot' },
+  { value: 'cargo_van_delivery', label: 'Cargo Van / Local Delivery' }
+]
+
 const VEHICLE_LABELS = {
-  pickup_truck: { en: 'Pickup Truck', es: 'Pickup' },
-  cargo_van: { en: 'Cargo Van', es: 'Cargo van' },
-  box_truck: { en: 'Box Truck', es: 'Camión caja' },
-  flatbed_truck: { en: 'Flatbed Truck', es: 'Camión plataforma' }
+  pickup_truck: 'Pickup Truck',
+  cargo_van: 'Cargo Van',
+  box_truck: 'Box Truck',
+  flatbed_truck: 'Flatbed Truck'
 }
 
 const TRAILER_LABELS = {
-  none: { en: 'No Trailer', es: 'Sin remolque' },
-  no_trailer: { en: 'No Trailer', es: 'Sin remolque' },
-  utility_trailer: { en: 'Utility Trailer', es: 'Remolque utilitario' },
-  flatbed_trailer: { en: 'Flatbed Trailer', es: 'Remolque plataforma' },
-  gooseneck_trailer: { en: 'Gooseneck Trailer', es: 'Remolque gooseneck' },
-  equipment_trailer: { en: 'Equipment Trailer', es: 'Remolque para equipo' },
-  enclosed_trailer: { en: 'Enclosed Trailer', es: 'Remolque cerrado' }
-}
-
-const SUPPORT_TYPE_LABELS = {
-  material_delivery: { en: 'Material Delivery / Hot Shot', es: 'Entrega de materiales / Hot Shot' },
-  cargo_van_delivery: { en: 'Cargo Van / Local Delivery', es: 'Cargo Van / Entrega local' }
+  none: 'No Trailer',
+  no_trailer: 'No Trailer',
+  utility_trailer: 'Utility Trailer',
+  flatbed_trailer: 'Flatbed Trailer',
+  gooseneck_trailer: 'Gooseneck Trailer',
+  equipment_trailer: 'Equipment Trailer',
+  enclosed_trailer: 'Enclosed Trailer'
 }
 
 const SERVICE_TAG_LABELS = {
-  material_delivery: { en: 'Material Delivery', es: 'Entrega de materiales' },
-  hot_shot: { en: 'Hot Shot', es: 'Hot Shot' },
-  last_mile_delivery: { en: 'Last Mile Delivery', es: 'Última milla' },
-  local_runs: { en: 'Local Runs', es: 'Viajes locales' },
-  same_day_delivery: { en: 'Same Day Delivery', es: 'Entrega el mismo día' },
-  long_distance: { en: 'Long Distance', es: 'Larga distancia' },
-  cargo_van: { en: 'Cargo Van', es: 'Cargo van' },
-  pickup_truck: { en: 'Pickup Truck', es: 'Pickup' }
+  material_delivery: 'Material Delivery',
+  hot_shot: 'Hot Shot',
+  last_mile_delivery: 'Last Mile Delivery',
+  local_runs: 'Local Runs',
+  same_day_delivery: 'Same Day Delivery',
+  long_distance: 'Long Distance',
+  cargo_van: 'Cargo Van',
+  pickup_truck: 'Pickup Truck'
+}
+
+const TOOL_KEYS = {
+  supplier: 'supplier',
+  crew: 'crew',
+  delivery: 'delivery',
+  analyzer: 'analyzer'
 }
 
 function normalizeText(value) {
   return String(value || '').trim()
 }
 
-function normalizeMaterials(list) {
-  if (!Array.isArray(list)) return []
-  return list.map((item) => String(item || '').trim()).filter(Boolean)
-}
-
-function normalizeList(list) {
-  if (!Array.isArray(list)) return []
-  return list.map((item) => String(item || '').trim()).filter(Boolean)
-}
-
-function numericValue(value) {
+function normalizeNumber(value) {
   const num = Number(value)
   return Number.isFinite(num) ? num : 0
 }
 
-function prettyRole(role, lang = 'en') {
-  const labels = {
-    laborer: { en: 'Laborer', es: 'Trabajador' },
-    subcontractor: { en: 'Subcontractor', es: 'Subcontratista' },
-    contractor: { en: 'Contractor', es: 'Contratista' },
-    supplier: { en: 'Supplier', es: 'Proveedor' },
-    driver: { en: 'Driver', es: 'Conductor' },
-    mechanic: { en: 'Mechanic', es: 'Mecánico' }
-  }
-  return labels[role]?.[lang] || labels[role]?.en || role || '—'
+function normalizeList(value) {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => normalizeText(item)).filter(Boolean)
 }
 
-function availabilityLabel(value, lang = 'en') {
-  const labels = {
-    available_now: { en: 'Available Now', es: 'Disponible ahora' },
-    available_this_week: { en: 'Available This Week', es: 'Disponible esta semana' },
-    busy: { en: 'Busy', es: 'Ocupado' }
-  }
-  return labels[value]?.[lang] || labels[value]?.en || value || '—'
+function titleCase(value) {
+  return normalizeText(value)
+    .toLowerCase()
+    .replace(/\b\w/g, (match) => match.toUpperCase())
 }
 
-function labelForMap(map, value, lang = 'en') {
+function labelForMap(map, value) {
   const key = normalizeText(value)
-  if (!key) return ''
-  return map[key]?.[lang] || map[key]?.en || key.replace(/_/g, ' ')
+  return map[key] || key || '—'
 }
 
-function startsWithZipRegion(a, b) {
-  const left = normalizeText(a)
-  const right = normalizeText(b)
-  if (!left || !right) return false
-  return left.slice(0, 3) === right.slice(0, 3)
-}
-
-function detectSupportType(serviceTags = [], vehicleType = '') {
+function detectDriverSupportType(serviceTags = [], vehicleType = '') {
   if (
     serviceTags.includes('local_runs') ||
     serviceTags.includes('last_mile_delivery') ||
@@ -419,1421 +91,867 @@ function detectSupportType(serviceTags = [], vehicleType = '') {
   return 'material_delivery'
 }
 
-function profileStrength(worker) {
+function getProfileStrength(profile = {}) {
   let score = 0
-  if (normalizeText(worker.display_name)) score += 1
-  if (normalizeText(worker.first_name) && normalizeText(worker.last_name)) score += 1
-  if (normalizeText(worker.home_zip)) score += 1
-  if (normalizeText(worker.city)) score += 1
-  if (normalizeText(worker.phone)) score += 1
-  if (normalizeText(worker.bio)) score += 1
-  if (worker.trade_id || normalizeText(worker.trade_name)) score += 1
-  if (numericValue(worker.crew_size) > 1) score += 1
-  if (normalizeText(worker.availability_status)) score += 1
-  return score
+  if (normalizeText(profile.display_name)) score += 15
+  if (normalizeText(profile.bio)) score += 20
+  if (normalizeText(profile.home_zip)) score += 15
+  if (normalizeText(profile.city)) score += 10
+  if (profile.trade_name || profile.trade_id) score += 15
+  if (normalizeNumber(profile.travel_radius_miles) > 0) score += 10
+  if (normalizeNumber(profile.crew_size) > 1) score += 5
+  if (normalizeText(profile.availability_status)) score += 10
+  return Math.min(score, 100)
 }
 
-function supplierReasons(supplier, { query, material, jobZip, copy }) {
-  const reasons = []
-  const materials = normalizeMaterials(supplier.materials_categories).map((item) => item.toLowerCase())
-  const q = normalizeText(query).toLowerCase()
-  const businessZip = normalizeText(supplier.business_zip)
-
-  if (material && materials.includes(material.toLowerCase())) reasons.push(copy.materialMatch)
-  if (jobZip && businessZip === jobZip) reasons.push(copy.exactZip)
-  else if (jobZip && startsWithZipRegion(businessZip, jobZip)) reasons.push(copy.nearbyZip)
-  if (supplier.storefront) reasons.push(copy.storefrontBoost)
-  if (numericValue(supplier.delivery_radius) > 0) reasons.push(copy.deliveryCoverage)
-  if (q) {
-    const haystack = [
-      supplier.business_name,
-      supplier.display_name,
-      supplier.bio,
-      ...normalizeMaterials(supplier.materials_categories)
-    ]
-      .join(' ')
-      .toLowerCase()
-    if (haystack.includes(q)) reasons.push(copy.materialMatch)
-  }
-
-  return Array.from(new Set(reasons)).slice(0, 4)
-}
-
-function scoreSupplier(supplier, { query, material, jobZip, storefrontOnly }) {
+function scoreSupplierMatch(supplier, request) {
+  const material = normalizeText(request.material).toLowerCase()
+  const zip = normalizeText(request.zip)
+  const query = normalizeText(request.query).toLowerCase()
   let score = 0
-  const materials = normalizeMaterials(supplier.materials_categories)
-  const q = normalizeText(query).toLowerCase()
-  const businessZip = normalizeText(supplier.business_zip)
+
+  const materialMatch = normalizeList(supplier.materials_categories).some(
+    (item) => item.toLowerCase() === material
+  )
+  if (materialMatch) score += 40
+
+  if (zip && normalizeText(supplier.business_zip) === zip) score += 25
+  if (supplier.storefront) score += 10
+  score += Math.min(normalizeNumber(supplier.delivery_radius), 150) / 5
 
   const haystack = [
     supplier.business_name,
     supplier.display_name,
     supplier.bio,
-    businessZip,
-    ...materials
+    supplier.business_address,
+    ...normalizeList(supplier.materials_categories)
   ]
     .join(' ')
     .toLowerCase()
 
-  if (q) {
-    q.split(/\s+/).filter(Boolean).forEach((term) => {
+  if (query) {
+    query.split(/\s+/).filter(Boolean).forEach((term) => {
       if (haystack.includes(term)) score += 8
-      if (materials.some((item) => item.toLowerCase().includes(term))) score += 10
-      if (String(supplier.business_name || '').toLowerCase().includes(term)) score += 9
     })
   }
 
-  if (material && materials.some((item) => item.toLowerCase() === material.toLowerCase())) score += 24
-  if (jobZip && businessZip === jobZip) score += 18
-  else if (jobZip && startsWithZipRegion(businessZip, jobZip)) score += 9
-  if (supplier.storefront) score += storefrontOnly ? 12 : 6
-  score += Math.min(numericValue(supplier.delivery_radius), 150) / 6
-
   return score
 }
 
-function crewReasons(worker, { selectedTradeId, jobZip, minCrewSize, availability, copy }) {
-  const reasons = []
-  if (selectedTradeId && String(worker.trade_id || '') === String(selectedTradeId)) reasons.push(copy.tradeMatch)
-  if (jobZip && normalizeText(worker.home_zip) === normalizeText(jobZip)) reasons.push(copy.exactZip)
-  else if (jobZip && startsWithZipRegion(worker.home_zip, jobZip)) reasons.push(copy.nearbyZip)
-  if (availability && normalizeText(worker.availability_status) === availability) reasons.push(copy.availabilityMatch)
-  if (numericValue(minCrewSize) > 0 && numericValue(worker.crew_size) >= numericValue(minCrewSize)) {
-    reasons.push(copy.crewSizeMatch)
-  }
-  if (profileStrength(worker) >= 6) reasons.push(copy.profileComplete)
-  if (numericValue(worker.travel_radius_miles) > 0) reasons.push(copy.radiusFit)
-  return Array.from(new Set(reasons)).slice(0, 4)
-}
-
-function scoreWorker(worker, { selectedTradeId, jobZip, radius, minCrewSize, availability }) {
+function scoreCrewMatch(worker, request) {
+  const neededTrade = normalizeText(request.trade).toLowerCase()
+  const zip = normalizeText(request.zip)
+  const minCrew = normalizeNumber(request.minCrew)
   let score = 0
 
-  if (selectedTradeId && String(worker.trade_id || '') === String(selectedTradeId)) score += 28
-  if (jobZip && normalizeText(worker.home_zip) === normalizeText(jobZip)) score += 20
-  else if (jobZip && startsWithZipRegion(worker.home_zip, jobZip)) score += 10
+  const tradeName = normalizeText(worker.trade_name).toLowerCase()
+  if (neededTrade && tradeName === neededTrade) score += 40
+  else if (neededTrade && tradeName.includes(neededTrade)) score += 22
 
-  const workerAvailability = normalizeText(worker.availability_status)
-  if (availability && workerAvailability === availability) score += 16
-  else if (!availability && workerAvailability === 'available_now') score += 8
-  else if (!availability && workerAvailability === 'available_this_week') score += 5
+  if (zip && normalizeText(worker.home_zip) === zip) score += 22
+  if (normalizeText(request.availability) && worker.availability_status === request.availability) score += 15
+  if (!request.availability && normalizeText(worker.availability_status) === 'available_now') score += 12
+  if (minCrew > 0 && normalizeNumber(worker.crew_size) >= minCrew) score += 15
+  score += Math.min(normalizeNumber(worker.travel_radius_miles), 150) / 5
+  score += getProfileStrength(worker) / 5
 
-  if (numericValue(minCrewSize) > 0) {
-    if (numericValue(worker.crew_size) >= numericValue(minCrewSize)) score += 14
-  } else {
-    score += Math.min(numericValue(worker.crew_size), 10)
-  }
-
-  if (numericValue(radius) > 0 && numericValue(worker.travel_radius_miles) >= numericValue(radius)) {
-    score += 10
-  } else {
-    score += Math.min(numericValue(worker.travel_radius_miles), 150) / 10
-  }
-
-  score += profileStrength(worker) * 2
-  if (normalizeText(worker.bio)) score += 4
-
-  return score
+  return Math.round(score)
 }
 
-function deliveryReasons(driver, { supplier, pickupZip, jobsiteZip, supportType, vehicleType, trailerType, minPayload, minTrailerLength, minDeliveryRadius, copy }) {
-  const reasons = []
-  const driverHomeZip = normalizeText(driver.home_zip)
-  const supplierZip = normalizeText(supplier?.business_zip) || normalizeText(pickupZip)
-  const driverSupportType = normalizeText(driver.support_type)
-  const driverVehicle = normalizeText(driver.vehicle_type)
-  const driverTrailer = normalizeText(driver.trailer_type)
-
-  if (supplier?.user_id) reasons.push(copy.supplierReady)
-  if (supplierZip && driverHomeZip === supplierZip) reasons.push(copy.supplierZipFit)
-  else if (supplierZip && startsWithZipRegion(driverHomeZip, supplierZip)) reasons.push(copy.nearbyZip)
-  if (jobsiteZip && driverHomeZip === normalizeText(jobsiteZip)) reasons.push(copy.exactZip)
-  else if (jobsiteZip && startsWithZipRegion(driverHomeZip, jobsiteZip)) reasons.push(copy.nearbyZip)
-  if (supportType && driverSupportType === supportType) reasons.push(copy.laneMatch)
-  if (vehicleType && driverVehicle === vehicleType) reasons.push(copy.vehicleFit)
-  if (trailerType && driverTrailer === trailerType) reasons.push(copy.trailerFit)
-  if (numericValue(minPayload) > 0 && numericValue(driver.payload_capacity) >= numericValue(minPayload)) reasons.push(copy.payloadFit)
-  if (numericValue(minTrailerLength) > 0 && numericValue(driver.trailer_length) >= numericValue(minTrailerLength)) reasons.push(copy.trailerFit)
-  if (numericValue(minDeliveryRadius) > 0 && numericValue(driver.delivery_radius) >= numericValue(minDeliveryRadius)) reasons.push(copy.deliveryCoverage)
-
-  return Array.from(new Set(reasons)).slice(0, 5)
-}
-
-function scoreDriver(driver, { supplier, pickupZip, jobsiteZip, supportType, vehicleType, trailerType, minPayload, minTrailerLength, minDeliveryRadius }) {
+function scoreDeliveryMatch(driver, request) {
+  const lane = normalizeText(request.supportType)
+  const zip = normalizeText(request.pickupZip || request.jobsiteZip)
   let score = 0
-  const supplierZip = normalizeText(supplier?.business_zip) || normalizeText(pickupZip)
-  const driverHomeZip = normalizeText(driver.home_zip)
-  const driverBusinessZip = normalizeText(driver.business_zip)
-  const deliveryZipMatch = [driverHomeZip, driverBusinessZip].filter(Boolean)
 
-  if (supplierZip) {
-    if (deliveryZipMatch.includes(supplierZip)) score += 20
-    else if (deliveryZipMatch.some((zip) => startsWithZipRegion(zip, supplierZip))) score += 10
-  }
+  if (lane && normalizeText(driver.support_type) === lane) score += 30
+  if (zip && (normalizeText(driver.home_zip) === zip || normalizeText(driver.business_zip) === zip)) score += 20
 
-  if (jobsiteZip) {
-    if (deliveryZipMatch.includes(normalizeText(jobsiteZip))) score += 14
-    else if (deliveryZipMatch.some((zip) => startsWithZipRegion(zip, jobsiteZip))) score += 8
-  }
+  if (request.vehicleType && normalizeText(driver.vehicle_type) === normalizeText(request.vehicleType)) score += 18
+  if (request.trailerType && normalizeText(driver.trailer_type) === normalizeText(request.trailerType)) score += 15
+  if (normalizeNumber(request.minPayload) > 0 && normalizeNumber(driver.payload_capacity) >= normalizeNumber(request.minPayload)) score += 15
+  if (normalizeNumber(request.minTrailerLength) > 0 && normalizeNumber(driver.trailer_length) >= normalizeNumber(request.minTrailerLength)) score += 12
+  if (normalizeNumber(request.minRadius) > 0 && normalizeNumber(driver.delivery_radius) >= normalizeNumber(request.minRadius)) score += 15
 
-  if (supportType && normalizeText(driver.support_type) === supportType) score += 22
-  if (vehicleType && normalizeText(driver.vehicle_type) === vehicleType) score += 18
-  if (trailerType && normalizeText(driver.trailer_type) === trailerType) score += 16
-  if (numericValue(minPayload) > 0 && numericValue(driver.payload_capacity) >= numericValue(minPayload)) score += 18
-  if (numericValue(minTrailerLength) > 0 && numericValue(driver.trailer_length) >= numericValue(minTrailerLength)) score += 12
-  if (numericValue(minDeliveryRadius) > 0 && numericValue(driver.delivery_radius) >= numericValue(minDeliveryRadius)) score += 12
-
-  score += Math.min(numericValue(driver.delivery_radius), 200) / 8
-  score += Math.min(numericValue(driver.payload_capacity), 24000) / 1800
-  if (!['', 'none', 'no_trailer'].includes(normalizeText(driver.trailer_type))) score += 4
-  if (normalizeText(driver.bio)) score += 3
-
-  return score
+  score += Math.min(normalizeNumber(driver.delivery_radius), 200) / 6
+  score += Math.min(normalizeNumber(driver.payload_capacity), 20000) / 2500
+  return Math.round(score)
 }
 
-function InfoCard({ label, value }) {
+function inferProjectSignals(text) {
+  const lower = normalizeText(text).toLowerCase()
+
+  const rules = [
+    { key: 'concrete', trades: ['Concrete & Flatwork'], materials: ['Concrete'], suppliers: ['Concrete'], crew: '4 to 6 laborers + 1 foreman' },
+    { key: 'foundation', trades: ['Concrete & Flatwork', 'Sitework & Excavation'], materials: ['Concrete', 'Steel'], suppliers: ['Concrete', 'Steel'], crew: '5 to 8 workers across excavation and concrete' },
+    { key: 'rebar', trades: ['Concrete & Flatwork'], materials: ['Steel', 'Concrete'], suppliers: ['Steel', 'Concrete'], crew: '3 to 5 concrete workers' },
+    { key: 'framing', trades: ['Framing & Carpentry'], materials: ['Lumber', 'Fasteners'], suppliers: ['Lumber', 'Fasteners'], crew: '4 to 8 framers' },
+    { key: 'roof', trades: ['Roofing'], materials: ['Lumber', 'Fasteners', 'Safety Equipment'], suppliers: ['Lumber', 'Fasteners', 'Safety Equipment'], crew: '3 to 6 roofers' },
+    { key: 'drywall', trades: ['Drywall'], materials: ['Drywall', 'Fasteners'], suppliers: ['Drywall', 'Fasteners'], crew: '3 to 5 drywall workers' },
+    { key: 'paint', trades: ['Painting'], materials: ['Tools', 'Safety Equipment'], suppliers: ['Tools', 'Safety Equipment'], crew: '2 to 4 painters' },
+    { key: 'electrical', trades: ['Electrical'], materials: ['Electrical'], suppliers: ['Electrical'], crew: '2 to 4 electricians' },
+    { key: 'plumbing', trades: ['Plumbing'], materials: ['Plumbing'], suppliers: ['Plumbing'], crew: '2 to 4 plumbers' },
+    { key: 'hvac', trades: ['HVAC'], materials: ['Tools', 'Safety Equipment'], suppliers: ['Tools', 'Safety Equipment'], crew: '2 to 4 HVAC workers' },
+    { key: 'weld', trades: ['Welding & Fabrication'], materials: ['Steel', 'Tools'], suppliers: ['Steel', 'Tools'], crew: '2 to 4 welders' },
+    { key: 'excav', trades: ['Sitework & Excavation'], materials: ['Equipment Rental', 'Safety Equipment'], suppliers: ['Equipment Rental', 'Safety Equipment'], crew: '3 to 6 sitework operators/laborers' },
+    { key: 'delivery', trades: [], materials: [], suppliers: [], crew: '' }
+  ]
+
+  const trades = new Set()
+  const materials = new Set()
+  const supplierCategories = new Set()
+  const crewSuggestions = []
+
+  rules.forEach((rule) => {
+    if (lower.includes(rule.key)) {
+      rule.trades.forEach((trade) => trades.add(trade))
+      rule.materials.forEach((item) => materials.add(item))
+      rule.suppliers.forEach((item) => supplierCategories.add(item))
+      if (rule.crew) crewSuggestions.push(rule.crew)
+    }
+  })
+
+  if (trades.size === 0) {
+    trades.add('General Construction')
+  }
+
+  return {
+    summary:
+      normalizeText(text)
+        .split(/\n+/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .slice(0, 6)
+        .join(' ') || 'Project scope uploaded. Review extracted notes and refine crew/supplier planning below.',
+    trades: Array.from(trades),
+    materials: Array.from(materials),
+    supplierCategories: Array.from(supplierCategories),
+    crewSuggestions,
+    deliveryNotes: [
+      'Check pickup ZIP vs jobsite ZIP and confirm delivery radius coverage.',
+      'Match payload, trailer setup, and same-day delivery needs to the correct driver lane.',
+      'Use material category + supplier ZIP to rank local supplier and driver combinations.'
+    ]
+  }
+}
+
+function cleanExtractedText(text) {
+  return normalizeText(text)
+    .replace(/\\[nrtbf()\\]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, ' ')
+    .trim()
+}
+
+function decodePdfStringLiteral(value) {
+  return value
+    .replace(/\\\)/g, ')')
+    .replace(/\\\(/g, '(')
+    .replace(/\\n/g, ' ')
+    .replace(/\\r/g, ' ')
+    .replace(/\\t/g, ' ')
+    .replace(/\\f/g, ' ')
+    .replace(/\\b/g, ' ')
+    .replace(/\\\\/g, '\\')
+}
+
+function extractStringsFromPdfLikeText(source) {
+  const matches = []
+  const literalRegex = /\(([^()]|\\\(|\\\)|\\\\)+\)\s*(?:Tj|TJ|')/g
+  let literalMatch
+  while ((literalMatch = literalRegex.exec(source))) {
+    matches.push(decodePdfStringLiteral(literalMatch[0].replace(/\)\s*(Tj|TJ|')$/, '').slice(1)))
+  }
+
+  const hexRegex = /<([0-9A-Fa-f\s]{4,})>\s*(?:Tj|TJ)/g
+  let hexMatch
+  while ((hexMatch = hexRegex.exec(source))) {
+    try {
+      const hex = hexMatch[1].replace(/\s+/g, '')
+      const bytes = new Uint8Array(hex.match(/.{1,2}/g).map((pair) => parseInt(pair, 16)))
+      matches.push(new TextDecoder('latin1').decode(bytes))
+    } catch {
+      // ignore bad hex blocks
+    }
+  }
+
+  const btBlocks = source.match(/BT[\s\S]*?ET/g) || []
+  btBlocks.forEach((block) => {
+    const rough = block
+      .replace(/\[[^\]]*\]TJ/g, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/[A-Za-z]{1,3}/g, ' ')
+    if (rough.length > 40) matches.push(rough)
+  })
+
+  return cleanExtractedText(matches.join(' '))
+}
+
+async function extractTextFromFile(file) {
+  const name = normalizeText(file?.name).toLowerCase()
+  const type = normalizeText(file?.type).toLowerCase()
+
+  if (!file) return { extractedText: '', previewUrl: '', extractionType: 'none' }
+
+  if (type.startsWith('text/') || /\.(txt|csv|json|md)$/i.test(name)) {
+    const text = await file.text()
+    return { extractedText: cleanExtractedText(text), previewUrl: '', extractionType: 'plain_text' }
+  }
+
+  if (type.startsWith('image/')) {
+    const previewUrl = URL.createObjectURL(file)
+    return {
+      extractedText: '',
+      previewUrl,
+      extractionType: 'image_preview'
+    }
+  }
+
+  if (type === 'application/pdf' || /\.pdf$/i.test(name)) {
+    const arrayBuffer = await file.arrayBuffer()
+    const decoded = new TextDecoder('latin1').decode(new Uint8Array(arrayBuffer))
+    const extractedText = extractStringsFromPdfLikeText(decoded)
+    return {
+      extractedText,
+      previewUrl: '',
+      extractionType: extractedText ? 'pdf_text' : 'pdf_needs_ocr'
+    }
+  }
+
+  return {
+    extractedText: '',
+    previewUrl: '',
+    extractionType: 'unsupported'
+  }
+}
+
+function SectionCard({ title, children, soft = false }) {
   return (
-    <div className="card-soft" style={{ minHeight: 92 }}>
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 800,
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          color: 'var(--muted-soft)'
-        }}
-      >
-        {label}
-      </div>
-      <div style={{ marginTop: 8, fontSize: 18, fontWeight: 900, lineHeight: 1.25 }}>{value}</div>
+    <div className={soft ? 'card-soft rounded-xl' : 'card rounded-xl'} style={{ padding: soft ? 18 : 22 }}>
+      <div className="card-section-title">{title}</div>
+      <div style={{ marginTop: 12 }}>{children}</div>
     </div>
   )
 }
 
-
-const PROJECT_SCOPE_LIBRARY = [
-  {
-    key: 'sitework_excavation',
-    keywords: ['sitework', 'excavation', 'grading', 'earthwork', 'civil', 'utility trench', 'storm drain', 'paving'],
-    tradeHint: 'Sitework & Excavation',
-    supplierCategories: ['Concrete', 'Tools'],
-    crew: { base: 4, medium: 6, large: 10 },
-    delivery: 'Plan dirt-moving support, aggregate staging, and concrete or utility material drops early.'
-  },
-  {
-    key: 'concrete',
-    keywords: ['concrete', 'slab', 'footing', 'foundation', 'rebar', 'formwork'],
-    tradeHint: 'Concrete & Flatwork',
-    supplierCategories: ['Concrete', 'Tools', 'Fasteners'],
-    crew: { base: 5, medium: 8, large: 12 },
-    delivery: 'Coordinate concrete pours, rebar drops, form material staging, and same-day tool runs.'
-  },
-  {
-    key: 'steel',
-    keywords: ['steel', 'structural steel', 'joist', 'decking', 'metal building'],
-    tradeHint: 'Welding & Fabrication',
-    supplierCategories: ['Steel', 'Tools'],
-    crew: { base: 4, medium: 6, large: 10 },
-    delivery: 'Use heavier hauling capacity, trailer coordination, and scheduled steel deliveries.'
-  },
-  {
-    key: 'framing',
-    keywords: ['framing', 'carpentry', 'wood framing', 'metal stud', 'blocking'],
-    tradeHint: 'Framing & Carpentry',
-    supplierCategories: ['Lumber', 'Fasteners', 'Tools'],
-    crew: { base: 4, medium: 6, large: 10 },
-    delivery: 'Bundle framing material runs with fasteners and same-day pickup flexibility.'
-  },
-  {
-    key: 'roofing',
-    keywords: ['roof', 'roofing', 'tpo', 'shingle', 'flashing', 'waterproofing'],
-    tradeHint: 'Roofing',
-    supplierCategories: ['Tools', 'Safety Equipment'],
-    crew: { base: 3, medium: 5, large: 8 },
-    delivery: 'Sequence roof material drops carefully with weather windows and lift access.'
-  },
-  {
-    key: 'hvac',
-    keywords: ['hvac', 'duct', 'rtu', 'air handler', 'mechanical'],
-    tradeHint: 'HVAC',
-    supplierCategories: ['Tools', 'Safety Equipment'],
-    crew: { base: 3, medium: 5, large: 8 },
-    delivery: 'Plan equipment delivery windows for rooftop units, duct, and mechanical accessories.'
-  },
-  {
-    key: 'plumbing',
-    keywords: ['plumbing', 'pipe', 'domestic water', 'sanitary', 'waste', 'fixture'],
-    tradeHint: 'Plumbing',
-    supplierCategories: ['Plumbing', 'Tools'],
-    crew: { base: 3, medium: 5, large: 8 },
-    delivery: 'Keep local pipe, fittings, and fixture supply close for quick replenishment.'
-  },
-  {
-    key: 'electrical',
-    keywords: ['electrical', 'panel', 'conduit', 'wire', 'switchgear', 'lighting'],
-    tradeHint: 'Electrical',
-    supplierCategories: ['Electrical', 'Tools'],
-    crew: { base: 3, medium: 5, large: 8 },
-    delivery: 'Use local supply access for conduit, wire, gear, and same-day pickup support.'
-  },
-  {
-    key: 'drywall',
-    keywords: ['drywall', 'sheetrock', 'tape and bed', 'texture'],
-    tradeHint: 'Drywall',
-    supplierCategories: ['Drywall', 'Tools'],
-    crew: { base: 4, medium: 6, large: 10 },
-    delivery: 'Coordinate drywall drops floor-by-floor and keep damage replacement options nearby.'
-  },
-  {
-    key: 'paint',
-    keywords: ['paint', 'painting', 'coating'],
-    tradeHint: 'Painting',
-    supplierCategories: ['Tools', 'Safety Equipment'],
-    crew: { base: 2, medium: 4, large: 6 },
-    delivery: 'Plan smaller recurring paint and finish material runs rather than one large drop.'
-  },
-  {
-    key: 'masonry',
-    keywords: ['masonry', 'cmu', 'brick', 'block', 'stone'],
-    tradeHint: 'Masonry',
-    supplierCategories: ['Concrete', 'Tools'],
-    crew: { base: 4, medium: 6, large: 10 },
-    delivery: 'Coordinate pallets, mortar, block, and crane or forklift-compatible staging.'
-  },
-  {
-    key: 'fencing',
-    keywords: ['fence', 'fencing', 'gate'],
-    tradeHint: 'Fencing & Gates',
-    supplierCategories: ['Steel', 'Tools'],
-    crew: { base: 2, medium: 4, large: 6 },
-    delivery: 'Use trailer-capable delivery for panels, posts, and gate hardware.'
-  }
-]
-
-function chooseCrewBand(size, libraryCrew) {
-  if (size === 'large') return libraryCrew.large
-  if (size === 'medium') return libraryCrew.medium
-  return libraryCrew.base
+function ResultBadge({ children, dark = false }) {
+  return (
+    <span className="badge" style={dark ? { background: '#111111', color: '#ffffff' } : {}}>
+      {children}
+    </span>
+  )
 }
 
-function analyzeProjectScope({ projectText, projectType, projectSize, floors, urgency, trades }) {
-  const text = normalizeText(projectText).toLowerCase()
-  const matched = PROJECT_SCOPE_LIBRARY.filter((item) => item.keywords.some((keyword) => text.includes(keyword)))
-  const uniqueTradeNames = []
-  const supplierCategories = new Set()
-  const deliveryNotes = []
-
-  matched.forEach((item) => {
-    if (!uniqueTradeNames.includes(item.tradeHint)) uniqueTradeNames.push(item.tradeHint)
-    item.supplierCategories.forEach((cat) => supplierCategories.add(cat))
-    deliveryNotes.push(item.delivery)
-  })
-
-  if (!matched.length) {
-    uniqueTradeNames.push('General Construction')
-    supplierCategories.add('Tools')
-    supplierCategories.add('Safety Equipment')
-    deliveryNotes.push('Stage basic tools, safety items, and flexible local delivery capacity while scope details become clearer.')
-  }
-
-  const tradeMap = new Map((trades || []).map((trade) => [String(trade.name || '').toLowerCase(), trade]))
-  const tradeSummaries = uniqueTradeNames.map((tradeName) => {
-    const libraryItem = matched.find((item) => item.tradeHint === tradeName)
-    const baseSize = libraryItem ? chooseCrewBand(projectSize, libraryItem.crew) : (projectSize === 'large' ? 8 : projectSize === 'medium' ? 5 : 3)
-    const adjustedSize = baseSize + Math.max(0, numericValue(floors) - 1)
-    return {
-      name: tradeName,
-      tradeId: tradeMap.get(tradeName.toLowerCase())?.id || '',
-      suggestedCrew: adjustedSize
-    }
-  })
-
-  const typeLabelMap = {
-    general: 'general construction',
-    ground_up: 'ground-up',
-    tenant_finish: 'tenant finish / remodel',
-    sitework: 'sitework / civil',
-    industrial: 'industrial / warehouse',
-    residential: 'residential'
-  }
-
-  const urgencyLabelMap = {
-    normal: 'normal schedule',
-    fast_track: 'fast-track',
-    emergency: 'emergency'
-  }
-
-  const summary = text
-    ? `This looks like a ${typeLabelMap[projectType] || 'general construction'} project with ${tradeSummaries.length} main scope lanes, ${numericValue(floors) || 1} level(s), and a ${urgencyLabelMap[urgency] || 'normal schedule'} pace. ${matched.length ? 'The pasted scope clearly points to phased labor, supplier coordination, and delivery planning.' : 'The pasted scope is still broad, so this version is making a conservative first-pass recommendation.'}`
-    : ''
-
-  const assumptions = [
-    'This v1 reads pasted scope text, not actual plan sheets or symbols yet.',
-    'Crew sizing is a first-pass estimate and should be adjusted by square footage, phasing, schedule, and specialty complexity.',
-    'Supplier categories are suggested from scope keywords and should later be tied to live external supplier enrichment.',
-    'Delivery notes assume local Surplox drivers and hauling support are being used for staged material movement.'
-  ]
-
-  return {
-    summary,
-    tradeSummaries,
-    supplierCategories: Array.from(supplierCategories),
-    deliveryNotes: Array.from(new Set(deliveryNotes)).slice(0, 6),
-    assumptions
-  }
+function ToolTab({ active, onClick, children }) {
+  return (
+    <button type="button" className={active ? 'btn primary small' : 'btn small'} onClick={onClick}>
+      {children}
+    </button>
+  )
 }
 
-export default function SupplierAiTools({ lang = 'en' }) {
-  const copy = COPY[lang] || COPY.en
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [tab, setTab] = useState('supplier')
-  const [trades, setTrades] = useState([])
+export default function SupplierAiTools() {
+  const [activeTool, setActiveTool] = useState(TOOL_KEYS.analyzer)
+  const [currentUser, setCurrentUser] = useState(null)
   const [suppliers, setSuppliers] = useState([])
   const [workers, setWorkers] = useState([])
   const [drivers, setDrivers] = useState([])
+  const [tradesMap, setTradesMap] = useState(new Map())
+  const [loadingData, setLoadingData] = useState(true)
+  const [dataMsg, setDataMsg] = useState('')
+  const [projectMsg, setProjectMsg] = useState('')
+  const [uploading, setUploading] = useState(false)
 
-  const [projectText, setProjectText] = useState('')
-  const [projectType, setProjectType] = useState('general')
-  const [projectSize, setProjectSize] = useState('medium')
-  const [projectFloors, setProjectFloors] = useState(1)
-  const [projectUrgency, setProjectUrgency] = useState('normal')
-  const [ranProject, setRanProject] = useState(false)
+  const [projectForm, setProjectForm] = useState({
+    projectName: '',
+    jobsiteZip: '',
+    notes: ''
+  })
+  const [uploadedFiles, setUploadedFiles] = useState([])
+  const [projectAnalysis, setProjectAnalysis] = useState(null)
 
-  const [supplierQuery, setSupplierQuery] = useState('')
-  const [supplierMaterial, setSupplierMaterial] = useState('')
-  const [supplierZip, setSupplierZip] = useState('')
-  const [storefrontOnly, setStorefrontOnly] = useState(false)
-  const [ranSupplier, setRanSupplier] = useState(false)
-
-  const [crewTradeId, setCrewTradeId] = useState('')
-  const [crewZip, setCrewZip] = useState('')
-  const [crewRadius, setCrewRadius] = useState(50)
-  const [crewMinSize, setCrewMinSize] = useState(1)
-  const [crewAvailability, setCrewAvailability] = useState('')
-  const [ranCrew, setRanCrew] = useState(false)
-
-  const [deliverySupplierId, setDeliverySupplierId] = useState('')
-  const [pickupZip, setPickupZip] = useState('')
-  const [deliveryJobsiteZip, setDeliveryJobsiteZip] = useState('')
-  const [deliverySupportType, setDeliverySupportType] = useState('')
-  const [deliveryVehicleType, setDeliveryVehicleType] = useState('')
-  const [deliveryTrailerType, setDeliveryTrailerType] = useState('')
-  const [deliveryMinPayload, setDeliveryMinPayload] = useState('')
-  const [deliveryMinTrailerLength, setDeliveryMinTrailerLength] = useState('')
-  const [deliveryMinRadius, setDeliveryMinRadius] = useState('')
-  const [ranDelivery, setRanDelivery] = useState(false)
+  const [supplierForm, setSupplierForm] = useState({ material: 'Concrete', zip: '', query: '' })
+  const [crewForm, setCrewForm] = useState({ trade: '', zip: '', minCrew: 1, availability: '' })
+  const [deliveryForm, setDeliveryForm] = useState({
+    pickupZip: '',
+    jobsiteZip: '',
+    supportType: 'material_delivery',
+    vehicleType: '',
+    trailerType: '',
+    minPayload: '',
+    minTrailerLength: '',
+    minRadius: ''
+  })
 
   useEffect(() => {
     let active = true
 
     async function loadData() {
-      setLoading(true)
-      setError('')
-
+      setLoadingData(true)
+      setDataMsg('')
       try {
-        const [
-          { data: tradesData, error: tradesError },
-          { data: supplierData, error: supplierError },
-          { data: workerData, error: workerError },
-          { data: driverData, error: driverError },
-          { data: contactsData, error: contactsError }
-        ] = await Promise.all([
+        const { data: sessionData } = await supabase.auth.getSession()
+        const user = sessionData.session?.user || null
+        if (!active) return
+        setCurrentUser(user)
+
+        const [tradesResult, suppliersResult, workersResult, driversResult, contactResult] = await Promise.all([
           supabase.from('trades').select('id,name').order('name'),
           supabase
             .from('profiles')
-            .select('user_id, display_name, business_name, business_address, business_zip, materials_categories, storefront, delivery_radius, bio, role')
-            .eq('role', 'supplier')
-            .order('business_name', { ascending: true }),
+            .select('user_id,display_name,business_name,business_address,business_zip,materials_categories,delivery_radius,storefront,bio,role')
+            .eq('role', 'supplier'),
           supabase
             .from('profiles')
-            .select('user_id, display_name, first_name, last_name, role, trade_id, home_zip, travel_radius_miles, crew_size, bio, availability_status, category_group, trades(name)')
-            .in('role', ['laborer', 'subcontractor', 'contractor'])
-            .order('display_name', { ascending: true }),
+            .select('user_id,display_name,role,trade_id,home_zip,travel_radius_miles,crew_size,bio,availability_status,category_group,service_tags,equipment_tags')
+            .in('role', ['laborer', 'subcontractor', 'contractor']),
           supabase
             .from('profiles')
-            .select('user_id, display_name, first_name, last_name, home_zip, bio, role, category_group, service_tags, vehicle_type, trailer_type, trailer_length, payload_capacity, delivery_radius, business_zip')
-            .eq('role', 'driver')
-            .order('display_name', { ascending: true }),
-          supabase.from('contact_private').select('user_id, city, phone')
+            .select('user_id,display_name,first_name,last_name,home_zip,vehicle_type,trailer_type,trailer_length,payload_capacity,delivery_radius,bio,service_tags,role')
+            .eq('role', 'driver'),
+          supabase.from('contact_private').select('user_id,city,email,phone')
         ])
 
-        if (tradesError) throw tradesError
-        if (supplierError) throw supplierError
-        if (workerError) throw workerError
-        if (driverError) throw driverError
-        if (contactsError) throw contactsError
         if (!active) return
 
-        const contactMap = new Map((contactsData || []).map((row) => [row.user_id, row]))
+        const nextTradesMap = new Map((tradesResult.data || []).map((trade) => [String(trade.id), trade.name]))
+        setTradesMap(nextTradesMap)
 
-        const normalizedSuppliers = (supplierData || []).map((item) => ({
+        const contactMap = new Map((contactResult.data || []).map((row) => [row.user_id, row]))
+
+        setSuppliers((suppliersResult.data || []).map((item) => ({
           ...item,
-          materials_categories: normalizeMaterials(item.materials_categories)
+          materials_categories: normalizeList(item.materials_categories)
+        })))
+
+        setWorkers((workersResult.data || []).map((item) => {
+          const contact = contactMap.get(item.user_id) || {}
+          return {
+            ...item,
+            city: normalizeText(contact.city),
+            trade_name: nextTradesMap.get(String(item.trade_id)) || '',
+            service_tags: normalizeList(item.service_tags),
+            equipment_tags: normalizeList(item.equipment_tags)
+          }
         }))
 
-        setTrades(tradesData || [])
-        setSuppliers(normalizedSuppliers)
-        setWorkers(
-          (workerData || []).map((item) => {
-            const contact = contactMap.get(item.user_id) || {}
-            return {
-              ...item,
-              trade_name: item.trades?.name || '',
-              city: normalizeText(contact.city),
-              phone: normalizeText(contact.phone)
-            }
-          })
-        )
-        setDrivers(
-          (driverData || []).map((item) => {
-            const contact = contactMap.get(item.user_id) || {}
-            const serviceTags = normalizeList(item.service_tags)
-            return {
-              ...item,
-              city: normalizeText(contact.city),
-              phone: normalizeText(contact.phone),
-              service_tags: serviceTags,
-              support_type: detectSupportType(serviceTags, normalizeText(item.vehicle_type))
-            }
-          })
-        )
-      } catch (err) {
-        console.error(err)
+        setDrivers((driversResult.data || []).map((item) => {
+          const contact = contactMap.get(item.user_id) || {}
+          const serviceTags = normalizeList(item.service_tags)
+          return {
+            ...item,
+            city: normalizeText(contact.city),
+            business_zip: '',
+            service_tags: serviceTags,
+            support_type: detectDriverSupportType(serviceTags, normalizeText(item.vehicle_type))
+          }
+        }))
+      } catch (error) {
+        console.error(error)
         if (!active) return
-        setError(copy.loadError)
+        setDataMsg('Unable to load Surplox AI tool data right now.')
       } finally {
-        if (active) setLoading(false)
+        if (active) setLoadingData(false)
       }
     }
 
     loadData()
     return () => {
       active = false
+      uploadedFiles.forEach((file) => {
+        if (file.previewUrl) URL.revokeObjectURL(file.previewUrl)
+      })
     }
-  }, [copy.loadError])
-
-  const materialOptions = useMemo(() => {
-    const set = new Set(DEFAULT_MATERIALS)
-    suppliers.forEach((supplier) => {
-      normalizeMaterials(supplier.materials_categories).forEach((item) => set.add(item))
-    })
-    return Array.from(set).sort((a, b) => a.localeCompare(b))
-  }, [suppliers])
-
-
-  const projectAnalysis = useMemo(() => {
-    return analyzeProjectScope({
-      projectText,
-      projectType,
-      projectSize,
-      floors: projectFloors,
-      urgency: projectUrgency,
-      trades
-    })
-  }, [projectText, projectType, projectSize, projectFloors, projectUrgency, trades])
-
-  const selectedSupplier = useMemo(() => {
-    return suppliers.find((supplier) => String(supplier.user_id) === String(deliverySupplierId)) || null
-  }, [suppliers, deliverySupplierId])
-
-  useEffect(() => {
-    if (!selectedSupplier) return
-    const nextPickupZip = normalizeText(selectedSupplier.business_zip)
-    if (nextPickupZip) {
-      setPickupZip(nextPickupZip)
-    }
-  }, [selectedSupplier])
+  }, [])
 
   const supplierResults = useMemo(() => {
-    let next = [...suppliers]
-    if (supplierMaterial) {
-      next = next.filter((supplier) =>
-        normalizeMaterials(supplier.materials_categories).some(
-          (item) => item.toLowerCase() === supplierMaterial.toLowerCase()
-        )
-      )
-    }
-    if (storefrontOnly) {
-      next = next.filter((supplier) => supplier.storefront)
-    }
-    if (normalizeText(supplierZip)) {
-      next = next.filter((supplier) => {
-        const businessZip = normalizeText(supplier.business_zip)
-        return businessZip === normalizeText(supplierZip) || startsWithZipRegion(businessZip, supplierZip)
-      })
-    }
-    if (normalizeText(supplierQuery)) {
-      const q = normalizeText(supplierQuery).toLowerCase()
-      next = next.filter((supplier) => {
-        const haystack = [
-          supplier.business_name,
-          supplier.display_name,
-          supplier.business_zip,
-          supplier.bio,
-          ...normalizeMaterials(supplier.materials_categories)
-        ]
-          .join(' ')
-          .toLowerCase()
-        return haystack.includes(q)
-      })
-    }
-
-    return next
+    return [...suppliers]
       .map((supplier) => ({
         ...supplier,
-        ai_score: scoreSupplier(supplier, {
-          query: supplierQuery,
-          material: supplierMaterial,
-          jobZip: supplierZip,
-          storefrontOnly
-        }),
-        reasons: supplierReasons(supplier, {
-          query: supplierQuery,
-          material: supplierMaterial,
-          jobZip: supplierZip,
-          copy
-        })
+        matchScore: scoreSupplierMatch(supplier, supplierForm)
       }))
-      .sort((a, b) => b.ai_score - a.ai_score)
-      .slice(0, 12)
-  }, [suppliers, supplierMaterial, storefrontOnly, supplierZip, supplierQuery, copy])
+      .filter((supplier) => supplier.matchScore > 0 || !normalizeText(supplierForm.material + supplierForm.zip + supplierForm.query))
+      .sort((a, b) => b.matchScore - a.matchScore)
+      .slice(0, 8)
+  }, [suppliers, supplierForm])
 
   const crewResults = useMemo(() => {
-    let next = [...workers]
-
-    if (crewTradeId) {
-      next = next.filter((worker) => String(worker.trade_id || '') === String(crewTradeId))
-    }
-    if (normalizeText(crewZip)) {
-      next = next.filter((worker) => {
-        const homeZip = normalizeText(worker.home_zip)
-        return homeZip === normalizeText(crewZip) || startsWithZipRegion(homeZip, crewZip)
-      })
-    }
-    if (crewAvailability) {
-      next = next.filter((worker) => normalizeText(worker.availability_status) === crewAvailability)
-    }
-    if (numericValue(crewMinSize) > 0) {
-      next = next.filter((worker) => numericValue(worker.crew_size) >= numericValue(crewMinSize))
-    }
-
-    return next
+    return [...workers]
       .map((worker) => ({
         ...worker,
-        match_score: scoreWorker(worker, {
-          selectedTradeId: crewTradeId,
-          jobZip: crewZip,
-          radius: crewRadius,
-          minCrewSize: crewMinSize,
-          availability: crewAvailability
-        }),
-        strength: profileStrength(worker),
-        reasons: crewReasons(worker, {
-          selectedTradeId: crewTradeId,
-          jobZip: crewZip,
-          minCrewSize: crewMinSize,
-          availability: crewAvailability,
-          copy
-        })
+        matchScore: scoreCrewMatch(worker, crewForm)
       }))
-      .sort((a, b) => b.match_score - a.match_score)
-      .slice(0, 12)
-  }, [workers, crewTradeId, crewZip, crewAvailability, crewMinSize, crewRadius, copy])
+      .filter((worker) => worker.matchScore > 0 || !normalizeText(crewForm.trade + crewForm.zip))
+      .sort((a, b) => b.matchScore - a.matchScore)
+      .slice(0, 10)
+  }, [workers, crewForm])
 
   const deliveryResults = useMemo(() => {
-    let next = [...drivers]
-    const normalizedPickupZip = normalizeText(pickupZip) || normalizeText(selectedSupplier?.business_zip)
-    const normalizedJobsiteZip = normalizeText(deliveryJobsiteZip)
-    const minPayload = numericValue(deliveryMinPayload)
-    const minTrailerLength = numericValue(deliveryMinTrailerLength)
-    const minDeliveryRadius = numericValue(deliveryMinRadius)
-
-    if (deliverySupportType) {
-      next = next.filter((driver) => normalizeText(driver.support_type) === deliverySupportType)
-    }
-    if (deliveryVehicleType) {
-      next = next.filter((driver) => normalizeText(driver.vehicle_type) === deliveryVehicleType)
-    }
-    if (deliveryTrailerType) {
-      next = next.filter((driver) => normalizeText(driver.trailer_type) === deliveryTrailerType)
-    }
-    if (minPayload > 0) {
-      next = next.filter((driver) => numericValue(driver.payload_capacity) >= minPayload)
-    }
-    if (minTrailerLength > 0) {
-      next = next.filter((driver) => numericValue(driver.trailer_length) >= minTrailerLength)
-    }
-    if (minDeliveryRadius > 0) {
-      next = next.filter((driver) => numericValue(driver.delivery_radius) >= minDeliveryRadius)
-    }
-    if (normalizedPickupZip) {
-      next = next.filter((driver) => {
-        const homeZip = normalizeText(driver.home_zip)
-        const businessZip = normalizeText(driver.business_zip)
-        return (
-          homeZip === normalizedPickupZip ||
-          businessZip === normalizedPickupZip ||
-          startsWithZipRegion(homeZip, normalizedPickupZip) ||
-          startsWithZipRegion(businessZip, normalizedPickupZip)
-        )
-      })
-    }
-
-    return next
+    return [...drivers]
       .map((driver) => ({
         ...driver,
-        delivery_score: scoreDriver(driver, {
-          supplier: selectedSupplier,
-          pickupZip: normalizedPickupZip,
-          jobsiteZip: normalizedJobsiteZip,
-          supportType: deliverySupportType,
-          vehicleType: deliveryVehicleType,
-          trailerType: deliveryTrailerType,
-          minPayload,
-          minTrailerLength,
-          minDeliveryRadius
-        }),
-        reasons: deliveryReasons(driver, {
-          supplier: selectedSupplier,
-          pickupZip: normalizedPickupZip,
-          jobsiteZip: normalizedJobsiteZip,
-          supportType: deliverySupportType,
-          vehicleType: deliveryVehicleType,
-          trailerType: deliveryTrailerType,
-          minPayload,
-          minTrailerLength,
-          minDeliveryRadius,
-          copy
-        })
+        matchScore: scoreDeliveryMatch(driver, deliveryForm)
       }))
-      .sort((a, b) => b.delivery_score - a.delivery_score)
-      .slice(0, 12)
-  }, [
-    drivers,
-    selectedSupplier,
-    pickupZip,
-    deliveryJobsiteZip,
-    deliverySupportType,
-    deliveryVehicleType,
-    deliveryTrailerType,
-    deliveryMinPayload,
-    deliveryMinTrailerLength,
-    deliveryMinRadius,
-    copy
-  ])
+      .filter((driver) => driver.matchScore > 0 || !normalizeText(deliveryForm.pickupZip + deliveryForm.jobsiteZip))
+      .sort((a, b) => b.matchScore - a.matchScore)
+      .slice(0, 10)
+  }, [drivers, deliveryForm])
 
-  const driverVehicleOptions = useMemo(() => {
-    const set = new Set(Object.keys(VEHICLE_LABELS))
-    drivers.forEach((driver) => {
-      const value = normalizeText(driver.vehicle_type)
-      if (value) set.add(value)
-    })
-    return Array.from(set)
-  }, [drivers])
+  async function handleFilesSelected(event) {
+    const files = Array.from(event.target.files || [])
+    if (!files.length) return
 
-  const driverTrailerOptions = useMemo(() => {
-    const set = new Set(Object.keys(TRAILER_LABELS))
-    drivers.forEach((driver) => {
-      const value = normalizeText(driver.trailer_type)
-      if (value) set.add(value)
-    })
-    return Array.from(set)
-  }, [drivers])
+    setUploading(true)
+    setProjectMsg('')
 
-  const driverLaneOptions = useMemo(() => {
-    const set = new Set(Object.keys(SUPPORT_TYPE_LABELS))
-    drivers.forEach((driver) => {
-      const value = normalizeText(driver.support_type)
-      if (value) set.add(value)
-    })
-    return Array.from(set)
-  }, [drivers])
+    try {
+      const next = []
+      for (const file of files) {
+        const extraction = await extractTextFromFile(file)
+        let storagePath = ''
 
-  if (loading) {
-    return <div className="card">{copy.loading}</div>
+        if (currentUser) {
+          try {
+            const safePath = `${currentUser.id}/${Date.now()}-${file.name.replace(/\s+/g, '_')}`
+            const { error } = await supabase.storage
+              .from('ai-project-files')
+              .upload(safePath, file, { cacheControl: '3600', upsert: false })
+            if (!error) storagePath = safePath
+          } catch (storageError) {
+            console.error('AI project file upload skipped:', storageError)
+          }
+        }
+
+        next.push({
+          id: crypto.randomUUID(),
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          extractedText: extraction.extractedText,
+          extractionType: extraction.extractionType,
+          previewUrl: extraction.previewUrl,
+          storagePath
+        })
+      }
+
+      setUploadedFiles((prev) => [...prev, ...next])
+      setProjectMsg('Files uploaded into the project analyzer. Review extracted text and run analysis.')
+    } catch (error) {
+      console.error(error)
+      setProjectMsg('Unable to process one or more uploaded files right now.')
+    } finally {
+      setUploading(false)
+      event.target.value = ''
+    }
   }
 
-  if (error) {
-    return <div className="card">{error}</div>
+  function removeUploadedFile(fileId) {
+    setUploadedFiles((prev) => {
+      const file = prev.find((item) => item.id === fileId)
+      if (file?.previewUrl) URL.revokeObjectURL(file.previewUrl)
+      return prev.filter((item) => item.id !== fileId)
+    })
+  }
+
+  function runProjectAnalysis() {
+    const extractedText = uploadedFiles
+      .map((file) => file.extractedText)
+      .filter(Boolean)
+      .join('\n\n')
+
+    const combined = [projectForm.notes, extractedText].filter(Boolean).join('\n\n')
+    if (!normalizeText(combined)) {
+      setProjectMsg('Add project notes or upload blueprint files before running analysis.')
+      return
+    }
+
+    const inferred = inferProjectSignals(combined)
+    const primaryZip = normalizeText(projectForm.jobsiteZip)
+    const suggestedMaterial = inferred.supplierCategories[0] || inferred.materials[0] || 'Concrete'
+    const primaryTrade = inferred.trades[0] || 'General Construction'
+
+    setProjectAnalysis({
+      ...inferred,
+      extractedText,
+      projectName: normalizeText(projectForm.projectName) || 'Untitled Project',
+      jobsiteZip: primaryZip,
+      suggestedMaterial,
+      primaryTrade
+    })
+
+    setSupplierForm((prev) => ({
+      ...prev,
+      material: suggestedMaterial,
+      zip: primaryZip || prev.zip,
+      query: normalizeText(projectForm.projectName)
+    }))
+
+    setCrewForm((prev) => ({
+      ...prev,
+      trade: primaryTrade,
+      zip: primaryZip || prev.zip
+    }))
+
+    setDeliveryForm((prev) => ({
+      ...prev,
+      pickupZip: primaryZip || prev.pickupZip,
+      jobsiteZip: primaryZip || prev.jobsiteZip
+    }))
+
+    setProjectMsg('Project analysis complete. Review trades, crew sizing, suppliers, and delivery matches below.')
   }
 
   return (
     <div className="grid" style={{ gap: 18 }}>
-      <div
-        className="card rounded-xl"
-        style={{
-          padding: 28,
-          background: 'linear-gradient(180deg, #f2ecff 0%, #f7f7f2 100%)'
-        }}
-      >
+      <div className="card rounded-xl" style={{ padding: 28, background: 'linear-gradient(180deg, #f0ecff 0%, #f7f7f2 100%)' }}>
         <div className="badge" style={{ marginBottom: 14, background: '#e8defa', color: '#4d2f82' }}>
-          {copy.badge}
+          Surplox AI Tools
         </div>
-
-        <div className="h1" style={{ maxWidth: 860 }}>{copy.title}</div>
-
-        <p className="muted" style={{ marginTop: 12, maxWidth: 920, fontSize: 17, lineHeight: 1.7 }}>
-          {copy.body}
+        <div className="h1" style={{ maxWidth: 760 }}>Plan construction work with AI tools built around your Surplox network.</div>
+        <p className="muted" style={{ marginTop: 12, maxWidth: 900, fontSize: 17, lineHeight: 1.7 }}>
+          This hub now includes Supplier Suggestions, Crew Matching, Delivery Coordination, and a blueprint upload pipeline for Project Analyzer. The upload pipeline accepts blueprint files, extracts text from text-based PDFs and notes, preserves image uploads for review, and feeds those signals into the rest of the Surplox AI stack.
         </p>
+        {dataMsg ? (
+          <div className="card-soft" style={{ marginTop: 16, background: '#fff4da' }}>{dataMsg}</div>
+        ) : null}
+      </div>
 
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
-          <button
-            type="button"
-            className={tab === 'supplier' ? 'btn primary' : 'btn'}
-            onClick={() => setTab('supplier')}
-          >
-            {copy.supplierTab}
-          </button>
-          <button
-            type="button"
-            className={tab === 'crew' ? 'btn primary' : 'btn'}
-            onClick={() => setTab('crew')}
-          >
-            {copy.crewTab}
-          </button>
-          <button
-            type="button"
-            className={tab === 'delivery' ? 'btn primary' : 'btn'}
-            onClick={() => setTab('delivery')}
-          >
-            {copy.deliveryTab}
-          </button>
-          <button
-            type="button"
-            className={tab === 'project' ? 'btn primary' : 'btn'}
-            onClick={() => setTab('project')}
-          >
-            {copy.projectTab}
-          </button>
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <ToolTab active={activeTool === TOOL_KEYS.analyzer} onClick={() => setActiveTool(TOOL_KEYS.analyzer)}>Project Analyzer</ToolTab>
+          <ToolTab active={activeTool === TOOL_KEYS.supplier} onClick={() => setActiveTool(TOOL_KEYS.supplier)}>Supplier Suggestions AI</ToolTab>
+          <ToolTab active={activeTool === TOOL_KEYS.crew} onClick={() => setActiveTool(TOOL_KEYS.crew)}>Crew Matching AI</ToolTab>
+          <ToolTab active={activeTool === TOOL_KEYS.delivery} onClick={() => setActiveTool(TOOL_KEYS.delivery)}>Delivery Coordination AI</ToolTab>
         </div>
       </div>
 
-
-      {tab === 'project' ? (
-        <>
-          <div className="card rounded-xl" style={{ padding: 22 }}>
-            <div className="card-section-title">{copy.projectTitle}</div>
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.projectBody}</p>
-
-            <div className="card-soft" style={{ marginTop: 16, background: '#f8f7ef' }}>
-              <div className="card-section-title" style={{ fontSize: 16 }}>{copy.analyzerReady}</div>
-              <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.analyzerReadyBody}</p>
-            </div>
-
-            <div className="grid" style={{ gap: 14, marginTop: 16 }}>
+      {activeTool === TOOL_KEYS.analyzer ? (
+        <div className="grid" style={{ gap: 18 }}>
+          <SectionCard title="Real Blueprint Upload + Extraction Pipeline">
+            <div className="grid two" style={{ gap: 14 }}>
               <div>
-                <div className="muted" style={{ marginBottom: 8 }}>{copy.projectPasteLabel}</div>
-                <textarea
-                  className="input"
-                  value={projectText}
-                  onChange={(e) => setProjectText(e.target.value)}
-                  placeholder={copy.projectPastePlaceholder}
-                  style={{ minHeight: 180 }}
-                />
+                <div className="muted" style={{ marginBottom: 8 }}>Project name</div>
+                <input className="input" value={projectForm.projectName} onChange={(e) => setProjectForm((prev) => ({ ...prev, projectName: e.target.value }))} placeholder="Example: Fort Worth Tilt Wall Warehouse" />
               </div>
-
-              <div className="grid two" style={{ gap: 14 }}>
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.projectTypeLabel}</div>
-                  <select className="input" value={projectType} onChange={(e) => setProjectType(e.target.value)}>
-                    <option value="general">{copy.projectTypeGeneral}</option>
-                    <option value="ground_up">{copy.projectTypeGroundUp}</option>
-                    <option value="tenant_finish">{copy.projectTypeTenant}</option>
-                    <option value="sitework">{copy.projectTypeSitework}</option>
-                    <option value="industrial">{copy.projectTypeIndustrial}</option>
-                    <option value="residential">{copy.projectTypeResidential}</option>
-                  </select>
-                </div>
-
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.projectSizeLabel}</div>
-                  <select className="input" value={projectSize} onChange={(e) => setProjectSize(e.target.value)}>
-                    <option value="small">{copy.projectSizeSmall}</option>
-                    <option value="medium">{copy.projectSizeMedium}</option>
-                    <option value="large">{copy.projectSizeLarge}</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid two" style={{ gap: 14 }}>
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.projectFloorsLabel}</div>
-                  <input
-                    className="input"
-                    type="number"
-                    min="1"
-                    value={projectFloors}
-                    onChange={(e) => setProjectFloors(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.projectUrgencyLabel}</div>
-                  <select className="input" value={projectUrgency} onChange={(e) => setProjectUrgency(e.target.value)}>
-                    <option value="normal">{copy.projectUrgencyNormal}</option>
-                    <option value="fast_track">{copy.projectUrgencyFast}</option>
-                    <option value="emergency">{copy.projectUrgencyEmergency}</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                <button type="button" className="btn primary" onClick={() => setRanProject(true)}>
-                  {copy.runProject}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {ranProject ? (
-            normalizeText(projectText) ? (
-              <div className="grid" style={{ gap: 16 }}>
-                <div className="card rounded-xl" style={{ padding: 22 }}>
-                  <div className="card-section-title">{copy.projectSummary}</div>
-                  <p style={{ marginTop: 10, lineHeight: 1.7 }}>{projectAnalysis.summary || copy.summaryFallback}</p>
-                </div>
-
-                <div className="card rounded-xl" style={{ padding: 22 }}>
-                  <div className="card-section-title">{copy.requiredTradesTitle}</div>
-                  <div className="grid" style={{ gap: 12, marginTop: 14 }}>
-                    {projectAnalysis.tradeSummaries.map((trade) => (
-                      <div key={trade.name} className="card-soft" style={{ background: '#ffffff' }}>
-                        <div style={{ fontWeight: 900 }}>{trade.name}</div>
-                        <div className="muted" style={{ marginTop: 8 }}>
-                          {copy.suggestedCrewTitle}: {trade.suggestedCrew}
-                        </div>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                          {trade.tradeId ? (
-                            <button
-                              type="button"
-                              className="btn small"
-                              onClick={() => {
-                                setCrewTradeId(String(trade.tradeId))
-                                setTab('crew')
-                                setRanCrew(true)
-                              }}
-                            >
-                              {copy.crewTab}
-                            </button>
-                          ) : null}
-                          <Link className="btn small primary" to="/new?type=need_crew">
-                            {copy.createNeedCrew}
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="card rounded-xl" style={{ padding: 22 }}>
-                  <div className="card-section-title">{copy.supplierPlanTitle}</div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-                    {projectAnalysis.supplierCategories.map((category) => (
-                      <button
-                        key={category}
-                        type="button"
-                        className="badge"
-                        style={{ border: 'none', cursor: 'pointer' }}
-                        onClick={() => {
-                          setSupplierMaterial(category)
-                          setTab('supplier')
-                          setRanSupplier(true)
-                        }}
-                      >
-                        {category}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="card rounded-xl" style={{ padding: 22 }}>
-                  <div className="card-section-title">{copy.deliveryPlanTitle}</div>
-                  <div className="list" style={{ marginTop: 14 }}>
-                    {projectAnalysis.deliveryNotes.map((note, index) => (
-                      <div key={`${index}-${note}`} className="card-soft" style={{ background: '#ffffff' }}>
-                        {note}
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
-                    <button
-                      type="button"
-                      className="btn small"
-                      onClick={() => {
-                        setTab('delivery')
-                        setRanDelivery(true)
-                      }}
-                    >
-                      {copy.deliveryTab}
-                    </button>
-                    <Link className="btn small primary" to="/new?category=jobsite_support&support=material_delivery">
-                      {copy.createDeliveryPost}
-                    </Link>
-                  </div>
-                </div>
-
-                <div className="card rounded-xl" style={{ padding: 22 }}>
-                  <div className="card-section-title">{copy.projectAssumptionsTitle}</div>
-                  <div className="list" style={{ marginTop: 14 }}>
-                    {projectAnalysis.assumptions.map((item, index) => (
-                      <div key={`${index}-${item}`} className="card-soft" style={{ background: '#ffffff' }}>
-                        {item}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="card rounded-xl" style={{ padding: 22 }}>
-                <div className="card-section-subtitle">{copy.noProjectInput}</div>
-              </div>
-            )
-          ) : null}
-        </>
-      ) : null}
-
-      {tab === 'supplier' ? (
-        <>
-          <div className="card rounded-xl" style={{ padding: 22 }}>
-            <div className="card-section-title">{copy.supplierTitle}</div>
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.supplierBody}</p>
-
-            <div className="grid" style={{ gap: 14, marginTop: 16 }}>
-              <div className="grid two" style={{ gap: 14 }}>
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.materialLabel}</div>
-                  <select
-                    className="input"
-                    value={supplierMaterial}
-                    onChange={(e) => setSupplierMaterial(e.target.value)}
-                  >
-                    <option value="">{copy.allMaterials}</option>
-                    {materialOptions.map((item) => (
-                      <option key={item} value={item}>{item}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.supplierZipLabel}</div>
-                  <input
-                    className="input"
-                    value={supplierZip}
-                    onChange={(e) => setSupplierZip(e.target.value.replace(/[^\d]/g, '').slice(0, 5))}
-                    placeholder={copy.supplierZipPlaceholder}
-                  />
-                </div>
-              </div>
-
               <div>
-                <div className="muted" style={{ marginBottom: 8 }}>{copy.supplierSearchLabel}</div>
-                <input
-                  className="input"
-                  value={supplierQuery}
-                  onChange={(e) => setSupplierQuery(e.target.value)}
-                  placeholder={copy.supplierSearchPlaceholder}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                <button
-                  type="button"
-                  className={storefrontOnly ? 'btn primary' : 'btn'}
-                  onClick={() => setStorefrontOnly((prev) => !prev)}
-                >
-                  {copy.storefrontOnly}
-                </button>
-                <button type="button" className="btn primary" onClick={() => setRanSupplier(true)}>
-                  {copy.runSupplier}
-                </button>
+                <div className="muted" style={{ marginBottom: 8 }}>Jobsite ZIP</div>
+                <input className="input" value={projectForm.jobsiteZip} onChange={(e) => setProjectForm((prev) => ({ ...prev, jobsiteZip: e.target.value.replace(/[^\d]/g, '').slice(0, 5) }))} placeholder="76140" />
               </div>
             </div>
-          </div>
 
-          {ranSupplier ? (
-            <div className="grid" style={{ gap: 16 }}>
-              <div className="card rounded-xl" style={{ padding: 22 }}>
-                <div className="card-section-title">{copy.supplierResults}</div>
+            <div style={{ marginTop: 14 }}>
+              <div className="muted" style={{ marginBottom: 8 }}>Upload blueprint files, scope notes, PDFs, images, or text files</div>
+              <input className="input" type="file" multiple accept=".pdf,.txt,.csv,.json,.md,image/*" onChange={handleFilesSelected} disabled={uploading} />
+              <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
+                Text-based PDFs and note files are extracted automatically. Image files are preserved for review and can be combined with your written scope notes below.
               </div>
+            </div>
 
-              {supplierResults.length === 0 ? (
-                <div className="card rounded-xl" style={{ padding: 22 }}>
-                  <div className="card-section-subtitle">{copy.noSupplierResults}</div>
-                </div>
-              ) : (
-                supplierResults.map((supplier) => (
-                  <div key={supplier.user_id} className="card rounded-xl" style={{ padding: 22 }}>
+            <div style={{ marginTop: 14 }}>
+              <div className="muted" style={{ marginBottom: 8 }}>Manual project notes / blueprint observations</div>
+              <textarea className="input" value={projectForm.notes} onChange={(e) => setProjectForm((prev) => ({ ...prev, notes: e.target.value }))} placeholder="Paste blueprint scope, room counts, slab notes, framing notes, equipment lists, delivery constraints, or any field observations here." />
+            </div>
+
+            {projectMsg ? <div className="card-soft" style={{ marginTop: 14, background: '#fffaf0' }}>{projectMsg}</div> : null}
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+              <button type="button" className="btn primary" onClick={runProjectAnalysis} disabled={uploading || loadingData}>
+                {uploading ? 'Processing uploads…' : 'Run Project Analysis'}
+              </button>
+              <button type="button" className="btn" onClick={() => { setProjectForm({ projectName: '', jobsiteZip: '', notes: '' }); setUploadedFiles([]); setProjectAnalysis(null); setProjectMsg(''); }}>
+                Clear Project Inputs
+              </button>
+            </div>
+          </SectionCard>
+
+          {uploadedFiles.length > 0 ? (
+            <SectionCard title="Uploaded Blueprint Files">
+              <div className="grid" style={{ gap: 14 }}>
+                {uploadedFiles.map((file) => (
+                  <div key={file.id} className="card-soft" style={{ background: '#ffffff' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                       <div>
-                        <div className="h2" style={{ fontSize: 24 }}>
-                          {normalizeText(supplier.business_name) || normalizeText(supplier.display_name) || 'Supplier'}
+                        <div style={{ fontWeight: 900 }}>{file.name}</div>
+                        <div className="muted" style={{ marginTop: 6 }}>
+                          Extraction: {titleCase(file.extractionType.replace(/_/g, ' ')) || 'None'} · {(file.size / 1024).toFixed(1)} KB
                         </div>
-                        <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          <span className="badge">AI {copy.matchScore}: {supplier.ai_score}</span>
-                          {supplier.storefront ? <span className="badge">{copy.storefront}</span> : null}
-                          <span className="badge">{copy.supplierZip}: {normalizeText(supplier.business_zip) || '—'}</span>
-                        </div>
+                        {file.storagePath ? (
+                          <div className="muted" style={{ marginTop: 6 }}>Stored path: {file.storagePath}</div>
+                        ) : null}
                       </div>
-
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <Link className="btn small primary" to={`/supplier/${supplier.user_id}`}>
-                          {copy.openStorefront}
-                        </Link>
-                        <Link className="btn small" to={`/u/${supplier.user_id}`}>
-                          {copy.openProfile}
-                        </Link>
+                      <button type="button" className="btn small" onClick={() => removeUploadedFile(file.id)}>Remove</button>
+                    </div>
+                    {file.previewUrl ? (
+                      <div style={{ marginTop: 12 }}>
+                        <img src={file.previewUrl} alt={file.name} style={{ width: '100%', maxHeight: 320, objectFit: 'contain', borderRadius: 18 }} />
                       </div>
-                    </div>
-
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                      gap: 14,
-                      marginTop: 16
-                    }}>
-                      <InfoCard label={copy.supplierMaterials} value={normalizeMaterials(supplier.materials_categories).slice(0, 3).join(', ') || '—'} />
-                      <InfoCard label={copy.supplierRadius} value={numericValue(supplier.delivery_radius) > 0 ? `${numericValue(supplier.delivery_radius)} ${copy.miles}` : '—'} />
-                      <InfoCard label={copy.supplierWhy} value={supplier.reasons.join(' • ') || '—'} />
-                    </div>
-
-                    <div style={{ marginTop: 16 }}>
-                      <div className="muted">About</div>
-                      <p style={{ marginTop: 8, lineHeight: 1.7 }}>{normalizeText(supplier.bio) || '—'}</p>
-                    </div>
+                    ) : null}
+                    {file.extractedText ? (
+                      <div style={{ marginTop: 12 }}>
+                        <div className="muted" style={{ marginBottom: 8 }}>Extracted text preview</div>
+                        <div className="card-soft" style={{ background: '#f8f8f4', maxHeight: 220, overflowY: 'auto' }}>{file.extractedText.slice(0, 1600)}</div>
+                      </div>
+                    ) : null}
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            </SectionCard>
           ) : null}
-        </>
+
+          {projectAnalysis ? (
+            <SectionCard title="Project Analyzer Output">
+              <div className="grid two" style={{ gap: 14 }}>
+                <div className="card-soft" style={{ background: '#fffaf0' }}>
+                  <div className="card-section-title" style={{ fontSize: 16 }}>Project Summary</div>
+                  <p style={{ marginTop: 8, lineHeight: 1.7 }}>{projectAnalysis.summary}</p>
+                </div>
+                <div className="card-soft" style={{ background: '#eef6ff' }}>
+                  <div className="card-section-title" style={{ fontSize: 16 }}>Jobsite Hand-off</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                    <ResultBadge dark>{projectAnalysis.projectName}</ResultBadge>
+                    <ResultBadge>ZIP {projectAnalysis.jobsiteZip || 'Not set'}</ResultBadge>
+                    <ResultBadge>Primary Trade: {projectAnalysis.primaryTrade}</ResultBadge>
+                    <ResultBadge>Supplier Category: {projectAnalysis.suggestedMaterial}</ResultBadge>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid three" style={{ gap: 14, marginTop: 14 }}>
+                <div className="card-soft">
+                  <div className="card-section-title" style={{ fontSize: 16 }}>Required Trades</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                    {projectAnalysis.trades.map((item) => <ResultBadge key={item}>{item}</ResultBadge>)}
+                  </div>
+                </div>
+                <div className="card-soft">
+                  <div className="card-section-title" style={{ fontSize: 16 }}>Supplier Categories</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                    {projectAnalysis.supplierCategories.length > 0
+                      ? projectAnalysis.supplierCategories.map((item) => <ResultBadge key={item}>{item}</ResultBadge>)
+                      : <span className="muted">No supplier category signals found yet.</span>}
+                  </div>
+                </div>
+                <div className="card-soft">
+                  <div className="card-section-title" style={{ fontSize: 16 }}>Crew Size Suggestions</div>
+                  <div className="list" style={{ marginTop: 10 }}>
+                    {projectAnalysis.crewSuggestions.length > 0
+                      ? projectAnalysis.crewSuggestions.map((item) => <div key={item}>{item}</div>)
+                      : <span className="muted">General construction crew planning still needed.</span>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="card-soft" style={{ marginTop: 14, background: '#f8f7ef' }}>
+                <div className="card-section-title" style={{ fontSize: 16 }}>Delivery Coordination Notes</div>
+                <div className="list" style={{ marginTop: 10 }}>
+                  {projectAnalysis.deliveryNotes.map((note) => <div key={note}>{note}</div>)}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+                <button type="button" className="btn small" onClick={() => setActiveTool(TOOL_KEYS.crew)}>Open Crew Matching AI</button>
+                <button type="button" className="btn small" onClick={() => setActiveTool(TOOL_KEYS.supplier)}>Open Supplier Suggestions AI</button>
+                <button type="button" className="btn small" onClick={() => setActiveTool(TOOL_KEYS.delivery)}>Open Delivery Coordination AI</button>
+                <Link className="btn small" to={`/new?type=need_crew${projectAnalysis.jobsiteZip ? `&zip=${projectAnalysis.jobsiteZip}` : ''}`}>Create Need Crew Post</Link>
+                <Link className="btn small" to={`/new?category=jobsite_support&support=material_delivery${projectAnalysis.jobsiteZip ? `&zip=${projectAnalysis.jobsiteZip}` : ''}`}>Create Delivery Support Post</Link>
+              </div>
+            </SectionCard>
+          ) : null}
+        </div>
       ) : null}
 
-      {tab === 'crew' ? (
-        <>
-          <div className="card rounded-xl" style={{ padding: 22 }}>
-            <div className="card-section-title">{copy.crewTitle}</div>
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.crewBody}</p>
-
-            <div className="grid" style={{ gap: 14, marginTop: 16 }}>
-              <div className="grid two" style={{ gap: 14 }}>
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.tradeLabel}</div>
-                  <select className="input" value={crewTradeId} onChange={(e) => setCrewTradeId(e.target.value)}>
-                    <option value="">{copy.allTrades}</option>
-                    {trades.map((trade) => (
-                      <option key={trade.id} value={trade.id}>{trade.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.crewZipLabel}</div>
-                  <input
-                    className="input"
-                    value={crewZip}
-                    onChange={(e) => setCrewZip(e.target.value.replace(/[^\d]/g, '').slice(0, 5))}
-                    placeholder={copy.crewZipPlaceholder}
-                  />
-                </div>
-              </div>
-
-              <div className="grid two" style={{ gap: 14 }}>
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.radiusLabel}</div>
-                  <input
-                    className="input"
-                    type="number"
-                    value={crewRadius}
-                    onChange={(e) => setCrewRadius(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.minCrewLabel}</div>
-                  <input
-                    className="input"
-                    type="number"
-                    value={crewMinSize}
-                    onChange={(e) => setCrewMinSize(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="muted" style={{ marginBottom: 8 }}>{copy.availabilityLabel}</div>
-                <select className="input" value={crewAvailability} onChange={(e) => setCrewAvailability(e.target.value)}>
-                  <option value="">{copy.allAvailability}</option>
-                  <option value="available_now">{copy.availableNow}</option>
-                  <option value="available_this_week">{copy.availableThisWeek}</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <button type="button" className="btn primary" onClick={() => setRanCrew(true)}>
-                  {copy.runCrew}
-                </button>
-                <Link className="btn" to="/new?type=need_crew">{copy.createNeedCrew}</Link>
-              </div>
+      {activeTool === TOOL_KEYS.supplier ? (
+        <SectionCard title="Supplier Suggestions AI">
+          <div className="grid three" style={{ gap: 14 }}>
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>Material Category</div>
+              <select className="input" value={supplierForm.material} onChange={(e) => setSupplierForm((prev) => ({ ...prev, material: e.target.value }))}>
+                {MATERIAL_OPTIONS.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>Jobsite / Supplier ZIP</div>
+              <input className="input" value={supplierForm.zip} onChange={(e) => setSupplierForm((prev) => ({ ...prev, zip: e.target.value.replace(/[^\d]/g, '').slice(0, 5) }))} placeholder="76140" />
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>Keyword Search</div>
+              <input className="input" value={supplierForm.query} onChange={(e) => setSupplierForm((prev) => ({ ...prev, query: e.target.value }))} placeholder="yard, rebar, ready mix, drywall" />
             </div>
           </div>
 
-          {ranCrew ? (
-            <div className="grid" style={{ gap: 16 }}>
-              <div className="card rounded-xl" style={{ padding: 22 }}>
-                <div className="card-section-title">{copy.crewResults}</div>
-              </div>
-
-              {crewResults.length === 0 ? (
-                <div className="card rounded-xl" style={{ padding: 22 }}>
-                  <div className="card-section-subtitle">{copy.noCrewResults}</div>
-                </div>
-              ) : (
-                crewResults.map((worker) => (
-                  <div key={worker.user_id} className="card rounded-xl" style={{ padding: 22 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                      <div>
-                        <div className="h2" style={{ fontSize: 24 }}>
-                          {normalizeText(worker.display_name) || normalizeText(`${worker.first_name || ''} ${worker.last_name || ''}`) || 'Member'}
-                        </div>
-                        <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          <span className="badge">AI {copy.matchScore}: {worker.match_score}</span>
-                          <span className="badge">{copy.role}: {prettyRole(worker.role, lang)}</span>
-                          <span className="badge">{copy.trade}: {normalizeText(worker.trade_name) || '—'}</span>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <Link className="btn small primary" to={`/u/${worker.user_id}`}>
-                          {copy.openWorker}
-                        </Link>
-                      </div>
-                    </div>
-
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                      gap: 14,
-                      marginTop: 16
-                    }}>
-                      <InfoCard label={copy.zip} value={normalizeText(worker.home_zip) || '—'} />
-                      <InfoCard label={copy.availability} value={availabilityLabel(worker.availability_status, lang)} />
-                      <InfoCard label={copy.crewSize} value={numericValue(worker.crew_size) || '—'} />
-                      <InfoCard label={copy.travelRadius} value={numericValue(worker.travel_radius_miles) > 0 ? `${numericValue(worker.travel_radius_miles)} ${copy.miles}` : '—'} />
-                      <InfoCard label={copy.profileStrength} value={`${worker.strength}/9`} />
-                      <InfoCard label={copy.whyMatched} value={worker.reasons.join(' • ') || '—'} />
-                    </div>
-
-                    <div style={{ marginTop: 16 }}>
-                      <div className="muted">Bio</div>
-                      <p style={{ marginTop: 8, lineHeight: 1.7 }}>{normalizeText(worker.bio) || copy.noBio}</p>
-                    </div>
+          <div className="grid" style={{ gap: 14, marginTop: 16 }}>
+            {supplierResults.map((supplier) => (
+              <div key={supplier.user_id} className="card-soft" style={{ background: '#ffffff' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontWeight: 900, fontSize: 18 }}>{normalizeText(supplier.business_name) || normalizeText(supplier.display_name) || 'Supplier'}</div>
+                    <div className="muted" style={{ marginTop: 6 }}>{normalizeText(supplier.business_address) || 'Address not listed'} · ZIP {normalizeText(supplier.business_zip) || '—'}</div>
                   </div>
-                ))
-              )}
-            </div>
-          ) : null}
-        </>
+                  <ResultBadge dark>Match {supplier.matchScore}</ResultBadge>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  {normalizeList(supplier.materials_categories).map((item) => <ResultBadge key={item}>{item}</ResultBadge>)}
+                  {supplier.storefront ? <ResultBadge>Storefront</ResultBadge> : null}
+                  {normalizeNumber(supplier.delivery_radius) > 0 ? <ResultBadge>{normalizeNumber(supplier.delivery_radius)} mi delivery</ResultBadge> : null}
+                </div>
+                <p style={{ marginTop: 10, lineHeight: 1.7 }}>{normalizeText(supplier.bio) || 'Supplier bio not added yet.'}</p>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+                  <Link className="btn small primary" to={`/supplier/${supplier.user_id}`}>Open Storefront</Link>
+                  <Link className="btn small" to={`/materials?q=${encodeURIComponent(normalizeText(supplier.business_name) || normalizeText(supplier.display_name))}`}>Open in Materials</Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
       ) : null}
 
-      {tab === 'delivery' ? (
-        <>
-          <div className="card rounded-xl" style={{ padding: 22 }}>
-            <div className="card-section-title">{copy.deliveryTitle}</div>
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.deliveryBody}</p>
-
-            <div className="grid" style={{ gap: 14, marginTop: 16 }}>
+      {activeTool === TOOL_KEYS.crew ? (
+        <SectionCard title="Crew Matching AI">
+          <div className="grid" style={{ gap: 14 }}>
+            <div className="grid three" style={{ gap: 14 }}>
               <div>
-                <div className="muted" style={{ marginBottom: 8 }}>{copy.chooseSupplier}</div>
-                <select className="input" value={deliverySupplierId} onChange={(e) => setDeliverySupplierId(e.target.value)}>
-                  <option value="">{copy.allSuppliers}</option>
-                  {suppliers.map((supplier) => (
-                    <option key={supplier.user_id} value={supplier.user_id}>
-                      {normalizeText(supplier.business_name) || normalizeText(supplier.display_name) || 'Supplier'}
-                    </option>
-                  ))}
-                </select>
-                <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>{copy.supplierOptional}</div>
+                <div className="muted" style={{ marginBottom: 8 }}>Needed Trade</div>
+                <input className="input" value={crewForm.trade} onChange={(e) => setCrewForm((prev) => ({ ...prev, trade: e.target.value }))} placeholder="Drywall, Concrete & Flatwork, Electrical" />
               </div>
-
-              <div className="grid two" style={{ gap: 14 }}>
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.pickupZipLabel}</div>
-                  <input
-                    className="input"
-                    value={pickupZip}
-                    onChange={(e) => setPickupZip(e.target.value.replace(/[^\d]/g, '').slice(0, 5))}
-                    placeholder={copy.pickupZipPlaceholder}
-                  />
-                </div>
-
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.jobsiteZipLabel}</div>
-                  <input
-                    className="input"
-                    value={deliveryJobsiteZip}
-                    onChange={(e) => setDeliveryJobsiteZip(e.target.value.replace(/[^\d]/g, '').slice(0, 5))}
-                    placeholder={copy.jobsiteZipPlaceholder}
-                  />
-                </div>
+              <div>
+                <div className="muted" style={{ marginBottom: 8 }}>Jobsite ZIP</div>
+                <input className="input" value={crewForm.zip} onChange={(e) => setCrewForm((prev) => ({ ...prev, zip: e.target.value.replace(/[^\d]/g, '').slice(0, 5) }))} placeholder="76140" />
               </div>
-
-              <div className="grid two" style={{ gap: 14 }}>
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.deliveryLaneLabel}</div>
-                  <select className="input" value={deliverySupportType} onChange={(e) => setDeliverySupportType(e.target.value)}>
-                    <option value="">{copy.allDeliveryLanes}</option>
-                    {driverLaneOptions.map((option) => (
-                      <option key={option} value={option}>{labelForMap(SUPPORT_TYPE_LABELS, option, lang)}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.vehicleLabel}</div>
-                  <select className="input" value={deliveryVehicleType} onChange={(e) => setDeliveryVehicleType(e.target.value)}>
-                    <option value="">{copy.allVehicles}</option>
-                    {driverVehicleOptions.map((option) => (
-                      <option key={option} value={option}>{labelForMap(VEHICLE_LABELS, option, lang)}</option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <div className="muted" style={{ marginBottom: 8 }}>Minimum Crew Size</div>
+                <input className="input" type="number" value={crewForm.minCrew} onChange={(e) => setCrewForm((prev) => ({ ...prev, minCrew: e.target.value }))} />
               </div>
-
-              <div className="grid two" style={{ gap: 14 }}>
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.trailerLabel}</div>
-                  <select className="input" value={deliveryTrailerType} onChange={(e) => setDeliveryTrailerType(e.target.value)}>
-                    <option value="">{copy.allTrailers}</option>
-                    {driverTrailerOptions.map((option) => (
-                      <option key={option} value={option}>{labelForMap(TRAILER_LABELS, option, lang)}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.minPayloadLabel}</div>
-                  <input
-                    className="input"
-                    type="number"
-                    value={deliveryMinPayload}
-                    onChange={(e) => setDeliveryMinPayload(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid two" style={{ gap: 14 }}>
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.minTrailerLengthLabel}</div>
-                  <input
-                    className="input"
-                    type="number"
-                    value={deliveryMinTrailerLength}
-                    onChange={(e) => setDeliveryMinTrailerLength(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <div className="muted" style={{ marginBottom: 8 }}>{copy.minDeliveryRadiusLabel}</div>
-                  <input
-                    className="input"
-                    type="number"
-                    value={deliveryMinRadius}
-                    onChange={(e) => setDeliveryMinRadius(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <button type="button" className="btn primary" onClick={() => setRanDelivery(true)}>
-                  {copy.runDelivery}
-                </button>
-                <Link className="btn" to="/new?category=jobsite_support&support=material_delivery">
-                  {copy.createDeliveryPost}
-                </Link>
-              </div>
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>Availability</div>
+              <select className="input" value={crewForm.availability} onChange={(e) => setCrewForm((prev) => ({ ...prev, availability: e.target.value }))}>
+                <option value="">Any availability</option>
+                <option value="available_now">Available Now</option>
+                <option value="available_this_week">Available This Week</option>
+                <option value="busy">Busy</option>
+              </select>
             </div>
           </div>
 
-          {ranDelivery ? (
-            <div className="grid" style={{ gap: 16 }}>
-              <div className="card rounded-xl" style={{ padding: 22 }}>
-                <div className="card-section-title">{copy.deliveryResults}</div>
-              </div>
+          <div className="grid" style={{ gap: 14, marginTop: 16 }}>
+            {crewResults.map((worker) => {
+              const reasons = []
+              if (normalizeText(crewForm.trade) && normalizeText(worker.trade_name).toLowerCase().includes(normalizeText(crewForm.trade).toLowerCase())) reasons.push('trade match')
+              if (normalizeText(crewForm.zip) && normalizeText(worker.home_zip) === normalizeText(crewForm.zip)) reasons.push('same ZIP')
+              if (crewForm.availability && worker.availability_status === crewForm.availability) reasons.push('availability match')
+              if (normalizeNumber(worker.crew_size) >= normalizeNumber(crewForm.minCrew)) reasons.push('crew size fit')
+              if (normalizeNumber(worker.travel_radius_miles) > 0) reasons.push('travel radius listed')
 
-              {deliveryResults.length === 0 ? (
-                <div className="card rounded-xl" style={{ padding: 22 }}>
-                  <div className="card-section-subtitle">{copy.noDeliveryResults}</div>
-                </div>
-              ) : (
-                deliveryResults.map((driver) => (
-                  <div key={driver.user_id} className="card rounded-xl" style={{ padding: 22 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                      <div>
-                        <div className="h2" style={{ fontSize: 24 }}>
-                          {normalizeText(driver.display_name) || normalizeText(`${driver.first_name || ''} ${driver.last_name || ''}`) || prettyRole('driver', lang)}
-                        </div>
-                        <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          <span className="badge">AI {copy.matchScore}: {driver.delivery_score}</span>
-                          <span className="badge">{copy.supportLane}: {labelForMap(SUPPORT_TYPE_LABELS, driver.support_type, lang) || '—'}</span>
-                          <span className="badge">{copy.city}: {normalizeText(driver.city) || copy.noCity}</span>
-                          <span className="badge">{copy.zip}: {normalizeText(driver.home_zip) || normalizeText(driver.business_zip) || '—'}</span>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <Link className="btn small primary" to={`/u/${driver.user_id}`}>
-                          {copy.openDriver}
-                        </Link>
-                      </div>
+              return (
+                <div key={worker.user_id} className="card-soft" style={{ background: '#ffffff' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontWeight: 900, fontSize: 18 }}>{normalizeText(worker.display_name) || 'Worker'}</div>
+                      <div className="muted" style={{ marginTop: 6 }}>{worker.trade_name || 'Trade not listed'} · ZIP {normalizeText(worker.home_zip) || '—'}</div>
                     </div>
-
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                      gap: 14,
-                      marginTop: 16
-                    }}>
-                      <InfoCard label={copy.pickupSummary} value={normalizeText(selectedSupplier?.business_name) || normalizeText(selectedSupplier?.display_name) || normalizeText(pickupZip) || '—'} />
-                      <InfoCard label={copy.jobsiteSummary} value={normalizeText(deliveryJobsiteZip) || '—'} />
-                      <InfoCard label={copy.vehicleType} value={labelForMap(VEHICLE_LABELS, driver.vehicle_type, lang) || '—'} />
-                      <InfoCard label={copy.trailerType} value={labelForMap(TRAILER_LABELS, driver.trailer_type, lang) || '—'} />
-                      <InfoCard label={copy.payloadCapacity} value={numericValue(driver.payload_capacity) > 0 ? `${numericValue(driver.payload_capacity)} ${copy.pounds}` : '—'} />
-                      <InfoCard label={copy.deliveryRadiusLabel} value={numericValue(driver.delivery_radius) > 0 ? `${numericValue(driver.delivery_radius)} ${copy.miles}` : '—'} />
-                      <InfoCard label={copy.trailerLength} value={numericValue(driver.trailer_length) > 0 ? `${numericValue(driver.trailer_length)} ${copy.feet}` : '—'} />
-                      <InfoCard label={copy.whyMatched} value={driver.reasons.join(' • ') || '—'} />
-                    </div>
-
-                    <div style={{ marginTop: 16 }}>
-                      <div className="muted">{copy.serviceTags}</div>
-                      {driver.service_tags.length > 0 ? (
-                        <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                          {driver.service_tags.map((tag) => (
-                            <span key={`${driver.user_id}-${tag}`} className="badge" style={{ background: '#d8ecff', color: '#0d3f73' }}>
-                              {labelForMap(SERVICE_TAG_LABELS, tag, lang)}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="muted" style={{ marginTop: 8 }}>{copy.noServiceTags}</div>
-                      )}
-                    </div>
-
-                    <div style={{ marginTop: 16 }}>
-                      <div className="muted">About</div>
-                      <p style={{ marginTop: 8, lineHeight: 1.7 }}>{normalizeText(driver.bio) || copy.noBio}</p>
-                    </div>
+                    <ResultBadge dark>Match {worker.matchScore}</ResultBadge>
                   </div>
-                ))
-              )}
-            </div>
-          ) : null}
-        </>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                    <ResultBadge>{worker.role}</ResultBadge>
+                    <ResultBadge>{worker.availability_status || 'Availability not set'}</ResultBadge>
+                    <ResultBadge>Crew {normalizeNumber(worker.crew_size) || 1}</ResultBadge>
+                    <ResultBadge>{normalizeNumber(worker.travel_radius_miles)} mi radius</ResultBadge>
+                    <ResultBadge>Profile {getProfileStrength(worker)}%</ResultBadge>
+                  </div>
+                  <p style={{ marginTop: 10, lineHeight: 1.7 }}>{normalizeText(worker.bio) || 'Worker bio not added yet.'}</p>
+                  <div className="muted" style={{ marginTop: 8 }}>Why this matched: {reasons.join(', ') || 'basic role + profile fit'}</div>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+                    <Link className="btn small primary" to={`/u/${worker.user_id}`}>Open Worker Profile</Link>
+                    <Link className="btn small" to={`/new?type=need_crew${normalizeText(crewForm.zip) ? `&zip=${normalizeText(crewForm.zip)}` : ''}`}>Create Need Crew Post</Link>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </SectionCard>
       ) : null}
 
-      <div className="card rounded-xl" style={{ padding: 22, background: '#fffaf0' }}>
-        <div className="card-section-subtitle">{copy.quickNote}</div>
-      </div>
+      {activeTool === TOOL_KEYS.delivery ? (
+        <SectionCard title="Delivery Coordination AI">
+          <div className="grid three" style={{ gap: 14 }}>
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>Pickup ZIP</div>
+              <input className="input" value={deliveryForm.pickupZip} onChange={(e) => setDeliveryForm((prev) => ({ ...prev, pickupZip: e.target.value.replace(/[^\d]/g, '').slice(0, 5) }))} placeholder="Supplier ZIP" />
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>Jobsite ZIP</div>
+              <input className="input" value={deliveryForm.jobsiteZip} onChange={(e) => setDeliveryForm((prev) => ({ ...prev, jobsiteZip: e.target.value.replace(/[^\d]/g, '').slice(0, 5) }))} placeholder="Jobsite ZIP" />
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>Delivery Lane</div>
+              <select className="input" value={deliveryForm.supportType} onChange={(e) => setDeliveryForm((prev) => ({ ...prev, supportType: e.target.value }))}>
+                {DELIVERY_LANES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid three" style={{ gap: 14, marginTop: 14 }}>
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>Vehicle Type</div>
+              <select className="input" value={deliveryForm.vehicleType} onChange={(e) => setDeliveryForm((prev) => ({ ...prev, vehicleType: e.target.value }))}>
+                <option value="">Any vehicle</option>
+                {Object.entries(VEHICLE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>Trailer Type</div>
+              <select className="input" value={deliveryForm.trailerType} onChange={(e) => setDeliveryForm((prev) => ({ ...prev, trailerType: e.target.value }))}>
+                <option value="">Any trailer</option>
+                {Object.entries(TRAILER_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>Minimum Payload (lbs)</div>
+              <input className="input" type="number" value={deliveryForm.minPayload} onChange={(e) => setDeliveryForm((prev) => ({ ...prev, minPayload: e.target.value }))} />
+            </div>
+          </div>
+
+          <div className="grid two" style={{ gap: 14, marginTop: 14 }}>
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>Minimum Trailer Length (ft)</div>
+              <input className="input" type="number" value={deliveryForm.minTrailerLength} onChange={(e) => setDeliveryForm((prev) => ({ ...prev, minTrailerLength: e.target.value }))} />
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>Minimum Delivery Radius (mi)</div>
+              <input className="input" type="number" value={deliveryForm.minRadius} onChange={(e) => setDeliveryForm((prev) => ({ ...prev, minRadius: e.target.value }))} />
+            </div>
+          </div>
+
+          <div className="grid" style={{ gap: 14, marginTop: 16 }}>
+            {deliveryResults.map((driver) => (
+              <div key={driver.user_id} className="card-soft" style={{ background: '#ffffff' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontWeight: 900, fontSize: 18 }}>{normalizeText(driver.display_name) || normalizeText(`${driver.first_name} ${driver.last_name}`) || 'Driver'}</div>
+                    <div className="muted" style={{ marginTop: 6 }}>{driver.city || 'City not listed'} · ZIP {normalizeText(driver.home_zip) || '—'}</div>
+                  </div>
+                  <ResultBadge dark>Match {driver.matchScore}</ResultBadge>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  <ResultBadge>{DELIVERY_LANES.find((item) => item.value === driver.support_type)?.label || 'Delivery'}</ResultBadge>
+                  <ResultBadge>{labelForMap(VEHICLE_LABELS, driver.vehicle_type)}</ResultBadge>
+                  <ResultBadge>{labelForMap(TRAILER_LABELS, driver.trailer_type)}</ResultBadge>
+                  <ResultBadge>{normalizeNumber(driver.trailer_length) || 0} ft trailer</ResultBadge>
+                  <ResultBadge>{normalizeNumber(driver.payload_capacity) || 0} lbs payload</ResultBadge>
+                  <ResultBadge>{normalizeNumber(driver.delivery_radius) || 0} mi radius</ResultBadge>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  {normalizeList(driver.service_tags).map((tag) => <ResultBadge key={tag}>{labelForMap(SERVICE_TAG_LABELS, tag)}</ResultBadge>)}
+                </div>
+                <p style={{ marginTop: 10, lineHeight: 1.7 }}>{normalizeText(driver.bio) || 'Driver bio not added yet.'}</p>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+                  <Link className="btn small primary" to={`/u/${driver.user_id}`}>Open Driver Profile</Link>
+                  <Link className="btn small" to={`/new?category=jobsite_support&support=${driver.support_type}${normalizeText(deliveryForm.jobsiteZip) ? `&zip=${normalizeText(deliveryForm.jobsiteZip)}` : ''}`}>Create Delivery Support Post</Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      ) : null}
     </div>
   )
 }
