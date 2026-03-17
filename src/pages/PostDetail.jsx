@@ -213,6 +213,61 @@ function formatPhone(phone) {
   return phone || ''
 }
 
+function digitsOnly(value) {
+  return String(value || '').replace(/\D/g, '')
+}
+
+function buildDirectMessageDraft(post, lang = 'en') {
+  const name =
+    post?.author_role === 'supplier' && post?.author_business_name
+      ? post.author_business_name
+      : post?.author_name || 'your post'
+
+  if (lang === 'es') {
+    if (post?.author_role === 'driver') {
+      return `Hola, vi tu publicación en Surplox y quiero hablar sobre soporte de entrega para esta obra.`
+    }
+    if (post?.author_role === 'mechanic') {
+      return `Hola, vi tu publicación en Surplox y quiero hablar sobre soporte de mecánica o reparación para esta obra.`
+    }
+    if (post?.author_role === 'supplier') {
+      return `Hola, vi tu publicación en Surplox y quiero hablar sobre materiales de ${name}.`
+    }
+    return `Hola, vi tu publicación en Surplox y quiero hablar sobre esta oportunidad.`
+  }
+
+  if (post?.author_role === 'driver') {
+    return 'Hi, I saw your Surplox post and want to talk about delivery support for this job.'
+  }
+  if (post?.author_role === 'mechanic') {
+    return 'Hi, I saw your Surplox post and want to talk about mechanic or repair support for this job.'
+  }
+  if (post?.author_role === 'supplier') {
+    return `Hi, I saw your Surplox post and want to talk about materials from ${name}.`
+  }
+  return 'Hi, I saw your Surplox post and want to talk about this opportunity.'
+}
+
+function buildRequestPostLink(post) {
+  const zip = encodeURIComponent(post?.center_zip || post?.author_business_zip || post?.author_home_zip || '')
+  const name = encodeURIComponent(
+    post?.author_role === 'supplier' && post?.author_business_name
+      ? post.author_business_name
+      : post?.author_name || 'this contact'
+  )
+
+  if (post?.author_role === 'driver') {
+    return `/new?category=jobsite_support&support=material_delivery&title=Request delivery support from ${name}&zip=${zip}&urgent=true`
+  }
+  if (post?.author_role === 'mechanic') {
+    return `/new?category=jobsite_support&support=equipment_fleet_repair&title=Request mechanic support from ${name}&zip=${zip}&urgent=true`
+  }
+  if (post?.author_role === 'supplier') {
+    return `/new?category=trade&type=discussion&title=Request materials from ${name}&zip=${zip}`
+  }
+  return `/new?type=need_crew&title=Need ${name} on this job&zip=${zip}`
+}
+
 function availabilityBadgeStyle(isAvailable) {
   if (!isAvailable) return null
   return { background: '#dcf4e5', color: '#177245' }
@@ -415,7 +470,17 @@ const UI = {
     completed: 'Completed',
     actionSaved: 'Action saved.',
     actionSaveError: 'Unable to save this action right now.',
-    onlyOwnerComplete: 'Only the post owner can mark this post complete.'
+    onlyOwnerComplete: 'Only the post owner can mark this post complete.',
+    call: 'Call',
+    text: 'Text',
+    directMessage: 'Direct Message',
+    messageStarter: 'Message Starter',
+    copyMessageDraft: 'Copy Message Draft',
+    buildRequestPost: 'Build Request Post',
+    messageDraftCopied: 'Message draft copied.',
+    messageDraftCopyError: 'Unable to copy message draft.',
+    contactActions: 'Contact Actions',
+    contactActionsBody: 'Move from post discovery into real outreach with call, text, or in-app messaging.'
   },
   es: {
     unknownMember: 'Miembro desconocido',
@@ -539,7 +604,17 @@ const UI = {
     completed: 'Completado',
     actionSaved: 'Acción guardada.',
     actionSaveError: 'No se pudo guardar esta acción.',
-    onlyOwnerComplete: 'Solo el dueño de la publicación puede marcarla como completada.'
+    onlyOwnerComplete: 'Solo el dueño de la publicación puede marcarla como completada.',
+    call: 'Llamar',
+    text: 'Texto',
+    directMessage: 'Mensaje directo',
+    messageStarter: 'Mensaje sugerido',
+    copyMessageDraft: 'Copiar mensaje',
+    buildRequestPost: 'Crear solicitud',
+    messageDraftCopied: 'Mensaje copiado.',
+    messageDraftCopyError: 'No se pudo copiar el mensaje.',
+    contactActions: 'Acciones de contacto',
+    contactActionsBody: 'Pasa del descubrimiento de una publicación al contacto real con llamada, texto o mensaje dentro de la app.'
   }
 }
 
@@ -947,11 +1022,36 @@ export default function PostDetail({ lang: langProp = 'en' }) {
           author_vehicle_type: author.vehicle_type || '',
           author_trailer_type: author.trailer_type || '',
           author_trailer_length: author.trailer_length || 0,
-          author_payload_capacity: author.payload_capacity || 0
+          author_payload_capacity: author.payload_capacity || 0,
+          author_phone: '',
+          author_email: '',
+          author_city: ''
+        }
+
+        let authorPrivate = null
+        if (normalizedPost.author_id) {
+          const { data: privateRow, error: privateErr } = await supabase
+            .from('contact_private')
+            .select('phone,email,city')
+            .eq('user_id', normalizedPost.author_id)
+            .maybeSingle()
+
+          if (privateErr) {
+            console.error(privateErr)
+          } else {
+            authorPrivate = privateRow
+          }
+        }
+
+        const postWithContact = {
+          ...normalizedPost,
+          author_phone: String(authorPrivate?.phone || '').trim(),
+          author_email: String(authorPrivate?.email || '').trim(),
+          author_city: String(authorPrivate?.city || '').trim()
         }
 
         if (!active) return
-        setPost(normalizedPost)
+        setPost(postWithContact)
         setTranslatedPostBody('')
         setShowTranslatedPost(false)
 
@@ -1010,7 +1110,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
                 (row) =>
                   row.relationship_type === 'selected_supplier_post' &&
                   row.source_user_id === uid &&
-                  row.target_user_id === normalizedPost.author_id
+                  row.target_user_id === postWithContact.author_id
               )
           )
         )
@@ -1021,7 +1121,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
                 (row) =>
                   row.relationship_type === 'assigned_delivery_post' &&
                   row.source_user_id === uid &&
-                  row.target_user_id === normalizedPost.author_id
+                  row.target_user_id === postWithContact.author_id
               )
           )
         )
@@ -1032,7 +1132,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
                 (row) =>
                   row.relationship_type === 'assigned_repair_post' &&
                   row.source_user_id === uid &&
-                  row.target_user_id === normalizedPost.author_id
+                  row.target_user_id === postWithContact.author_id
               )
           )
         )
@@ -1160,6 +1260,33 @@ export default function PostDetail({ lang: langProp = 'en' }) {
     if (showTranslatedPost && translatedPostBody) return translatedPostBody
     return post.body
   }, [post?.body, showTranslatedPost, translatedPostBody])
+
+  const authorPhoneHref = useMemo(() => {
+    const digits = digitsOnly(post?.author_phone)
+    return digits ? `tel:${digits}` : ''
+  }, [post?.author_phone])
+
+  const authorTextHref = useMemo(() => {
+    const digits = digitsOnly(post?.author_phone)
+    return digits ? `sms:${digits}?body=${encodeURIComponent(buildDirectMessageDraft(post, lang))}` : ''
+  }, [post, lang])
+
+  const directMessageLink = useMemo(() => {
+    if (!post?.author_id) return '/messages'
+    return `/messages?to=${encodeURIComponent(post.author_id)}&draft=${encodeURIComponent(buildDirectMessageDraft(post, lang))}`
+  }, [post, lang])
+
+  const requestPostLink = useMemo(() => buildRequestPostLink(post), [post])
+
+  async function copyMessageDraft() {
+    try {
+      await navigator.clipboard.writeText(buildDirectMessageDraft(post, lang))
+      setMsg(copy.messageDraftCopied)
+    } catch (err) {
+      console.error(err)
+      setMsg(copy.messageDraftCopyError)
+    }
+  }
 
   async function translatePostBody() {
     try {
@@ -1946,6 +2073,68 @@ export default function PostDetail({ lang: langProp = 'en' }) {
               </div>
             </div>
           ) : null}
+
+          <div className="card-soft" style={{ marginTop: 14, background: '#fffaf0' }}>
+            <div className="card-section-title" style={{ fontSize: 15 }}>{copy.contactActions}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {copy.contactActionsBody}
+            </p>
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+              {post.author_phone ? (
+                <span className="badge">
+                  {copy.phone}: {formatPhone(post.author_phone)}
+                </span>
+              ) : null}
+
+              {post.author_email ? (
+                <span className="badge">
+                  {copy.email}: {post.author_email}
+                </span>
+              ) : null}
+
+              {post.author_city ? (
+                <span className="badge">
+                  {copy.city}: {post.author_city}
+                </span>
+              ) : null}
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+              {authorPhoneHref ? (
+                <a className="btn primary" href={authorPhoneHref}>
+                  {copy.call}
+                </a>
+              ) : null}
+
+              {authorTextHref ? (
+                <a className="btn" href={authorTextHref}>
+                  {copy.text}
+                </a>
+              ) : null}
+
+              {currentUserId && currentUserId !== post.author_id ? (
+                <Link className="btn" to={directMessageLink}>
+                  {copy.directMessage}
+                </Link>
+              ) : null}
+
+              <button className="btn" type="button" onClick={copyMessageDraft}>
+                {copy.copyMessageDraft}
+              </button>
+
+              {currentUserId && currentUserId !== post.author_id ? (
+                <Link className="btn" to={requestPostLink}>
+                  {copy.buildRequestPost}
+                </Link>
+              ) : null}
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <div className="muted">{copy.messageStarter}</div>
+              <p style={{ marginTop: 8, lineHeight: 1.7 }}>{buildDirectMessageDraft(post, lang)}</p>
+            </div>
+          </div>
 
           {post.author_bio ? <p style={{ marginTop: 14, lineHeight: 1.7 }}>{post.author_bio}</p> : null}
 
