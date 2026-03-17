@@ -33,6 +33,8 @@ const COPY = {
     importedRole: 'Imported Supplier Lead',
     contactTitle: 'Storefront Actions',
     requestQuote: 'Request Materials',
+    requestDelivery: 'Request Delivery',
+    shareStorefront: 'Share Storefront',
     openProfile: 'Open Profile',
     openWebsite: 'Open Website',
     phoneLabel: 'Phone',
@@ -101,6 +103,8 @@ const COPY = {
     importedRole: 'Proveedor importado',
     contactTitle: 'Acciones de tienda',
     requestQuote: 'Solicitar materiales',
+    requestDelivery: 'Solicitar entrega',
+    shareStorefront: 'Compartir tienda',
     openProfile: 'Abrir perfil',
     openWebsite: 'Abrir sitio web',
     phoneLabel: 'Teléfono',
@@ -271,12 +275,25 @@ function normalizeProfile(data, source = 'native') {
   }
 }
 
+function buildMaterialsRequestLink(profile) {
+  const zip = encodeURIComponent(profile?.business_zip || profile?.home_zip || '')
+  const name = encodeURIComponent(profile?.business_name || profile?.display_name || 'this supplier')
+  return `/new?category=trade&type=discussion&title=Request materials from ${name}&zip=${zip}`
+}
+
+function buildDeliveryRequestLink(profile) {
+  const zip = encodeURIComponent(profile?.business_zip || profile?.home_zip || '')
+  const name = encodeURIComponent(profile?.business_name || profile?.display_name || 'this supplier')
+  return `/new?category=jobsite_support&support=material_delivery&title=Request delivery from ${name}&zip=${zip}&urgent=true`
+}
+
 export default function SupplierStorefront() {
   const { userId } = useParams()
 
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
+  const [copyMsg, setCopyMsg] = useState('')
   const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
 
   const copy = COPY[lang] || COPY.en
@@ -434,6 +451,19 @@ export default function SupplierStorefront() {
   const heroTitle = supplierName || copy.heroTitleFallback
   const heroBody = profile.bio || copy.heroBodyFallback
   const isImported = profile.source === 'imported'
+  const materialsRequestLink = buildMaterialsRequestLink(profile)
+  const deliveryRequestLink = buildDeliveryRequestLink(profile)
+
+  async function copyStorefrontLink() {
+    try {
+      const url = window.location.href
+      await navigator.clipboard.writeText(url)
+      setCopyMsg(lang === 'es' ? 'Enlace de tienda copiado.' : 'Storefront link copied.')
+    } catch (error) {
+      console.error(error)
+      setCopyMsg(lang === 'es' ? 'No se pudo copiar el enlace.' : 'Unable to copy storefront link.')
+    }
+  }
 
   return (
     <div className="grid" style={{ gap: 18 }}>
@@ -591,8 +621,12 @@ export default function SupplierStorefront() {
           </p>
 
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
-            <Link className="btn primary" to="/new">
+            <Link className="btn primary" to={materialsRequestLink}>
               {copy.requestQuote}
+            </Link>
+
+            <Link className="btn" to={deliveryRequestLink}>
+              {copy.requestDelivery}
             </Link>
 
             {!isImported && profile.user_id ? (
@@ -611,6 +645,10 @@ export default function SupplierStorefront() {
                 {copy.openWebsite}
               </a>
             ) : null}
+
+            <button className="btn" type="button" onClick={copyStorefrontLink}>
+              {copy.shareStorefront}
+            </button>
 
             <Link className="btn" to="/feed">
               {copy.backToFeed}
@@ -645,6 +683,12 @@ export default function SupplierStorefront() {
           </div>
         </div>
       </div>
+
+      {copyMsg ? (
+        <div className="card-soft">
+          {copyMsg}
+        </div>
+      ) : null}
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{copy.supplierLaneTitle}</div>
