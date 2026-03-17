@@ -213,7 +213,7 @@ function AppShell({ lang, setLang }) {
       { to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
       { to: '/materials', label: lang === 'es' ? 'Materiales' : 'Materials' },
       { to: '/delivery', label: lang === 'es' ? 'Delivery' : 'Delivery' },
-      { to: quickLinks.repair, label: lang === 'es' ? 'Equipo / Reparación' : 'Equipment / Repair' },
+      { to: quickLinks.repair, label: lang === 'es' ? 'Mecánica / Reparación de equipo' : 'Mechanic / Equipment Repair' },
       { to: '/ai-tools', label: lang === 'es' ? 'Surplox AI Tools' : 'Surplox AI Tools' },
       { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
       { to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' }
