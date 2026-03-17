@@ -38,10 +38,6 @@ const COPY = {
     supportDeliveryBody:
       'Post hot shot, cargo van, pickup, flatbed, or gooseneck support for local material runs, tool transport, same-day pickups, last-mile delivery, and jobsite deliveries.',
     supportDeliveryButton: 'Create Delivery Support Post',
-    supportCargoVanTitle: 'Delivery',
-    supportCargoVanBody:
-      'Post delivery support for cargo vans, local runs, last-mile delivery, same-day pickups, tool transport, and lighter material movement between yards, stores, and jobsites.',
-    supportCargoVanButton: 'Create Delivery Support Post',
     supportRepairTitle: 'Equipment / Fleet Repair',
     supportRepairBody:
       'Post diesel mechanic, trailer repair, or heavy equipment support for field service and jobsite uptime.',
@@ -50,111 +46,12 @@ const COPY = {
     supplierActionBody:
       'Create supplier-facing discussion and visibility posts so contractors and crews can discover materials, yard locations, and storefront supply options faster.',
     supplierActionButton: 'Create Supplier Post',
-    supplierBoardsTitle: 'Supplier Storefront Discovery',
-    supplierBoardsIntro:
-      'Browse supplier activity and storefront visibility for materials, tools, equipment rental, and nearby construction supply access.',
-    supplierFeedTitle: 'Supplier Feed',
-    supplierFeedBody:
-      'Open supplier-authored posts and storefront visibility activity across the Surplox network.',
-    supplierMaterialsTitle: 'Materials & Inventory Visibility',
-    supplierMaterialsBody:
-      'Best for concrete, lumber, steel, drywall, tools, fasteners, safety equipment, and nearby supplier discovery.',
-    viewSupplierFeed: 'Browse supplier feed',
     allTradesTitle: 'Trade Boards',
     allTradesIntro:
       'Open a trade-specific feed to browse local discussion and labor activity.',
-    jobsiteSupportTitle: 'Jobsite Support Boards',
-    jobsiteSupportIntro:
-      'Browse support lanes for delivery movement and fleet or equipment repair around active jobsites.',
     emptyTitle: 'No Channels Found',
     emptyBody: 'No trade boards are available yet.',
-    viewPosts: 'Open channel',
-    viewSupportPosts: 'Browse support feed',
-    materialDeliveryTitle: 'Delivery',
-    materialDeliveryBody:
-      'Best for hot shot, pickups, flatbeds, goosenecks, local runs, same-day delivery, and urgent material support.',
-    cargoVanDeliveryTitle: 'Delivery',
-    cargoVanDeliveryBody:
-      'Best for cargo van operators handling local runs, last-mile delivery, same-day pickups, tools, and lighter materials between stores, yards, and jobsites.',
-    fleetRepairTitle: 'Mechanic / Repair',
-    fleetRepairBody:
-      'Best for diesel mechanics, trailer repair, heavy equipment repair, and emergency field support.'
-  },
-  es: {
-    needCrewBadge: 'Se necesita cuadrilla',
-    workBadge: 'Buscando trabajo',
-    discussionBadge: 'Tablero de oficio',
-    supportBadge: 'Soporte de obra',
-    deliveryBadge: 'Entrega',
-    cargoVanBadge: 'Entrega',
-    repairBadge: 'Mecánica / Reparación',
-    supplierBadge: 'Proveedor',
-    heroBadge: 'Oficios + acciones',
-    heroTitle: 'Muévete más rápido por los canales correctos.',
-    heroBody:
-      'Entra directo a solicitudes de mano de obra, publicaciones de disponibilidad, discusiones del oficio, visibilidad de proveedores, soporte de entrega o actividad de reparación de flota sin perder tiempo en el feed equivocado.',
-    stat1: 'Atajos para publicar',
-    stat2: 'Exploración por oficio',
-    stat3: 'Descubrimiento más limpio de soporte de obra',
-    title: 'Canales',
-    intro:
-      'Explora canales de mano de obra, tableros de oficio, visibilidad para proveedores y las nuevas secciones de Soporte de obra basadas en operaciones reales de construcción.',
-    quickActions: 'Acciones rápidas',
-    quickActionsIntro:
-      'Empieza exactamente el tipo de publicación que necesitas para que trabajadores, proveedores, runners, conductores y soporte de reparación cercanos te encuentren más rápido.',
-    needCrewTitle: 'Necesito cuadrilla',
-    needCrewBody:
-      'Publica demanda de mano de obra para cuadrillas, trabajadores y subcontratistas cercanos. Ideal para cubrir personal rápido.',
-    needCrewButton: 'Crear publicación de cuadrilla',
-    workTitle: 'Buscando trabajo',
-    workBody:
-      'Publica tu disponibilidad para que contratistas, cuadrillas y obras cercanas te encuentren más rápido.',
-    workButton: 'Crear publicación de disponibilidad',
-    supportDeliveryTitle: 'Entrega',
-    supportDeliveryBody:
-      'Publica soporte de hot shot, cargo van, pickup, flatbed o gooseneck para viajes locales de materiales, transporte de herramientas, recogidas el mismo día, última milla y entregas en obra.',
-    supportDeliveryButton: 'Crear publicación de entrega',
-    supportCargoVanTitle: 'Entrega',
-    supportCargoVanBody:
-      'Publica soporte de entrega para cargo vans, viajes locales, última milla, recogidas el mismo día, transporte de herramientas y movimiento ligero de materiales entre patios, tiendas y obras.',
-    supportCargoVanButton: 'Crear publicación de entrega',
-    supportRepairTitle: 'Reparación de equipo / flota',
-    supportRepairBody:
-      'Publica soporte de mecánico diésel, reparación de remolques o equipo pesado para servicio de campo y continuidad en obra.',
-    supportRepairButton: 'Crear publicación de reparación',
-    supplierActionTitle: 'Visibilidad de proveedor',
-    supplierActionBody:
-      'Crea publicaciones de visibilidad para proveedores para que contratistas y cuadrillas descubran materiales, patios y opciones de suministro más rápido.',
-    supplierActionButton: 'Crear publicación de proveedor',
-    supplierBoardsTitle: 'Descubrimiento de tiendas proveedoras',
-    supplierBoardsIntro:
-      'Explora actividad de proveedores y visibilidad de tiendas para materiales, herramientas, renta de equipo y acceso cercano a suministros de construcción.',
-    supplierFeedTitle: 'Feed de proveedores',
-    supplierFeedBody:
-      'Abre publicaciones hechas por proveedores y actividad de visibilidad de tiendas dentro de la red Surplox.',
-    supplierMaterialsTitle: 'Materiales e inventario',
-    supplierMaterialsBody:
-      'Ideal para concreto, madera, acero, drywall, herramientas, sujetadores, seguridad y descubrimiento de proveedores cercanos.',
-    viewSupplierFeed: 'Explorar feed de proveedores',
-    allTradesTitle: 'Tableros de oficio',
-    allTradesIntro:
-      'Abre un feed específico por oficio para ver discusión local y actividad de mano de obra.',
-    jobsiteSupportTitle: 'Tableros de soporte de obra',
-    jobsiteSupportIntro:
-      'Explora secciones de soporte para movimiento de entregas y reparación de flota o equipo alrededor de obras activas.',
-    emptyTitle: 'No se encontraron canales',
-    emptyBody: 'Todavía no hay tableros de oficio disponibles.',
-    viewPosts: 'Abrir canal',
-    viewSupportPosts: 'Explorar soporte',
-    materialDeliveryTitle: 'Entrega',
-    materialDeliveryBody:
-      'Ideal para hot shot, pickups, flatbeds, goosenecks, viajes locales, entregas el mismo día y soporte urgente de materiales.',
-    cargoVanDeliveryTitle: 'Entrega',
-    cargoVanDeliveryBody:
-      'Ideal para operadores con cargo van que manejan viajes locales, última milla, recogidas el mismo día, herramientas y materiales ligeros entre tiendas, patios y obras.',
-    fleetRepairTitle: 'Mecánica / Reparación',
-    fleetRepairBody:
-      'Ideal para mecánicos diésel, reparación de remolques, reparación de equipo pesado y soporte de emergencia en campo.'
+    viewPosts: 'Open channel'
   }
 }
 
@@ -248,11 +145,11 @@ export default function Channels({ lang: langProp = 'en' }) {
           {copy.heroBadge}
         </div>
 
-        <div style={{ fontWeight: 900, fontSize: 28, marginTop: 14, lineHeight: 1.15 }}>
+        <div style={{ fontWeight: 900, fontSize: 28, marginTop: 14 }}>
           {copy.title}
         </div>
 
-        <p className="muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
+        <p className="muted" style={{ marginTop: 10 }}>
           {copy.intro}
         </p>
 
@@ -271,205 +168,14 @@ export default function Channels({ lang: langProp = 'en' }) {
         </p>
 
         <div className="grid two" style={{ marginTop: 14 }}>
-          <Link
-            className="card rounded-xl"
-            to="/new?type=need_crew"
-            style={{
-              padding: 22,
-              background: 'linear-gradient(180deg, #fffaf0 0%, #ffffff 100%)'
-            }}
-          >
-            <div className="badge" style={{ background: '#ffde59', color: '#111111' }}>
-              {copy.needCrewBadge}
-            </div>
-
-            <div style={{ fontWeight: 900, fontSize: 22, marginTop: 14, lineHeight: 1.15 }}>
-              {copy.needCrewTitle}
-            </div>
-
-            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-              {copy.needCrewBody}
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <span className="btn small primary">{copy.needCrewButton}</span>
-            </div>
+          <Link className="card rounded-xl" to="/new?type=need_crew">
+            <div className="badge">{copy.needCrewBadge}</div>
+            <div style={{ fontWeight: 900, fontSize: 22 }}>{copy.needCrewTitle}</div>
           </Link>
 
-          <Link
-            className="card rounded-xl"
-            to="/new?type=looking_for_work"
-            style={{
-              padding: 22,
-              background: 'linear-gradient(180deg, #f8f7ef 0%, #ffffff 100%)'
-            }}
-          >
-            <div className="badge" style={{ background: '#fff0b4', color: '#111111' }}>
-              {copy.workBadge}
-            </div>
-
-            <div style={{ fontWeight: 900, fontSize: 22, marginTop: 14, lineHeight: 1.15 }}>
-              {copy.workTitle}
-            </div>
-
-            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-              {copy.workBody}
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <span className="btn small">{copy.workButton}</span>
-            </div>
-          </Link>
-
-          <Link
-            className="card rounded-xl"
-            to="/new?type=discussion&group=jobsite_support&support=material_delivery"
-            style={{
-              padding: 22,
-              background: 'linear-gradient(180deg, #e8f2ff 0%, #f7f7f2 100%)',
-              border: '1px solid rgba(13,63,115,0.08)'
-            }}
-          >
-            <div className="badge" style={{ background: '#d8ecff', color: '#0d3f73' }}>
-              {copy.deliveryBadge}
-            </div>
-
-            <div style={{ fontWeight: 900, fontSize: 22, marginTop: 14, lineHeight: 1.15 }}>
-              {copy.supportDeliveryTitle}
-            </div>
-
-            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-              {copy.supportDeliveryBody}
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <span className="btn small">{copy.supportDeliveryButton}</span>
-            </div>
-          </Link>
-
-          <Link
-            className="card rounded-xl"
-            to="/new?type=discussion&group=jobsite_support&support=equipment_fleet_repair"
-            style={{
-              padding: 22,
-              background: 'linear-gradient(180deg, #fff4e8 0%, #f7f7f2 100%)',
-              border: '1px solid rgba(180,83,9,0.12)'
-            }}
-          >
-            <div className="badge" style={{ background: '#ffe2cc', color: '#b45309' }}>
-              {copy.repairBadge}
-            </div>
-
-            <div style={{ fontWeight: 900, fontSize: 22, marginTop: 14, lineHeight: 1.15 }}>
-              {copy.supportRepairTitle}
-            </div>
-
-            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-              {copy.supportRepairBody}
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <span className="btn small">{copy.supportRepairButton}</span>
-            </div>
-          </Link>
-
-          <Link
-            className="card rounded-xl"
-            to="/new?type=discussion"
-            style={{
-              padding: 22,
-              background: 'linear-gradient(180deg, #fff7cf 0%, #ffffff 100%)'
-            }}
-          >
-            <div className="badge" style={{ background: '#f1e7a8', color: '#111111' }}>
-              {copy.supplierBadge}
-            </div>
-
-            <div style={{ fontWeight: 900, fontSize: 22, marginTop: 14, lineHeight: 1.15 }}>
-              {copy.supplierActionTitle}
-            </div>
-
-            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-              {copy.supplierActionBody}
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <span className="btn small">{copy.supplierActionButton}</span>
-            </div>
-          </Link>
-        </div>
-      </div>
-
-      <div className="card rounded-xl" style={{ padding: 22 }}>
-        <div className="card-section-title">{copy.supplierBoardsTitle}</div>
-
-        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-          {copy.supplierBoardsIntro}
-        </p>
-
-        <div className="grid two" style={{ marginTop: 14 }}>
-          <Link
-            className="card rounded-xl"
-            to="/feed?role=supplier"
-            style={{
-              padding: 20,
-              background: '#ffffff'
-            }}
-          >
-            <div className="badge" style={{ background: '#f1e7a8', color: '#111111' }}>
-              {copy.supplierBadge}
-            </div>
-
-            <div
-              style={{
-                fontWeight: 900,
-                fontSize: 20,
-                marginTop: 14,
-                lineHeight: 1.15
-              }}
-            >
-              {copy.supplierFeedTitle}
-            </div>
-
-            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-              {copy.supplierFeedBody}
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <span className="btn small">{copy.viewSupplierFeed}</span>
-            </div>
-          </Link>
-
-          <Link
-            className="card rounded-xl"
-            to="/materials"
-            style={{
-              padding: 20,
-              background: '#ffffff'
-            }}
-          >
-            <div className="badge" style={{ background: '#ecebe3', color: '#111111' }}>
-              {copy.discussionBadge}
-            </div>
-
-            <div
-              style={{
-                fontWeight: 900,
-                fontSize: 20,
-                marginTop: 14,
-                lineHeight: 1.15
-              }}
-            >
-              {copy.supplierMaterialsTitle}
-            </div>
-
-            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-              {copy.supplierMaterialsBody}
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <span className="btn small">{copy.viewSupplierFeed}</span>
-            </div>
+          <Link className="card rounded-xl" to="/new?type=looking_for_work">
+            <div className="badge">{copy.workBadge}</div>
+            <div style={{ fontWeight: 900, fontSize: 22 }}>{copy.workTitle}</div>
           </Link>
         </div>
       </div>
@@ -477,48 +183,13 @@ export default function Channels({ lang: langProp = 'en' }) {
       <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{copy.allTradesTitle}</div>
 
-        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-          {copy.allTradesIntro}
-        </p>
-
         {tradeLinks.length === 0 ? (
-          <div className="card-soft" style={{ marginTop: 14 }}>
-            <div className="card-section-title">{copy.emptyTitle}</div>
-
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-              {copy.emptyBody}
-            </p>
-          </div>
+          <div className="card-soft">{copy.emptyTitle}</div>
         ) : (
-          <div className="grid two" style={{ marginTop: 14 }}>
+          <div className="grid two">
             {tradeLinks.map((trade) => (
-              <Link
-                key={trade.id}
-                className="card rounded-xl"
-                to={trade.href}
-                style={{
-                  padding: 20,
-                  background: '#ffffff'
-                }}
-              >
-                <div className="badge" style={{ background: '#ecebe3', color: '#111111' }}>
-                  {copy.discussionBadge}
-                </div>
-
-                <div
-                  style={{
-                    fontWeight: 900,
-                    fontSize: 20,
-                    marginTop: 14,
-                    lineHeight: 1.15
-                  }}
-                >
-                  {trade.name}
-                </div>
-
-                <div className="muted" style={{ marginTop: 8 }}>
-                  {copy.viewPosts}
-                </div>
+              <Link key={trade.id} className="card" to={trade.href}>
+                {trade.name}
               </Link>
             ))}
           </div>
