@@ -356,7 +356,7 @@ export default function Channels({ lang: langProp = 'en' }) {
             </div>
 
             <div style={{ marginTop: 16 }}>
-              <span className="btn small primary">{copy.supportDeliveryButton}</span>
+              <span className="btn small">{copy.supportDeliveryButton}</span>
             </div>
           </Link>
 
