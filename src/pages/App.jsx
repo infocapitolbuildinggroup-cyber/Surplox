@@ -59,7 +59,16 @@ function LanguageSlider({ lang, setLang }) {
   )
 }
 
-function HamburgerIcon() {
+function HamburgerIcon({ open = false }) {
+  const barStyle = {
+    display: 'block',
+    width: '100%',
+    height: 2,
+    borderRadius: 999,
+    background: 'currentColor',
+    transition: 'transform 0.2s ease, opacity 0.2s ease'
+  }
+
   return (
     <span
       aria-hidden="true"
@@ -74,29 +83,20 @@ function HamburgerIcon() {
     >
       <span
         style={{
-          display: 'block',
-          width: '100%',
-          height: 2,
-          borderRadius: 999,
-          background: 'currentColor'
+          ...barStyle,
+          transform: open ? 'translateY(6px) rotate(45deg)' : 'none'
         }}
       />
       <span
         style={{
-          display: 'block',
-          width: '100%',
-          height: 2,
-          borderRadius: 999,
-          background: 'currentColor'
+          ...barStyle,
+          opacity: open ? 0 : 1
         }}
       />
       <span
         style={{
-          display: 'block',
-          width: '100%',
-          height: 2,
-          borderRadius: 999,
-          background: 'currentColor'
+          ...barStyle,
+          transform: open ? 'translateY(-6px) rotate(-45deg)' : 'none'
         }}
       />
     </span>
@@ -170,6 +170,24 @@ function AppShell({ lang, setLang }) {
   useEffect(() => {
     setMobileMenuOpen(false)
   }, [location.pathname, location.search])
+
+  useEffect(() => {
+    const originalHtmlOverflow = document.documentElement.style.overflow
+    const originalBodyOverflow = document.body.style.overflow
+
+    if (mobileMenuOpen) {
+      document.documentElement.style.overflow = 'hidden'
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.documentElement.style.overflow = originalHtmlOverflow
+      document.body.style.overflow = originalBodyOverflow
+    }
+
+    return () => {
+      document.documentElement.style.overflow = originalHtmlOverflow
+      document.body.style.overflow = originalBodyOverflow
+    }
+  }, [mobileMenuOpen])
 
   const isAdmin = useMemo(() => hasAdminAccess(session?.user), [session?.user])
 
@@ -276,10 +294,18 @@ function AppShell({ lang, setLang }) {
                     className="btn nav-mobile-toggle"
                     onClick={() => setMobileMenuOpen((prev) => !prev)}
                     aria-expanded={mobileMenuOpen}
-                    aria-label={lang === 'es' ? 'Abrir menú' : 'Open menu'}
+                    aria-label={
+                      mobileMenuOpen
+                        ? lang === 'es'
+                          ? 'Cerrar menú'
+                          : 'Close menu'
+                        : lang === 'es'
+                          ? 'Abrir menú'
+                          : 'Open menu'
+                    }
                     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    <HamburgerIcon />
+                    <HamburgerIcon open={mobileMenuOpen} />
                   </button>
                 </>
               ) : (
@@ -298,10 +324,18 @@ function AppShell({ lang, setLang }) {
                     className="btn nav-mobile-toggle"
                     onClick={() => setMobileMenuOpen((prev) => !prev)}
                     aria-expanded={mobileMenuOpen}
-                    aria-label={lang === 'es' ? 'Abrir menú' : 'Open menu'}
+                    aria-label={
+                      mobileMenuOpen
+                        ? lang === 'es'
+                          ? 'Cerrar menú'
+                          : 'Close menu'
+                        : lang === 'es'
+                          ? 'Abrir menú'
+                          : 'Open menu'
+                    }
                     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    <HamburgerIcon />
+                    <HamburgerIcon open={mobileMenuOpen} />
                   </button>
                 </>
               )}
@@ -354,7 +388,9 @@ function AppShell({ lang, setLang }) {
                   maxHeight: 'calc(100vh - 112px)',
                   overflowY: 'auto',
                   overscrollBehavior: 'contain',
-                  WebkitOverflowScrolling: 'touch'
+                  WebkitOverflowScrolling: 'touch',
+                  touchAction: 'pan-y',
+                  padding: 14
                 }}
               >
                 {session ? (
@@ -363,7 +399,8 @@ function AppShell({ lang, setLang }) {
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: 10
+                      gap: 10,
+                      paddingBottom: 12
                     }}
                   >
                     {navItems.map((item) => (
@@ -392,7 +429,8 @@ function AppShell({ lang, setLang }) {
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: 10
+                      gap: 10,
+                      paddingBottom: 12
                     }}
                   >
                     <Link className="btn" to="/auth?mode=signin">
