@@ -642,6 +642,17 @@ function AppShell({ lang, setLang }) {
   }, [location.pathname, location.search])
 
   useEffect(() => {
+    if (!mobileMenuOpen) return
+
+    function handleScroll() {
+      setMobileMenuOpen(false)
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [mobileMenuOpen])
+
+  useEffect(() => {
     const previousHtmlOverflow = document.documentElement.style.overflow
     const previousBodyOverflow = document.body.style.overflow
 
