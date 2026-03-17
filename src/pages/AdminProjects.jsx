@@ -127,6 +127,63 @@ export default function AdminProjects({ lang = 'en' }) {
     return rows
   }, [projects, statusFilter, sortBy])
 
+  const dashboardMetrics = useMemo(() => {
+    const unpaidValue = projects.reduce((sum, project) => {
+      const unpaidProjectValue = (project.invoiceCount > 0 ? project.totalValue : 0)
+      return sum + unpaidProjectValue
+    }, 0)
+
+    const noInvoiceCount = projects.filter((project) => project.invoiceCount === 0).length
+    const noLaborCount = projects.filter((project) => project.timeEntries === 0).length
+    const stalledCount = projects.filter(
+      (project) =>
+        ['active', 'estimating'].includes(project.project_status || 'active') &&
+        !String(project.project_next_action || '').trim()
+    ).length
+
+    return {
+      unpaidValue,
+      noInvoiceCount,
+      noLaborCount,
+      stalledCount
+    }
+  }, [projects])
+
+  const projectAlerts = useMemo(() => {
+    const alerts = []
+
+    projects.forEach((project) => {
+      if (project.invoiceCount === 0) {
+        alerts.push({
+          id: `${project.id}-no-invoice`,
+          level: 'warning',
+          title: project.project || 'Unnamed Project',
+          body: 'No invoice or estimate has been created for this project yet.'
+        })
+      }
+
+      if (project.timeEntries === 0 && ['active', 'completed'].includes(project.project_status || 'active')) {
+        alerts.push({
+          id: `${project.id}-no-time`,
+          level: 'warning',
+          title: project.project || 'Unnamed Project',
+          body: 'No labor has been logged for this project yet.'
+        })
+      }
+
+      if (['active', 'estimating'].includes(project.project_status || 'active') && !String(project.project_next_action || '').trim()) {
+        alerts.push({
+          id: `${project.id}-no-next-action`,
+          level: 'info',
+          title: project.project || 'Unnamed Project',
+          body: 'This project has no next action or blocker recorded.'
+        })
+      }
+    })
+
+    return alerts.slice(0, 8)
+  }, [projects])
+
   if (loading) {
     return <div className="card">Loading projects...</div>
   }
@@ -152,6 +209,10 @@ export default function AdminProjects({ lang = 'en' }) {
           <div className="card-soft" style={{ background: '#ffffff' }}>
             <div className="muted">Estimating</div>
             <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{statusCounts.estimating}</div>
+          </div>
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div className="muted">Completed</div>
+            <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{statusCounts.completed}</div>
           </div>
         </div>
 
@@ -187,6 +248,60 @@ export default function AdminProjects({ lang = 'en' }) {
               <option value="fewest_invoices">Fewest Invoices</option>
             </select>
           </div>
+        </div>
+      </div>
+
+      <div className="grid two">
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">Invoice Status Totals</div>
+          <div className="grid two" style={{ marginTop: 14 }}>
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">Tracked Project Value</div>
+              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{money(dashboardMetrics.unpaidValue)}</div>
+            </div>
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">Projects With No Invoice</div>
+              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{dashboardMetrics.noInvoiceCount}</div>
+            </div>
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">Projects With No Labor</div>
+              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{dashboardMetrics.noLaborCount}</div>
+            </div>
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">Stalled Jobs</div>
+              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{dashboardMetrics.stalledCount}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">Project Health Alerts</div>
+          {projectAlerts.length === 0 ? (
+            <div className="card-soft" style={{ marginTop: 14 }}>No alerts right now.</div>
+          ) : (
+            <div className="list" style={{ marginTop: 14 }}>
+              {projectAlerts.map((alert) => (
+                <div key={alert.id} className="card-soft" style={{ background: '#ffffff' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 900 }}>{alert.title}</div>
+                    <span
+                      className="badge"
+                      style={
+                        alert.level === 'warning'
+                          ? { background: '#fff0b4', color: '#111111' }
+                          : { background: '#d8ecff', color: '#0d3f73' }
+                      }
+                    >
+                      {alert.level === 'warning' ? 'Action Needed' : 'Review'}
+                    </span>
+                  </div>
+                  <div className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>
+                    {alert.body}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
