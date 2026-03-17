@@ -60,17 +60,17 @@ const DRIVER_SIGNUP_OPTIONS = [
 const JOBSITE_SUPPORT_SIGNUP_OPTIONS = [
   {
     id: 'support:equipment_fleet_repair',
-    name: 'Equipment / Fleet Repair',
+    name: 'Mechanic / Equipment Repair',
     section: 'service',
     role: 'mechanic',
     category_group: 'jobsite_support',
     trade_id: null,
-    service_tags: ['diesel_mechanic', 'jobsite_service'],
-    equipment_tags: ['mobile_repair_truck'],
+    service_tags: ['diesel_mechanic', 'field_service'],
+    equipment_tags: ['mobile_repair_truck', 'diesel_diagnostics'],
     default_vehicle_type: 'mobile_repair_truck',
     bio: {
-      en: 'Equipment and fleet repair support for field service and jobsite uptime.',
-      es: 'Soporte de reparación de equipo y flota para servicio en campo y continuidad de obra.'
+      en: 'Mechanic and equipment repair support for diesel work, small engines, skid steers, tractors, trailers, and mobile field service.',
+      es: 'Soporte de mecánica y reparación de equipo para diésel, motores pequeños, skid steers, tractores, remolques y servicio móvil en campo.'
     }
   }
 ]
@@ -159,7 +159,7 @@ const COPY = {
     supplierAccountsHint:
       'Supplier accounts are storefront-style business locations. Use your business name now, then finish materials, hours, and storefront details inside My Account.',
     supportServiceHint:
-      'Jobsite support accounts cover service lanes like equipment and fleet repair.',
+      'Mechanic / Equipment Repair accounts cover diesel mechanics, small engine repair, skid steer and tractor repair, trailer repair, hydraulics, and mobile field service.',
     zipLabel: 'What ZIP do you usually work in?',
     zipPlaceholder: '76102',
     tradeRequired: 'Select your account type.',
@@ -187,9 +187,9 @@ const COPY = {
     driverProfileTitle: 'Driver-ready accounts',
     driverProfileBody:
       'Driver accounts are created for delivery-specific setup, including vehicle type, trailer type, trailer length, payload capacity, and delivery radius after signup.',
-    supportProfileTitle: 'Jobsite support-ready accounts',
+    supportProfileTitle: 'Mechanic / Equipment Repair-ready accounts',
     supportProfileBody:
-      'Support accounts like repair are created ready for service tags, equipment tags, and support profile completion after signup.'
+      'Mechanic accounts are created ready for repair specialties, capability tags, diesel diagnostics, mobile field service, and equipment repair profile completion after signup.'
   },
   es: {
     formLabel: 'Acceso a Surplox',
@@ -259,7 +259,7 @@ const COPY = {
     supplierAccountsHint:
       'Las cuentas de proveedor son ubicaciones comerciales tipo tienda. Usa el nombre del negocio ahora y termina materiales, horarios y detalles de tienda dentro de Mi Cuenta.',
     supportServiceHint:
-      'Las cuentas de soporte de obra cubren líneas de servicio como reparación de equipo y flota.',
+      'Las cuentas de Mecánica / Reparación de equipo cubren mecánica diésel, motores pequeños, reparación de skid steer y tractor, remolques, hidráulica y servicio móvil en campo.',
     zipLabel: '¿En qué ZIP trabajas normalmente?',
     zipPlaceholder: '76102',
     tradeRequired: 'Selecciona tu tipo de cuenta.',
@@ -287,9 +287,9 @@ const COPY = {
     driverProfileTitle: 'Cuentas listas para conductor',
     driverProfileBody:
       'Las cuentas de conductor se crean para configuración específica de entrega, incluyendo tipo de vehículo, tipo de remolque, largo del remolque, capacidad de carga y radio de entrega después del registro.',
-    supportProfileTitle: 'Cuentas listas para soporte de obra',
+    supportProfileTitle: 'Cuentas listas para Mecánica / Reparación de equipo',
     supportProfileBody:
-      'Las cuentas de soporte como reparación se crean listas para etiquetas de servicio, etiquetas de equipo y finalización del perfil después del registro.'
+      'Las cuentas de mecánico se crean listas para especialidades de reparación, etiquetas de capacidad, diagnóstico diésel, servicio móvil en campo y finalización del perfil después del registro.'
   }
 }
 
