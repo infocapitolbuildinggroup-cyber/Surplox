@@ -34,7 +34,10 @@ const COPY = {
     noCrmRecords: 'No CRM project records found yet. You can still type a jobsite manually.',
     activeJobsite: 'Active Jobsite',
     noActiveJobsite: 'No active jobsite right now.',
-    activeJobsiteBody: 'Start a jobsite from the project command center and it will appear here for live field tracking.'
+    activeJobsiteBody: 'Start a jobsite from the project command center and it will appear here for live field tracking.',
+    todayHeadcount: 'Today On-Site Headcount',
+    todayLaborCost: 'Today On-Site Labor Cost',
+    todayHours: 'Today On-Site Hours'
   },
   es: {
     badge: 'Reloj Admin',
@@ -67,7 +70,10 @@ const COPY = {
     noCrmRecords: 'Todavía no hay proyectos CRM. Aún puedes escribir la obra manualmente.',
     activeJobsite: 'Obra Activa',
     noActiveJobsite: 'No hay una obra activa en este momento.',
-    activeJobsiteBody: 'Inicia una obra desde el panel del proyecto y aparecerá aquí para el seguimiento en campo.'
+    activeJobsiteBody: 'Inicia una obra desde el panel del proyecto y aparecerá aquí para el seguimiento en campo.',
+    todayHeadcount: 'Personal en Sitio Hoy',
+    todayLaborCost: 'Costo Laboral Hoy',
+    todayHours: 'Horas en Sitio Hoy'
   }
 }
 
@@ -80,6 +86,21 @@ function mapDbRowToEntry(row = {}) {
     clockInAt: row.clock_in_at || '',
     clockOutAt: row.clock_out_at || ''
   }
+}
+
+function money(value) {
+  const number = Number(value || 0)
+  return `$${number.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function isSameLocalDay(dateValue) {
+  const d = new Date(dateValue)
+  const now = new Date()
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  )
 }
 
 export default function AdminTimeClock({ lang = 'en' }) {
@@ -168,6 +189,26 @@ export default function AdminTimeClock({ lang = 'en' }) {
     if (!activeJob?.project) return []
     return activeEntries.filter((entry) => entry.jobsite === activeJob.project)
   }, [activeEntries, activeJob])
+
+  const todayActiveJobEntries = useMemo(() => {
+    if (!activeJob?.project) return []
+    return entries.filter((entry) => entry.jobsite === activeJob.project && isSameLocalDay(entry.clockInAt))
+  }, [entries, activeJob])
+
+  const todayOnSiteHeadcount = useMemo(() => {
+    return new Set(todayActiveJobEntries.map((entry) => entry.worker).filter(Boolean)).size
+  }, [todayActiveJobEntries])
+
+  const todayOnSiteHours = useMemo(() => {
+    return todayActiveJobEntries.reduce((sum, entry) => {
+      const start = new Date(entry.clockInAt).getTime()
+      const end = entry.clockOutAt ? new Date(entry.clockOutAt).getTime() : Date.now()
+      const diff = (end - start) / 3600000
+      return sum + Math.max(diff, 0)
+    }, 0)
+  }, [todayActiveJobEntries])
+
+  const todayOnSiteLaborCost = useMemo(() => todayOnSiteHours * 35, [todayOnSiteHours])
 
   const stats = useMemo(() => {
     const totalHours = entries.reduce((sum, entry) => {
@@ -276,8 +317,23 @@ export default function AdminTimeClock({ lang = 'en' }) {
                 <span className="badge">{copy.inAt}: {new Date(activeJob.job_started_at).toLocaleString()}</span>
               </div>
             ) : null}
-            <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <span className="badge">Crew On Site: {activeJobEntries.length}</span>
+            <div className="grid three" style={{ marginTop: 14 }}>
+              <div className="card-soft" style={{ background: '#faf9f4' }}>
+                <div className="muted">Crew On Site</div>
+                <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{activeJobEntries.length}</div>
+              </div>
+              <div className="card-soft" style={{ background: '#faf9f4' }}>
+                <div className="muted">{copy.todayHeadcount}</div>
+                <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{todayOnSiteHeadcount}</div>
+              </div>
+              <div className="card-soft" style={{ background: '#faf9f4' }}>
+                <div className="muted">{copy.todayHours}</div>
+                <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{todayOnSiteHours.toFixed(1)}</div>
+              </div>
+            </div>
+            <div className="card-soft" style={{ marginTop: 12, background: '#faf9f4' }}>
+              <div className="muted">{copy.todayLaborCost}</div>
+              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{money(todayOnSiteLaborCost)}</div>
             </div>
           </div>
         ) : (
