@@ -4,124 +4,146 @@ import { supabase } from '../supabaseClient'
 
 const COPY = {
   en: {
-    heroBadge: 'Surplox AI Tools',
-    heroTitle: 'AI tools built around real jobsite operations.',
-    heroBody:
-      'This is the home for Surplox AI tools. We are starting with Supplier Suggestions so jobsites can quickly find nearby supply options based on material need, ZIP, storefront presence, and delivery coverage.',
-    supplierCardBadge: 'Live now',
-    supplierCardTitle: 'Supplier Suggestions AI',
-    supplierCardBody:
-      'Get ranked supplier suggestions using the supplier data already inside Surplox. This is the first step toward a bigger AI Blueprint that will eventually connect projects, crews, suppliers, and delivery support.',
-    supplierCardPoint1: 'Match by material category',
-    supplierCardPoint2: 'Prioritize nearby ZIPs',
-    supplierCardPoint3: 'Favor storefront and delivery-ready suppliers',
-    supplierCardPoint4: 'Create a cleaner shortlist for outreach',
-    upcomingTitle: 'Upcoming AI tools',
-    upcomingBody:
-      'Project Analyzer, Crew Matching, and Delivery Coordination can live here next as the Surplox network grows.',
-    builderTitle: 'Supplier Suggestions AI',
-    builderBody:
-      'Start with a material need and jobsite ZIP. Surplox will rank supplier storefronts already in the network and return the strongest nearby supply options first.',
-    materialLabel: 'Material need',
+    badge: 'Surplox AI Tools',
+    title: 'AI tools for project planning, hiring, supply, and logistics.',
+    body:
+      'This hub is where Surplox AI tools live. Start with Supplier Suggestions and Crew Matching, then expand into delivery coordination and project analysis.',
+    supplierTab: 'Supplier Suggestions AI',
+    crewTab: 'Crew Matching AI',
+    supplierTitle: 'Find the best nearby suppliers for a jobsite.',
+    supplierBody:
+      'Search Surplox supplier records by material, ZIP, storefront status, business name, and delivery radius to get ranked supplier suggestions.',
+    materialLabel: 'Material category',
     allMaterials: 'All materials',
-    zipLabel: 'Jobsite ZIP',
-    zipPlaceholder: '76102',
-    queryLabel: 'Keyword',
-    queryPlaceholder: 'Concrete, lumber, rebar, tools, supplier name...',
+    supplierSearchLabel: 'Supplier / keyword search',
+    supplierSearchPlaceholder: 'Concrete, lumber, drywall, rebar, supplier name...',
+    supplierZipLabel: 'Jobsite ZIP',
+    supplierZipPlaceholder: '76102',
     storefrontOnly: 'Storefront only',
-    deliveryReadyOnly: 'Delivery-ready only',
-    runSuggestions: 'Run Supplier Suggestions',
-    rerunSuggestions: 'Refresh Suggestions',
-    clear: 'Clear',
-    loading: 'Loading supplier suggestions…',
-    emptyTitle: 'No supplier suggestions yet.',
-    emptyBody:
-      'Choose a material or enter a jobsite ZIP to generate supplier suggestions from the supplier storefront data already inside Surplox.',
-    noMatchesTitle: 'No suppliers matched this request.',
-    noMatchesBody: 'Try removing one filter, changing the ZIP, or broadening the material need.',
-    resultsTitle: 'Suggested suppliers',
-    resultReason: 'Why this supplier ranked well',
-    resultReasonMaterial: 'Material match',
-    resultReasonZip: 'ZIP match',
-    resultReasonStorefront: 'Storefront-ready',
-    resultReasonDelivery: 'Delivery coverage',
-    supplier: 'Supplier',
-    zip: 'ZIP',
-    materials: 'Materials',
-    deliveryRadius: 'Delivery Radius',
-    storefront: 'Storefront',
-    storefrontYes: 'Yes',
-    storefrontNo: 'No',
-    about: 'About',
-    noBio: 'No supplier bio added yet.',
+    runSupplier: 'Run Supplier Suggestions',
+    supplierResults: 'Suggested suppliers',
+    noSupplierResults: 'No supplier suggestions yet. Try a broader material or ZIP search.',
+    supplierWhy: 'Why this matched',
     openStorefront: 'Open Storefront',
     openProfile: 'Open Profile',
+    supplierRadius: 'Delivery Radius',
+    supplierMaterials: 'Materials',
+    supplierZip: 'Business ZIP',
     miles: 'mi',
-    aiScore: 'AI Score',
-    noMaterials: 'No material categories listed yet.',
-    toolHubTitle: 'Tool hub',
-    toolHubBody:
-      'Surplox AI Tools will become the command center for future project-based workflows. For now, Supplier Suggestions is the first tool going live inside this hub.'
+    crewTitle: 'Match the best nearby workers and crews for a job.',
+    crewBody:
+      'Use current Surplox worker profiles to rank crew candidates by trade, local fit, availability, crew size, and profile strength.',
+    tradeLabel: 'Needed trade',
+    allTrades: 'All trades',
+    crewZipLabel: 'Jobsite ZIP',
+    crewZipPlaceholder: '76102',
+    radiusLabel: 'Search radius / local fit',
+    minCrewLabel: 'Minimum crew size',
+    availabilityLabel: 'Availability',
+    allAvailability: 'All availability',
+    availableNow: 'Available now',
+    availableThisWeek: 'Available this week',
+    runCrew: 'Run Crew Matching',
+    crewResults: 'Ranked crew matches',
+    noCrewResults: 'No crew matches yet. Try widening the filters or posting a Need Crew request.',
+    whyMatched: 'Why this matched',
+    matchScore: 'Match score',
+    openWorker: 'Open Worker Profile',
+    createNeedCrew: 'Create Need Crew Post',
+    role: 'Role',
+    trade: 'Trade',
+    zip: 'ZIP',
+    availability: 'Availability',
+    crewSize: 'Crew Size',
+    travelRadius: 'Travel Radius',
+    profileStrength: 'Profile Strength',
+    noBio: 'No bio added yet.',
+    storefront: 'Storefront',
+    loading: 'Loading AI tools…',
+    loadError: 'Unable to load Surplox data right now.',
+    exactZip: 'Exact ZIP match',
+    nearbyZip: 'Nearby ZIP pattern match',
+    materialMatch: 'Material match',
+    storefrontBoost: 'Storefront-ready supplier',
+    deliveryCoverage: 'Delivery coverage fit',
+    tradeMatch: 'Trade match',
+    availabilityMatch: 'Availability fit',
+    crewSizeMatch: 'Crew size fit',
+    profileComplete: 'Stronger profile',
+    radiusFit: 'Travel radius fit',
+    quickNote:
+      'This first version ranks existing Surplox records. Later versions can add external supplier enrichment, project analysis, and logistics coordination.'
   },
   es: {
-    heroBadge: 'Herramientas AI de Surplox',
-    heroTitle: 'Herramientas AI construidas alrededor de operaciones reales de obra.',
-    heroBody:
-      'Este es el hogar de las herramientas AI de Surplox. Empezamos con Sugerencias de Proveedores para que las obras encuentren opciones cercanas según material, ZIP, tienda física y cobertura de entrega.',
-    supplierCardBadge: 'Disponible ahora',
-    supplierCardTitle: 'AI de Sugerencias de Proveedores',
-    supplierCardBody:
-      'Obtén sugerencias clasificadas usando los datos de proveedores que ya existen dentro de Surplox. Este es el primer paso hacia un AI Blueprint más grande que luego conectará proyectos, cuadrillas, proveedores y soporte de entrega.',
-    supplierCardPoint1: 'Coincidencia por categoría de material',
-    supplierCardPoint2: 'Prioridad a ZIP cercanos',
-    supplierCardPoint3: 'Favorece proveedores con tienda y entrega',
-    supplierCardPoint4: 'Crea una lista más limpia para contacto',
-    upcomingTitle: 'Próximas herramientas AI',
-    upcomingBody:
-      'Project Analyzer, Crew Matching y Delivery Coordination pueden vivir aquí después conforme crece la red de Surplox.',
-    builderTitle: 'AI de Sugerencias de Proveedores',
-    builderBody:
-      'Empieza con una necesidad de material y el ZIP de la obra. Surplox clasificará las tiendas proveedoras ya dentro de la red y devolverá primero las opciones más fuertes.',
-    materialLabel: 'Material necesario',
+    badge: 'Herramientas AI de Surplox',
+    title: 'Herramientas AI para planeación, contratación, suministro y logística.',
+    body:
+      'Este centro reúne las herramientas AI de Surplox. Empieza con Sugerencias de Proveedores y Crew Matching, y luego expándelo hacia coordinación de entregas y análisis de proyectos.',
+    supplierTab: 'AI de Proveedores',
+    crewTab: 'AI de Crew Matching',
+    supplierTitle: 'Encuentra los mejores proveedores cercanos para una obra.',
+    supplierBody:
+      'Busca registros de proveedores de Surplox por material, ZIP, tienda física, nombre comercial y radio de entrega para obtener sugerencias clasificadas.',
+    materialLabel: 'Categoría de material',
     allMaterials: 'Todos los materiales',
-    zipLabel: 'ZIP de la obra',
-    zipPlaceholder: '76102',
-    queryLabel: 'Palabra clave',
-    queryPlaceholder: 'Concreto, madera, varilla, herramientas, nombre del proveedor...',
+    supplierSearchLabel: 'Búsqueda de proveedor / palabra clave',
+    supplierSearchPlaceholder: 'Concreto, madera, drywall, varilla, nombre del proveedor...',
+    supplierZipLabel: 'ZIP de la obra',
+    supplierZipPlaceholder: '76102',
     storefrontOnly: 'Solo tienda física',
-    deliveryReadyOnly: 'Solo con entrega',
-    runSuggestions: 'Generar sugerencias',
-    rerunSuggestions: 'Actualizar sugerencias',
-    clear: 'Limpiar',
-    loading: 'Cargando sugerencias de proveedores…',
-    emptyTitle: 'Todavía no hay sugerencias.',
-    emptyBody:
-      'Elige un material o ingresa un ZIP de obra para generar sugerencias desde los datos de tiendas proveedoras que ya existen dentro de Surplox.',
-    noMatchesTitle: 'No hubo coincidencias para esta solicitud.',
-    noMatchesBody: 'Prueba quitando un filtro, cambiando el ZIP o ampliando la necesidad de material.',
-    resultsTitle: 'Proveedores sugeridos',
-    resultReason: 'Por qué este proveedor clasificó bien',
-    resultReasonMaterial: 'Coincidencia de material',
-    resultReasonZip: 'Coincidencia de ZIP',
-    resultReasonStorefront: 'Listo para tienda',
-    resultReasonDelivery: 'Cobertura de entrega',
-    supplier: 'Proveedor',
-    zip: 'ZIP',
-    materials: 'Materiales',
-    deliveryRadius: 'Radio de entrega',
-    storefront: 'Tienda',
-    storefrontYes: 'Sí',
-    storefrontNo: 'No',
-    about: 'Acerca de',
-    noBio: 'Todavía no hay biografía del proveedor.',
+    runSupplier: 'Ejecutar sugerencias',
+    supplierResults: 'Proveedores sugeridos',
+    noSupplierResults: 'Todavía no hay sugerencias. Prueba con un material o ZIP más amplio.',
+    supplierWhy: 'Por qué coincidió',
     openStorefront: 'Abrir tienda',
     openProfile: 'Abrir perfil',
+    supplierRadius: 'Radio de entrega',
+    supplierMaterials: 'Materiales',
+    supplierZip: 'ZIP comercial',
     miles: 'mi',
-    aiScore: 'Puntaje AI',
-    noMaterials: 'Todavía no hay categorías de materiales.',
-    toolHubTitle: 'Centro de herramientas',
-    toolHubBody:
-      'Surplox AI Tools se convertirá en el centro de mando para futuros flujos basados en proyectos. Por ahora, Sugerencias de Proveedores es la primera herramienta en vivo dentro de este centro.'
+    crewTitle: 'Empareja a los mejores trabajadores y cuadrillas cercanas para un trabajo.',
+    crewBody:
+      'Usa los perfiles actuales de Surplox para clasificar candidatos por oficio, cercanía local, disponibilidad, tamaño de cuadrilla y fuerza del perfil.',
+    tradeLabel: 'Oficio necesario',
+    allTrades: 'Todos los oficios',
+    crewZipLabel: 'ZIP de la obra',
+    crewZipPlaceholder: '76102',
+    radiusLabel: 'Radio de búsqueda / encaje local',
+    minCrewLabel: 'Tamaño mínimo de cuadrilla',
+    availabilityLabel: 'Disponibilidad',
+    allAvailability: 'Toda disponibilidad',
+    availableNow: 'Disponible ahora',
+    availableThisWeek: 'Disponible esta semana',
+    runCrew: 'Ejecutar crew matching',
+    crewResults: 'Mejores coincidencias',
+    noCrewResults: 'Todavía no hay coincidencias. Amplía los filtros o crea una publicación de Se necesita cuadrilla.',
+    whyMatched: 'Por qué coincidió',
+    matchScore: 'Puntuación',
+    openWorker: 'Abrir perfil',
+    createNeedCrew: 'Crear publicación de cuadrilla',
+    role: 'Rol',
+    trade: 'Oficio',
+    zip: 'ZIP',
+    availability: 'Disponibilidad',
+    crewSize: 'Tamaño de cuadrilla',
+    travelRadius: 'Radio de viaje',
+    profileStrength: 'Fuerza del perfil',
+    noBio: 'Todavía no agregó biografía.',
+    storefront: 'Tienda física',
+    loading: 'Cargando herramientas AI…',
+    loadError: 'No se pudieron cargar los datos de Surplox.',
+    exactZip: 'Coincidencia exacta de ZIP',
+    nearbyZip: 'Coincidencia local por patrón de ZIP',
+    materialMatch: 'Coincidencia de material',
+    storefrontBoost: 'Proveedor listo para tienda',
+    deliveryCoverage: 'Encaje por cobertura de entrega',
+    tradeMatch: 'Coincidencia de oficio',
+    availabilityMatch: 'Encaje por disponibilidad',
+    crewSizeMatch: 'Encaje por tamaño de cuadrilla',
+    profileComplete: 'Perfil más fuerte',
+    radiusFit: 'Encaje por radio de viaje',
+    quickNote:
+      'Esta primera versión clasifica registros existentes de Surplox. Las siguientes pueden agregar enriquecimiento externo de proveedores, análisis de proyectos y coordinación logística.'
   }
 }
 
@@ -138,98 +160,185 @@ const DEFAULT_MATERIALS = [
   'Safety Equipment'
 ]
 
+function normalizeText(value) {
+  return String(value || '').trim()
+}
+
 function normalizeMaterials(list) {
   if (!Array.isArray(list)) return []
   return list.map((item) => String(item || '').trim()).filter(Boolean)
 }
 
-function normalizeMaterialLabel(value) {
-  const v = String(value || '').trim()
-  if (!v) return ''
-  return v.replace(/_/g, ' ').replace(/\s+/g, ' ').trim()
+function normalizeList(list) {
+  if (!Array.isArray(list)) return []
+  return list.map((item) => String(item || '').trim()).filter(Boolean)
 }
 
-function scoreSupplier(supplier, query, material, zipFilter, storefrontOnly, deliveryReadyOnly) {
+function numericValue(value) {
+  const num = Number(value)
+  return Number.isFinite(num) ? num : 0
+}
+
+function prettyRole(role, lang = 'en') {
+  const labels = {
+    laborer: { en: 'Laborer', es: 'Trabajador' },
+    subcontractor: { en: 'Subcontractor', es: 'Subcontratista' },
+    contractor: { en: 'Contractor', es: 'Contratista' },
+    supplier: { en: 'Supplier', es: 'Proveedor' },
+    driver: { en: 'Driver', es: 'Conductor' },
+    mechanic: { en: 'Mechanic', es: 'Mecánico' }
+  }
+  return labels[role]?.[lang] || labels[role]?.en || role || '—'
+}
+
+function availabilityLabel(value, lang = 'en') {
+  const labels = {
+    available_now: { en: 'Available Now', es: 'Disponible ahora' },
+    available_this_week: { en: 'Available This Week', es: 'Disponible esta semana' },
+    busy: { en: 'Busy', es: 'Ocupado' }
+  }
+  return labels[value]?.[lang] || labels[value]?.en || value || '—'
+}
+
+function startsWithZipRegion(a, b) {
+  const left = normalizeText(a)
+  const right = normalizeText(b)
+  if (!left || !right) return false
+  return left.slice(0, 3) === right.slice(0, 3)
+}
+
+function profileStrength(worker) {
   let score = 0
+  if (normalizeText(worker.display_name)) score += 1
+  if (normalizeText(worker.first_name) && normalizeText(worker.last_name)) score += 1
+  if (normalizeText(worker.home_zip)) score += 1
+  if (normalizeText(worker.city)) score += 1
+  if (normalizeText(worker.phone)) score += 1
+  if (normalizeText(worker.bio)) score += 1
+  if (worker.trade_id || normalizeText(worker.trade_name)) score += 1
+  if (numericValue(worker.crew_size) > 1) score += 1
+  if (normalizeText(worker.availability_status)) score += 1
+  return score
+}
+
+function supplierReasons(supplier, { query, material, jobZip, copy }) {
+  const reasons = []
+  const materials = normalizeMaterials(supplier.materials_categories).map((item) => item.toLowerCase())
+  const q = normalizeText(query).toLowerCase()
+  const businessZip = normalizeText(supplier.business_zip)
+
+  if (material && materials.includes(material.toLowerCase())) reasons.push(copy.materialMatch)
+  if (jobZip && businessZip === jobZip) reasons.push(copy.exactZip)
+  else if (jobZip && startsWithZipRegion(businessZip, jobZip)) reasons.push(copy.nearbyZip)
+  if (supplier.storefront) reasons.push(copy.storefrontBoost)
+  if (numericValue(supplier.delivery_radius) > 0) reasons.push(copy.deliveryCoverage)
+  if (q) {
+    const haystack = [
+      supplier.business_name,
+      supplier.display_name,
+      supplier.bio,
+      ...normalizeMaterials(supplier.materials_categories)
+    ]
+      .join(' ')
+      .toLowerCase()
+    if (haystack.includes(q)) reasons.push(copy.materialMatch)
+  }
+
+  return Array.from(new Set(reasons)).slice(0, 4)
+}
+
+function scoreSupplier(supplier, { query, material, jobZip, storefrontOnly }) {
+  let score = 0
+  const materials = normalizeMaterials(supplier.materials_categories)
+  const q = normalizeText(query).toLowerCase()
+  const businessZip = normalizeText(supplier.business_zip)
 
   const haystack = [
     supplier.business_name,
     supplier.display_name,
-    supplier.business_zip,
     supplier.bio,
-    ...supplier.materials_categories
+    businessZip,
+    ...materials
   ]
     .join(' ')
     .toLowerCase()
 
-  if (query.trim()) {
-    const terms = query
-      .toLowerCase()
-      .split(/\s+/)
-      .map((term) => term.trim())
-      .filter(Boolean)
-
-    terms.forEach((term) => {
-      if (haystack.includes(term)) score += 5
-      if (supplier.materials_categories.some((item) => item.toLowerCase().includes(term))) score += 10
+  if (q) {
+    q.split(/\s+/).filter(Boolean).forEach((term) => {
+      if (haystack.includes(term)) score += 8
+      if (materials.some((item) => item.toLowerCase().includes(term))) score += 10
       if (String(supplier.business_name || '').toLowerCase().includes(term)) score += 9
-      if (String(supplier.display_name || '').toLowerCase().includes(term)) score += 7
-      if (String(supplier.business_zip || '').toLowerCase() === term) score += 8
     })
   }
 
-  if (material) {
-    if (supplier.materials_categories.some((item) => item.toLowerCase() === material.toLowerCase())) {
-      score += 22
-    }
-  }
+  if (material && materials.some((item) => item.toLowerCase() === material.toLowerCase())) score += 24
+  if (jobZip && businessZip === jobZip) score += 18
+  else if (jobZip && startsWithZipRegion(businessZip, jobZip)) score += 9
+  if (supplier.storefront) score += storefrontOnly ? 12 : 6
+  score += Math.min(numericValue(supplier.delivery_radius), 150) / 6
 
-  if (zipFilter && String(supplier.business_zip || '').trim() === zipFilter.trim()) {
-    score += 12
-  }
-
-  if (storefrontOnly && supplier.storefront) {
-    score += 8
-  }
-
-  if (deliveryReadyOnly && Number(supplier.delivery_radius || 0) > 0) {
-    score += 8
-  }
-
-  score += Math.min(Number(supplier.delivery_radius || 0), 150) / 8
-
-  return Math.round(score)
+  return score
 }
 
-function suggestionReasons(supplier, material, zipFilter) {
+function crewReasons(worker, { selectedTradeId, jobZip, minCrewSize, availability, copy }) {
   const reasons = []
-
-  if (
-    material &&
-    supplier.materials_categories.some((item) => item.toLowerCase() === material.toLowerCase())
-  ) {
-    reasons.push('material')
+  if (selectedTradeId && String(worker.trade_id || '') === String(selectedTradeId)) reasons.push(copy.tradeMatch)
+  if (jobZip && normalizeText(worker.home_zip) === normalizeText(jobZip)) reasons.push(copy.exactZip)
+  else if (jobZip && startsWithZipRegion(worker.home_zip, jobZip)) reasons.push(copy.nearbyZip)
+  if (availability && normalizeText(worker.availability_status) === availability) reasons.push(copy.availabilityMatch)
+  if (numericValue(minCrewSize) > 0 && numericValue(worker.crew_size) >= numericValue(minCrewSize)) {
+    reasons.push(copy.crewSizeMatch)
   }
-
-  if (zipFilter && String(supplier.business_zip || '').trim() === zipFilter.trim()) {
-    reasons.push('zip')
-  }
-
-  if (supplier.storefront) {
-    reasons.push('storefront')
-  }
-
-  if (Number(supplier.delivery_radius || 0) > 0) {
-    reasons.push('delivery')
-  }
-
-  return reasons
+  if (profileStrength(worker) >= 6) reasons.push(copy.profileComplete)
+  if (numericValue(worker.travel_radius_miles) > 0) reasons.push(copy.radiusFit)
+  return Array.from(new Set(reasons)).slice(0, 4)
 }
 
-function InfoTile({ value }) {
+function scoreWorker(worker, { selectedTradeId, jobZip, radius, minCrewSize, availability }) {
+  let score = 0
+
+  if (selectedTradeId && String(worker.trade_id || '') === String(selectedTradeId)) score += 28
+  if (jobZip && normalizeText(worker.home_zip) === normalizeText(jobZip)) score += 20
+  else if (jobZip && startsWithZipRegion(worker.home_zip, jobZip)) score += 10
+
+  const workerAvailability = normalizeText(worker.availability_status)
+  if (availability && workerAvailability === availability) score += 16
+  else if (!availability && workerAvailability === 'available_now') score += 8
+  else if (!availability && workerAvailability === 'available_this_week') score += 5
+
+  if (numericValue(minCrewSize) > 0) {
+    if (numericValue(worker.crew_size) >= numericValue(minCrewSize)) score += 14
+  } else {
+    score += Math.min(numericValue(worker.crew_size), 10)
+  }
+
+  if (numericValue(radius) > 0 && numericValue(worker.travel_radius_miles) >= numericValue(radius)) {
+    score += 10
+  } else {
+    score += Math.min(numericValue(worker.travel_radius_miles), 150) / 10
+  }
+
+  score += profileStrength(worker) * 2
+  if (normalizeText(worker.bio)) score += 4
+
+  return score
+}
+
+function InfoCard({ label, value }) {
   return (
     <div className="card-soft" style={{ minHeight: 92 }}>
-      <div style={{ fontWeight: 800, fontSize: 16, lineHeight: 1.35 }}>{value}</div>
+      <div
+        style={{
+          fontSize: 12,
+          fontWeight: 800,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          color: 'var(--muted-soft)'
+        }}
+      >
+        {label}
+      </div>
+      <div style={{ marginTop: 8, fontSize: 18, fontWeight: 900, lineHeight: 1.25 }}>{value}</div>
     </div>
   )
 }
@@ -237,140 +346,200 @@ function InfoTile({ value }) {
 export default function SupplierAiTools({ lang = 'en' }) {
   const copy = COPY[lang] || COPY.en
   const [loading, setLoading] = useState(true)
-  const [ranTool, setRanTool] = useState(false)
-  const [suppliers, setSuppliers] = useState([])
   const [error, setError] = useState('')
+  const [tab, setTab] = useState('supplier')
+  const [trades, setTrades] = useState([])
+  const [suppliers, setSuppliers] = useState([])
+  const [workers, setWorkers] = useState([])
 
-  const [query, setQuery] = useState('')
-  const [jobZip, setJobZip] = useState('')
-  const [material, setMaterial] = useState('')
-  const [storefrontOnly, setStorefrontOnly] = useState(true)
-  const [deliveryReadyOnly, setDeliveryReadyOnly] = useState(false)
+  const [supplierQuery, setSupplierQuery] = useState('')
+  const [supplierMaterial, setSupplierMaterial] = useState('')
+  const [supplierZip, setSupplierZip] = useState('')
+  const [storefrontOnly, setStorefrontOnly] = useState(false)
+  const [ranSupplier, setRanSupplier] = useState(false)
+
+  const [crewTradeId, setCrewTradeId] = useState('')
+  const [crewZip, setCrewZip] = useState('')
+  const [crewRadius, setCrewRadius] = useState(50)
+  const [crewMinSize, setCrewMinSize] = useState(1)
+  const [crewAvailability, setCrewAvailability] = useState('')
+  const [ranCrew, setRanCrew] = useState(false)
 
   useEffect(() => {
     let active = true
 
-    async function loadSuppliers() {
+    async function loadData() {
       setLoading(true)
       setError('')
 
       try {
-        const { data, error: supplierError } = await supabase
-          .from('profiles')
-          .select(`
-            user_id,
-            display_name,
-            business_name,
-            business_zip,
-            delivery_radius,
-            materials_categories,
-            storefront,
-            bio,
-            role
-          `)
-          .eq('role', 'supplier')
-          .order('business_name', { ascending: true })
+        const [{ data: tradesData, error: tradesError }, { data: supplierData, error: supplierError }, { data: workerData, error: workerError }, { data: contactsData, error: contactsError }] = await Promise.all([
+          supabase.from('trades').select('id,name').order('name'),
+          supabase
+            .from('profiles')
+            .select('user_id, display_name, business_name, business_address, business_zip, materials_categories, storefront, delivery_radius, bio, role')
+            .eq('role', 'supplier')
+            .order('business_name', { ascending: true }),
+          supabase
+            .from('profiles')
+            .select('user_id, display_name, first_name, last_name, role, trade_id, home_zip, travel_radius_miles, crew_size, bio, availability_status, category_group, trades(name)')
+            .in('role', ['laborer', 'subcontractor', 'contractor'])
+            .order('display_name', { ascending: true }),
+          supabase.from('contact_private').select('user_id, city, phone')
+        ])
 
+        if (tradesError) throw tradesError
         if (supplierError) throw supplierError
+        if (workerError) throw workerError
+        if (contactsError) throw contactsError
         if (!active) return
 
+        const contactMap = new Map((contactsData || []).map((row) => [row.user_id, row]))
+
+        setTrades(tradesData || [])
         setSuppliers(
-          (data || []).map((item) => ({
+          (supplierData || []).map((item) => ({
             ...item,
-            materials_categories: normalizeMaterials(item.materials_categories).map(normalizeMaterialLabel)
+            materials_categories: normalizeMaterials(item.materials_categories)
           }))
+        )
+        setWorkers(
+          (workerData || []).map((item) => {
+            const contact = contactMap.get(item.user_id) || {}
+            return {
+              ...item,
+              trade_name: item.trades?.name || '',
+              city: normalizeText(contact.city),
+              phone: normalizeText(contact.phone)
+            }
+          })
         )
       } catch (err) {
         console.error(err)
         if (!active) return
-        setError('Unable to load suppliers.')
+        setError(copy.loadError)
       } finally {
         if (active) setLoading(false)
       }
     }
 
-    loadSuppliers()
-
+    loadData()
     return () => {
       active = false
     }
-  }, [])
+  }, [copy.loadError])
 
   const materialOptions = useMemo(() => {
-    const set = new Set(DEFAULT_MATERIALS.map(normalizeMaterialLabel))
-
+    const set = new Set(DEFAULT_MATERIALS)
     suppliers.forEach((supplier) => {
-      supplier.materials_categories.forEach((item) => {
-        if (item) set.add(item)
-      })
+      normalizeMaterials(supplier.materials_categories).forEach((item) => set.add(item))
     })
-
     return Array.from(set).sort((a, b) => a.localeCompare(b))
   }, [suppliers])
 
-  const suggestions = useMemo(() => {
+  const supplierResults = useMemo(() => {
     let next = [...suppliers]
-
-    if (query.trim()) {
-      const q = query.trim().toLowerCase()
+    if (supplierMaterial) {
+      next = next.filter((supplier) =>
+        normalizeMaterials(supplier.materials_categories).some(
+          (item) => item.toLowerCase() === supplierMaterial.toLowerCase()
+        )
+      )
+    }
+    if (storefrontOnly) {
+      next = next.filter((supplier) => supplier.storefront)
+    }
+    if (normalizeText(supplierZip)) {
+      next = next.filter((supplier) => {
+        const businessZip = normalizeText(supplier.business_zip)
+        return businessZip === normalizeText(supplierZip) || startsWithZipRegion(businessZip, supplierZip)
+      })
+    }
+    if (normalizeText(supplierQuery)) {
+      const q = normalizeText(supplierQuery).toLowerCase()
       next = next.filter((supplier) => {
         const haystack = [
           supplier.business_name,
           supplier.display_name,
           supplier.business_zip,
           supplier.bio,
-          ...supplier.materials_categories
+          ...normalizeMaterials(supplier.materials_categories)
         ]
           .join(' ')
           .toLowerCase()
-
         return haystack.includes(q)
       })
     }
 
-    if (jobZip.trim()) {
-      next = next.filter((supplier) => String(supplier.business_zip || '').trim() === jobZip.trim())
-    }
-
-    if (material) {
-      next = next.filter((supplier) =>
-        supplier.materials_categories.some((item) => item.toLowerCase() === material.toLowerCase())
-      )
-    }
-
-    if (storefrontOnly) {
-      next = next.filter((supplier) => supplier.storefront)
-    }
-
-    if (deliveryReadyOnly) {
-      next = next.filter((supplier) => Number(supplier.delivery_radius || 0) > 0)
-    }
-
-    next = next
+    return next
       .map((supplier) => ({
         ...supplier,
-        ai_score: scoreSupplier(supplier, query, material, jobZip, storefrontOnly, deliveryReadyOnly),
-        ai_reasons: suggestionReasons(supplier, material, jobZip)
+        ai_score: scoreSupplier(supplier, {
+          query: supplierQuery,
+          material: supplierMaterial,
+          jobZip: supplierZip,
+          storefrontOnly
+        }),
+        reasons: supplierReasons(supplier, {
+          query: supplierQuery,
+          material: supplierMaterial,
+          jobZip: supplierZip,
+          copy
+        })
       }))
       .sort((a, b) => b.ai_score - a.ai_score)
+      .slice(0, 12)
+  }, [suppliers, supplierMaterial, storefrontOnly, supplierZip, supplierQuery, copy])
+
+  const crewResults = useMemo(() => {
+    let next = [...workers]
+
+    if (crewTradeId) {
+      next = next.filter((worker) => String(worker.trade_id || '') === String(crewTradeId))
+    }
+    if (normalizeText(crewZip)) {
+      next = next.filter((worker) => {
+        const homeZip = normalizeText(worker.home_zip)
+        return homeZip === normalizeText(crewZip) || startsWithZipRegion(homeZip, crewZip)
+      })
+    }
+    if (crewAvailability) {
+      next = next.filter((worker) => normalizeText(worker.availability_status) === crewAvailability)
+    }
+    if (numericValue(crewMinSize) > 0) {
+      next = next.filter((worker) => numericValue(worker.crew_size) >= numericValue(crewMinSize))
+    }
 
     return next
-  }, [suppliers, query, jobZip, material, storefrontOnly, deliveryReadyOnly])
+      .map((worker) => ({
+        ...worker,
+        match_score: scoreWorker(worker, {
+          selectedTradeId: crewTradeId,
+          jobZip: crewZip,
+          radius: crewRadius,
+          minCrewSize: crewMinSize,
+          availability: crewAvailability
+        }),
+        strength: profileStrength(worker),
+        reasons: crewReasons(worker, {
+          selectedTradeId: crewTradeId,
+          jobZip: crewZip,
+          minCrewSize: crewMinSize,
+          availability: crewAvailability,
+          copy
+        })
+      }))
+      .sort((a, b) => b.match_score - a.match_score)
+      .slice(0, 12)
+  }, [workers, crewTradeId, crewZip, crewAvailability, crewMinSize, crewRadius, copy])
 
-  function runTool() {
-    setRanTool(true)
+  if (loading) {
+    return <div className="card">{copy.loading}</div>
   }
 
-  function clearTool() {
-    setQuery('')
-    setJobZip('')
-    setMaterial('')
-    setStorefrontOnly(true)
-    setDeliveryReadyOnly(false)
-    setRanTool(false)
+  if (error) {
+    return <div className="card">{error}</div>
   }
-
-  const visibleSuggestions = ranTool ? suggestions : []
 
   return (
     <div className="grid" style={{ gap: 18 }}>
@@ -378,206 +547,283 @@ export default function SupplierAiTools({ lang = 'en' }) {
         className="card rounded-xl"
         style={{
           padding: 28,
-          background: 'linear-gradient(180deg, #efe7ff 0%, #f7f7f2 100%)'
+          background: 'linear-gradient(180deg, #f2ecff 0%, #f7f7f2 100%)'
         }}
       >
         <div className="badge" style={{ marginBottom: 14, background: '#e8defa', color: '#4d2f82' }}>
-          {copy.heroBadge}
+          {copy.badge}
         </div>
 
-        <div className="h1" style={{ maxWidth: 820 }}>{copy.heroTitle}</div>
+        <div className="h1" style={{ maxWidth: 860 }}>{copy.title}</div>
 
         <p className="muted" style={{ marginTop: 12, maxWidth: 920, fontSize: 17, lineHeight: 1.7 }}>
-          {copy.heroBody}
+          {copy.body}
         </p>
 
-        <div className="grid three" style={{ marginTop: 18 }}>
-          <InfoTile value={copy.supplierCardPoint1} />
-          <InfoTile value={copy.supplierCardPoint2} />
-          <InfoTile value={copy.supplierCardPoint3} />
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
+          <button
+            type="button"
+            className={tab === 'supplier' ? 'btn primary' : 'btn'}
+            onClick={() => setTab('supplier')}
+          >
+            {copy.supplierTab}
+          </button>
+          <button
+            type="button"
+            className={tab === 'crew' ? 'btn primary' : 'btn'}
+            onClick={() => setTab('crew')}
+          >
+            {copy.crewTab}
+          </button>
         </div>
       </div>
 
-      <div className="grid two" style={{ gap: 18 }}>
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="badge" style={{ marginBottom: 12, background: '#f1e7a8' }}>
-            {copy.supplierCardBadge}
-          </div>
-          <div className="card-section-title">{copy.supplierCardTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.supplierCardBody}
-          </p>
-        </div>
+      {tab === 'supplier' ? (
+        <>
+          <div className="card rounded-xl" style={{ padding: 22 }}>
+            <div className="card-section-title">{copy.supplierTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.supplierBody}</p>
 
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.toolHubTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.toolHubBody}
-          </p>
-          <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
-            <div style={{ fontWeight: 900 }}>{copy.upcomingTitle}</div>
-            <p className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>{copy.upcomingBody}</p>
-          </div>
-        </div>
-      </div>
+            <div className="grid" style={{ gap: 14, marginTop: 16 }}>
+              <div className="grid two" style={{ gap: 14 }}>
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.materialLabel}</div>
+                  <select
+                    className="input"
+                    value={supplierMaterial}
+                    onChange={(e) => setSupplierMaterial(e.target.value)}
+                  >
+                    <option value="">{copy.allMaterials}</option>
+                    {materialOptions.map((item) => (
+                      <option key={item} value={item}>{item}</option>
+                    ))}
+                  </select>
+                </div>
 
-      <div className="card rounded-xl" style={{ padding: 22 }}>
-        <div className="card-section-title">{copy.builderTitle}</div>
-        <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.builderBody}</p>
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.supplierZipLabel}</div>
+                  <input
+                    className="input"
+                    value={supplierZip}
+                    onChange={(e) => setSupplierZip(e.target.value.replace(/[^\d]/g, '').slice(0, 5))}
+                    placeholder={copy.supplierZipPlaceholder}
+                  />
+                </div>
+              </div>
 
-        {loading ? <div className="card-soft" style={{ marginTop: 16 }}>{copy.loading}</div> : null}
-        {error ? <div className="card-soft" style={{ marginTop: 16 }}>{error}</div> : null}
-
-        {!loading ? (
-          <div className="grid" style={{ gap: 14, marginTop: 16 }}>
-            <div className="grid two" style={{ gap: 14 }}>
               <div>
-                <div className="muted" style={{ marginBottom: 8 }}>{copy.materialLabel}</div>
-                <select className="input" value={material} onChange={(e) => setMaterial(e.target.value)}>
-                  <option value="">{copy.allMaterials}</option>
-                  {materialOptions.map((option) => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
+                <div className="muted" style={{ marginBottom: 8 }}>{copy.supplierSearchLabel}</div>
+                <input
+                  className="input"
+                  value={supplierQuery}
+                  onChange={(e) => setSupplierQuery(e.target.value)}
+                  placeholder={copy.supplierSearchPlaceholder}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  className={storefrontOnly ? 'btn primary' : 'btn'}
+                  onClick={() => setStorefrontOnly((prev) => !prev)}
+                >
+                  {copy.storefrontOnly}
+                </button>
+                <button type="button" className="btn primary" onClick={() => setRanSupplier(true)}>
+                  {copy.runSupplier}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {ranSupplier ? (
+            <div className="grid" style={{ gap: 16 }}>
+              <div className="card rounded-xl" style={{ padding: 22 }}>
+                <div className="card-section-title">{copy.supplierResults}</div>
+              </div>
+
+              {supplierResults.length === 0 ? (
+                <div className="card rounded-xl" style={{ padding: 22 }}>
+                  <div className="card-section-subtitle">{copy.noSupplierResults}</div>
+                </div>
+              ) : (
+                supplierResults.map((supplier) => (
+                  <div key={supplier.user_id} className="card rounded-xl" style={{ padding: 22 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <div>
+                        <div className="h2" style={{ fontSize: 24 }}>
+                          {normalizeText(supplier.business_name) || normalizeText(supplier.display_name) || 'Supplier'}
+                        </div>
+                        <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          <span className="badge">AI {copy.matchScore}: {supplier.ai_score}</span>
+                          {supplier.storefront ? <span className="badge">{copy.storefront}</span> : null}
+                          <span className="badge">{copy.supplierZip}: {normalizeText(supplier.business_zip) || '—'}</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <Link className="btn small primary" to={`/supplier/${supplier.user_id}`}>
+                          {copy.openStorefront}
+                        </Link>
+                        <Link className="btn small" to={`/u/${supplier.user_id}`}>
+                          {copy.openProfile}
+                        </Link>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                      gap: 14,
+                      marginTop: 16
+                    }}>
+                      <InfoCard label={copy.supplierMaterials} value={normalizeMaterials(supplier.materials_categories).slice(0, 3).join(', ') || '—'} />
+                      <InfoCard label={copy.supplierRadius} value={numericValue(supplier.delivery_radius) > 0 ? `${numericValue(supplier.delivery_radius)} ${copy.miles}` : '—'} />
+                      <InfoCard label={copy.supplierWhy} value={supplier.reasons.join(' • ') || '—'} />
+                    </div>
+
+                    <div style={{ marginTop: 16 }}>
+                      <div className="muted">About</div>
+                      <p style={{ marginTop: 8, lineHeight: 1.7 }}>{normalizeText(supplier.bio) || '—'}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : null}
+        </>
+      ) : null}
+
+      {tab === 'crew' ? (
+        <>
+          <div className="card rounded-xl" style={{ padding: 22 }}>
+            <div className="card-section-title">{copy.crewTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.crewBody}</p>
+
+            <div className="grid" style={{ gap: 14, marginTop: 16 }}>
+              <div className="grid two" style={{ gap: 14 }}>
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.tradeLabel}</div>
+                  <select className="input" value={crewTradeId} onChange={(e) => setCrewTradeId(e.target.value)}>
+                    <option value="">{copy.allTrades}</option>
+                    {trades.map((trade) => (
+                      <option key={trade.id} value={trade.id}>{trade.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.crewZipLabel}</div>
+                  <input
+                    className="input"
+                    value={crewZip}
+                    onChange={(e) => setCrewZip(e.target.value.replace(/[^\d]/g, '').slice(0, 5))}
+                    placeholder={copy.crewZipPlaceholder}
+                  />
+                </div>
+              </div>
+
+              <div className="grid two" style={{ gap: 14 }}>
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.radiusLabel}</div>
+                  <input
+                    className="input"
+                    type="number"
+                    value={crewRadius}
+                    onChange={(e) => setCrewRadius(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.minCrewLabel}</div>
+                  <input
+                    className="input"
+                    type="number"
+                    value={crewMinSize}
+                    onChange={(e) => setCrewMinSize(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="muted" style={{ marginBottom: 8 }}>{copy.availabilityLabel}</div>
+                <select className="input" value={crewAvailability} onChange={(e) => setCrewAvailability(e.target.value)}>
+                  <option value="">{copy.allAvailability}</option>
+                  <option value="available_now">{copy.availableNow}</option>
+                  <option value="available_this_week">{copy.availableThisWeek}</option>
                 </select>
               </div>
 
-              <div>
-                <div className="muted" style={{ marginBottom: 8 }}>{copy.zipLabel}</div>
-                <input
-                  className="input"
-                  value={jobZip}
-                  onChange={(e) => setJobZip(e.target.value.replace(/[^\d]/g, '').slice(0, 5))}
-                  placeholder={copy.zipPlaceholder}
-                />
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button type="button" className="btn primary" onClick={() => setRanCrew(true)}>
+                  {copy.runCrew}
+                </button>
+                <Link className="btn" to="/new?type=need_crew">{copy.createNeedCrew}</Link>
               </div>
             </div>
-
-            <div>
-              <div className="muted" style={{ marginBottom: 8 }}>{copy.queryLabel}</div>
-              <input
-                className="input"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={copy.queryPlaceholder}
-              />
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                className={storefrontOnly ? 'btn primary small' : 'btn small'}
-                onClick={() => setStorefrontOnly((prev) => !prev)}
-              >
-                {copy.storefrontOnly}
-              </button>
-
-              <button
-                type="button"
-                className={deliveryReadyOnly ? 'btn primary small' : 'btn small'}
-                onClick={() => setDeliveryReadyOnly((prev) => !prev)}
-              >
-                {copy.deliveryReadyOnly}
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <button type="button" className="btn primary" onClick={runTool}>
-                {ranTool ? copy.rerunSuggestions : copy.runSuggestions}
-              </button>
-              <button type="button" className="btn" onClick={clearTool}>
-                {copy.clear}
-              </button>
-            </div>
           </div>
-        ) : null}
+
+          {ranCrew ? (
+            <div className="grid" style={{ gap: 16 }}>
+              <div className="card rounded-xl" style={{ padding: 22 }}>
+                <div className="card-section-title">{copy.crewResults}</div>
+              </div>
+
+              {crewResults.length === 0 ? (
+                <div className="card rounded-xl" style={{ padding: 22 }}>
+                  <div className="card-section-subtitle">{copy.noCrewResults}</div>
+                </div>
+              ) : (
+                crewResults.map((worker) => (
+                  <div key={worker.user_id} className="card rounded-xl" style={{ padding: 22 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <div>
+                        <div className="h2" style={{ fontSize: 24 }}>
+                          {normalizeText(worker.display_name) || normalizeText(`${worker.first_name || ''} ${worker.last_name || ''}`) || 'Member'}
+                        </div>
+                        <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          <span className="badge">AI {copy.matchScore}: {worker.match_score}</span>
+                          <span className="badge">{copy.role}: {prettyRole(worker.role, lang)}</span>
+                          <span className="badge">{copy.trade}: {normalizeText(worker.trade_name) || '—'}</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <Link className="btn small primary" to={`/u/${worker.user_id}`}>
+                          {copy.openWorker}
+                        </Link>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                      gap: 14,
+                      marginTop: 16
+                    }}>
+                      <InfoCard label={copy.zip} value={normalizeText(worker.home_zip) || '—'} />
+                      <InfoCard label={copy.availability} value={availabilityLabel(worker.availability_status, lang)} />
+                      <InfoCard label={copy.crewSize} value={numericValue(worker.crew_size) || '—'} />
+                      <InfoCard label={copy.travelRadius} value={numericValue(worker.travel_radius_miles) > 0 ? `${numericValue(worker.travel_radius_miles)} ${copy.miles}` : '—'} />
+                      <InfoCard label={copy.profileStrength} value={`${worker.strength}/9`} />
+                      <InfoCard label={copy.whyMatched} value={worker.reasons.join(' • ') || '—'} />
+                    </div>
+
+                    <div style={{ marginTop: 16 }}>
+                      <div className="muted">Bio</div>
+                      <p style={{ marginTop: 8, lineHeight: 1.7 }}>{normalizeText(worker.bio) || copy.noBio}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : null}
+        </>
+      ) : null}
+
+      <div className="card rounded-xl" style={{ padding: 22, background: '#fffaf0' }}>
+        <div className="card-section-subtitle">{copy.quickNote}</div>
       </div>
-
-      {!loading && ranTool && visibleSuggestions.length === 0 ? (
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{suppliers.length === 0 ? copy.emptyTitle : copy.noMatchesTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {suppliers.length === 0 ? copy.emptyBody : copy.noMatchesBody}
-          </p>
-        </div>
-      ) : null}
-
-      {!loading && visibleSuggestions.length > 0 ? (
-        <div className="grid" style={{ gap: 16 }}>
-          <div className="card rounded-xl" style={{ padding: 22 }}>
-            <div className="card-section-title">{copy.resultsTitle}</div>
-          </div>
-
-          {visibleSuggestions.map((supplier) => {
-            const displayName = supplier.business_name || supplier.display_name || copy.supplier
-            return (
-              <div key={supplier.user_id} className="card rounded-xl" style={{ padding: 22 }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    flexWrap: 'wrap',
-                    alignItems: 'flex-start'
-                  }}
-                >
-                  <div>
-                    <div className="h2" style={{ fontSize: 24 }}>{displayName}</div>
-                    <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <span className="badge" style={{ background: '#e8defa', color: '#4d2f82' }}>
-                        {copy.aiScore}: {supplier.ai_score}
-                      </span>
-                      <span className="badge">
-                        {copy.zip}: {supplier.business_zip || '—'}
-                      </span>
-                      <span className="badge">
-                        {copy.storefront}: {supplier.storefront ? copy.storefrontYes : copy.storefrontNo}
-                      </span>
-                      <span className="badge">
-                        {copy.deliveryRadius}: {Number(supplier.delivery_radius || 0) > 0 ? `${supplier.delivery_radius} ${copy.miles}` : '—'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <Link className="btn small primary" to={`/supplier/${supplier.user_id}`}>
-                      {copy.openStorefront}
-                    </Link>
-                    <Link className="btn small" to={`/u/${supplier.user_id}`}>
-                      {copy.openProfile}
-                    </Link>
-                  </div>
-                </div>
-
-                <div className="grid two" style={{ gap: 14, marginTop: 16 }}>
-                  <div className="card-soft" style={{ background: '#f8f7ef' }}>
-                    <div className="card-section-title" style={{ fontSize: 15 }}>{copy.resultReason}</div>
-                    <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {supplier.ai_reasons.includes('material') ? <span className="badge">{copy.resultReasonMaterial}</span> : null}
-                      {supplier.ai_reasons.includes('zip') ? <span className="badge">{copy.resultReasonZip}</span> : null}
-                      {supplier.ai_reasons.includes('storefront') ? <span className="badge">{copy.resultReasonStorefront}</span> : null}
-                      {supplier.ai_reasons.includes('delivery') ? <span className="badge">{copy.resultReasonDelivery}</span> : null}
-                    </div>
-                  </div>
-
-                  <div className="card-soft" style={{ background: '#fffaf0' }}>
-                    <div className="card-section-title" style={{ fontSize: 15 }}>{copy.materials}</div>
-                    <div className="muted" style={{ marginTop: 8 }}>
-                      {supplier.materials_categories.length > 0
-                        ? supplier.materials_categories.join(', ')
-                        : copy.noMaterials}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 16 }}>
-                  <div className="muted">{copy.about}</div>
-                  <p style={{ marginTop: 8, lineHeight: 1.7 }}>{supplier.bio || copy.noBio}</p>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      ) : null}
     </div>
   )
 }
