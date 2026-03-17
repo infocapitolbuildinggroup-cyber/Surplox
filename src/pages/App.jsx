@@ -189,44 +189,30 @@ function AppShell({ lang, setLang }) {
     }
   }, [mobileMenuOpen])
 
-  const isAdmin = useMemo(() => hasAdminAccess(session?.user), [session?.user])
-
   const navItems = useMemo(() => {
     if (!session) return []
 
     return [
-      { key: 'feed', to: '/feed', label: lang === 'es' ? 'Feed' : 'Feed' },
-      { key: 'materials', to: '/materials', label: lang === 'es' ? 'Materiales' : 'Materials' },
-      { key: 'delivery', to: '/delivery', label: lang === 'es' ? 'Entrega' : 'Delivery' },
-      {
-        key: 'repair',
-        to: REPAIR_ROUTE,
-        label: lang === 'es' ? 'Equipo / Reparación' : 'Equipment / Repair'
-      },
-      { key: 'channels', to: '/channels', label: lang === 'es' ? 'Canales' : 'Channels' },
-      { key: 'new', to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
-      { key: 'notifications', to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
-      { key: 'account', to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' }
+      { to: '/feed', label: lang === 'es' ? 'Feed' : 'Feed' },
+      { to: '/materials', label: lang === 'es' ? 'Materiales' : 'Materials' },
+      { to: '/delivery', label: lang === 'es' ? 'Entrega' : 'Delivery' },
+      { to: '/channels', label: lang === 'es' ? 'Canales' : 'Channels' },
+      { to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
+      { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
+      { to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' }
     ]
   }, [session, lang])
 
-  const activeKey = useMemo(() => {
-    if (location.pathname.startsWith('/materials')) return 'materials'
-    if (location.pathname.startsWith('/delivery')) return 'delivery'
-    if (
-      location.pathname.startsWith('/feed') &&
-      isSupportSearchActive(location.search, ['equipment_fleet_repair'])
-    ) {
-      return 'repair'
-    }
-    if (location.pathname.startsWith('/channels')) return 'channels'
-    if (location.pathname.startsWith('/new')) return 'new'
-    if (location.pathname.startsWith('/notifications')) return 'notifications'
-    if (location.pathname.startsWith('/account')) return 'account'
-    if (location.pathname.startsWith('/feed')) return 'feed'
-    if (location.pathname.startsWith('/admin')) return 'admin'
-    return ''
-  }, [location.pathname, location.search])
+  const isAdmin = useMemo(() => hasAdminAccess(session?.user), [session?.user])
+
+  const isActive = (to) => {
+    if (to === '/') return location.pathname === '/'
+    return location.pathname.startsWith(to)
+  }
+
+  const isRepairActive =
+    location.pathname.startsWith('/feed') &&
+    isSupportSearchActive(location.search, ['equipment_fleet_repair'])
 
   async function handleSignOut() {
     setMobileMenuOpen(false)
@@ -353,35 +339,42 @@ function AppShell({ lang, setLang }) {
               >
                 {navItems.map((item) => (
                   <Link
-                    key={item.key}
+                    key={item.to}
                     to={item.to}
-                    className={activeKey === item.key ? 'btn primary small' : 'btn small'}
+                    className={isActive(item.to) ? 'btn primary small' : 'btn small'}
                     style={{ textDecoration: 'none' }}
                   >
                     {item.label}
                   </Link>
                 ))}
 
-                {session && isAdmin ? (
-                  <Link
-                    to="/admin"
-                    className={activeKey === 'admin' ? 'btn primary small' : 'btn small'}
-                    style={{ textDecoration: 'none' }}
-                  >
-                    Admin
-                  </Link>
+                {session ? (
+                  <>
+                    <Link
+                      to={REPAIR_ROUTE}
+                      className={isRepairActive ? 'btn primary small' : 'btn small'}
+                      style={{ textDecoration: 'none' }}
+                    >
+                      {lang === 'es' ? 'Equipo / Reparación' : 'Equipment / Repair'}
+                    </Link>
+
+                    {isAdmin ? (
+                      <Link
+                        to="/admin"
+                        className={isActive('/admin') ? 'btn primary small' : 'btn small'}
+                        style={{ textDecoration: 'none' }}
+                      >
+                        Admin
+                      </Link>
+                    ) : null}
+                  </>
                 ) : null}
               </nav>
             </div>
           ) : null}
 
           {mobileMenuOpen ? (
-            <div
-              className="nav-mobile-menu"
-              style={{
-                paddingBottom: 12
-              }}
-            >
+            <div className="nav-mobile-menu" style={{ paddingBottom: 12 }}>
               <div
                 className="card rounded-xl"
                 style={{
@@ -405,16 +398,20 @@ function AppShell({ lang, setLang }) {
                   >
                     {navItems.map((item) => (
                       <Link
-                        key={item.key}
+                        key={item.to}
                         to={item.to}
-                        className={activeKey === item.key ? 'btn primary' : 'btn'}
+                        className={isActive(item.to) ? 'btn primary' : 'btn'}
                       >
                         {item.label}
                       </Link>
                     ))}
 
+                    <Link to={REPAIR_ROUTE} className={isRepairActive ? 'btn primary' : 'btn'}>
+                      {lang === 'es' ? 'Equipo / Reparación' : 'Equipment / Repair'}
+                    </Link>
+
                     {isAdmin ? (
-                      <Link to="/admin" className={activeKey === 'admin' ? 'btn primary' : 'btn'}>
+                      <Link to="/admin" className={isActive('/admin') ? 'btn primary' : 'btn'}>
                         Admin
                       </Link>
                     ) : null}
@@ -424,15 +421,7 @@ function AppShell({ lang, setLang }) {
                     </button>
                   </div>
                 ) : (
-                  <div
-                    className="nav-mobile-menu-list"
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 10,
-                      paddingBottom: 12
-                    }}
-                  >
+                  <div className="nav-mobile-menu-list">
                     <Link className="btn" to="/auth?mode=signin">
                       {lang === 'es' ? 'Entrar' : 'Sign In'}
                     </Link>
