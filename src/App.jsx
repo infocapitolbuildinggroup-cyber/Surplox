@@ -689,12 +689,12 @@ function AppShell({ lang, setLang }) {
       { to: '/materials', label: lang === 'es' ? 'Materiales' : 'Materials' },
       { to: '/delivery', label: lang === 'es' ? 'Delivery' : 'Delivery' },
       { to: quickLinks.repair, label: lang === 'es' ? 'Mecánica / Reparación' : 'Mechanic / Repair' },
-      { to: '/ai-tools', label: lang === 'es' ? 'Surplox AI Tools' : 'Surplox AI Tools' },
+      ...(isAdmin ? [{ to: '/ai-tools', label: lang === 'es' ? 'Surplox AI Tools' : 'Surplox AI Tools' }] : []),
       { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
       { to: '/messages', label: lang === 'es' ? 'Mensajes' : 'Messages' },
       { to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' }
     ]
-  }, [session, lang, quickLinks.repair])
+  }, [session, lang, quickLinks.repair, isAdmin])
 
   const isAdmin = useMemo(() => hasAdminAccess(session?.user), [session?.user])
 
@@ -946,7 +946,13 @@ function AppShell({ lang, setLang }) {
             />
             <Route
               path="/ai-tools"
-              element={session ? <SupplierAiTools lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
+              element={
+                session ? (
+                  isAdmin ? <SupplierAiTools lang={lang} /> : <Navigate to="/feed" replace />
+                ) : (
+                  <Navigate to="/auth?mode=signin" replace />
+                )
+              }
             />
             <Route
               path="/new"
