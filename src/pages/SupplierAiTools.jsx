@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 
 const API_IMPORT_ENDPOINT =
@@ -113,6 +113,12 @@ const COPY = {
     openDelivery: 'Open Delivery',
     openNewPost: 'Open New Post',
     openChannels: 'Open Channels',
+    openSupplierSearch: 'Open Supplier Search',
+    openCrewPost: 'Build Need Crew Post',
+    openDeliveryPost: 'Build Delivery Support Post',
+    analyzerActionsTitle: 'AI handoff actions',
+    analyzerActionsBody:
+      'Send the analyzer output directly into live marketplace flows so the work does not stop at the AI screen.',
 
     fitLabel: 'Fit',
     website: 'Website',
@@ -512,6 +518,7 @@ async function fetchDeliveryMatches(form) {
 }
 
 export default function SupplierAiTools() {
+  const navigate = useNavigate()
   const copy = COPY.en
   const [tab, setTab] = useState('supplier')
   const [busy, setBusy] = useState(false)
@@ -560,6 +567,92 @@ export default function SupplierAiTools() {
 
   function setDeliveryField(key, value) {
     setDeliveryForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+
+  function pushWithParams(path, values = {}) {
+    const params = new URLSearchParams()
+
+    Object.entries(values).forEach(([key, value]) => {
+      if (value === undefined || value === null) return
+      const normalized = String(value).trim()
+      if (!normalized) return
+      params.set(key, normalized)
+    })
+
+    const query = params.toString()
+    navigate(query ? `${path}?${query}` : path)
+  }
+
+  function openSupplierSearch(overrides = {}) {
+    pushWithParams('/materials', {
+      q: overrides.q || supplierForm.material,
+      material: overrides.material || supplierForm.material,
+      zip: overrides.zip || supplierForm.zip,
+      storefront: overrides.storefront || '1'
+    })
+  }
+
+  function openCrewPost(overrides = {}) {
+    pushWithParams('/new', {
+      type: 'need_crew',
+      title:
+        overrides.title ||
+        `${overrides.trade || crewForm.trade || projectSummary.trades[0] || 'Crew'} crew needed`,
+      body:
+        overrides.body ||
+        projectNotes ||
+        extractedText ||
+        `Need ${overrides.trade || crewForm.trade || projectSummary.trades[0] || 'construction'} support near ${overrides.zip || crewForm.zip || supplierForm.zip || deliveryForm.jobsiteZip || ''}.`,
+      zip: overrides.zip || crewForm.zip || supplierForm.zip || deliveryForm.jobsiteZip,
+      trade: overrides.trade || crewForm.trade || projectSummary.trades[0] || '',
+      crew_size: overrides.crew_size || crewForm.minCrew || '',
+      urgent: overrides.urgent || ''
+    })
+  }
+
+  function openDeliverySearch(overrides = {}) {
+    pushWithParams('/delivery', {
+      q:
+        overrides.q ||
+        [
+          overrides.vehicle || deliveryForm.vehicleType,
+          overrides.trailer || deliveryForm.trailerType,
+          overrides.support || deliveryForm.supportType
+        ]
+          .filter(Boolean)
+          .join(' '),
+      zip: overrides.zip || deliveryForm.pickupZip || deliveryForm.jobsiteZip || supplierForm.zip,
+      vehicle: overrides.vehicle || deliveryForm.vehicleType,
+      trailer: overrides.trailer || deliveryForm.trailerType,
+      support: overrides.support || deliveryForm.supportType,
+      payload: overrides.payload || deliveryForm.payload || '',
+      radius: overrides.radius || ''
+    })
+  }
+
+  function openDeliveryPost(overrides = {}) {
+    const support = overrides.support || deliveryForm.supportType || 'material_delivery'
+    const supportLabel =
+      support === 'cargo_van_delivery' ? 'delivery support' : 'material delivery support'
+
+    pushWithParams('/new', {
+      type: 'discussion',
+      category: 'jobsite_support',
+      support,
+      title:
+        overrides.title ||
+        `Need ${supportLabel} near ${overrides.zip || deliveryForm.jobsiteZip || deliveryForm.pickupZip || supplierForm.zip || ''}`,
+      body:
+        overrides.body ||
+        projectNotes ||
+        extractedText ||
+        `Need ${supportLabel} for pickup near ${overrides.pickupZip || deliveryForm.pickupZip || supplierForm.zip || ''} and delivery near ${overrides.jobsiteZip || deliveryForm.jobsiteZip || crewForm.zip || ''}.`,
+      zip: overrides.zip || deliveryForm.jobsiteZip || deliveryForm.pickupZip || supplierForm.zip,
+      urgent: overrides.urgent || '',
+      compensation: overrides.compensation || '',
+      start_date: overrides.start_date || ''
+    })
   }
 
   async function handleImportSuppliers(event) {
@@ -846,6 +939,9 @@ export default function SupplierAiTools() {
                 <Link className="btn" to="/materials">
                   {copy.openMaterials}
                 </Link>
+                <button className="btn" type="button" onClick={() => openSupplierSearch()}>
+                  {copy.openSupplierSearch}
+                </button>
               </div>
             </form>
           </div>
@@ -958,6 +1054,9 @@ export default function SupplierAiTools() {
               </button>
               <Link className="btn" to="/channels">{copy.openChannels}</Link>
               <Link className="btn" to="/new?type=need_crew">{copy.createNeedCrewPost}</Link>
+              <button className="btn" type="button" onClick={() => openCrewPost()}>
+                {copy.openCrewPost}
+              </button>
             </div>
           </div>
 
@@ -1069,6 +1168,9 @@ export default function SupplierAiTools() {
                 {copy.runDeliveryButton}
               </button>
               <Link className="btn" to="/delivery">{copy.openDelivery}</Link>
+              <button className="btn" type="button" onClick={() => openDeliveryPost()}>
+                {copy.openDeliveryPost}
+              </button>
             </div>
           </div>
 
@@ -1142,6 +1244,66 @@ export default function SupplierAiTools() {
             <Chip onClick={useAnalyzerForSupplier}>{copy.supplierTab}</Chip>
             <Chip onClick={useAnalyzerForCrew}>{copy.crewTab}</Chip>
             <Chip onClick={useAnalyzerForDelivery}>{copy.deliveryTab}</Chip>
+          </div>
+
+          <div className="card-soft" style={{ marginTop: 16 }}>
+            <div className="card-section-title">{copy.analyzerActionsTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {copy.analyzerActionsBody}
+            </p>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+              <button
+                className="btn"
+                type="button"
+                onClick={() =>
+                  openSupplierSearch({
+                    material: projectSummary.materials[0] || supplierForm.material,
+                    zip: supplierForm.zip || crewForm.zip || deliveryForm.jobsiteZip
+                  })
+                }
+              >
+                {copy.openSupplierSearch}
+              </button>
+              <button
+                className="btn"
+                type="button"
+                onClick={() =>
+                  openCrewPost({
+                    trade: projectSummary.trades[0] || crewForm.trade,
+                    zip: crewForm.zip || supplierForm.zip || deliveryForm.jobsiteZip,
+                    body: extractedText || projectNotes
+                  })
+                }
+              >
+                {copy.openCrewPost}
+              </button>
+              <button
+                className="btn"
+                type="button"
+                onClick={() =>
+                  openDeliveryPost({
+                    support: deliveryForm.supportType || 'material_delivery',
+                    zip: deliveryForm.jobsiteZip || supplierForm.zip || crewForm.zip,
+                    body: extractedText || projectNotes
+                  })
+                }
+              >
+                {copy.openDeliveryPost}
+              </button>
+              <button
+                className="btn"
+                type="button"
+                onClick={() =>
+                  openDeliverySearch({
+                    vehicle: deliveryForm.vehicleType,
+                    trailer: deliveryForm.trailerType,
+                    zip: deliveryForm.pickupZip || deliveryForm.jobsiteZip || supplierForm.zip
+                  })
+                }
+              >
+                {copy.openDelivery}
+              </button>
+            </div>
           </div>
 
           <div className="card-soft" style={{ marginTop: 16 }}>
