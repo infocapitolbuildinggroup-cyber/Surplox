@@ -35,13 +35,10 @@ const COPY = {
       'Post your availability so contractors, crews, and nearby jobsites can find you faster.',
     workButton: 'Create Looking for Work Post',
     supportDeliveryTitle: 'Delivery',
+    supportDeliverySubLabel: 'Hot Shot • Cargo Van • Local Runs',
     supportDeliveryBody:
-      'Post hot shot, cargo van, pickup, flatbed, or gooseneck support for local material runs, tool transport, same-day pickups, last-mile delivery, and jobsite deliveries.',
+      'Post delivery support for hot shot, cargo van, pickup, flatbed, gooseneck, same-day pickups, last-mile delivery, tool transport, and local material movement between yards, stores, and jobsites.',
     supportDeliveryButton: 'Create Delivery Support Post',
-    supportCargoVanTitle: 'Delivery',
-    supportCargoVanBody:
-      'Post delivery support for cargo vans, local runs, last-mile delivery, same-day pickups, tool transport, and lighter material movement between yards, stores, and jobsites.',
-    supportCargoVanButton: 'Create Delivery Support Post',
     supportRepairTitle: 'Mechanic / Equipment Repair',
     supportRepairBody:
       'Post diesel mechanic, small engine repair, skid steer repair, tractor repair, trailer repair, hydraulic repair, or mobile field service for jobsite uptime.',
@@ -71,11 +68,9 @@ const COPY = {
     viewPosts: 'Open channel',
     viewSupportPosts: 'Browse support feed',
     materialDeliveryTitle: 'Delivery',
+    materialDeliverySubLabel: 'Hot Shot • Cargo Van • Local Runs',
     materialDeliveryBody:
-      'Best for hot shot, pickups, flatbeds, goosenecks, local runs, same-day delivery, and urgent material support.',
-    cargoVanDeliveryTitle: 'Delivery',
-    cargoVanDeliveryBody:
-      'Best for cargo van operators handling local runs, last-mile delivery, same-day pickups, tools, and lighter materials between stores, yards, and jobsites.',
+      'Best for hot shot, cargo vans, pickups, flatbeds, goosenecks, local runs, same-day delivery, last-mile support, tools, and urgent material movement.',
     fleetRepairTitle: 'Mechanic / Equipment Repair',
     fleetRepairBody:
       'Best for diesel mechanics, small engine repair, skid steer and tractor repair, trailer repair, hydraulic work, and emergency field support.'
@@ -111,13 +106,10 @@ const COPY = {
       'Publica tu disponibilidad para que contratistas, cuadrillas y obras cercanas te encuentren más rápido.',
     workButton: 'Crear publicación de disponibilidad',
     supportDeliveryTitle: 'Entrega',
+    supportDeliverySubLabel: 'Hot Shot • Cargo Van • Viajes locales',
     supportDeliveryBody:
-      'Publica soporte de hot shot, cargo van, pickup, flatbed o gooseneck para viajes locales de materiales, transporte de herramientas, recogidas el mismo día, última milla y entregas en obra.',
+      'Publica soporte de entrega para hot shot, cargo van, pickup, flatbed, gooseneck, recogidas el mismo día, última milla, transporte de herramientas y movimiento local de materiales entre patios, tiendas y obras.',
     supportDeliveryButton: 'Crear publicación de entrega',
-    supportCargoVanTitle: 'Entrega',
-    supportCargoVanBody:
-      'Publica soporte de entrega para cargo vans, viajes locales, última milla, recogidas el mismo día, transporte de herramientas y movimiento ligero de materiales entre patios, tiendas y obras.',
-    supportCargoVanButton: 'Crear publicación de entrega',
     supportRepairTitle: 'Mecánica / Reparación de equipo',
     supportRepairBody:
       'Publica soporte de mecánico diésel, motores pequeños, reparación de skid steer, tractor, remolques, hidráulica o servicio móvil en campo para continuidad en obra.',
@@ -147,11 +139,9 @@ const COPY = {
     viewPosts: 'Abrir canal',
     viewSupportPosts: 'Explorar soporte',
     materialDeliveryTitle: 'Entrega',
+    materialDeliverySubLabel: 'Hot Shot • Cargo Van • Viajes locales',
     materialDeliveryBody:
-      'Ideal para hot shot, pickups, flatbeds, goosenecks, viajes locales, entregas el mismo día y soporte urgente de materiales.',
-    cargoVanDeliveryTitle: 'Entrega',
-    cargoVanDeliveryBody:
-      'Ideal para operadores con cargo van que manejan viajes locales, última milla, recogidas el mismo día, herramientas y materiales ligeros entre tiendas, patios y obras.',
+      'Ideal para hot shot, cargo vans, pickups, flatbeds, goosenecks, viajes locales, entregas el mismo día, última milla, herramientas y movimiento urgente de materiales.',
     fleetRepairTitle: 'Mecánica / Reparación de equipo',
     fleetRepairBody:
       'Ideal para mecánicos diésel, motores pequeños, reparación de skid steer y tractor, remolques, hidráulica y soporte de emergencia en campo.'
@@ -471,7 +461,7 @@ export default function Channels({ lang: langProp = 'en' }) {
 
           <Link
             className="card rounded-xl"
-            to="/materials"
+            to="/feed?role=supplier"
             style={{
               padding: 20,
               background: '#ffffff'
@@ -511,6 +501,38 @@ export default function Channels({ lang: langProp = 'en' }) {
         </p>
 
         <div className="grid two" style={{ marginTop: 14 }}>
+          <Link
+            className="card rounded-xl"
+            to="/feed?category=jobsite_support&support=material_delivery"
+            style={{
+              padding: 20,
+              background: '#ffffff'
+            }}
+          >
+            <div className="badge" style={{ background: '#111111', color: '#ffffff' }}>
+              {copy.deliveryBadge}
+            </div>
+
+            <div
+              style={{
+                fontWeight: 900,
+                fontSize: 20,
+                marginTop: 14,
+                lineHeight: 1.15
+              }}
+            >
+              {copy.materialDeliveryTitle}
+            </div>
+
+            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
+              {copy.materialDeliveryBody}
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <span className="btn small">{copy.viewSupportPosts}</span>
+            </div>
+          </Link>
+
           <Link
             className="card rounded-xl"
             to="/feed?category=jobsite_support&support=cargo_van_delivery"
