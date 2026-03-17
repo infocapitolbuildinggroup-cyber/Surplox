@@ -114,6 +114,7 @@ const COPY = {
     openNewPost: 'Open New Post',
     openChannels: 'Open Channels',
     openSupplierSearch: 'Open Supplier Search',
+    openStorefront: 'Open Storefront',
     openCrewPost: 'Build Need Crew Post',
     openDeliveryPost: 'Build Delivery Support Post',
     analyzerActionsTitle: 'AI handoff actions',
@@ -215,7 +216,7 @@ function Chip({ children, active = false, onClick, type = 'button' }) {
   )
 }
 
-function SupplierCard({ supplier, copy }) {
+function SupplierCard({ supplier, copy, onOpenSearch, onOpenStorefront }) {
   const categories = Array.isArray(supplier.materials_categories) ? supplier.materials_categories : []
 
   return (
@@ -240,6 +241,12 @@ function SupplierCard({ supplier, copy }) {
           <Link className="btn small" to="/materials">
             {copy.openMaterials}
           </Link>
+          <button className="btn small" type="button" onClick={() => onOpenSearch?.(supplier)}>
+            {copy.openSupplierSearch}
+          </button>
+          <button className="btn small" type="button" onClick={() => onOpenStorefront?.(supplier)}>
+            {copy.openStorefront || 'Open Storefront'}
+          </button>
         </div>
       </div>
 
@@ -279,7 +286,7 @@ function SupplierCard({ supplier, copy }) {
   )
 }
 
-function WorkerCard({ worker, copy }) {
+function WorkerCard({ worker, copy, onBuildCrewPost }) {
   return (
     <div className="card rounded-xl" style={{ padding: 18 }}>
       <div className="h2" style={{ fontSize: 22 }}>{worker.display_name || 'Worker'}</div>
@@ -294,12 +301,15 @@ function WorkerCard({ worker, copy }) {
       </div>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
         <Link className="btn small primary" to={`/u/${worker.user_id}`}>{copy.openWorkerProfile}</Link>
+        <button className="btn small" type="button" onClick={() => onBuildCrewPost?.(worker)}>
+          {copy.openCrewPost}
+        </button>
       </div>
     </div>
   )
 }
 
-function DriverCard({ driver, copy }) {
+function DriverCard({ driver, copy, onOpenDriverSearch, onBuildDeliveryPost }) {
   return (
     <div className="card rounded-xl" style={{ padding: 18 }}>
       <div className="h2" style={{ fontSize: 22 }}>{driver.display_name || 'Driver'}</div>
@@ -314,6 +324,12 @@ function DriverCard({ driver, copy }) {
       </div>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
         <Link className="btn small primary" to={`/u/${driver.user_id}`}>{copy.openDeliveryProfile}</Link>
+        <button className="btn small" type="button" onClick={() => onOpenDriverSearch?.(driver)}>
+          {copy.openDelivery}
+        </button>
+        <button className="btn small" type="button" onClick={() => onBuildDeliveryPost?.(driver)}>
+          {copy.openDeliveryPost}
+        </button>
       </div>
     </div>
   )
@@ -655,6 +671,60 @@ export default function SupplierAiTools() {
     })
   }
 
+  function openSupplierSearchFromCard(supplier) {
+    openSupplierSearch({
+      q: supplier?.business_name || supplier?.display_name || supplierForm.material,
+      material:
+        (Array.isArray(supplier?.materials_categories) && supplier.materials_categories[0]) ||
+        supplierForm.material,
+      zip: supplier?.business_zip || supplierForm.zip,
+      storefront: '1'
+    })
+  }
+
+  function openSupplierStorefrontFromCard(supplier) {
+    const target = supplier?.external_id || supplier?.id || ''
+    if (!target) {
+      openSupplierSearchFromCard(supplier)
+      return
+    }
+    navigate(`/supplier/${encodeURIComponent(target)}`)
+  }
+
+  function buildCrewPostFromMatch(worker) {
+    openCrewPost({
+      trade: worker?.trade_name || crewForm.trade || projectSummary.trades[0] || '',
+      zip: worker?.home_zip || crewForm.zip || supplierForm.zip || deliveryForm.jobsiteZip,
+      title: `${worker?.trade_name || crewForm.trade || 'Crew'} crew needed`,
+      body:
+        projectNotes ||
+        extractedText ||
+        `Need ${worker?.trade_name || crewForm.trade || 'construction'} support near ${worker?.home_zip || crewForm.zip || supplierForm.zip || deliveryForm.jobsiteZip || ''}. Matched from Surplox AI Tools.`
+    })
+  }
+
+  function openDriverSearchFromMatch(driver) {
+    openDeliverySearch({
+      q: [driver?.vehicle_type, driver?.trailer_type].filter(Boolean).join(' '),
+      zip: deliveryForm.pickupZip || deliveryForm.jobsiteZip || supplierForm.zip,
+      vehicle: driver?.vehicle_type || deliveryForm.vehicleType,
+      trailer: driver?.trailer_type || deliveryForm.trailerType,
+      support: deliveryForm.supportType
+    })
+  }
+
+  function buildDeliveryPostFromMatch(driver) {
+    openDeliveryPost({
+      support: deliveryForm.supportType || 'material_delivery',
+      zip: deliveryForm.jobsiteZip || deliveryForm.pickupZip || supplierForm.zip,
+      title: `Need delivery support near ${deliveryForm.jobsiteZip || deliveryForm.pickupZip || supplierForm.zip || ''}`,
+      body:
+        projectNotes ||
+        extractedText ||
+        `Need delivery support. Suggested match: ${driver?.display_name || 'driver'} with ${String(driver?.vehicle_type || '').replace(/_/g, ' ')} ${driver?.trailer_type ? `and ${String(driver.trailer_type).replace(/_/g, ' ')}` : ''}.`
+    })
+  }
+
   async function handleImportSuppliers(event) {
     event.preventDefault()
     setBusy(true)
@@ -959,6 +1029,8 @@ export default function SupplierAiTools() {
                     key={supplier.external_id || supplier.id || `${supplier.business_name}-${supplier.business_zip}`}
                     supplier={supplier}
                     copy={copy}
+                    onOpenSearch={openSupplierSearchFromCard}
+                    onOpenStorefront={openSupplierStorefrontFromCard}
                   />
                 ))}
               </div>
@@ -978,6 +1050,8 @@ export default function SupplierAiTools() {
                     key={supplier.external_id || supplier.id || `${supplier.business_name}-${supplier.business_zip}`}
                     supplier={supplier}
                     copy={copy}
+                    onOpenSearch={openSupplierSearchFromCard}
+                    onOpenStorefront={openSupplierStorefrontFromCard}
                   />
                 ))}
               </div>
@@ -1067,7 +1141,12 @@ export default function SupplierAiTools() {
             ) : (
               <div className="grid" style={{ gap: 16, marginTop: 14 }}>
                 {crewResults.map((worker) => (
-                  <WorkerCard key={worker.user_id} worker={worker} copy={copy} />
+                  <WorkerCard
+                    key={worker.user_id}
+                    worker={worker}
+                    copy={copy}
+                    onBuildCrewPost={buildCrewPostFromMatch}
+                  />
                 ))}
               </div>
             )}
@@ -1181,7 +1260,13 @@ export default function SupplierAiTools() {
             ) : (
               <div className="grid" style={{ gap: 16, marginTop: 14 }}>
                 {deliveryResults.map((driver) => (
-                  <DriverCard key={driver.user_id} driver={driver} copy={copy} />
+                  <DriverCard
+                    key={driver.user_id}
+                    driver={driver}
+                    copy={copy}
+                    onOpenDriverSearch={openDriverSearchFromMatch}
+                    onBuildDeliveryPost={buildDeliveryPostFromMatch}
+                  />
                 ))}
               </div>
             )}
