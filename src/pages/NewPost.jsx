@@ -198,23 +198,31 @@ export default function NewPost({ lang: langProp = 'en' }) {
   const preselectedType = getValidPostType(params.get('type'))
   const preselectedCategory = getValidCategoryGroup(params.get('category') || params.get('group'))
   const preselectedSupport = getValidSupportType(params.get('support'))
+  const prefilledZip = String(params.get('zip') || '').replace(/[^\d]/g, '').slice(0, 5)
+  const prefilledTitle = String(params.get('title') || '')
+  const prefilledBody = String(params.get('body') || '')
+  const prefilledCompensation = String(params.get('compensation') || '')
+  const prefilledCrewSize = String(params.get('crew_size') || params.get('crew') || '')
+  const prefilledStartDate = String(params.get('start_date') || '')
+  const prefilledUrgent = ['1', 'true', 'yes'].includes(String(params.get('urgent') || '').toLowerCase())
+  const prefilledTradeName = String(params.get('trade') || '').trim().toLowerCase()
 
   const [form, setForm] = useState({
     post_type: preselectedType,
     category_group: preselectedCategory,
     jobsite_support_type: preselectedSupport,
     trade_id: '',
-    title: '',
-    body: '',
-    center_zip: '',
+    title: prefilledTitle,
+    body: prefilledBody,
+    center_zip: prefilledZip,
     radius_miles: 50,
-    needed_crew_size: '',
-    compensation: '',
-    start_date: '',
+    needed_crew_size: prefilledCrewSize,
+    compensation: prefilledCompensation,
+    start_date: prefilledStartDate,
     source_language: langProp || localStorage.getItem('surplox_lang') || 'en',
     service_tags: [],
     equipment_tags: [],
-    is_urgent: false,
+    is_urgent: prefilledUrgent,
     poster_role: '',
     business_name: '',
     business_zip: ''
@@ -225,9 +233,27 @@ export default function NewPost({ lang: langProp = 'en' }) {
       ...prev,
       post_type: preselectedType,
       category_group: preselectedCategory,
-      jobsite_support_type: preselectedSupport
+      jobsite_support_type: preselectedSupport,
+      title: prefilledTitle || prev.title,
+      body: prefilledBody || prev.body,
+      center_zip: prefilledZip || prev.center_zip,
+      compensation: prefilledCompensation || prev.compensation,
+      needed_crew_size: prefilledCrewSize || prev.needed_crew_size,
+      start_date: prefilledStartDate || prev.start_date,
+      is_urgent: prefilledUrgent || prev.is_urgent
     }))
-  }, [preselectedType, preselectedCategory, preselectedSupport])
+  }, [
+    preselectedType,
+    preselectedCategory,
+    preselectedSupport,
+    prefilledTitle,
+    prefilledBody,
+    prefilledZip,
+    prefilledCompensation,
+    prefilledCrewSize,
+    prefilledStartDate,
+    prefilledUrgent
+  ])
 
   useEffect(() => {
     async function loadTradesAndProfile() {
@@ -349,6 +375,19 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
     loadTradesAndProfile()
   }, [langProp, preselectedCategory, preselectedSupport])
+
+  useEffect(() => {
+    if (!prefilledTradeName || !Array.isArray(trades) || trades.length === 0) return
+
+    const match = trades.find((trade) => String(trade?.name || '').trim().toLowerCase() === prefilledTradeName)
+    if (!match?.id) return
+
+    setForm((prev) => ({
+      ...prev,
+      trade_id: prev.trade_id || String(match.id)
+    }))
+  }, [trades, prefilledTradeName])
+
 
   useEffect(() => {
     if (!profileReadyForPosting) {

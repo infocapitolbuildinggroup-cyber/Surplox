@@ -315,10 +315,22 @@ export default function Delivery({ lang = 'en' }) {
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     const zip = params.get('zip') || ''
-    const q = params.get('q') || ''
+    const q = params.get('q') || params.get('search') || ''
+    const city = params.get('city') || ''
+    const vehicle = params.get('vehicle') || ''
+    const trailer = params.get('trailer') || ''
+    const support = params.get('support') || ''
+    const payload = params.get('payload') || ''
+    const radius = params.get('radius') || ''
 
     if (zip) setZipFilter(zip.replace(/[^\d]/g, '').slice(0, 5))
     if (q) setQuery(q)
+    if (city) setCityFilter(city)
+    if (vehicle) setVehicleFilter(vehicle)
+    if (trailer) setTrailerFilter(trailer)
+    if (support) setSupportTypeFilter(support)
+    if (payload) setMinPayload(String(payload).replace(/[^\d]/g, ''))
+    if (radius) setMinRadius(String(radius).replace(/[^\d]/g, ''))
   }, [location.search])
 
   useEffect(() => {

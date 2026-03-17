@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 
 const COPY = {
@@ -202,6 +202,7 @@ function makeImportedSupplier(item) {
 
 export default function Materials({ lang = 'en' }) {
   const copy = COPY[lang] || COPY.en
+  const location = useLocation()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -212,6 +213,20 @@ export default function Materials({ lang = 'en' }) {
   const [material, setMaterial] = useState('')
   const [storefrontOnly, setStorefrontOnly] = useState(false)
   const [sortBy, setSortBy] = useState('best')
+
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const q = params.get('q') || params.get('search') || ''
+    const zip = params.get('zip') || ''
+    const aiMaterial = params.get('material') || ''
+    const storefront = params.get('storefront') || ''
+
+    if (q) setQuery(q)
+    if (zip) setZipFilter(zip.replace(/[^\d]/g, '').slice(0, 5))
+    if (aiMaterial) setMaterial(normalizeMaterialLabel(aiMaterial))
+    if (storefront === '1' || storefront === 'true') setStorefrontOnly(true)
+  }, [location.search])
 
   useEffect(() => {
     let active = true

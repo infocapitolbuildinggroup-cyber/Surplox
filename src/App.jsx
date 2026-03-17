@@ -189,23 +189,6 @@ function AppShell({ lang, setLang }) {
     }
   }, [mobileMenuOpen])
 
-  const navItems = useMemo(() => {
-    if (!session) return []
-
-    return [
-      { to: '/feed', label: lang === 'es' ? 'Feed' : 'Feed' },
-      { to: '/materials', label: lang === 'es' ? 'Materiales' : 'Materials' },
-      { to: '/delivery', label: lang === 'es' ? 'Delivery' : 'Delivery' },
-      { to: '/ai-tools', label: lang === 'es' ? 'Surplox AI Tools' : 'Surplox AI Tools' },
-      { to: '/channels', label: lang === 'es' ? 'Canales' : 'Channels' },
-      { to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
-      { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
-      { to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' }
-    ]
-  }, [session, lang])
-
-  const isAdmin = useMemo(() => hasAdminAccess(session?.user), [session?.user])
-
   const quickLinks = useMemo(() => {
     return {
       labor: '/feed',
@@ -214,6 +197,24 @@ function AppShell({ lang, setLang }) {
       repair: '/feed?category=jobsite_support&support=equipment_fleet_repair'
     }
   }, [])
+
+  const navItems = useMemo(() => {
+    if (!session) return []
+
+    return [
+      { to: '/feed', label: lang === 'es' ? 'Feed' : 'Feed' },
+      { to: '/channels', label: lang === 'es' ? 'Canales' : 'Channels' },
+      { to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
+      { to: '/materials', label: lang === 'es' ? 'Materiales' : 'Materials' },
+      { to: '/delivery', label: lang === 'es' ? 'Delivery' : 'Delivery' },
+      { to: quickLinks.repair, label: lang === 'es' ? 'Equipo / Reparación' : 'Equipment / Repair' },
+      { to: '/ai-tools', label: lang === 'es' ? 'Surplox AI Tools' : 'Surplox AI Tools' },
+      { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
+      { to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' }
+    ]
+  }, [session, lang, quickLinks.repair])
+
+  const isAdmin = useMemo(() => hasAdminAccess(session?.user), [session?.user])
 
   const isActive = (to) => {
     if (to === '/') return location.pathname === '/'
@@ -279,12 +280,6 @@ function AppShell({ lang, setLang }) {
 
               {session ? (
                 <>
-                  <div className="nav-desktop-auth">
-                    <button className="btn" onClick={handleSignOut}>
-                      {lang === 'es' ? 'Salir' : 'Sign Out'}
-                    </button>
-                  </div>
-
                   <button
                     type="button"
                     className="btn nav-mobile-toggle"
@@ -347,27 +342,24 @@ function AppShell({ lang, setLang }) {
                   flexWrap: 'wrap'
                 }}
               >
-                {navItems.map((item) => (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    className={isActive(item.to) ? 'btn primary small' : 'btn small'}
-                    style={{ textDecoration: 'none' }}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+                {navItems.map((item) => {
+                  const itemIsRepair = item.to === quickLinks.repair
+                  const active = itemIsRepair ? isRepairActive : isActive(item.to)
+
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className={active ? 'btn primary small' : 'btn small'}
+                      style={{ textDecoration: 'none' }}
+                    >
+                      {item.label}
+                    </Link>
+                  )
+                })}
 
                 {session ? (
                   <>
-                    <Link
-                      to={quickLinks.repair}
-                      className={isRepairActive ? 'btn primary small' : 'btn small'}
-                      style={{ textDecoration: 'none' }}
-                    >
-                      {lang === 'es' ? 'Equipo / Reparación' : 'Equipment / Repair'}
-                    </Link>
-
                     {isAdmin ? (
                       <Link
                         to="/admin"
@@ -377,6 +369,10 @@ function AppShell({ lang, setLang }) {
                         Admin
                       </Link>
                     ) : null}
+
+                    <button type="button" className="btn small" onClick={handleSignOut}>
+                      {lang === 'es' ? 'Salir' : 'Sign Out'}
+                    </button>
                   </>
                 ) : null}
               </nav>
@@ -406,19 +402,20 @@ function AppShell({ lang, setLang }) {
                       paddingBottom: 12
                     }}
                   >
-                    {navItems.map((item) => (
-                      <Link
-                        key={item.to}
-                        to={item.to}
-                        className={isActive(item.to) ? 'btn primary' : 'btn'}
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
+                    {navItems.map((item) => {
+                      const itemIsRepair = item.to === quickLinks.repair
+                      const active = itemIsRepair ? isRepairActive : isActive(item.to)
 
-                    <Link to={quickLinks.repair} className={isRepairActive ? 'btn primary' : 'btn'}>
-                      {lang === 'es' ? 'Equipo / Reparación' : 'Equipment / Repair'}
-                    </Link>
+                      return (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          className={active ? 'btn primary' : 'btn'}
+                        >
+                          {item.label}
+                        </Link>
+                      )
+                    })}
 
                     {isAdmin ? (
                       <Link to="/admin" className={isActive('/admin') ? 'btn primary' : 'btn'}>
