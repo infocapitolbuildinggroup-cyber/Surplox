@@ -16,6 +16,7 @@ import AdminDirectory from './pages/AdminDirectory'
 import SupplierStorefront from './pages/SupplierStorefront'
 import Materials from './pages/Materials'
 import Delivery from './pages/Delivery'
+import SupplierAiTools from './pages/SupplierAiTools'
 
 import './styles.css'
 
@@ -195,6 +196,7 @@ function AppShell({ lang, setLang }) {
       { to: '/feed', label: lang === 'es' ? 'Feed' : 'Feed' },
       { to: '/materials', label: lang === 'es' ? 'Materiales' : 'Materials' },
       { to: '/delivery', label: lang === 'es' ? 'Delivery' : 'Delivery' },
+      { to: '/ai-tools', label: lang === 'es' ? 'Surplox AI Tools' : 'Surplox AI Tools' },
       { to: '/channels', label: lang === 'es' ? 'Canales' : 'Channels' },
       { to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
       { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
@@ -209,7 +211,6 @@ function AppShell({ lang, setLang }) {
       labor: '/feed',
       materials: '/materials',
       deliveryDirectory: '/delivery',
-      deliveryFeed: '/feed?category=jobsite_support&support=material_delivery',
       repair: '/feed?category=jobsite_support&support=equipment_fleet_repair'
     }
   }, [])
@@ -218,10 +219,6 @@ function AppShell({ lang, setLang }) {
     if (to === '/') return location.pathname === '/'
     return location.pathname.startsWith(to)
   }
-
-  const isDeliveryFeedActive =
-    location.pathname.startsWith('/feed') &&
-    isSupportSearchActive(location.search, ['material_delivery', 'cargo_van_delivery'])
 
   const isRepairActive =
     location.pathname.startsWith('/feed') &&
@@ -465,6 +462,10 @@ function AppShell({ lang, setLang }) {
             <Route
               path="/delivery"
               element={session ? <Delivery lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
+            />
+            <Route
+              path="/ai-tools"
+              element={session ? <SupplierAiTools lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
             />
             <Route
               path="/new"
