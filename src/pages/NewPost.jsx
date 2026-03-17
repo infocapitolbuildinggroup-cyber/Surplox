@@ -28,8 +28,8 @@ const JOBSITE_SUPPORT_OPTIONS = [
   },
   {
     value: 'equipment_fleet_repair',
-    en: 'Equipment / Fleet Repair',
-    es: 'Reparación de equipo / flota'
+    en: 'Mechanic / Equipment Repair',
+    es: 'Mecánica / Reparación de equipo'
   }
 ]
 
@@ -51,8 +51,14 @@ const MATERIAL_DELIVERY_EQUIPMENT_TAGS = [
 
 const FLEET_REPAIR_SERVICE_TAGS = [
   { value: 'diesel_mechanic', en: 'Diesel Mechanic', es: 'Mecánico diésel' },
+  { value: 'small_engine_repair', en: 'Small Engine Repair', es: 'Reparación de motores pequeños' },
+  { value: 'skid_steer_repair', en: 'Skid Steer Repair', es: 'Reparación de skid steer' },
+  { value: 'tractor_repair', en: 'Tractor Repair', es: 'Reparación de tractor' },
+  { value: 'mini_ex_repair', en: 'Mini Excavator Repair', es: 'Reparación de mini excavadora' },
   { value: 'heavy_equipment_repair', en: 'Heavy Equipment Repair', es: 'Reparación de equipo pesado' },
+  { value: 'hydraulic_repair', en: 'Hydraulic Repair', es: 'Reparación hidráulica' },
   { value: 'trailer_repair', en: 'Trailer Repair', es: 'Reparación de remolques' },
+  { value: 'field_service', en: 'Mobile Field Service', es: 'Servicio móvil en campo' },
   { value: 'emergency_repair', en: 'Emergency Repair', es: 'Reparación de emergencia' },
   { value: 'jobsite_service', en: 'Jobsite Service', es: 'Servicio en obra' }
 ]
@@ -60,7 +66,12 @@ const FLEET_REPAIR_SERVICE_TAGS = [
 const FLEET_REPAIR_EQUIPMENT_TAGS = [
   { value: 'mobile_repair_truck', en: 'Mobile Repair Truck', es: 'Camión de reparación móvil' },
   { value: 'diesel_diagnostics', en: 'Diesel Diagnostics', es: 'Diagnóstico diésel' },
-  { value: 'trailer_brake_tools', en: 'Trailer Brake Tools', es: 'Herramientas de frenos de remolque' }
+  { value: 'hydraulic_tools', en: 'Hydraulic Tools', es: 'Herramientas hidráulicas' },
+  { value: 'welder_generator', en: 'Welder / Generator', es: 'Soldadora / Generador' },
+  { value: 'trailer_brake_tools', en: 'Trailer Brake Tools', es: 'Herramientas de frenos de remolque' },
+  { value: 'battery_jump_setup', en: 'Battery / Jump Setup', es: 'Batería / Arranque auxiliar' },
+  { value: 'service_truck', en: 'Service Truck', es: 'Camión de servicio' },
+  { value: 'on_site_tools', en: 'On-Site Tools', es: 'Herramientas en sitio' }
 ]
 
 function postTypeLabel(type, lang) {
@@ -531,7 +542,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
         supportCargoVanTitle:
           'Ejemplo: Cargo van disponible para viajes locales, última milla y recogidas el mismo día en DFW',
         supportRepairTitle:
-          'Ejemplo: Reparación de remolque y servicio diésel disponible en obra',
+          'Ejemplo: Mecánico diésel disponible para reparación de skid steer, tractor y remolque en obra',
         supplierTitle:
           'Ejemplo: Patio de materiales con block, concreto y acero disponible en Fort Worth',
         supplierBody:
@@ -548,7 +559,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
         deliveryBody:
           'Describe el tipo de entrega, vehículo/equipo disponible, zona de cobertura y si haces viajes locales, urgentes o el mismo día.',
         repairBody:
-          'Describe el servicio de reparación, el equipo o sistema que atiendes, si haces servicio móvil y tu zona de cobertura.',
+          'Describe si haces mecánica diésel, motores pequeños, skid steer, tractor, remolques, hidráulica o servicio móvil en campo, y cuál es tu zona de cobertura.',
         crewRequired:
           'El tamaño de cuadrilla debe ser por lo menos 1 para publicaciones de Se necesita cuadrilla.',
         opportunityIntro:
@@ -582,7 +593,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
         photos: 'Fotos de la publicación',
         photoHelp: 'Puedes subir hasta 4 imágenes.',
         categoryHelp:
-          'Usa Oficios para mano de obra, discusiones y visibilidad de proveedores. Usa Soporte de obra para entrega de materiales o reparación de flota/equipo.',
+          'Usa Oficios para mano de obra, discusiones y visibilidad de proveedores. Usa Soporte de obra para entrega de materiales o Mecánica / Reparación de equipo.',
         supplierTradeNote:
           'Las publicaciones de proveedor normalmente funcionan como discusión/visibilidad y no requieren un oficio.'
       }
@@ -608,7 +619,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
       supportCargoVanTitle:
         'Example: Cargo van available for local runs, last-mile delivery, and same-day pickups in DFW',
       supportRepairTitle:
-        'Example: Trailer repair and diesel service available at jobsites',
+        'Example: Diesel mechanic available for skid steer, tractor, and trailer repair at jobsites',
       supplierTitle:
         'Example: Material yard with block, concrete, and steel available in Fort Worth',
       supplierBody:
@@ -625,7 +636,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
       deliveryBody:
         'Describe the delivery service, vehicle/equipment available, coverage area, and whether you do local runs, urgent pickups, or same-day service.',
       repairBody:
-        'Describe the repair service, what equipment or systems you work on, whether you provide mobile service, and your coverage area.',
+        'Describe whether you handle diesel mechanic work, small engines, skid steers, tractors, trailers, hydraulics, or mobile field service, and what coverage area you serve.',
       crewRequired: 'Crew size must be at least 1 for Need Crew posts.',
       opportunityIntro:
         'Create a high-visibility local opportunity post so nearby workers and crews can find it quickly.',
@@ -657,7 +668,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
       photos: 'Post Photos',
       photoHelp: 'You can upload up to 4 images.',
       categoryHelp:
-        'Use Trades for labor, discussions, and supplier visibility. Use Jobsite Support for material delivery or fleet/equipment repair.',
+        'Use Trades for labor, discussions, and supplier visibility. Use Jobsite Support for material delivery or Mechanic / Equipment Repair.',
       supplierTradeNote:
         'Supplier posts usually work as discussion/visibility posts and do not require selecting a trade.'
     }
