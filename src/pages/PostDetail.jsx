@@ -76,8 +76,14 @@ function availabilityStatusLabel(status, lang) {
 function detectSupportType(serviceTags = [], vehicleType = '') {
   const repairTags = new Set([
     'diesel_mechanic',
+    'small_engine_repair',
+    'skid_steer_repair',
+    'tractor_repair',
+    'mini_ex_repair',
     'heavy_equipment_repair',
+    'hydraulic_repair',
     'trailer_repair',
+    'field_service',
     'emergency_repair',
     'jobsite_service'
   ])
@@ -104,8 +110,8 @@ function supportTypeLabel(value, lang) {
       es: 'Cargo Van / Entrega local'
     },
     equipment_fleet_repair: {
-      en: 'Equipment / Fleet Repair',
-      es: 'Reparación de equipo / flota'
+      en: 'Mechanic / Equipment Repair',
+      es: 'Mecánica / Reparación de equipo'
     }
   }
   return map[value]?.[lang] || map[value]?.en || value
@@ -225,13 +231,24 @@ function formatTagLabel(tag) {
     flatbed_trailer: 'Flatbed Trailer',
     gooseneck_trailer: 'Gooseneck Trailer',
     diesel_mechanic: 'Diesel Mechanic',
+    small_engine_repair: 'Small Engine Repair',
+    skid_steer_repair: 'Skid Steer Repair',
+    tractor_repair: 'Tractor Repair',
+    mini_ex_repair: 'Mini Excavator Repair',
     heavy_equipment_repair: 'Heavy Equipment Repair',
+    hydraulic_repair: 'Hydraulic Repair',
     trailer_repair: 'Trailer Repair',
+    field_service: 'Mobile Field Service',
     emergency_repair: 'Emergency Repair',
     jobsite_service: 'Jobsite Service',
     mobile_repair_truck: 'Mobile Repair Truck',
     diesel_diagnostics: 'Diesel Diagnostics',
-    trailer_brake_tools: 'Trailer Brake Tools'
+    hydraulic_tools: 'Hydraulic Tools',
+    welder_generator: 'Welder / Generator',
+    trailer_brake_tools: 'Trailer Brake Tools',
+    battery_jump_setup: 'Battery / Jump Setup',
+    service_truck: 'Service Truck',
+    on_site_tools: 'On-Site Tools'
   }
   return map[tag] || tag
 }
