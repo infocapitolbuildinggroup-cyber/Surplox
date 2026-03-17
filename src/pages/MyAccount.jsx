@@ -320,7 +320,22 @@ const COPY = {
     payloadCapacity: 'Payload Capacity (lbs)',
     driverRoleLocked: 'Driver and mechanic account roles are kept aligned with the support type selected during signup.',
     supplierRoleLocked: 'Supplier accounts stay separate from worker accounts.',
-    noTrailer: 'No Trailer'
+    noTrailer: 'No Trailer',
+    completionActionTitle: 'Profile Action Center',
+    completionActionBody:
+      'Finish the highest-impact profile items first so your account gets more trust, stronger quick connects, and better visibility across labor, supplier, delivery, and repair flows.',
+    unlocksTitle: 'What profile completion unlocks',
+    unlocksVisibility: 'Stronger public profile credibility',
+    unlocksQuickConnect: 'Better quick-connect conversion',
+    unlocksPosts: 'Better post response quality',
+    unlocksRequests: 'Cleaner supplier, delivery, and repair requests',
+    finishNow: 'Finish Top Items Now',
+    openPublicProfile: 'Open Public Profile',
+    openMessages: 'Open Messages',
+    supplierNextStep: 'Review Storefront',
+    driverNextStep: 'Open Delivery Lane',
+    mechanicNextStep: 'Open Repair Lane',
+    laborNextStep: 'Open My Profile'
   },
   es: {
     loading: 'Cargando tu cuenta…',
@@ -455,7 +470,22 @@ const COPY = {
     payloadCapacity: 'Capacidad de carga (lbs)',
     driverRoleLocked: 'Los roles de conductor y mecánico se mantienen alineados con el tipo de soporte elegido en el registro.',
     supplierRoleLocked: 'Las cuentas de proveedor permanecen separadas de las cuentas de trabajadores.',
-    noTrailer: 'Sin remolque'
+    noTrailer: 'Sin remolque',
+    completionActionTitle: 'Centro de acción del perfil',
+    completionActionBody:
+      'Completa primero los elementos de mayor impacto para que tu cuenta tenga más confianza, mejores conexiones rápidas y mejor visibilidad en mano de obra, proveedores, entrega y reparación.',
+    unlocksTitle: 'Lo que desbloquea un perfil completo',
+    unlocksVisibility: 'Más credibilidad en tu perfil público',
+    unlocksQuickConnect: 'Mejor conversión en conexiones rápidas',
+    unlocksPosts: 'Mejor calidad de respuesta en publicaciones',
+    unlocksRequests: 'Solicitudes más limpias de proveedor, entrega y reparación',
+    finishNow: 'Completar elementos principales',
+    openPublicProfile: 'Abrir perfil público',
+    openMessages: 'Abrir mensajes',
+    supplierNextStep: 'Revisar tienda',
+    driverNextStep: 'Abrir entrega',
+    mechanicNextStep: 'Abrir reparación',
+    laborNextStep: 'Abrir mi perfil'
   }
 }
 
@@ -687,6 +717,17 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
 
   const copy = COPY[form.preferred_language] || COPY.en
   const profileStrength = useMemo(() => getProfileCompletionPercent(form), [form])
+  const publicProfileLink = useMemo(() => {
+    if (!currentUserId) return '/feed'
+    if (form.role === 'supplier') return `/supplier/${currentUserId}`
+    return `/u/${currentUserId}`
+  }, [currentUserId, form.role])
+  const roleNextStep = useMemo(() => {
+    if (form.role === 'supplier') return { to: currentUserId ? `/supplier/${currentUserId}` : '/materials', label: copy.supplierNextStep }
+    if (form.role === 'driver') return { to: '/delivery', label: copy.driverNextStep }
+    if (form.role === 'mechanic') return { to: '/mechanics', label: copy.mechanicNextStep }
+    return { to: currentUserId ? `/u/${currentUserId}` : '/feed', label: copy.laborNextStep }
+  }, [form.role, currentUserId, copy])
 
   const supportOptions = useMemo(
     () => getSupportOptions(form.jobsite_support_type),
@@ -1158,6 +1199,50 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
         </div>
       ) : null}
 
+      <div className="card rounded-xl" style={{ padding: 24, background: '#fffaf0' }}>
+        <div className="card-section-title">{copy.completionActionTitle}</div>
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.completionActionBody}</p>
+
+        <div className="grid two" style={{ marginTop: 16 }}>
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div className="card-section-title" style={{ fontSize: 16 }}>{copy.unlocksTitle}</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+              <span className="badge">{copy.unlocksVisibility}</span>
+              <span className="badge">{copy.unlocksQuickConnect}</span>
+              <span className="badge">{copy.unlocksPosts}</span>
+              <span className="badge">{copy.unlocksRequests}</span>
+            </div>
+          </div>
+
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div className="card-section-title" style={{ fontSize: 16 }}>{copy.profileStrength}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {completionItems.length > 0
+                ? `${completionItems.length} ${copy.incomplete.toLowerCase()}`
+                : copy.complete}
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+              <a href="#account-form" className="btn primary">
+                {copy.finishNow}
+              </a>
+
+              <Link className="btn" to={publicProfileLink}>
+                {copy.openPublicProfile}
+              </Link>
+
+              <Link className="btn" to="/messages">
+                {copy.openMessages}
+              </Link>
+
+              <Link className="btn" to={roleNextStep.to}>
+                {roleNextStep.label}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="card rounded-xl" style={{ padding: 24 }}>
         <div className="card-section-title">{copy.inviteTitle}</div>
         <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.inviteBody}</p>
@@ -1200,7 +1285,7 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
       ) : null}
 
       <div className="grid two">
-        <div className="card rounded-xl" style={{ padding: 24 }}>
+        <div id="account-form" className="card rounded-xl" style={{ padding: 24 }}>
           <div className="card-section-title">{copy.accountOverview}</div>
           <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.accountOverviewBody}</p>
 
