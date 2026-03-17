@@ -473,20 +473,6 @@ function SupplierCard({ supplier, copy, onOpenSearch, onOpenStorefront }) {
         </div>
       ) : null}
     
-<div className="card-soft" style={{marginTop:16}}>
-  <div className="card-section-title">Project Engine</div>
-  <input type="file" onChange={handleBlueprintUpload} />
-  <textarea value={blueprintText} onChange={e=>setBlueprintText(e.target.value)} placeholder="Paste blueprint notes..." />
-  <button className="btn primary" onClick={runProjectEngine}>Run Project Engine</button>
-
-  {engineResult && (
-    <div style={{marginTop:12}}>
-      <div><strong>Crew Plan:</strong> {JSON.stringify(engineResult.crew)}</div>
-      <div><strong>Materials:</strong> {JSON.stringify(engineResult.materials)}</div>
-      <div><strong>Delivery:</strong> {JSON.stringify(engineResult.delivery)}</div>
-    </div>
-  )}
-</div>
 
 </div>
   )
@@ -512,20 +498,6 @@ function WorkerCard({ worker, copy, onBuildCrewPost }) {
         </button>
       </div>
     
-<div className="card-soft" style={{marginTop:16}}>
-  <div className="card-section-title">Project Engine</div>
-  <input type="file" onChange={handleBlueprintUpload} />
-  <textarea value={blueprintText} onChange={e=>setBlueprintText(e.target.value)} placeholder="Paste blueprint notes..." />
-  <button className="btn primary" onClick={runProjectEngine}>Run Project Engine</button>
-
-  {engineResult && (
-    <div style={{marginTop:12}}>
-      <div><strong>Crew Plan:</strong> {JSON.stringify(engineResult.crew)}</div>
-      <div><strong>Materials:</strong> {JSON.stringify(engineResult.materials)}</div>
-      <div><strong>Delivery:</strong> {JSON.stringify(engineResult.delivery)}</div>
-    </div>
-  )}
-</div>
 
 </div>
   )
@@ -554,20 +526,6 @@ function DriverCard({ driver, copy, onOpenDriverSearch, onBuildDeliveryPost }) {
         </button>
       </div>
     
-<div className="card-soft" style={{marginTop:16}}>
-  <div className="card-section-title">Project Engine</div>
-  <input type="file" onChange={handleBlueprintUpload} />
-  <textarea value={blueprintText} onChange={e=>setBlueprintText(e.target.value)} placeholder="Paste blueprint notes..." />
-  <button className="btn primary" onClick={runProjectEngine}>Run Project Engine</button>
-
-  {engineResult && (
-    <div style={{marginTop:12}}>
-      <div><strong>Crew Plan:</strong> {JSON.stringify(engineResult.crew)}</div>
-      <div><strong>Materials:</strong> {JSON.stringify(engineResult.materials)}</div>
-      <div><strong>Delivery:</strong> {JSON.stringify(engineResult.delivery)}</div>
-    </div>
-  )}
-</div>
 
 </div>
   )
@@ -772,27 +730,6 @@ async function fetchDeliveryMatches(form) {
 }
 
 
-// --- PROJECT ENGINE ENHANCEMENTS ---
-const [blueprintText, setBlueprintText] = useState("");
-const [engineResult, setEngineResult] = useState(null);
-
-function handleBlueprintUpload(e){
-  const file = e.target.files?.[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    setBlueprintText(String(reader.result||""));
-  };
-  reader.readAsText(file);
-}
-
-function runProjectEngine(){
-  const scope = blueprintText || projectInput || "";
-  const crew = buildCrewPlan(scope);
-  const materials = buildMaterialsPlan(scope);
-  const delivery = buildDeliveryPlan(scope);
-  setEngineResult({crew, materials, delivery});
-}
 
 export default function SupplierAiTools() {
   const navigate = useNavigate()
@@ -2019,20 +1956,6 @@ export default function SupplierAiTools() {
         </div>
       ) : null}
     
-<div className="card-soft" style={{marginTop:16}}>
-  <div className="card-section-title">Project Engine</div>
-  <input type="file" onChange={handleBlueprintUpload} />
-  <textarea value={blueprintText} onChange={e=>setBlueprintText(e.target.value)} placeholder="Paste blueprint notes..." />
-  <button className="btn primary" onClick={runProjectEngine}>Run Project Engine</button>
-
-  {engineResult && (
-    <div style={{marginTop:12}}>
-      <div><strong>Crew Plan:</strong> {JSON.stringify(engineResult.crew)}</div>
-      <div><strong>Materials:</strong> {JSON.stringify(engineResult.materials)}</div>
-      <div><strong>Delivery:</strong> {JSON.stringify(engineResult.delivery)}</div>
-    </div>
-  )}
-</div>
 
 </div>
   )
