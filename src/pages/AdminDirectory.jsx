@@ -1370,6 +1370,13 @@ export default function AdminDirectory() {
               Track worker hours with clock in / clock out.
             </div>
           </Link>
+
+          <Link to="/admin/projects" className="card-soft" style={{ textDecoration: 'none' }}>
+            <div className="card-section-title">Projects / Jobs Dashboard</div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              View all projects, clients, invoices, and jobsite activity in one place.
+            </div>
+          </Link>
         </div>
       </div>
 

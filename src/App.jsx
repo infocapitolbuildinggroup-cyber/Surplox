@@ -21,6 +21,7 @@ import SupplierAiTools from './pages/SupplierAiTools'
 import AdminCRM from './pages/AdminCRM'
 import AdminInvoices from './pages/AdminInvoices'
 import AdminTimeClock from './pages/AdminTimeClock'
+import AdminProjects from './pages/AdminProjects'
 
 import './styles.css'
 
@@ -1022,6 +1023,10 @@ function AppShell({ lang, setLang }) {
             <Route
               path="/admin/timeclock"
               element={session && isAdmin ? <AdminTimeClock lang={lang} /> : <Navigate to="/feed" replace />}
+            />
+            <Route
+              path="/admin/projects"
+              element={session && isAdmin ? <AdminProjects lang={lang} /> : <Navigate to="/feed" replace />}
             />
             <Route path="*" element={<Navigate to={session ? '/feed' : '/'} replace />} />
           </Routes>
