@@ -404,7 +404,7 @@ export default function MechanicRepair({ lang = 'en' }) {
     <div className="grid" style={{ gap: 18 }}>
       <div
         className="card rounded-xl"
-        style={{ padding: 28, background: 'linear-gradient(180deg, #f2eaff 0%, #f7f7f2 100%)' }}
+        style={{ padding: 28, background: 'linear-gradient(180deg, #fff1e2 0%, #f7f7f2 100%)' }}
       >
         <div className="badge" style={{ marginBottom: 14, background: '#ffe3c2', color: '#a55400' }}>
           {copy.badge}
