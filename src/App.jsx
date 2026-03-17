@@ -137,12 +137,139 @@ function isSupportSearchActive(search = '', values = []) {
   return values.some((value) => search.includes(`support=${value}`))
 }
 
+
+function GuidedStartModal({ lang, open, onClose }) {
+  if (!open) return null
+
+  const copy =
+    lang === 'es'
+      ? {
+          badge: 'Empieza aquí',
+          title: '¿Qué necesitas hacer ahora?',
+          body:
+            'En vez de dejarte caer en la app sin dirección, Surplox puede llevarte directo al siguiente paso más útil.',
+          findCrew: 'Encontrar cuadrilla',
+          findWork: 'Encontrar trabajo',
+          findMaterials: 'Encontrar materiales',
+          findDelivery: 'Encontrar entrega',
+          findRepair: 'Encontrar reparación',
+          crewBody: 'Abre el feed con publicaciones de Se necesita cuadrilla.',
+          workBody: 'Abre el feed con gente buscando trabajo y disponibilidad.',
+          materialsBody: 'Abre la búsqueda de proveedores y materiales.',
+          deliveryBody: 'Abre la búsqueda de conductores de entrega.',
+          repairBody: 'Abre la búsqueda de mecánica y reparación de equipo.',
+          skip: 'Seguir al feed',
+          close: 'Cerrar'
+        }
+      : {
+          badge: 'Start Here',
+          title: 'What do you need to do right now?',
+          body:
+            'Instead of dropping you into the app cold, Surplox can send you straight to the most useful next step.',
+          findCrew: 'Find crew',
+          findWork: 'Find work',
+          findMaterials: 'Find materials',
+          findDelivery: 'Find delivery',
+          findRepair: 'Find repair',
+          crewBody: 'Open the feed focused on Need Crew posts.',
+          workBody: 'Open the feed focused on Looking for Work posts and availability.',
+          materialsBody: 'Open supplier and materials search.',
+          deliveryBody: 'Open delivery driver search.',
+          repairBody: 'Open mechanic and equipment repair search.',
+          skip: 'Continue to feed',
+          close: 'Close'
+        }
+
+  const options = [
+    { to: '/feed?type=need_crew', title: copy.findCrew, body: copy.crewBody },
+    { to: '/feed?type=looking_for_work', title: copy.findWork, body: copy.workBody },
+    { to: '/materials', title: copy.findMaterials, body: copy.materialsBody },
+    { to: '/delivery', title: copy.findDelivery, body: copy.deliveryBody },
+    { to: '/mechanics', title: copy.findRepair, body: copy.repairBody }
+  ]
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 120,
+        background: 'rgba(17,17,17,0.48)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 18
+      }}
+    >
+      <div
+        className="card rounded-xl"
+        style={{
+          width: 'min(980px, 100%)',
+          maxHeight: 'calc(100vh - 36px)',
+          overflowY: 'auto',
+          padding: 24
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            gap: 12,
+            alignItems: 'flex-start'
+          }}
+        >
+          <div>
+            <div className="badge" style={{ marginBottom: 12, background: '#f1e7a8' }}>
+              {copy.badge}
+            </div>
+            <div className="h1" style={{ marginTop: 0 }}>{copy.title}</div>
+            <p className="muted" style={{ marginTop: 10, maxWidth: 760, lineHeight: 1.7 }}>
+              {copy.body}
+            </p>
+          </div>
+
+          <button type="button" className="btn small" onClick={onClose}>
+            {copy.close}
+          </button>
+        </div>
+
+        <div className="grid two" style={{ gap: 14, marginTop: 18 }}>
+          {options.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className="card-soft"
+              onClick={onClose}
+              style={{
+                textDecoration: 'none',
+                color: 'inherit',
+                minHeight: 128,
+                display: 'block'
+              }}
+            >
+              <div style={{ fontWeight: 900, fontSize: 18, lineHeight: 1.2 }}>{item.title}</div>
+              <p className="muted" style={{ marginTop: 10, lineHeight: 1.7 }}>{item.body}</p>
+            </Link>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
+          <Link to="/feed" className="btn" onClick={onClose}>
+            {copy.skip}
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function AppShell({ lang, setLang }) {
   const location = useLocation()
   const [session, setSession] = useState(null)
   const [loadingSession, setLoadingSession] = useState(true)
   const [logoError, setLogoError] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [showGuidedStart, setShowGuidedStart] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -171,6 +298,21 @@ function AppShell({ lang, setLang }) {
   useEffect(() => {
     setMobileMenuOpen(false)
   }, [location.pathname, location.search])
+
+  useEffect(() => {
+    if (!session) {
+      setShowGuidedStart(false)
+      return
+    }
+
+    const dismissedKey = `surplox_guided_start_dismissed_${session.user.id}`
+    const shouldShow =
+      location.pathname === '/feed' &&
+      sessionStorage.getItem(dismissedKey) !== '1'
+
+    setShowGuidedStart(shouldShow)
+  }, [session, location.pathname])
+
 
   useEffect(() => {
     const previousHtmlOverflow = document.documentElement.style.overflow
@@ -224,8 +366,16 @@ function AppShell({ lang, setLang }) {
 
   const isRepairActive = location.pathname.startsWith('/mechanics')
 
+  function handleCloseGuidedStart() {
+    if (session?.user?.id) {
+      sessionStorage.setItem(`surplox_guided_start_dismissed_${session.user.id}`, '1')
+    }
+    setShowGuidedStart(false)
+  }
+
   async function handleSignOut() {
     setMobileMenuOpen(false)
+    setShowGuidedStart(false)
     await supabase.auth.signOut()
   }
 
@@ -243,6 +393,7 @@ function AppShell({ lang, setLang }) {
 
   return (
     <div className="page-shell">
+      <GuidedStartModal lang={lang} open={showGuidedStart} onClose={handleCloseGuidedStart} />
       <header
         style={{
           position: 'sticky',
