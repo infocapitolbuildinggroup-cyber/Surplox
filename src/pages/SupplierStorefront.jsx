@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 
 const COPY = {
@@ -287,13 +287,44 @@ function buildDeliveryRequestLink(profile) {
   return `/new?category=jobsite_support&support=material_delivery&title=Request delivery from ${name}&zip=${zip}&urgent=true`
 }
 
+function digitsOnly(value) {
+  return String(value || '').replace(/\D/g, '')
+}
+
+function formatPhoneDisplay(value) {
+  const digits = digitsOnly(value)
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+  }
+  return value || ''
+}
+
+function buildSupplierMessageDraft(profile) {
+  const name = profile?.business_name || profile?.display_name || 'your storefront'
+  return `Hi, I found your supplier storefront on Surplox. I want to talk about materials from ${name}.`
+}
+
+function buildSupplierCompletionItems(profile) {
+  const items = []
+  if (!String(profile?.business_name || '').trim()) items.push('Add business name')
+  if (!String(profile?.business_address || '').trim()) items.push('Add business address')
+  if (!String(profile?.business_zip || '').trim()) items.push('Add business ZIP')
+  if (!Array.isArray(profile?.materials_categories) || profile.materials_categories.length === 0) items.push('Add materials categories')
+  if (!profile?.storefront) items.push('Enable storefront')
+  if (!String(profile?.bio || '').trim()) items.push('Add storefront bio')
+  if (!Number(profile?.delivery_radius || 0)) items.push('Add delivery radius')
+  return items
+}
+
 export default function SupplierStorefront() {
   const { userId } = useParams()
+  const navigate = useNavigate()
 
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
   const [copyMsg, setCopyMsg] = useState('')
+  const [currentUserId, setCurrentUserId] = useState(null)
   const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
 
   const copy = COPY[lang] || COPY.en
@@ -308,6 +339,7 @@ export default function SupplierStorefront() {
       try {
         const { data: sessionData } = await supabase.auth.getSession()
         const sessionUser = sessionData.session?.user
+        if (active) setCurrentUserId(sessionUser?.id || null)
 
         let currentLang = localStorage.getItem('surplox_lang') || 'en'
 
@@ -451,8 +483,18 @@ export default function SupplierStorefront() {
   const heroTitle = supplierName || copy.heroTitleFallback
   const heroBody = profile.bio || copy.heroBodyFallback
   const isImported = profile.source === 'imported'
+  const isOwnStorefront = Boolean(!isImported && currentUserId && profile.user_id === currentUserId)
   const materialsRequestLink = buildMaterialsRequestLink(profile)
   const deliveryRequestLink = buildDeliveryRequestLink(profile)
+  const completionItems = buildSupplierCompletionItems(profile)
+  const phoneHref = (() => {
+    const digits = digitsOnly(profile.phone)
+    return digits ? `tel:${digits}` : ''
+  })()
+  const textHref = (() => {
+    const digits = digitsOnly(profile.phone)
+    return digits ? `sms:${digits}?body=${encodeURIComponent(buildSupplierMessageDraft(profile))}` : ''
+  })()
 
   async function copyStorefrontLink() {
     try {
@@ -463,6 +505,30 @@ export default function SupplierStorefront() {
       console.error(error)
       setCopyMsg(lang === 'es' ? 'No se pudo copiar el enlace.' : 'Unable to copy storefront link.')
     }
+  }
+
+  async function copyMessageDraft() {
+    try {
+      await navigator.clipboard.writeText(buildSupplierMessageDraft(profile))
+      setCopyMsg(lang === 'es' ? 'Mensaje copiado.' : 'Message draft copied.')
+    } catch (error) {
+      console.error(error)
+      setCopyMsg(lang === 'es' ? 'No se pudo copiar el mensaje.' : 'Unable to copy message draft.')
+    }
+  }
+
+  function handleDirectMessage() {
+    if (profile.website_url) {
+      window.open(profile.website_url, '_blank', 'noreferrer')
+      return
+    }
+
+    if (textHref) {
+      window.location.href = textHref
+      return
+    }
+
+    navigate(materialsRequestLink)
   }
 
   return (
@@ -629,6 +695,22 @@ export default function SupplierStorefront() {
               {copy.requestDelivery}
             </Link>
 
+            {phoneHref ? (
+              <a className="btn" href={phoneHref}>
+                {lang === 'es' ? 'Llamar' : 'Call'}
+              </a>
+            ) : null}
+
+            {textHref ? (
+              <a className="btn" href={textHref}>
+                {lang === 'es' ? 'Texto' : 'Text'}
+              </a>
+            ) : null}
+
+            <button className="btn" type="button" onClick={handleDirectMessage}>
+              {lang === 'es' ? 'Mensaje directo' : 'Direct Message'}
+            </button>
+
             {!isImported && profile.user_id ? (
               <Link className="btn" to={`/u/${profile.user_id}`}>
                 {copy.openProfile}
@@ -683,6 +765,86 @@ export default function SupplierStorefront() {
           </div>
         </div>
       </div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">{lang === 'es' ? 'Acciones de contacto' : 'Contact Actions'}</div>
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+          {lang === 'es'
+            ? 'Pasa del descubrimiento de proveedor al contacto real con una acción rápida.'
+            : 'Move from supplier discovery into real outreach with a quick action.'}
+        </p>
+
+        <div className="grid two" style={{ gap: 14, marginTop: 14 }}>
+          <div className="card-soft">
+            <div className="card-section-title" style={{ fontSize: 15 }}>
+              {lang === 'es' ? 'Contacto directo' : 'Direct Contact'}
+            </div>
+            <div className="muted" style={{ marginTop: 8 }}>
+              {copy.phoneLabel}: {formatPhoneDisplay(profile.phone) || '—'}
+            </div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              {copy.websiteLabel}: {profile.website_url || '—'}
+            </div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              {copy.zipLabel}: {profile.business_zip || '—'}
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+              {phoneHref ? <a className="btn primary" href={phoneHref}>{lang === 'es' ? 'Llamar' : 'Call'}</a> : null}
+              {textHref ? <a className="btn" href={textHref}>{lang === 'es' ? 'Texto' : 'Text'}</a> : null}
+              <button className="btn" type="button" onClick={handleDirectMessage}>
+                {lang === 'es' ? 'Mensaje directo' : 'Direct Message'}
+              </button>
+            </div>
+          </div>
+
+          <div className="card-soft" style={{ background: '#f8f7ef' }}>
+            <div className="card-section-title" style={{ fontSize: 15 }}>
+              {lang === 'es' ? 'Mensaje sugerido' : 'Message Starter'}
+            </div>
+            <p className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>
+              {buildSupplierMessageDraft(profile)}
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+              <button className="btn small" type="button" onClick={copyMessageDraft}>
+                {lang === 'es' ? 'Copiar mensaje' : 'Copy Message Draft'}
+              </button>
+              <Link className="btn small" to={materialsRequestLink}>
+                {lang === 'es' ? 'Crear solicitud' : 'Build Request Post'}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {isOwnStorefront && completionItems.length > 0 ? (
+        <div className="card rounded-xl" style={{ padding: 22, background: '#fff4da' }}>
+          <div className="card-section-title">{lang === 'es' ? 'Impulso de perfil' : 'Profile Completion Push'}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {lang === 'es'
+              ? 'Una tienda más completa genera más confianza y mejores resultados en materiales y entrega.'
+              : 'A more complete storefront builds more trust and better materials and delivery results.'}
+          </p>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+            {completionItems.map((item) => (
+              <span key={item} className="badge">{item}</span>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+            <Link className="btn primary" to="/account">
+              {lang === 'es' ? 'Terminar mi cuenta' : 'Finish My Account'}
+            </Link>
+            {!isImported && profile.user_id ? (
+              <Link className="btn" to={`/u/${profile.user_id}`}>
+                {lang === 'es' ? 'Ver perfil' : 'Open Profile'}
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       {copyMsg ? (
         <div className="card-soft">
