@@ -11,7 +11,7 @@ const COPY = {
     supportBadge: 'Jobsite Support',
     deliveryBadge: 'Delivery',
     cargoVanBadge: 'Delivery',
-    repairBadge: 'Equipment / Fleet Repair',
+    repairBadge: 'Mechanic / Repair',
     supplierBadge: 'Supplier',
     heroBadge: 'Trades + actions',
     heroTitle: 'Move faster through the right channels.',
@@ -76,7 +76,7 @@ const COPY = {
     cargoVanDeliveryTitle: 'Delivery',
     cargoVanDeliveryBody:
       'Best for cargo van operators handling local runs, last-mile delivery, same-day pickups, tools, and lighter materials between stores, yards, and jobsites.',
-    fleetRepairTitle: 'Equipment / Fleet Repair',
+    fleetRepairTitle: 'Mechanic / Repair',
     fleetRepairBody:
       'Best for diesel mechanics, trailer repair, heavy equipment repair, and emergency field support.'
   },
@@ -87,7 +87,7 @@ const COPY = {
     supportBadge: 'Soporte de obra',
     deliveryBadge: 'Entrega',
     cargoVanBadge: 'Entrega',
-    repairBadge: 'Reparación de equipo / flota',
+    repairBadge: 'Mecánica / Reparación',
     supplierBadge: 'Proveedor',
     heroBadge: 'Oficios + acciones',
     heroTitle: 'Muévete más rápido por los canales correctos.',
@@ -152,7 +152,7 @@ const COPY = {
     cargoVanDeliveryTitle: 'Entrega',
     cargoVanDeliveryBody:
       'Ideal para operadores con cargo van que manejan viajes locales, última milla, recogidas el mismo día, herramientas y materiales ligeros entre tiendas, patios y obras.',
-    fleetRepairTitle: 'Reparación de equipo / flota',
+    fleetRepairTitle: 'Mecánica / Reparación',
     fleetRepairBody:
       'Ideal para mecánicos diésel, reparación de remolques, reparación de equipo pesado y soporte de emergencia en campo.'
   }
@@ -243,52 +243,6 @@ export default function Channels({ lang: langProp = 'en' }) {
 
   return (
     <div className="grid" style={{ gap: 18 }}>
-      <div
-        className="card rounded-xl"
-        style={{
-          padding: 28,
-          background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
-        }}
-      >
-        <div className="badge" style={{ marginBottom: 14, background: '#f1e7a8' }}>
-          {copy.heroBadge}
-        </div>
-
-        <div className="h1" style={{ maxWidth: 760 }}>
-          {copy.heroTitle}
-        </div>
-
-        <p className="muted" style={{ marginTop: 12, maxWidth: 820, fontSize: 17, lineHeight: 1.7 }}>
-          {copy.heroBody}
-        </p>
-
-        <div className="grid two" style={{ marginTop: 18 }}>
-          <InfoTile value={copy.stat1} />
-          <InfoTile value={copy.stat2} />
-          <InfoTile value={copy.stat3} />
-        </div>
-      </div>
-
-      <div
-        className="card rounded-xl"
-        style={{
-          padding: 24,
-          background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
-        }}
-      >
-        <div className="badge" style={{ marginBottom: 12, background: '#f1e7a8', color: '#111111' }}>
-          {copy.title}
-        </div>
-        <div className="h1">{copy.title}</div>
-        <p className="muted" style={{ marginTop: 10, maxWidth: 860, lineHeight: 1.7 }}>
-          {copy.intro}
-        </p>
-        <div className="muted" style={{ marginTop: 10, maxWidth: 860, lineHeight: 1.7 }}>
-          {lang === 'es'
-            ? 'Usa Canales para entrar rápido a la publicación o sección correcta: mano de obra, proveedor, entrega o mecánica / reparación.'
-            : 'Use Channels to jump quickly into the right posting lane or browse section: labor, supplier, delivery, or mechanic / repair.'}
-        </div>
-      </div>
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{copy.quickActions}</div>
@@ -370,32 +324,7 @@ export default function Channels({ lang: langProp = 'en' }) {
             </div>
 
             <div style={{ marginTop: 16 }}>
-              <span className="btn small primary">{copy.supportDeliveryButton}</span>
-            </div>
-          </Link>
-
-          <Link
-            className="card rounded-xl"
-            to="/new?type=discussion&group=jobsite_support&support=cargo_van_delivery"
-            style={{
-              padding: 22,
-              background: 'linear-gradient(180deg, #eef6ff 0%, #ffffff 100%)'
-            }}
-          >
-            <div className="badge" style={{ background: '#d8ecff', color: '#0d3f73' }}>
-              {copy.cargoVanBadge}
-            </div>
-
-            <div style={{ fontWeight: 900, fontSize: 22, marginTop: 14, lineHeight: 1.15 }}>
-              {copy.supportCargoVanTitle}
-            </div>
-
-            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-              {copy.supportCargoVanBody}
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <span className="btn small">{copy.supportCargoVanButton}</span>
+              <span className="btn small">{copy.supportDeliveryButton}</span>
             </div>
           </Link>
 
@@ -404,10 +333,11 @@ export default function Channels({ lang: langProp = 'en' }) {
             to="/new?type=discussion&group=jobsite_support&support=equipment_fleet_repair"
             style={{
               padding: 22,
-              background: 'linear-gradient(180deg, #f3f1e8 0%, #ffffff 100%)'
+              background: 'linear-gradient(180deg, #fff4e8 0%, #f7f7f2 100%)',
+              border: '1px solid rgba(180,83,9,0.12)'
             }}
           >
-            <div className="badge" style={{ background: '#f1e7a8', color: '#111111' }}>
+            <div className="badge" style={{ background: '#ffe2cc', color: '#b45309' }}>
               {copy.repairBadge}
             </div>
 
@@ -493,7 +423,7 @@ export default function Channels({ lang: langProp = 'en' }) {
 
           <Link
             className="card rounded-xl"
-            to="/feed?role=supplier"
+            to="/materials"
             style={{
               padding: 20,
               background: '#ffffff'
@@ -570,10 +500,11 @@ export default function Channels({ lang: langProp = 'en' }) {
             to="/feed?category=jobsite_support&support=equipment_fleet_repair"
             style={{
               padding: 20,
-              background: '#ffffff'
+              background: 'linear-gradient(180deg, #fff4e8 0%, #f7f7f2 100%)',
+              border: '1px solid rgba(180,83,9,0.12)'
             }}
           >
-            <div className="badge" style={{ background: '#f1e7a8', color: '#111111' }}>
+            <div className="badge" style={{ background: '#ffe2cc', color: '#b45309' }}>
               {copy.repairBadge}
             </div>
 
