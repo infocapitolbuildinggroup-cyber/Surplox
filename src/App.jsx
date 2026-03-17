@@ -16,6 +16,7 @@ import AdminDirectory from './pages/AdminDirectory'
 import SupplierStorefront from './pages/SupplierStorefront'
 import Materials from './pages/Materials'
 import Delivery from './pages/Delivery'
+import MechanicRepair from './pages/MechanicRepair'
 import SupplierAiTools from './pages/SupplierAiTools'
 
 import './styles.css'
@@ -172,26 +173,20 @@ function AppShell({ lang, setLang }) {
   }, [location.pathname, location.search])
 
   useEffect(() => {
-    if (!mobileMenuOpen) return undefined
+    const previousHtmlOverflow = document.documentElement.style.overflow
+    const previousBodyOverflow = document.body.style.overflow
 
-    let lastScrollY = window.scrollY
-
-    const closeMenuOnPageScroll = () => {
-      const nextScrollY = window.scrollY
-      if (Math.abs(nextScrollY - lastScrollY) > 4) {
-        setMobileMenuOpen(false)
-      }
-      lastScrollY = nextScrollY
+    if (mobileMenuOpen) {
+      document.documentElement.style.overflow = 'hidden'
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.documentElement.style.overflow = previousHtmlOverflow
+      document.body.style.overflow = previousBodyOverflow
     }
 
-    window.addEventListener('scroll', closeMenuOnPageScroll, { passive: true })
-    window.addEventListener('wheel', closeMenuOnPageScroll, { passive: true })
-    window.addEventListener('touchmove', closeMenuOnPageScroll, { passive: true })
-
     return () => {
-      window.removeEventListener('scroll', closeMenuOnPageScroll)
-      window.removeEventListener('wheel', closeMenuOnPageScroll)
-      window.removeEventListener('touchmove', closeMenuOnPageScroll)
+      document.documentElement.style.overflow = previousHtmlOverflow
+      document.body.style.overflow = previousBodyOverflow
     }
   }, [mobileMenuOpen])
 
@@ -200,7 +195,7 @@ function AppShell({ lang, setLang }) {
       labor: '/feed',
       materials: '/materials',
       deliveryDirectory: '/delivery',
-      repair: '/feed?category=jobsite_support&support=equipment_fleet_repair'
+      repair: '/mechanics'
     }
   }, [])
 
@@ -213,7 +208,7 @@ function AppShell({ lang, setLang }) {
       { to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
       { to: '/materials', label: lang === 'es' ? 'Materiales' : 'Materials' },
       { to: '/delivery', label: lang === 'es' ? 'Delivery' : 'Delivery' },
-      { to: quickLinks.repair, label: lang === 'es' ? 'Mecánica / Reparación de equipo' : 'Mechanic / Equipment Repair' },
+      { to: quickLinks.repair, label: lang === 'es' ? 'Mecánica / Reparación' : 'Mechanic / Repair' },
       { to: '/ai-tools', label: lang === 'es' ? 'Surplox AI Tools' : 'Surplox AI Tools' },
       { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
       { to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' }
@@ -227,9 +222,7 @@ function AppShell({ lang, setLang }) {
     return location.pathname.startsWith(to)
   }
 
-  const isRepairActive =
-    location.pathname.startsWith('/feed') &&
-    isSupportSearchActive(location.search, ['equipment_fleet_repair'])
+  const isRepairActive = location.pathname.startsWith('/mechanics')
 
   async function handleSignOut() {
     setMobileMenuOpen(false)
@@ -467,6 +460,10 @@ function AppShell({ lang, setLang }) {
               element={session ? <Delivery lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
             />
             <Route
+              path="/mechanics"
+              element={session ? <MechanicRepair lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
+            />
+            <Route
               path="/ai-tools"
               element={session ? <SupplierAiTools lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
             />
@@ -530,6 +527,5 @@ function AppShell({ lang, setLang }) {
 
 export default function App() {
   const [lang, setLang] = usePreferredLanguage()
-
   return <AppShell lang={lang} setLang={setLang} />
 }
