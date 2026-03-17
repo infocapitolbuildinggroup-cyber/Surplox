@@ -13,12 +13,18 @@ const API_SUPPLIER_SEARCH_ENDPOINT =
     import.meta.env.VITE_SUPPLIER_SEARCH_ENDPOINT) ||
   '/api/supplier-search'
 
+const API_OCR_ENDPOINT =
+  (typeof import.meta !== 'undefined' &&
+    import.meta.env &&
+    import.meta.env.VITE_OCR_ENDPOINT) ||
+  '/api/ocr'
+
 const COPY = {
   en: {
     badge: 'Surplox AI Tools',
     title: 'Construction AI tools built into Surplox.',
     body:
-      'Use Surplox AI to analyze project scope, suggest suppliers, match crews, and coordinate delivery from one place.',
+      'Use Surplox AI to analyze project scope, suggest suppliers, match crews, coordinate delivery, and ingest blueprint documents from one place.',
     supplierTab: 'Supplier Suggestions',
     crewTab: 'Crew Matching',
     deliveryTab: 'Delivery Coordination',
@@ -49,19 +55,57 @@ const COPY = {
     noSuggestions: 'No supplier suggestions yet.',
     crewTitle: 'Crew Matching AI',
     crewBody:
-      'This tool stays ready for ranking nearby Surplox workers and crews by trade, ZIP fit, availability, travel radius, and crew size.',
+      'Rank nearby Surplox workers and crews by trade fit, ZIP fit, availability, travel radius, and crew size.',
+    tradeLabel: 'Trade',
+    tradePlaceholder: 'Concrete, framing, drywall, electrical...',
+    availabilityLabel: 'Availability',
+    allAvailability: 'All availability',
+    availableNow: 'Available now',
+    availableThisWeek: 'Available this week',
+    busy: 'Busy',
+    minCrewLabel: 'Minimum crew size',
+    radiusLabel: 'Travel radius at least',
+    runCrewButton: 'Run Crew Match',
+    crewResults: 'Crew matches',
+    noCrewResults: 'No crew matches yet.',
+    matchScore: 'Match score',
+    whyMatched: 'Why this matched',
+    openWorkerProfile: 'Open Profile',
+    createNeedCrewPost: 'Create Need Crew Post',
     deliveryTitle: 'Delivery Coordination AI',
     deliveryBody:
-      'This tool stays ready for coordinating supplier pickup, jobsite delivery, and hauling support using Surplox driver records.',
+      'Rank delivery drivers for supplier pickup and jobsite drop-off using Surplox driver data.',
+    pickupZipLabel: 'Pickup ZIP',
+    pickupZipPlaceholder: 'Supplier ZIP',
+    jobsiteZipLabel: 'Jobsite ZIP',
+    jobsiteZipPlaceholder: 'Jobsite ZIP',
+    vehicleLabel: 'Vehicle type',
+    trailerLabel: 'Trailer type',
+    payloadLabel: 'Minimum payload (lbs)',
+    supportTypeLabel: 'Delivery lane',
+    allVehicles: 'All vehicles',
+    allTrailers: 'All trailers',
+    allSupportTypes: 'All delivery lanes',
+    runDeliveryButton: 'Run Delivery Coordination',
+    deliveryResults: 'Delivery matches',
+    noDeliveryResults: 'No delivery matches yet.',
+    openDeliveryProfile: 'Open Driver Profile',
     analyzerTitle: 'Project Analyzer AI',
     analyzerBody:
-      'Paste project notes or blueprint summary text to generate a quick project summary and handoff into supplier, crew, and delivery tools.',
+      'Upload blueprint documents or paste project scope notes to generate a project summary and handoff into supplier, crew, and delivery tools.',
     notesLabel: 'Project scope notes',
     notesPlaceholder:
       'Example: 18,000 SF tilt wall warehouse in 76140. Needs concrete, steel, framing, drywall, electrical, plumbing, site materials, and staged deliveries.',
+    uploadLabel: 'Blueprint / document upload',
+    uploadHelp:
+      'Upload PDF, image, txt, csv, json, or md files. Text-based files extract immediately. OCR can be run on scans and images.',
+    runOcr: 'Run OCR',
+    runningOcr: 'Running OCR…',
     analyzeButton: 'Analyze Scope',
     summaryLabel: 'Project summary',
     noSummary: 'No project analysis generated yet.',
+    extractedTextLabel: 'Extracted document text',
+    noExtractedText: 'No extracted text yet.',
     openDelivery: 'Open Delivery',
     openNewPost: 'Open New Post',
     openChannels: 'Open Channels',
@@ -70,9 +114,17 @@ const COPY = {
     phone: 'Phone',
     address: 'Address',
     categories: 'Categories',
-    rating: 'Rating'
+    rating: 'Rating',
+    fileReady: 'File ready',
+    fileExtracted: 'Text extracted',
+    fileOcrReady: 'OCR ready',
+    fileOcrDone: 'OCR complete'
   }
 }
+
+const VEHICLE_OPTIONS = ['pickup_truck', 'cargo_van', 'box_truck', 'flatbed_truck']
+const TRAILER_OPTIONS = ['none', 'utility_trailer', 'flatbed_trailer', 'gooseneck_trailer', 'equipment_trailer', 'enclosed_trailer']
+const SUPPORT_OPTIONS = ['material_delivery', 'cargo_van_delivery']
 
 function scoreScope(text = '') {
   const lower = String(text || '').toLowerCase()
@@ -209,6 +261,59 @@ function SupplierCard({ supplier, copy }) {
   )
 }
 
+function WorkerCard({ worker, copy }) {
+  return (
+    <div className="card rounded-xl" style={{ padding: 18 }}>
+      <div className="h2" style={{ fontSize: 22 }}>{worker.display_name || 'Worker'}</div>
+      <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {worker.trade_name ? <span className="badge">{worker.trade_name}</span> : null}
+        {worker.home_zip ? <span className="badge">{worker.home_zip}</span> : null}
+        <span className="badge">{copy.matchScore}: {worker.match_score}</span>
+      </div>
+      <div style={{ marginTop: 14 }}>
+        <div className="muted">{copy.whyMatched}</div>
+        <div style={{ marginTop: 6 }}>{worker.match_reason}</div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+        <Link className="btn small primary" to={`/u/${worker.user_id}`}>{copy.openWorkerProfile}</Link>
+      </div>
+    </div>
+  )
+}
+
+function DriverCard({ driver, copy }) {
+  return (
+    <div className="card rounded-xl" style={{ padding: 18 }}>
+      <div className="h2" style={{ fontSize: 22 }}>{driver.display_name || 'Driver'}</div>
+      <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {driver.vehicle_type ? <span className="badge">{driver.vehicle_type.replace(/_/g, ' ')}</span> : null}
+        {driver.trailer_type ? <span className="badge">{driver.trailer_type.replace(/_/g, ' ')}</span> : null}
+        <span className="badge">{copy.matchScore}: {driver.match_score}</span>
+      </div>
+      <div style={{ marginTop: 14 }}>
+        <div className="muted">{copy.whyMatched}</div>
+        <div style={{ marginTop: 6 }}>{driver.match_reason}</div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+        <Link className="btn small primary" to={`/u/${driver.user_id}`}>{copy.openDeliveryProfile}</Link>
+      </div>
+    </div>
+  )
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = String(reader.result || '')
+      const base64 = result.includes(',') ? result.split(',')[1] : result
+      resolve(base64)
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
 export default function SupplierAiTools() {
   const copy = COPY.en
   const [tab, setTab] = useState('supplier')
@@ -216,6 +321,8 @@ export default function SupplierAiTools() {
   const [message, setMessage] = useState('')
   const [importedSuppliers, setImportedSuppliers] = useState([])
   const [supplierSuggestions, setSupplierSuggestions] = useState([])
+  const [crewResults, setCrewResults] = useState([])
+  const [deliveryResults, setDeliveryResults] = useState([])
 
   const [supplierForm, setSupplierForm] = useState({
     material: '',
@@ -224,11 +331,38 @@ export default function SupplierAiTools() {
     state: 'TX'
   })
 
+  const [crewForm, setCrewForm] = useState({
+    trade: '',
+    zip: '',
+    availability: '',
+    minCrew: '',
+    minRadius: ''
+  })
+
+  const [deliveryForm, setDeliveryForm] = useState({
+    pickupZip: '',
+    jobsiteZip: '',
+    vehicleType: '',
+    trailerType: '',
+    payload: '',
+    supportType: ''
+  })
+
   const [projectNotes, setProjectNotes] = useState('')
-  const projectSummary = useMemo(() => scoreScope(projectNotes), [projectNotes])
+  const [uploadedFiles, setUploadedFiles] = useState([])
+  const [extractedText, setExtractedText] = useState('')
+  const projectSummary = useMemo(() => scoreScope(`${projectNotes}\n${extractedText}`), [projectNotes, extractedText])
 
   function setSupplierField(key, value) {
     setSupplierForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function setCrewField(key, value) {
+    setCrewForm((prev) => ({ ...prev, [key]: value }))
+  }
+
+  function setDeliveryField(key, value) {
+    setDeliveryForm((prev) => ({ ...prev, [key]: value }))
   }
 
   async function handleImportSuppliers(event) {
@@ -244,9 +378,7 @@ export default function SupplierAiTools() {
       })
 
       const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data?.error || copy.importError)
-      }
+      if (!response.ok) throw new Error(data?.error || copy.importError)
 
       setImportedSuppliers(Array.isArray(data.suppliers) ? data.suppliers : [])
       setMessage(copy.importSuccess)
@@ -271,9 +403,7 @@ export default function SupplierAiTools() {
       })
 
       const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data?.error || copy.importError)
-      }
+      if (!response.ok) throw new Error(data?.error || copy.importError)
 
       setSupplierSuggestions(Array.isArray(data.suppliers) ? data.suppliers : [])
     } catch (error) {
@@ -282,6 +412,141 @@ export default function SupplierAiTools() {
     } finally {
       setBusy(false)
     }
+  }
+
+  async function runCrewMatch() {
+    setBusy(true)
+    setMessage('')
+    try {
+      const { data, error } = await fetchCrewMatches(crewForm)
+      if (error) throw error
+      setCrewResults(data)
+    } catch (error) {
+      console.error(error)
+      setMessage(error.message || 'Crew matching failed.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function runDeliveryMatch() {
+    setBusy(true)
+    setMessage('')
+    try {
+      const { data, error } = await fetchDeliveryMatches(deliveryForm)
+      if (error) throw error
+      setDeliveryResults(data)
+    } catch (error) {
+      console.error(error)
+      setMessage(error.message || 'Delivery coordination failed.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleFilesSelected(event) {
+    const files = Array.from(event.target.files || [])
+    const next = []
+
+    for (const file of files) {
+      const lower = file.name.toLowerCase()
+      let text = ''
+      let ocrReady = false
+
+      if (file.type.startsWith('text/') || /\.(txt|md|json|csv)$/i.test(lower)) {
+        text = await file.text()
+      } else if (file.type === 'application/pdf' || /\.(pdf)$/i.test(lower)) {
+        ocrReady = true
+      } else if (file.type.startsWith('image/')) {
+        ocrReady = true
+      }
+
+      next.push({
+        id: `${file.name}-${file.size}-${file.lastModified}`,
+        file,
+        name: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        extractedText: text,
+        ocrReady,
+        ocrDone: Boolean(text)
+      })
+    }
+
+    setUploadedFiles(next)
+
+    const combinedText = next
+      .map((item) => item.extractedText)
+      .filter(Boolean)
+      .join('\n\n')
+
+    if (combinedText) {
+      setExtractedText((prev) => [prev, combinedText].filter(Boolean).join('\n\n'))
+    }
+  }
+
+  async function runOcrForFile(fileId) {
+    setBusy(true)
+    setMessage('')
+    try {
+      const target = uploadedFiles.find((item) => item.id === fileId)
+      if (!target) throw new Error('File not found.')
+
+      const fileBase64 = await fileToBase64(target.file)
+      const response = await fetch(API_OCR_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileBase64, mimeType: target.mimeType })
+      })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data?.error || 'OCR failed.')
+
+      const text = String(data?.extractedText || '').trim()
+
+      setUploadedFiles((prev) =>
+        prev.map((item) =>
+          item.id === fileId
+            ? { ...item, extractedText: text, ocrDone: Boolean(text) }
+            : item
+        )
+      )
+
+      if (text) {
+        setExtractedText((prev) => [prev, text].filter(Boolean).join('\n\n'))
+      }
+    } catch (error) {
+      console.error(error)
+      setMessage(error.message || 'OCR failed.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function useAnalyzerForSupplier() {
+    const firstMaterial = projectSummary.materials[0] || ''
+    setSupplierForm((prev) => ({
+      ...prev,
+      material: firstMaterial || prev.material,
+      zip: crewForm.zip || deliveryForm.jobsiteZip || prev.zip
+    }))
+    setTab('supplier')
+  }
+
+  function useAnalyzerForCrew() {
+    const firstTrade = projectSummary.trades[0] || ''
+    setCrewForm((prev) => ({
+      ...prev,
+      trade: firstTrade || prev.trade
+    }))
+    setTab('crew')
+  }
+
+  function useAnalyzerForDelivery() {
+    setDeliveryForm((prev) => ({
+      ...prev,
+      jobsiteZip: supplierForm.zip || crewForm.zip || prev.jobsiteZip
+    }))
+    setTab('delivery')
   }
 
   return (
@@ -386,19 +651,12 @@ export default function SupplierAiTools() {
 
           <div className="card rounded-xl" style={{ padding: 22 }}>
             <div className="card-section-title">{copy.importedLabel}</div>
-
             {importedSuppliers.length === 0 ? (
-              <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-                {copy.noImported}
-              </p>
+              <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.noImported}</p>
             ) : (
               <div className="grid" style={{ gap: 16, marginTop: 14 }}>
                 {importedSuppliers.map((supplier) => (
-                  <SupplierCard
-                    key={supplier.external_id || supplier.id || `${supplier.business_name}-${supplier.business_zip}`}
-                    supplier={supplier}
-                    copy={copy}
-                  />
+                  <SupplierCard key={supplier.external_id || supplier.id || `${supplier.business_name}-${supplier.business_zip}`} supplier={supplier} copy={copy} />
                 ))}
               </div>
             )}
@@ -406,19 +664,12 @@ export default function SupplierAiTools() {
 
           <div className="card rounded-xl" style={{ padding: 22 }}>
             <div className="card-section-title">{copy.suggestionsLabel}</div>
-
             {supplierSuggestions.length === 0 ? (
-              <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-                {copy.noSuggestions}
-              </p>
+              <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.noSuggestions}</p>
             ) : (
               <div className="grid" style={{ gap: 16, marginTop: 14 }}>
                 {supplierSuggestions.map((supplier) => (
-                  <SupplierCard
-                    key={supplier.external_id || supplier.id || `${supplier.business_name}-${supplier.business_zip}`}
-                    supplier={supplier}
-                    copy={copy}
-                  />
+                  <SupplierCard key={supplier.external_id || supplier.id || `${supplier.business_name}-${supplier.business_zip}`} supplier={supplier} copy={copy} />
                 ))}
               </div>
             )}
@@ -427,37 +678,166 @@ export default function SupplierAiTools() {
       ) : null}
 
       {tab === 'crew' ? (
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.crewTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.crewBody}
-          </p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
-            <Link className="btn" to="/channels">{copy.openChannels}</Link>
-            <Link className="btn primary" to="/new">{copy.openNewPost}</Link>
+        <>
+          <div className="card rounded-xl" style={{ padding: 22 }}>
+            <div className="card-section-title">{copy.crewTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.crewBody}</p>
+
+            <div className="grid two" style={{ gap: 14, marginTop: 16 }}>
+              <div>
+                <div className="muted" style={{ marginBottom: 8 }}>{copy.tradeLabel}</div>
+                <input className="input" value={crewForm.trade} onChange={(e) => setCrewField('trade', e.target.value)} placeholder={copy.tradePlaceholder} />
+              </div>
+              <div>
+                <div className="muted" style={{ marginBottom: 8 }}>{copy.zipLabel}</div>
+                <input className="input" value={crewForm.zip} onChange={(e) => setCrewField('zip', e.target.value.replace(/[^\d]/g, '').slice(0, 5))} placeholder={copy.zipPlaceholder} />
+              </div>
+            </div>
+
+            <div className="grid three" style={{ gap: 14, marginTop: 14 }}>
+              <div>
+                <div className="muted" style={{ marginBottom: 8 }}>{copy.availabilityLabel}</div>
+                <select className="input" value={crewForm.availability} onChange={(e) => setCrewField('availability', e.target.value)}>
+                  <option value="">{copy.allAvailability}</option>
+                  <option value="available_now">{copy.availableNow}</option>
+                  <option value="available_this_week">{copy.availableThisWeek}</option>
+                  <option value="busy">{copy.busy}</option>
+                </select>
+              </div>
+              <div>
+                <div className="muted" style={{ marginBottom: 8 }}>{copy.minCrewLabel}</div>
+                <input className="input" type="number" value={crewForm.minCrew} onChange={(e) => setCrewField('minCrew', e.target.value)} />
+              </div>
+              <div>
+                <div className="muted" style={{ marginBottom: 8 }}>{copy.radiusLabel}</div>
+                <input className="input" type="number" value={crewForm.minRadius} onChange={(e) => setCrewField('minRadius', e.target.value)} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+              <button className="btn primary" type="button" onClick={runCrewMatch} disabled={busy}>{copy.runCrewButton}</button>
+              <Link className="btn" to="/channels">{copy.openChannels}</Link>
+              <Link className="btn" to="/new">{copy.createNeedCrewPost}</Link>
+            </div>
           </div>
-        </div>
+
+          <div className="card rounded-xl" style={{ padding: 22 }}>
+            <div className="card-section-title">{copy.crewResults}</div>
+            {crewResults.length === 0 ? (
+              <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.noCrewResults}</p>
+            ) : (
+              <div className="grid" style={{ gap: 16, marginTop: 14 }}>
+                {crewResults.map((worker) => (
+                  <WorkerCard key={worker.user_id} worker={worker} copy={copy} />
+                ))}
+              </div>
+            )}
+          </div>
+        </>
       ) : null}
 
       {tab === 'delivery' ? (
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.deliveryTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.deliveryBody}
-          </p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
-            <Link className="btn primary" to="/delivery">{copy.openDelivery}</Link>
-            <Link className="btn" to="/new">{copy.openNewPost}</Link>
+        <>
+          <div className="card rounded-xl" style={{ padding: 22 }}>
+            <div className="card-section-title">{copy.deliveryTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.deliveryBody}</p>
+
+            <div className="grid two" style={{ gap: 14, marginTop: 16 }}>
+              <div>
+                <div className="muted" style={{ marginBottom: 8 }}>{copy.pickupZipLabel}</div>
+                <input className="input" value={deliveryForm.pickupZip} onChange={(e) => setDeliveryField('pickupZip', e.target.value.replace(/[^\d]/g, '').slice(0, 5))} placeholder={copy.pickupZipPlaceholder} />
+              </div>
+              <div>
+                <div className="muted" style={{ marginBottom: 8 }}>{copy.jobsiteZipLabel}</div>
+                <input className="input" value={deliveryForm.jobsiteZip} onChange={(e) => setDeliveryField('jobsiteZip', e.target.value.replace(/[^\d]/g, '').slice(0, 5))} placeholder={copy.jobsiteZipPlaceholder} />
+              </div>
+            </div>
+
+            <div className="grid three" style={{ gap: 14, marginTop: 14 }}>
+              <div>
+                <div className="muted" style={{ marginBottom: 8 }}>{copy.vehicleLabel}</div>
+                <select className="input" value={deliveryForm.vehicleType} onChange={(e) => setDeliveryField('vehicleType', e.target.value)}>
+                  <option value="">{copy.allVehicles}</option>
+                  {VEHICLE_OPTIONS.map((option) => <option key={option} value={option}>{option.replace(/_/g, ' ')}</option>)}
+                </select>
+              </div>
+              <div>
+                <div className="muted" style={{ marginBottom: 8 }}>{copy.trailerLabel}</div>
+                <select className="input" value={deliveryForm.trailerType} onChange={(e) => setDeliveryField('trailerType', e.target.value)}>
+                  <option value="">{copy.allTrailers}</option>
+                  {TRAILER_OPTIONS.map((option) => <option key={option} value={option}>{option.replace(/_/g, ' ')}</option>)}
+                </select>
+              </div>
+              <div>
+                <div className="muted" style={{ marginBottom: 8 }}>{copy.payloadLabel}</div>
+                <input className="input" type="number" value={deliveryForm.payload} onChange={(e) => setDeliveryField('payload', e.target.value)} />
+              </div>
+            </div>
+
+            <div className="grid two" style={{ gap: 14, marginTop: 14 }}>
+              <div>
+                <div className="muted" style={{ marginBottom: 8 }}>{copy.supportTypeLabel}</div>
+                <select className="input" value={deliveryForm.supportType} onChange={(e) => setDeliveryField('supportType', e.target.value)}>
+                  <option value="">{copy.allSupportTypes}</option>
+                  {SUPPORT_OPTIONS.map((option) => <option key={option} value={option}>{option.replace(/_/g, ' ')}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+              <button className="btn primary" type="button" onClick={runDeliveryMatch} disabled={busy}>{copy.runDeliveryButton}</button>
+              <Link className="btn" to="/delivery">{copy.openDelivery}</Link>
+            </div>
           </div>
-        </div>
+
+          <div className="card rounded-xl" style={{ padding: 22 }}>
+            <div className="card-section-title">{copy.deliveryResults}</div>
+            {deliveryResults.length === 0 ? (
+              <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.noDeliveryResults}</p>
+            ) : (
+              <div className="grid" style={{ gap: 16, marginTop: 14 }}>
+                {deliveryResults.map((driver) => (
+                  <DriverCard key={driver.user_id} driver={driver} copy={copy} />
+                ))}
+              </div>
+            )}
+          </div>
+        </>
       ) : null}
 
       {tab === 'analyzer' ? (
         <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">{copy.analyzerTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.analyzerBody}
-          </p>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.analyzerBody}</p>
+
+          <div style={{ marginTop: 16 }}>
+            <div className="muted" style={{ marginBottom: 8 }}>{copy.uploadLabel}</div>
+            <input type="file" multiple onChange={handleFilesSelected} />
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.uploadHelp}</p>
+          </div>
+
+          {uploadedFiles.length > 0 ? (
+            <div className="grid" style={{ gap: 12, marginTop: 16 }}>
+              {uploadedFiles.map((file) => (
+                <div key={file.id} className="card-soft">
+                  <div style={{ fontWeight: 800 }}>{file.name}</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                    <span className="badge">{file.extractedText ? copy.fileExtracted : copy.fileReady}</span>
+                    {file.ocrReady ? (
+                      <span className="badge">{file.ocrDone ? copy.fileOcrDone : copy.fileOcrReady}</span>
+                    ) : null}
+                  </div>
+                  {file.ocrReady && !file.ocrDone ? (
+                    <div style={{ marginTop: 10 }}>
+                      <button className="btn small" type="button" onClick={() => runOcrForFile(file.id)} disabled={busy}>
+                        {busy ? copy.runningOcr : copy.runOcr}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           <div style={{ marginTop: 16 }}>
             <div className="muted" style={{ marginBottom: 8 }}>{copy.notesLabel}</div>
@@ -470,9 +850,16 @@ export default function SupplierAiTools() {
             />
           </div>
 
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+            <Chip>{copy.analyzeButton}</Chip>
+            <Chip onClick={useAnalyzerForSupplier}>{copy.supplierTab}</Chip>
+            <Chip onClick={useAnalyzerForCrew}>{copy.crewTab}</Chip>
+            <Chip onClick={useAnalyzerForDelivery}>{copy.deliveryTab}</Chip>
+          </div>
+
           <div className="card-soft" style={{ marginTop: 16 }}>
             <div className="card-section-title">{copy.summaryLabel}</div>
-            {projectNotes.trim() ? (
+            {(projectNotes.trim() || extractedText.trim()) ? (
               <div style={{ marginTop: 10, display: 'grid', gap: 10 }}>
                 <div><strong>{projectSummary.summary}</strong></div>
                 <div><strong>Trades:</strong> {projectSummary.trades.length ? projectSummary.trades.join(', ') : 'General construction'}</div>
@@ -480,13 +867,147 @@ export default function SupplierAiTools() {
                 <div><strong>Crew note:</strong> {projectSummary.crewSuggestion}</div>
               </div>
             ) : (
-              <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-                {copy.noSummary}
-              </p>
+              <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.noSummary}</p>
+            )}
+          </div>
+
+          <div className="card-soft" style={{ marginTop: 16 }}>
+            <div className="card-section-title">{copy.extractedTextLabel}</div>
+            {extractedText.trim() ? (
+              <pre style={{ whiteSpace: 'pre-wrap', marginTop: 10, fontFamily: 'inherit' }}>{extractedText}</pre>
+            ) : (
+              <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.noExtractedText}</p>
             )}
           </div>
         </div>
       ) : null}
     </div>
   )
+}
+
+async function fetchCrewMatches(form) {
+  const { supabase } = await import('../supabaseClient')
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(`
+      user_id,
+      display_name,
+      home_zip,
+      travel_radius_miles,
+      crew_size,
+      availability_status,
+      role,
+      bio,
+      trades(name)
+    `)
+    .in('role', ['laborer', 'subcontractor', 'contractor'])
+
+  if (error) return { data: [], error }
+
+  const filtered = (data || [])
+    .map((row) => {
+      const tradeName = row?.trades?.name || ''
+      let score = 0
+      const reasons = []
+
+      if (form.trade && tradeName.toLowerCase().includes(String(form.trade).toLowerCase())) {
+        score += 35
+        reasons.push('trade fit')
+      }
+      if (form.zip && String(row.home_zip || '').trim() === String(form.zip).trim()) {
+        score += 25
+        reasons.push('same ZIP')
+      }
+      if (form.availability && row.availability_status === form.availability) {
+        score += 20
+        reasons.push('availability fit')
+      }
+      if (Number(form.minCrew || 0) > 0 && Number(row.crew_size || 0) >= Number(form.minCrew || 0)) {
+        score += 10
+        reasons.push('crew size fit')
+      }
+      if (Number(form.minRadius || 0) > 0 && Number(row.travel_radius_miles || 0) >= Number(form.minRadius || 0)) {
+        score += 10
+        reasons.push('radius fit')
+      }
+
+      return {
+        user_id: row.user_id,
+        display_name: row.display_name,
+        home_zip: row.home_zip,
+        trade_name: tradeName,
+        match_score: score,
+        match_reason: reasons.length ? reasons.join(', ') : 'general fit'
+      }
+    })
+    .filter((row) => row.match_score > 0)
+    .sort((a, b) => b.match_score - a.match_score)
+    .slice(0, 12)
+
+  return { data: filtered, error: null }
+}
+
+async function fetchDeliveryMatches(form) {
+  const { supabase } = await import('../supabaseClient')
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(`
+      user_id,
+      display_name,
+      home_zip,
+      vehicle_type,
+      trailer_type,
+      payload_capacity,
+      delivery_radius,
+      service_tags,
+      role
+    `)
+    .eq('role', 'driver')
+
+  if (error) return { data: [], error }
+
+  const filtered = (data || [])
+    .map((row) => {
+      let score = 0
+      const reasons = []
+
+      if (form.pickupZip && String(row.home_zip || '').trim() === String(form.pickupZip).trim()) {
+        score += 25
+        reasons.push('pickup ZIP fit')
+      }
+      if (form.jobsiteZip && String(row.home_zip || '').trim() === String(form.jobsiteZip).trim()) {
+        score += 15
+        reasons.push('jobsite ZIP fit')
+      }
+      if (form.vehicleType && row.vehicle_type === form.vehicleType) {
+        score += 20
+        reasons.push('vehicle fit')
+      }
+      if (form.trailerType && row.trailer_type === form.trailerType) {
+        score += 15
+        reasons.push('trailer fit')
+      }
+      if (Number(form.payload || 0) > 0 && Number(row.payload_capacity || 0) >= Number(form.payload || 0)) {
+        score += 15
+        reasons.push('payload fit')
+      }
+      if (form.supportType && Array.isArray(row.service_tags) && row.service_tags.includes(form.supportType)) {
+        score += 10
+        reasons.push('delivery lane fit')
+      }
+
+      return {
+        user_id: row.user_id,
+        display_name: row.display_name,
+        vehicle_type: row.vehicle_type,
+        trailer_type: row.trailer_type,
+        match_score: score,
+        match_reason: reasons.length ? reasons.join(', ') : 'general fit'
+      }
+    })
+    .filter((row) => row.match_score > 0)
+    .sort((a, b) => b.match_score - a.match_score)
+    .slice(0, 12)
+
+  return { data: filtered, error: null }
 }

@@ -106,10 +106,7 @@ function normalizeMaterials(list) {
 function normalizeMaterialLabel(value) {
   const v = String(value || '').trim()
   if (!v) return ''
-  return v
-    .replace(/_/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return v.replace(/_/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
 function normalizeText(value) {
@@ -172,6 +169,7 @@ function makeNativeSupplier(item) {
     id: item.user_id,
     source: 'native',
     user_id: item.user_id,
+    external_id: null,
     display_name: normalizeText(item.display_name),
     business_name: normalizeText(item.business_name) || normalizeText(item.display_name),
     business_zip: normalizeText(item.business_zip),
@@ -187,9 +185,9 @@ function makeNativeSupplier(item) {
 function makeImportedSupplier(item) {
   return {
     id: item.id || item.external_id,
-    external_id: item.external_id,
     source: 'imported',
     user_id: null,
+    external_id: item.external_id || String(item.id || ''),
     display_name: normalizeText(item.display_name) || normalizeText(item.business_name),
     business_name: normalizeText(item.business_name) || normalizeText(item.display_name),
     business_zip: normalizeText(item.business_zip),
@@ -295,13 +293,11 @@ export default function Materials({ lang = 'en' }) {
 
   const materialOptions = useMemo(() => {
     const set = new Set(DEFAULT_MATERIALS.map(normalizeMaterialLabel))
-
     suppliers.forEach((supplier) => {
       supplier.materials_categories.forEach((item) => {
         if (item) set.add(item)
       })
     })
-
     return Array.from(set).sort((a, b) => a.localeCompare(b))
   }, [suppliers])
 
@@ -516,7 +512,7 @@ export default function Materials({ lang = 'en' }) {
                       </Link>
                     </>
                   ) : (
-                    <Link className="btn small" to="/ai-tools">
+                    <Link className="btn small primary" to={`/supplier/${encodeURIComponent(supplier.external_id || supplier.id)}`}>
                       {copy.openStorefront}
                     </Link>
                   )}
