@@ -1373,7 +1373,7 @@ export default function AdminDirectory() {
         </div>
       </div>
 
-      <div className="card rounded-xl" style={ padding: 22 }>
+      <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{copy.analyticsTitle}</div>
         <div className="grid two" style={{ marginTop: 14 }}>
           <StatCard label={copy.totalUsers} value={analytics.totalUsers} dark />
