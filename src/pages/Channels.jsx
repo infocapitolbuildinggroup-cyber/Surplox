@@ -535,7 +535,14 @@ export default function Channels({ lang: langProp = 'en' }) {
         </div>
       </div>
 
-      <div className="card rounded-xl" style={{ padding: 22 }}>
+      <div
+  className="card rounded-xl"
+  style={{
+    padding: 22,
+    background: 'linear-gradient(180deg, #fff7ed 0%, #ffe2cc 100%)',
+    border: '1px solid rgba(249,115,22,0.15)'
+  }}
+>
         <div className="card-section-title">{copy.allTradesTitle}</div>
 
         <p className="card-section-subtitle" style={{ marginTop: 8 }}>
