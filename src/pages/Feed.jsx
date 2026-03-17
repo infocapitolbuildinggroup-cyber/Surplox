@@ -115,7 +115,15 @@ const COPY = {
     noTrailer: 'No Trailer',
     milesShort: 'mi',
     feetShort: 'ft',
-    poundsShort: 'lbs'
+    poundsShort: 'lbs',
+    urgencyBoard: 'Urgency Layer',
+    urgencyBoardBody: 'See the hottest demand first so crews, suppliers, drivers, and mechanics can act faster.',
+    urgentNow: 'Urgent now',
+    postedToday: 'Posted today',
+    startsSoon: 'Starts soon',
+    fresh: 'Fresh',
+    sameDay: 'Same-day',
+    urgentHelp: 'Urgent posts rise to the top automatically.'
   },
   es: {
     unknownMember: 'Miembro desconocido',
@@ -193,7 +201,15 @@ const COPY = {
     noTrailer: 'Sin remolque',
     milesShort: 'mi',
     feetShort: 'ft',
-    poundsShort: 'lbs'
+    poundsShort: 'lbs',
+    urgencyBoard: 'Capa de urgencia',
+    urgencyBoardBody: 'Ve primero la demanda más caliente para que cuadrillas, proveedores, conductores y mecánicos actúen más rápido.',
+    urgentNow: 'Urgente ahora',
+    postedToday: 'Publicado hoy',
+    startsSoon: 'Empieza pronto',
+    fresh: 'Nuevo',
+    sameDay: 'Mismo día',
+    urgentHelp: 'Las publicaciones urgentes suben automáticamente al inicio.'
   }
 }
 
@@ -455,6 +471,31 @@ function timeAgo(ts, lang = 'en') {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
+function isFreshPost(ts) {
+  const created = new Date(ts).getTime()
+  if (!created) return false
+  return Date.now() - created <= 1000 * 60 * 60 * 6
+}
+
+function isPostedToday(ts) {
+  if (!ts) return false
+  const d = new Date(ts)
+  const now = new Date()
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate()
+  )
+}
+
+function isStartingSoon(startDate) {
+  if (!startDate) return false
+  const start = new Date(startDate)
+  const now = new Date()
+  const diff = start.getTime() - now.getTime()
+  return diff >= -1000 * 60 * 60 * 12 && diff <= 1000 * 60 * 60 * 48
+}
+
 export default function Feed({ lang: langProp = 'en' }) {
   const navigate = useNavigate()
   const location = useLocation()
@@ -692,6 +733,9 @@ export default function Feed({ lang: langProp = 'en' }) {
 
   const totalPosts = posts.length
   const visiblePosts = filteredPosts.length
+  const urgentVisibleCount = filteredPosts.filter((post) => Boolean(post.is_urgent)).length
+  const postedTodayCount = filteredPosts.filter((post) => isPostedToday(post.created_at)).length
+  const startsSoonCount = filteredPosts.filter((post) => isStartingSoon(post.start_date)).length
 
   if (loading) {
     return <div className="card">Loading feed…</div>
@@ -767,6 +811,42 @@ export default function Feed({ lang: langProp = 'en' }) {
           <Link className="btn" to="/new?category=jobsite_support&support=equipment_fleet_repair">
             {copy.quickSupportRepair}
           </Link>
+        </div>
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 22, background: '#fffaf0' }}>
+        <div className="card-section-title">{copy.urgencyBoard}</div>
+
+        <p className="muted" style={{ marginTop: 8 }}>
+          {copy.urgencyBoardBody}
+        </p>
+
+        <div
+          style={{
+            marginTop: 14,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))',
+            gap: 12
+          }}
+        >
+          <div className="card-soft" style={{ minHeight: 92 }}>
+            <div className="muted">{copy.urgentNow}</div>
+            <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{urgentVisibleCount}</div>
+          </div>
+
+          <div className="card-soft" style={{ minHeight: 92 }}>
+            <div className="muted">{copy.postedToday}</div>
+            <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{postedTodayCount}</div>
+          </div>
+
+          <div className="card-soft" style={{ minHeight: 92 }}>
+            <div className="muted">{copy.startsSoon}</div>
+            <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{startsSoonCount}</div>
+          </div>
+        </div>
+
+        <div className="muted" style={{ marginTop: 12 }}>
+          {copy.urgentHelp}
         </div>
       </div>
 
@@ -929,6 +1009,18 @@ export default function Feed({ lang: langProp = 'en' }) {
                     </span>
                   )}
 
+                  {isFreshPost(post.created_at) && (
+                    <span className="badge" style={{ background: '#111111', color: '#ffffff' }}>
+                      {copy.fresh}
+                    </span>
+                  )}
+
+                  {isStartingSoon(post.start_date) && (
+                    <span className="badge" style={{ background: '#fff0b4', color: '#111111' }}>
+                      {copy.startsSoon}
+                    </span>
+                  )}
+
                   <span className="badge">{timeAgo(post.created_at, lang)}</span>
                 </div>
 
@@ -950,6 +1042,12 @@ export default function Feed({ lang: langProp = 'en' }) {
                   {post.start_date && (
                     <span className="badge">
                       {copy.start}: {new Date(post.start_date).toLocaleDateString()}
+                    </span>
+                  )}
+
+                  {isStartingSoon(post.start_date) && (
+                    <span className="badge" style={{ background: '#fff0b4', color: '#111111' }}>
+                      {copy.sameDay}
                     </span>
                   )}
 
