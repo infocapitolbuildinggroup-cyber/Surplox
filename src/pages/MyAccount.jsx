@@ -35,10 +35,10 @@ const JOBSITE_SUPPORT_OPTIONS = [
   },
   {
     value: 'equipment_fleet_repair',
-    label: { en: 'Equipment / Fleet Repair', es: 'Reparación de equipo / flota' },
+    label: { en: 'Mechanic / Equipment Repair', es: 'Mecánico / Reparación de equipo' },
     role: 'mechanic',
-    service_tags: ['diesel_mechanic', 'jobsite_service'],
-    equipment_tags: ['mobile_repair_truck'],
+    service_tags: ['diesel_mechanic', 'field_service'],
+    equipment_tags: ['mobile_repair_truck', 'service_truck'],
     default_vehicle_type: 'mobile_repair_truck'
   }
 ]
@@ -67,16 +67,27 @@ const MATERIAL_DELIVERY_EQUIPMENT_TAGS = [
 
 const FLEET_REPAIR_SERVICE_TAGS = [
   { value: 'diesel_mechanic', label: { en: 'Diesel Mechanic', es: 'Mecánico diésel' } },
-  { value: 'heavy_equipment_repair', label: { en: 'Heavy Equipment Repair', es: 'Reparación de equipo pesado' } },
+  { value: 'small_engine_repair', label: { en: 'Small Engine Repair', es: 'Reparación de motores pequeños' } },
+  { value: 'skid_steer_repair', label: { en: 'Skid Steer Repair', es: 'Reparación de skid steer' } },
+  { value: 'tractor_repair', label: { en: 'Tractor Repair', es: 'Reparación de tractores' } },
+  { value: 'mini_ex_repair', label: { en: 'Mini Excavator Repair', es: 'Reparación de mini excavadora' } },
+  { value: 'heavy_equipment_repair', label: { en: 'Large Machine Repair', es: 'Reparación de maquinaria grande' } },
+  { value: 'hydraulic_repair', label: { en: 'Hydraulic Repair', es: 'Reparación hidráulica' } },
   { value: 'trailer_repair', label: { en: 'Trailer Repair', es: 'Reparación de remolques' } },
+  { value: 'field_service', label: { en: 'Mobile Field Service', es: 'Servicio móvil en campo' } },
   { value: 'emergency_repair', label: { en: 'Emergency Repair', es: 'Reparación de emergencia' } },
   { value: 'jobsite_service', label: { en: 'Jobsite Service', es: 'Servicio en obra' } }
 ]
 
 const FLEET_REPAIR_EQUIPMENT_TAGS = [
   { value: 'mobile_repair_truck', label: { en: 'Mobile Repair Truck', es: 'Camión de reparación móvil' } },
+  { value: 'service_truck', label: { en: 'Service Truck', es: 'Camión de servicio' } },
   { value: 'diesel_diagnostics', label: { en: 'Diesel Diagnostics', es: 'Diagnóstico diésel' } },
-  { value: 'trailer_brake_tools', label: { en: 'Trailer Brake Tools', es: 'Herramientas de frenos de remolque' } }
+  { value: 'hydraulic_tools', label: { en: 'Hydraulic Tools', es: 'Herramientas hidráulicas' } },
+  { value: 'welder_generator', label: { en: 'Welder / Generator', es: 'Soldadora / generador' } },
+  { value: 'trailer_brake_tools', label: { en: 'Trailer Brake Tools', es: 'Herramientas de frenos de remolque' } },
+  { value: 'battery_jump_setup', label: { en: 'Battery / Jump Setup', es: 'Equipo de batería / arranque' } },
+  { value: 'on_site_tools', label: { en: 'On-Site Repair Tools', es: 'Herramientas de reparación en sitio' } }
 ]
 
 const DRIVER_VEHICLE_OPTIONS = [
@@ -238,6 +249,8 @@ const COPY = {
     completionVehicleType: 'Add vehicle type',
     completionTrailerType: 'Add trailer type',
     completionPayload: 'Add payload capacity',
+    completionMechanicServices: 'Add mechanic specialties',
+    completionMechanicEquipment: 'Add repair equipment / capability tags',
     accountOverview: 'Account Overview',
     accountOverviewBody:
       'Keep your profile clean, credible, and ready for nearby work opportunities, material runs, repair requests, and crew invites.',
@@ -247,7 +260,7 @@ const COPY = {
     categoryGroup: 'Category Group',
     jobsiteSupportType: 'Jobsite Support Type',
     jobsiteSupportIntro:
-      'Use Jobsite Support for material delivery, hot shot, cargo van delivery, fleet repair, and equipment repair profiles.',
+      'Use Jobsite Support for material delivery, hot shot, cargo van delivery, and mechanic / equipment repair profiles.',
     serviceTags: 'Service Tags',
     equipmentTags: 'Equipment Tags',
     availabilityStatus: 'Availability Status',
@@ -257,11 +270,17 @@ const COPY = {
     serviceProfileTitle: 'Jobsite Support Profile',
     servicesEquipmentBody:
       'Select the services you offer and the equipment you have so contractors know exactly what you can do.',
+    mechanicProfileTitle: 'Mechanic / Equipment Repair Profile',
+    mechanicProfileBody:
+      'Use this lane for diesel mechanics, small engine repair, skid steer repair, tractor repair, large machine repair, trailer repair, hydraulics, and mobile field service.',
+    mechanicExamplesTitle: 'Mechanic specialties to show',
+    mechanicExamplesBody:
+      'Use the tags below to clearly show whether you handle diesel, small engines, skid steers, tractors, mini excavators, trailers, hydraulic issues, or urgent jobsite calls.',
     tradesGroup: 'Trades',
     jobsiteSupportGroup: 'Jobsite Support',
     materialDeliveryType: 'Material Delivery / Hot Shot',
     cargoVanType: 'Cargo Van / Local Delivery',
-    fleetRepairType: 'Equipment / Fleet Repair',
+    fleetRepairType: 'Mechanic / Equipment Repair',
     selectSupportType: 'Select support type',
     supplierTradeOptional: 'Supplier accounts use business details instead of trade, crew, or worker availability fields.',
     supplierBusinessBio: 'Business Bio',
@@ -299,7 +318,7 @@ const COPY = {
     trailerType: 'Trailer Type',
     trailerLength: 'Trailer Length (ft)',
     payloadCapacity: 'Payload Capacity (lbs)',
-    driverRoleLocked: 'Driver and repair account roles are kept aligned with the support type selected during signup.',
+    driverRoleLocked: 'Driver and mechanic account roles are kept aligned with the support type selected during signup.',
     supplierRoleLocked: 'Supplier accounts stay separate from worker accounts.',
     noTrailer: 'No Trailer'
   },
@@ -365,6 +384,8 @@ const COPY = {
     completionVehicleType: 'Agregar tipo de vehículo',
     completionTrailerType: 'Agregar tipo de remolque',
     completionPayload: 'Agregar capacidad de carga',
+    completionMechanicServices: 'Agregar especialidades de mecánica',
+    completionMechanicEquipment: 'Agregar equipo / capacidades de reparación',
     accountOverview: 'Resumen de cuenta',
     accountOverviewBody:
       'Mantén tu perfil limpio, creíble y listo para oportunidades cercanas, entregas de materiales, solicitudes de reparación e invitaciones de cuadrilla.',
@@ -374,7 +395,7 @@ const COPY = {
     categoryGroup: 'Grupo de categoría',
     jobsiteSupportType: 'Tipo de soporte de obra',
     jobsiteSupportIntro:
-      'Usa Soporte de obra para entrega de materiales, hot shot, cargo van, reparación de flota y reparación de equipo.',
+      'Usa Soporte de obra para entrega de materiales, hot shot, cargo van y perfiles de mecánico / reparación de equipo.',
     serviceTags: 'Etiquetas de servicio',
     equipmentTags: 'Etiquetas de equipo',
     availabilityStatus: 'Estado de disponibilidad',
@@ -384,11 +405,17 @@ const COPY = {
     serviceProfileTitle: 'Perfil de soporte de obra',
     servicesEquipmentBody:
       'Selecciona los servicios que ofreces y el equipo que tienes para que los contratistas sepan exactamente lo que puedes hacer.',
+    mechanicProfileTitle: 'Perfil de mecánico / reparación de equipo',
+    mechanicProfileBody:
+      'Usa esta línea para mecánicos diésel, reparación de motores pequeños, skid steer, tractores, maquinaria grande, remolques, hidráulicos y servicio móvil en campo.',
+    mechanicExamplesTitle: 'Especialidades de mecánica para mostrar',
+    mechanicExamplesBody:
+      'Usa las etiquetas de abajo para dejar claro si haces diésel, motor pequeño, skid steer, tractores, mini excavadoras, remolques, hidráulicos o emergencias en obra.',
     tradesGroup: 'Oficios',
     jobsiteSupportGroup: 'Soporte de obra',
     materialDeliveryType: 'Entrega de materiales / Hot Shot',
     cargoVanType: 'Cargo Van / Entrega local',
-    fleetRepairType: 'Reparación de equipo / flota',
+    fleetRepairType: 'Mecánico / Reparación de equipo',
     selectSupportType: 'Selecciona el tipo de soporte',
     supplierTradeOptional: 'Las cuentas de proveedor usan detalles comerciales en lugar de oficio, cuadrilla o disponibilidad de trabajador.',
     supplierBusinessBio: 'Biografía del negocio',
@@ -426,7 +453,7 @@ const COPY = {
     trailerType: 'Tipo de remolque',
     trailerLength: 'Largo del remolque (ft)',
     payloadCapacity: 'Capacidad de carga (lbs)',
-    driverRoleLocked: 'Los roles de conductor y reparación se mantienen alineados con el tipo de soporte elegido en el registro.',
+    driverRoleLocked: 'Los roles de conductor y mecánico se mantienen alineados con el tipo de soporte elegido en el registro.',
     supplierRoleLocked: 'Las cuentas de proveedor permanecen separadas de las cuentas de trabajadores.',
     noTrailer: 'Sin remolque'
   }
@@ -439,8 +466,14 @@ function formatOptionLabel(option, lang = 'en') {
 function detectSupportType(serviceTags = [], role = '', vehicleType = '') {
   const repairTags = new Set([
     'diesel_mechanic',
+    'small_engine_repair',
+    'skid_steer_repair',
+    'tractor_repair',
+    'mini_ex_repair',
     'heavy_equipment_repair',
+    'hydraulic_repair',
     'trailer_repair',
+    'field_service',
     'emergency_repair',
     'jobsite_service'
   ])
@@ -501,9 +534,9 @@ function getProfileCompletionPercent(profile) {
     Boolean(String(profile.city || '').trim()),
     Boolean(String(profile.bio || '').trim()),
     crewSizeOptional ? true : Boolean(Number(profile.crew_size || 0) > 1),
-    profile.role === 'supplier' || profile.role === 'driver' || profile.role === 'mechanic'
+    profile.role === 'supplier'
       ? true
-      : Boolean(String(profile.availability_status || '').trim()),
+      : Boolean(String(profile.availability_status || '').trim()) || profile.role === 'driver' || profile.role === 'mechanic',
     profile.role === 'supplier'
       ? Boolean(String(profile.business_zip || '').trim()) &&
         Array.isArray(profile.materials_categories) &&
@@ -515,12 +548,17 @@ function getProfileCompletionPercent(profile) {
           Boolean(String(profile.trailer_type || '').trim()) &&
           (Boolean(Number(profile.payload_capacity || 0)) || String(profile.payload_capacity || '').trim() !== '') &&
           (Boolean(Number(profile.delivery_radius || 0)) || String(profile.delivery_radius || '').trim() !== '')
-        : profile.category_group === 'trade'
-          ? tradeOptional || Boolean(String(profile.trade_id || '').trim())
-          : Array.isArray(profile.service_tags) &&
+        : profile.role === 'mechanic'
+          ? Array.isArray(profile.service_tags) &&
             profile.service_tags.length > 0 &&
             Array.isArray(profile.equipment_tags) &&
             profile.equipment_tags.length > 0
+          : profile.category_group === 'trade'
+            ? tradeOptional || Boolean(String(profile.trade_id || '').trim())
+            : Array.isArray(profile.service_tags) &&
+              profile.service_tags.length > 0 &&
+              Array.isArray(profile.equipment_tags) &&
+              profile.equipment_tags.length > 0
   ]
 
   const completeCount = checks.filter(Boolean).length
@@ -588,6 +626,13 @@ function getCompletionItems(profile, copy) {
     }
     if (!Number(profile.delivery_radius || 0) && !String(profile.delivery_radius || '').trim()) {
       items.push(copy.completionDeliveryRadius)
+    }
+  } else if (profile.role === 'mechanic') {
+    if (!Array.isArray(profile.service_tags) || profile.service_tags.length === 0) {
+      items.push(copy.completionMechanicServices)
+    }
+    if (!Array.isArray(profile.equipment_tags) || profile.equipment_tags.length === 0) {
+      items.push(copy.completionMechanicEquipment)
     }
   } else if (profile.category_group === 'trade' && !tradeOptional && !String(profile.trade_id || '').trim()) {
     items.push(copy.tradeRequired)
@@ -972,6 +1017,20 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
         ? resolvedSupportConfig.role
         : form.role
 
+    const resolvedServiceTags =
+      resolvedIsSupplier
+        ? []
+        : resolvedCategoryGroup === 'jobsite_support'
+          ? (Array.isArray(form.service_tags) && form.service_tags.length > 0 ? form.service_tags : resolvedSupportConfig.service_tags)
+          : []
+
+    const resolvedEquipmentTags =
+      resolvedIsSupplier
+        ? []
+        : resolvedCategoryGroup === 'jobsite_support'
+          ? (Array.isArray(form.equipment_tags) && form.equipment_tags.length > 0 ? form.equipment_tags : resolvedSupportConfig.equipment_tags)
+          : []
+
     const profilePayload = {
       user_id: user.id,
       display_name: form.display_name.trim(),
@@ -992,24 +1051,14 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
       category_group: resolvedCategoryGroup,
       availability_status: resolvedIsSupplier || resolvedRole === 'driver' || resolvedRole === 'mechanic' ? null : form.availability_status,
       contractor_verified: Boolean(form.contractor_verified),
-      service_tags:
-        resolvedIsSupplier
-          ? []
-          : resolvedCategoryGroup === 'jobsite_support'
-            ? resolvedSupportConfig.service_tags
-            : [],
-      equipment_tags:
-        resolvedIsSupplier
-          ? []
-          : resolvedCategoryGroup === 'jobsite_support'
-            ? resolvedSupportConfig.equipment_tags
-            : [],
+      service_tags: resolvedServiceTags,
+      equipment_tags: resolvedEquipmentTags,
       business_name: resolvedIsSupplier ? form.business_name.trim() : null,
       business_address: resolvedIsSupplier ? form.business_address.trim() : null,
       business_zip: resolvedIsSupplier ? form.business_zip.trim() : null,
       materials_categories: resolvedIsSupplier ? form.materials_categories : [],
       storefront: resolvedIsSupplier ? Boolean(form.storefront) : false,
-      business_hours: resolvedIsupplier ? normalizeBusinessHours(form.business_hours) : null,
+      business_hours: resolvedIsSupplier ? normalizeBusinessHours(form.business_hours) : null,
       vehicle_type: resolvedRole === 'driver' ? form.vehicle_type || null : null,
       trailer_type: resolvedRole === 'driver' ? form.trailer_type || 'none' : null,
       trailer_length: resolvedRole === 'driver' && String(form.trailer_length || '').trim() ? Number(form.trailer_length) : null,
@@ -1043,8 +1092,8 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
       ...prev,
       role: resolvedRole,
       category_group: resolvedCategoryGroup,
-      service_tags: resolvedCategoryGroup === 'jobsite_support' ? resolvedSupportConfig.service_tags : [],
-      equipment_tags: resolvedCategoryGroup === 'jobsite_support' ? resolvedSupportConfig.equipment_tags : []
+      service_tags: resolvedServiceTags,
+      equipment_tags: resolvedEquipmentTags
     }))
 
     setMsg(copy.success)
@@ -1242,9 +1291,18 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
                           jobsite_support_type: nextType,
                           role: nextConfig.role,
                           category_group: 'jobsite_support',
-                          service_tags: nextConfig.service_tags,
-                          equipment_tags: nextConfig.equipment_tags,
-                          vehicle_type: prev.vehicle_type || nextConfig.default_vehicle_type || ''
+                          service_tags:
+                            Array.isArray(prev.service_tags) && prev.jobsite_support_type === nextType && prev.service_tags.length > 0
+                              ? prev.service_tags
+                              : nextConfig.service_tags,
+                          equipment_tags:
+                            Array.isArray(prev.equipment_tags) && prev.jobsite_support_type === nextType && prev.equipment_tags.length > 0
+                              ? prev.equipment_tags
+                              : nextConfig.equipment_tags,
+                          vehicle_type:
+                            nextConfig.role === 'driver'
+                              ? prev.vehicle_type || nextConfig.default_vehicle_type || ''
+                              : prev.vehicle_type
                         }))
                       }}
                     >
@@ -1258,10 +1316,10 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
 
                   <div className="card-soft" style={{ background: '#fffaf0' }}>
                     <div className="card-section-title" style={{ fontSize: 15 }}>
-                      {copy.serviceProfileTitle}
+                      {isMechanic ? copy.mechanicProfileTitle : copy.serviceProfileTitle}
                     </div>
                     <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-                      {copy.servicesEquipmentBody}
+                      {isMechanic ? copy.mechanicProfileBody : copy.servicesEquipmentBody}
                     </p>
                   </div>
                 </>
@@ -1720,11 +1778,27 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
         </div>
       ) : null}
 
+      {isMechanic ? (
+        <div className="card rounded-xl" style={{ padding: 24 }}>
+          <div className="card-section-title">{copy.mechanicProfileTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {copy.mechanicProfileBody}
+          </p>
+
+          <div className="card-soft" style={{ marginTop: 16, background: '#fffaf0' }}>
+            <div className="card-section-title" style={{ fontSize: 16 }}>{copy.mechanicExamplesTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {copy.mechanicExamplesBody}
+            </p>
+          </div>
+        </div>
+      ) : null}
+
       {form.category_group === 'jobsite_support' && !isSupplier ? (
         <div className="card rounded-xl" style={{ padding: 24 }}>
-          <div className="card-section-title">{copy.serviceProfileTitle}</div>
+          <div className="card-section-title">{isMechanic ? copy.mechanicProfileTitle : copy.serviceProfileTitle}</div>
           <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.jobsiteSupportIntro}
+            {isMechanic ? copy.mechanicExamplesBody : copy.jobsiteSupportIntro}
           </p>
 
           <div className="grid two" style={{ marginTop: 16 }}>
