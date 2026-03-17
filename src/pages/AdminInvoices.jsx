@@ -7,7 +7,7 @@ const COPY = {
     badge: 'Invoices & Estimates',
     title: 'Create rough estimates and invoices inside Surplox.',
     body:
-      'This first version is intentionally simple: build line items, total them instantly, and store records in the database until you are ready to wire this into your production billing flow.',
+      'This first version is intentionally simple: build line items, total them instantly, store records in the database, connect them to CRM clients/projects, and export a printable PDF view.',
     back: 'Back to Admin',
     formTitle: 'Create Estimate / Invoice',
     type: 'Document Type',
@@ -39,13 +39,19 @@ const COPY = {
     deleteError: 'Unable to delete invoice right now.',
     clientRequired: 'Client / Company is required.',
     saved: 'Invoice saved.',
-    deleted: 'Invoice deleted.'
+    deleted: 'Invoice deleted.',
+    pdf: 'Generate PDF',
+    noCrmRecords: 'No CRM client records found yet. You can still type client and project manually.',
+    crmClientHint: 'Choose an existing CRM client or type a new one.',
+    crmProjectHint: 'Choose an existing project from CRM or type a new project name.',
+    crmLinked: 'CRM-linked suggestion',
+    notesPlaceholder: 'Scope notes, payment terms, inclusions, exclusions, due date details, or internal summary...'
   },
   es: {
     badge: 'Facturas y Estimados',
     title: 'Crea estimados y facturas dentro de Surplox.',
     body:
-      'Esta primera versión es intencionalmente simple: crea partidas, suma totales al instante y guarda registros en la base de datos hasta que conectemos el flujo de facturación real.',
+      'Esta primera versión es intencionalmente simple: crea partidas, suma totales al instante, guarda registros en la base de datos, conéctalos a clientes/proyectos del CRM y exporta una vista imprimible en PDF.',
     back: 'Volver al Admin',
     formTitle: 'Crear Estimado / Factura',
     type: 'Tipo de Documento',
@@ -77,7 +83,13 @@ const COPY = {
     deleteError: 'No se pudo eliminar la factura.',
     clientRequired: 'Cliente / Empresa es obligatorio.',
     saved: 'Factura guardada.',
-    deleted: 'Factura eliminada.'
+    deleted: 'Factura eliminada.',
+    pdf: 'Generar PDF',
+    noCrmRecords: 'Todavía no hay registros CRM. Aún puedes escribir cliente y proyecto manualmente.',
+    crmClientHint: 'Elige un cliente existente del CRM o escribe uno nuevo.',
+    crmProjectHint: 'Elige un proyecto existente del CRM o escribe un proyecto nuevo.',
+    crmLinked: 'Sugerencia vinculada al CRM',
+    notesPlaceholder: 'Notas de alcance, términos de pago, inclusiones, exclusiones, vencimiento o resumen interno...'
   }
 }
 
@@ -116,9 +128,107 @@ function mapDbRowToDoc(row = {}) {
   }
 }
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
+function renderPdfHtml(doc, copy) {
+  const total = (doc.items || []).reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  const title = doc.type === 'estimate' ? copy.estimate : copy.invoice
+  const statusLabel = doc.status === 'draft' ? copy.draft : doc.status === 'sent' ? copy.sent : copy.paid
+
+  const rows = (doc.items || [])
+    .map(
+      (item) => `
+        <tr>
+          <td style="padding:10px 12px;border-bottom:1px solid #e7e5da;">${escapeHtml(item.label || '—')}</td>
+          <td style="padding:10px 12px;border-bottom:1px solid #e7e5da;text-align:right;">${escapeHtml(money(item.amount || 0))}</td>
+        </tr>
+      `
+    )
+    .join('')
+
+  return `
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>${escapeHtml(title)} - ${escapeHtml(doc.client || 'Surplox')}</title>
+        <style>
+          body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 32px; }
+          .shell { max-width: 860px; margin: 0 auto; }
+          .top { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; }
+          .brand { font-size: 28px; font-weight: 800; }
+          .meta { text-align:right; }
+          .badge { display:inline-block; padding:6px 10px; border-radius:999px; background:#f1e7a8; font-size:12px; font-weight:700; margin-bottom:8px; }
+          .section { margin-top: 26px; }
+          table { width:100%; border-collapse: collapse; margin-top: 10px; }
+          th { text-align:left; padding:10px 12px; background:#f8f7ef; }
+          .total { margin-top: 18px; display:flex; justify-content:flex-end; }
+          .totalbox { min-width: 220px; padding: 16px; border-radius: 14px; background:#f8f7ef; }
+          .notes { white-space: pre-wrap; line-height:1.6; padding:16px; border-radius:14px; background:#faf9f4; }
+          @media print { body { margin: 16px; } }
+        </style>
+      </head>
+      <body>
+        <div class="shell">
+          <div class="top">
+            <div>
+              <div class="badge">${escapeHtml(title)}</div>
+              <div class="brand">Surplox / Capitol Building Group</div>
+              <div style="margin-top:10px;color:#555;">${escapeHtml(doc.client || '')}</div>
+              ${doc.project ? `<div style="margin-top:6px;color:#555;">${escapeHtml(doc.project)}</div>` : ''}
+            </div>
+            <div class="meta">
+              <div style="font-size:14px;color:#666;">${escapeHtml(copy.status)}</div>
+              <div style="font-weight:700;">${escapeHtml(statusLabel)}</div>
+              <div style="margin-top:10px;font-size:14px;color:#666;">Created</div>
+              <div>${escapeHtml(new Date(doc.createdAt || Date.now()).toLocaleString())}</div>
+            </div>
+          </div>
+
+          <div class="section">
+            <table>
+              <thead>
+                <tr>
+                  <th>${escapeHtml(copy.lineItem)}</th>
+                  <th style="text-align:right;">${escapeHtml(copy.amount)}</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+
+          <div class="total">
+            <div class="totalbox">
+              <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:#666;">${escapeHtml(copy.subtotal)}</div>
+              <div style="margin-top:8px;font-size:28px;font-weight:800;">${escapeHtml(money(total))}</div>
+            </div>
+          </div>
+
+          ${
+            doc.notes
+              ? `<div class="section">
+                  <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:#666;margin-bottom:10px;">${escapeHtml(copy.notes)}</div>
+                  <div class="notes">${escapeHtml(doc.notes)}</div>
+                </div>`
+              : ''
+          }
+        </div>
+      </body>
+    </html>
+  `
+}
+
 export default function AdminInvoices({ lang = 'en' }) {
   const copy = COPY[lang] || COPY.en
   const [documents, setDocuments] = useState([])
+  const [crmRecords, setCrmRecords] = useState([])
   const [form, setForm] = useState(makeEmptyDoc())
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -127,20 +237,28 @@ export default function AdminInvoices({ lang = 'en' }) {
   useEffect(() => {
     let active = true
 
-    async function loadDocuments() {
+    async function loadAll() {
       setLoading(true)
       setMessage('')
 
       try {
-        const { data, error } = await supabase
-          .from('admin_invoices')
-          .select('id, type, client, project, status, notes, items, created_at')
-          .order('created_at', { ascending: false })
+        const [invoiceRes, crmRes] = await Promise.all([
+          supabase
+            .from('admin_invoices')
+            .select('id, type, client, project, status, notes, items, created_at')
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('admin_crm_records')
+            .select('id, company, project, created_at')
+            .order('created_at', { ascending: false })
+        ])
 
-        if (error) throw error
+        if (invoiceRes.error) throw invoiceRes.error
+        if (crmRes.error) throw crmRes.error
         if (!active) return
 
-        setDocuments(Array.isArray(data) ? data.map(mapDbRowToDoc) : [])
+        setDocuments(Array.isArray(invoiceRes.data) ? invoiceRes.data.map(mapDbRowToDoc) : [])
+        setCrmRecords(Array.isArray(crmRes.data) ? crmRes.data : [])
       } catch (error) {
         console.error(error)
         if (!active) return
@@ -150,12 +268,38 @@ export default function AdminInvoices({ lang = 'en' }) {
       }
     }
 
-    loadDocuments()
+    loadAll()
 
     return () => {
       active = false
     }
   }, [copy.loadError])
+
+  const crmClients = useMemo(() => {
+    return Array.from(
+      new Set(
+        crmRecords
+          .map((row) => String(row.company || '').trim())
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b))
+  }, [crmRecords])
+
+  const crmProjects = useMemo(() => {
+    const selectedClient = String(form.client || '').trim().toLowerCase()
+
+    const source = selectedClient
+      ? crmRecords.filter((row) => String(row.company || '').trim().toLowerCase() === selectedClient)
+      : crmRecords
+
+    return Array.from(
+      new Set(
+        source
+          .map((row) => String(row.project || '').trim())
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b))
+  }, [crmRecords, form.client])
 
   const subtotal = useMemo(
     () => form.items.reduce((sum, item) => sum + Number(item.amount || 0), 0),
@@ -197,6 +341,38 @@ export default function AdminInvoices({ lang = 'en' }) {
       ...prev,
       items: prev.items.length > 1 ? prev.items.filter((item) => item.id !== id) : prev.items
     }))
+  }
+
+  function handleClientChange(value) {
+    setForm((prev) => {
+      const next = { ...prev, client: value }
+      const matchingProject =
+        crmRecords.find(
+          (row) =>
+            String(row.company || '').trim().toLowerCase() === String(value || '').trim().toLowerCase() &&
+            String(row.project || '').trim()
+        )?.project || ''
+
+      if (!String(prev.project || '').trim() && matchingProject) {
+        next.project = matchingProject
+      }
+
+      return next
+    })
+  }
+
+  function generatePdf(doc) {
+    const popup = window.open('', '_blank', 'width=960,height=720')
+    if (!popup) return
+
+    popup.document.open()
+    popup.document.write(renderPdfHtml(doc, copy))
+    popup.document.close()
+    popup.focus()
+
+    setTimeout(() => {
+      popup.print()
+    }, 250)
   }
 
   async function handleSave(event) {
@@ -323,8 +499,42 @@ export default function AdminInvoices({ lang = 'en' }) {
                 <option value="paid">{copy.paid}</option>
               </select>
             </div>
-            <input className="input" value={form.client} onChange={(e) => setField('client', e.target.value)} placeholder={copy.client} />
-            <input className="input" value={form.project} onChange={(e) => setField('project', e.target.value)} placeholder={copy.project} />
+
+            <div>
+              <input
+                className="input"
+                list="crm-client-options"
+                value={form.client}
+                onChange={(e) => handleClientChange(e.target.value)}
+                placeholder={copy.client}
+              />
+              <datalist id="crm-client-options">
+                {crmClients.map((client) => (
+                  <option key={client} value={client} />
+                ))}
+              </datalist>
+              <div className="muted" style={{ marginTop: 6 }}>
+                {crmClients.length > 0 ? copy.crmClientHint : copy.noCrmRecords}
+              </div>
+            </div>
+
+            <div>
+              <input
+                className="input"
+                list="crm-project-options"
+                value={form.project}
+                onChange={(e) => setField('project', e.target.value)}
+                placeholder={copy.project}
+              />
+              <datalist id="crm-project-options">
+                {crmProjects.map((project) => (
+                  <option key={project} value={project} />
+                ))}
+              </datalist>
+              <div className="muted" style={{ marginTop: 6 }}>
+                {copy.crmProjectHint}
+              </div>
+            </div>
 
             <div className="grid" style={{ gap: 10 }}>
               {form.items.map((item) => (
@@ -339,7 +549,7 @@ export default function AdminInvoices({ lang = 'en' }) {
             </div>
 
             <button type="button" className="btn" onClick={addItem}>{copy.addItem}</button>
-            <textarea className="input" value={form.notes} onChange={(e) => setField('notes', e.target.value)} placeholder={copy.notes} />
+            <textarea className="input" value={form.notes} onChange={(e) => setField('notes', e.target.value)} placeholder={copy.notesPlaceholder} />
             <div className="card-soft" style={{ background: '#ffffff' }}>
               <div className="muted">{copy.subtotal}</div>
               <div style={{ fontSize: 28, fontWeight: 900, marginTop: 8 }}>{money(subtotal)}</div>
@@ -382,6 +592,7 @@ export default function AdminInvoices({ lang = 'en' }) {
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
                           <button type="button" className="btn small" onClick={() => handleEdit(doc)}>{copy.edit}</button>
                           <button type="button" className="btn small" onClick={() => handleDelete(doc.id)}>{copy.delete}</button>
+                          <button type="button" className="btn small primary" onClick={() => generatePdf(doc)}>{copy.pdf}</button>
                         </div>
                       </div>
                     )
