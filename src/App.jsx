@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Link, Navigate, Route, Routes, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from './supabaseClient'
 
 import Home from './pages/Home'
@@ -138,130 +138,467 @@ function isSupportSearchActive(search = '', values = []) {
 }
 
 
-function GuidedStartModal({ lang, open, onClose }) {
-  if (!open) return null
+function timeAgoLabel(ts, lang = 'en') {
+  if (!ts) return ''
+  const date = new Date(ts)
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (seconds < 60) return lang === 'es' ? 'ahora' : 'now'
+  if (seconds < 3600) {
+    const mins = Math.floor(seconds / 60)
+    return lang === 'es' ? `hace ${mins} min` : `${mins}m ago`
+  }
+  if (seconds < 86400) {
+    const hrs = Math.floor(seconds / 3600)
+    return lang === 'es' ? `hace ${hrs} h` : `${hrs}h ago`
+  }
+  const days = Math.floor(seconds / 86400)
+  return lang === 'es' ? `hace ${days} d` : `${days}d ago`
+}
+
+function MessagesCenter({ lang = 'en' }) {
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
+  const [setupSoftError, setSetupSoftError] = useState('')
+  const [currentUserId, setCurrentUserId] = useState(null)
+  const [profilesById, setProfilesById] = useState({})
+  const [messages, setMessages] = useState([])
+  const [selectedUserId, setSelectedUserId] = useState(searchParams.get('to') || '')
+  const [draft, setDraft] = useState(searchParams.get('draft') || '')
+  const [recipientSearch, setRecipientSearch] = useState('')
 
   const copy =
     lang === 'es'
       ? {
-          badge: 'Empieza aquí',
-          title: '¿Qué necesitas hacer ahora?',
-          body:
-            'En vez de dejarte caer en la app sin dirección, Surplox puede llevarte directo al siguiente paso más útil.',
-          findCrew: 'Encontrar cuadrilla',
-          findWork: 'Encontrar trabajo',
-          findMaterials: 'Encontrar materiales',
-          findDelivery: 'Encontrar entrega',
-          findRepair: 'Encontrar reparación',
-          crewBody: 'Abre el feed con publicaciones de Se necesita cuadrilla.',
-          workBody: 'Abre el feed con gente buscando trabajo y disponibilidad.',
-          materialsBody: 'Abre la búsqueda de proveedores y materiales.',
-          deliveryBody: 'Abre la búsqueda de conductores de entrega.',
-          repairBody: 'Abre la búsqueda de mecánica y reparación de equipo.',
-          skip: 'Seguir al feed',
-          close: 'Cerrar'
+          title: 'Mensajes',
+          intro: 'Usa mensajes directos para mover una conexión de Surplox hacia una conversación real.',
+          loading: 'Cargando mensajes…',
+          emptyTitle: 'Todavía no hay mensajes.',
+          emptyBody: 'Cuando empieces una conversación desde un perfil o una tienda, aparecerá aquí.',
+          inbox: 'Bandeja',
+          conversation: 'Conversación',
+          chooseConversation: 'Elige una conversación',
+          chooseConversationBody: 'Abre una conversación existente o empieza una nueva desde un perfil.',
+          recipient: 'Destinatario',
+          noRecipient: 'Selecciona un destinatario para enviar un mensaje.',
+          draftPlaceholder: 'Escribe tu mensaje aquí…',
+          send: 'Enviar',
+          sending: 'Enviando…',
+          setupSoftError:
+            'La tabla direct_messages todavía no está lista o no respondió. La bandeja ya quedó conectada dentro de la app y se activará cuando exista la tabla.',
+          newMessage: 'Nuevo mensaje',
+          goFeed: 'Ir al Feed',
+          openProfile: 'Abrir perfil',
+          lastMessage: 'Último mensaje',
+          you: 'Tú',
+          startConversation: 'Inicia una conversación',
+          searchPlaceholder: 'Buscar nombre…',
+          messageStarter: 'Empieza un mensaje desde un perfil para traer el destinatario aquí.'
         }
       : {
-          badge: 'Start Here',
-          title: 'What do you need to do right now?',
-          body:
-            'Instead of dropping you into the app cold, Surplox can send you straight to the most useful next step.',
-          findCrew: 'Find crew',
-          findWork: 'Find work',
-          findMaterials: 'Find materials',
-          findDelivery: 'Find delivery',
-          findRepair: 'Find repair',
-          crewBody: 'Open the feed focused on Need Crew posts.',
-          workBody: 'Open the feed focused on Looking for Work posts and availability.',
-          materialsBody: 'Open supplier and materials search.',
-          deliveryBody: 'Open delivery driver search.',
-          repairBody: 'Open mechanic and equipment repair search.',
-          skip: 'Continue to feed',
-          close: 'Close'
+          title: 'Messages',
+          intro: 'Use direct messages to move a Surplox connection into a real conversation.',
+          loading: 'Loading messages…',
+          emptyTitle: 'No messages yet.',
+          emptyBody: 'When you start a conversation from a profile or storefront, it will appear here.',
+          inbox: 'Inbox',
+          conversation: 'Conversation',
+          chooseConversation: 'Choose a conversation',
+          chooseConversationBody: 'Open an existing thread or start a new one from a profile.',
+          recipient: 'Recipient',
+          noRecipient: 'Select a recipient to send a message.',
+          draftPlaceholder: 'Write your message here…',
+          send: 'Send',
+          sending: 'Sending…',
+          setupSoftError:
+            'The direct_messages table is not ready yet or did not respond. The in-app inbox is wired up and will go live as soon as the table exists.',
+          newMessage: 'New message',
+          goFeed: 'Go to Feed',
+          openProfile: 'Open Profile',
+          lastMessage: 'Last message',
+          you: 'You',
+          startConversation: 'Start a conversation',
+          searchPlaceholder: 'Search name…',
+          messageStarter: 'Start a message from a profile to pull the recipient in here.'
         }
 
-  const options = [
-    { to: '/feed?type=need_crew', title: copy.findCrew, body: copy.crewBody },
-    { to: '/feed?type=looking_for_work', title: copy.findWork, body: copy.workBody },
-    { to: '/materials', title: copy.findMaterials, body: copy.materialsBody },
-    { to: '/delivery', title: copy.findDelivery, body: copy.deliveryBody },
-    { to: '/mechanics', title: copy.findRepair, body: copy.repairBody }
-  ]
+  useEffect(() => {
+    const to = searchParams.get('to') || ''
+    const presetDraft = searchParams.get('draft') || ''
+    if (to) setSelectedUserId(to)
+    if (presetDraft) setDraft(presetDraft)
+  }, [searchParams])
+
+  useEffect(() => {
+    let active = true
+
+    async function loadAll() {
+      setLoading(true)
+      setError('')
+      setSetupSoftError('')
+
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        const uid = sessionData.session?.user?.id || null
+        if (!active) return
+        setCurrentUserId(uid)
+
+        if (!uid) {
+          setMessages([])
+          setProfilesById({})
+          setLoading(false)
+          return
+        }
+
+        const [{ data: outgoing, error: outgoingError }, { data: incoming, error: incomingError }] = await Promise.all([
+          supabase
+            .from('direct_messages')
+            .select('id,sender_user_id,recipient_user_id,body,created_at,is_read')
+            .eq('sender_user_id', uid)
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('direct_messages')
+            .select('id,sender_user_id,recipient_user_id,body,created_at,is_read')
+            .eq('recipient_user_id', uid)
+            .order('created_at', { ascending: false })
+        ])
+
+        if (outgoingError || incomingError) {
+          console.error(outgoingError || incomingError)
+          if (!active) return
+          setMessages([])
+          setProfilesById({})
+          setSetupSoftError(copy.setupSoftError)
+          setLoading(false)
+          return
+        }
+
+        const allMessages = [...(outgoing || []), ...(incoming || [])].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        )
+
+        const counterpartIds = Array.from(
+          new Set(
+            allMessages
+              .map((item) => (item.sender_user_id === uid ? item.recipient_user_id : item.sender_user_id))
+              .filter(Boolean)
+          )
+        )
+
+        let profileRows = []
+        if (counterpartIds.length > 0) {
+          const { data: profs, error: profErr } = await supabase
+            .from('profiles')
+            .select('user_id,display_name,business_name,role')
+            .in('user_id', counterpartIds)
+
+          if (profErr) console.error(profErr)
+          profileRows = profs || []
+        }
+
+        if (!active) return
+
+        setMessages(allMessages)
+        setProfilesById(
+          Object.fromEntries(
+            profileRows.map((row) => [
+              row.user_id,
+              {
+                display_name: row.business_name || row.display_name || 'Member',
+                role: row.role || 'member'
+              }
+            ])
+          )
+        )
+      } catch (err) {
+        console.error(err)
+        if (!active) return
+        setError(lang === 'es' ? 'No se pudieron cargar los mensajes.' : 'Unable to load messages.')
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    loadAll()
+    return () => {
+      active = false
+    }
+  }, [lang])
+
+  const conversations = useMemo(() => {
+    if (!currentUserId) return []
+
+    const map = new Map()
+    messages.forEach((item) => {
+      const counterpartId = item.sender_user_id === currentUserId ? item.recipient_user_id : item.sender_user_id
+      if (!counterpartId) return
+      if (!map.has(counterpartId)) {
+        map.set(counterpartId, {
+          userId: counterpartId,
+          lastMessage: item,
+          unreadCount: 0,
+          items: []
+        })
+      }
+      const entry = map.get(counterpartId)
+      entry.items.push(item)
+      if (item.recipient_user_id === currentUserId && !item.is_read) {
+        entry.unreadCount += 1
+      }
+      if (new Date(item.created_at).getTime() > new Date(entry.lastMessage.created_at).getTime()) {
+        entry.lastMessage = item
+      }
+    })
+
+    let rows = Array.from(map.values())
+    if (recipientSearch.trim()) {
+      const q = recipientSearch.trim().toLowerCase()
+      rows = rows.filter((row) =>
+        String(profilesById[row.userId]?.display_name || row.userId).toLowerCase().includes(q)
+      )
+    }
+    return rows.sort(
+      (a, b) => new Date(b.lastMessage.created_at).getTime() - new Date(a.lastMessage.created_at).getTime()
+    )
+  }, [messages, currentUserId, profilesById, recipientSearch])
+
+  const activeConversation = useMemo(() => {
+    if (!selectedUserId || !currentUserId) return []
+    return messages
+      .filter((item) => {
+        const pairA = item.sender_user_id === currentUserId && item.recipient_user_id === selectedUserId
+        const pairB = item.sender_user_id === selectedUserId && item.recipient_user_id === currentUserId
+        return pairA || pairB
+      })
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+  }, [messages, selectedUserId, currentUserId])
+
+  async function handleSend() {
+    if (!currentUserId) return
+    if (!selectedUserId) {
+      setError(copy.noRecipient)
+      return
+    }
+    if (!String(draft || '').trim()) return
+
+    setSending(true)
+    setError('')
+    try {
+      const payload = {
+        sender_user_id: currentUserId,
+        recipient_user_id: selectedUserId,
+        body: String(draft || '').trim()
+      }
+
+      const { data: inserted, error: insertErr } = await supabase
+        .from('direct_messages')
+        .insert(payload)
+        .select('id,sender_user_id,recipient_user_id,body,created_at,is_read')
+        .single()
+
+      if (insertErr) {
+        console.error(insertErr)
+        setSetupSoftError(copy.setupSoftError)
+        return
+      }
+
+      setMessages((prev) => [...prev, inserted].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)))
+      setDraft('')
+      setSearchParams(selectedUserId ? { to: selectedUserId } : {})
+    } catch (err) {
+      console.error(err)
+      setError(lang === 'es' ? 'No se pudo enviar el mensaje.' : 'Unable to send message.')
+    } finally {
+      setSending(false)
+    }
+  }
+
+  async function markConversationRead() {
+    if (!currentUserId || !selectedUserId) return
+    try {
+      await supabase
+        .from('direct_messages')
+        .update({ is_read: true })
+        .eq('recipient_user_id', currentUserId)
+        .eq('sender_user_id', selectedUserId)
+        .eq('is_read', false)
+
+      setMessages((prev) =>
+        prev.map((item) =>
+          item.recipient_user_id === currentUserId && item.sender_user_id === selectedUserId
+            ? { ...item, is_read: true }
+            : item
+        )
+      )
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  useEffect(() => {
+    if (selectedUserId) {
+      markConversationRead()
+    }
+  }, [selectedUserId])
+
+  if (loading) {
+    return <div className="card">{copy.loading}</div>
+  }
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 120,
-        background: 'rgba(17,17,17,0.48)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 18
-      }}
-    >
-      <div
-        className="card rounded-xl"
-        style={{
-          width: 'min(980px, 100%)',
-          maxHeight: 'calc(100vh - 36px)',
-          overflowY: 'auto',
-          padding: 24
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: 12,
-            alignItems: 'flex-start'
-          }}
-        >
-          <div>
-            <div className="badge" style={{ marginBottom: 12, background: '#f1e7a8' }}>
-              {copy.badge}
-            </div>
-            <div className="h1" style={{ marginTop: 0 }}>{copy.title}</div>
-            <p className="muted" style={{ marginTop: 10, maxWidth: 760, lineHeight: 1.7 }}>
-              {copy.body}
-            </p>
+    <div className="grid" style={{ gap: 18 }}>
+      <div className="card rounded-xl" style={{ padding: 24 }}>
+        <div className="badge" style={{ marginBottom: 12, background: '#e8defa', color: '#4d2f82' }}>
+          {copy.title}
+        </div>
+        <div className="h1">{copy.title}</div>
+        <p className="muted" style={{ marginTop: 10, maxWidth: 860, lineHeight: 1.7 }}>
+          {copy.intro}
+        </p>
+        {setupSoftError ? (
+          <div className="card-soft" style={{ marginTop: 14, background: '#fffaf0' }}>
+            {setupSoftError}
+          </div>
+        ) : null}
+        {error ? (
+          <div className="card-soft" style={{ marginTop: 14, background: '#fff4da' }}>
+            {error}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="grid two" style={{ alignItems: 'start' }}>
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.inbox}</div>
+          <div style={{ marginTop: 12 }}>
+            <input
+              className="input"
+              value={recipientSearch}
+              onChange={(e) => setRecipientSearch(e.target.value)}
+              placeholder={copy.searchPlaceholder}
+            />
           </div>
 
-          <button type="button" className="btn small" onClick={onClose}>
-            {copy.close}
-          </button>
+          {conversations.length === 0 ? (
+            <div className="card-soft" style={{ marginTop: 14 }}>
+              <div className="card-section-title" style={{ fontSize: 15 }}>{copy.emptyTitle}</div>
+              <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.emptyBody}</p>
+              <div className="muted" style={{ marginTop: 12 }}>{copy.messageStarter}</div>
+            </div>
+          ) : (
+            <div className="list" style={{ marginTop: 14 }}>
+              {conversations.map((row) => {
+                const active = selectedUserId === row.userId
+                const profile = profilesById[row.userId] || {}
+                return (
+                  <button
+                    key={row.userId}
+                    type="button"
+                    className="card-soft"
+                    onClick={() => {
+                      setSelectedUserId(row.userId)
+                      setSearchParams({ to: row.userId })
+                    }}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      border: active ? '1px solid #111111' : '1px solid transparent',
+                      background: active ? '#f8f7ef' : undefined
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                      <div style={{ fontWeight: 900 }}>
+                        {profile.display_name || row.userId}
+                      </div>
+                      <div className="muted">{timeAgoLabel(row.lastMessage?.created_at, lang)}</div>
+                    </div>
+
+                    <div className="muted" style={{ marginTop: 8 }}>
+                      {copy.lastMessage}: {row.lastMessage?.sender_user_id === currentUserId ? `${copy.you}: ` : ''}{row.lastMessage?.body || ''}
+                    </div>
+
+                    {row.unreadCount > 0 ? (
+                      <div style={{ marginTop: 10 }}>
+                        <span className="badge">{row.unreadCount}</span>
+                      </div>
+                    ) : null}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
-        <div className="grid two" style={{ gap: 14, marginTop: 18 }}>
-          {options.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className="card-soft"
-              onClick={onClose}
-              style={{
-                textDecoration: 'none',
-                color: 'inherit',
-                minHeight: 128,
-                display: 'block'
-              }}
-            >
-              <div style={{ fontWeight: 900, fontSize: 18, lineHeight: 1.2 }}>{item.title}</div>
-              <p className="muted" style={{ marginTop: 10, lineHeight: 1.7 }}>{item.body}</p>
-            </Link>
-          ))}
-        </div>
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.conversation}</div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
-          <Link to="/feed" className="btn" onClick={onClose}>
-            {copy.skip}
-          </Link>
+          {selectedUserId ? (
+            <>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12, alignItems: 'center' }}>
+                <span className="badge">{profilesById[selectedUserId]?.display_name || selectedUserId}</span>
+                <Link className="btn small" to={`/u/${selectedUserId}`}>{copy.openProfile}</Link>
+              </div>
+
+              <div className="list" style={{ marginTop: 14 }}>
+                {activeConversation.length === 0 ? (
+                  <div className="card-soft">
+                    <div className="muted">{copy.startConversation}</div>
+                  </div>
+                ) : (
+                  activeConversation.map((item) => {
+                    const mine = item.sender_user_id === currentUserId
+                    return (
+                      <div
+                        key={item.id}
+                        className="card-soft"
+                        style={{
+                          background: mine ? '#f8f7ef' : '#ffffff',
+                          border: mine ? '1px solid rgba(17,17,17,0.08)' : '1px solid rgba(17,17,17,0.05)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                          <div style={{ fontWeight: 900 }}>{mine ? copy.you : (profilesById[selectedUserId]?.display_name || selectedUserId)}</div>
+                          <div className="muted">{timeAgoLabel(item.created_at, lang)}</div>
+                        </div>
+                        <div style={{ marginTop: 8, lineHeight: 1.7 }}>{item.body}</div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              <div style={{ marginTop: 14 }}>
+                <textarea
+                  className="input"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder={copy.draftPlaceholder}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+                <button className="btn primary" type="button" onClick={handleSend} disabled={sending}>
+                  {sending ? copy.sending : copy.send}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="card-soft" style={{ marginTop: 14 }}>
+              <div className="card-section-title" style={{ fontSize: 15 }}>{copy.chooseConversation}</div>
+              <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.chooseConversationBody}</p>
+              <div style={{ marginTop: 14 }}>
+                <Link className="btn" to="/feed">{copy.goFeed}</Link>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
   )
 }
+
 
 function AppShell({ lang, setLang }) {
   const location = useLocation()
@@ -269,7 +606,6 @@ function AppShell({ lang, setLang }) {
   const [loadingSession, setLoadingSession] = useState(true)
   const [logoError, setLogoError] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [showGuidedStart, setShowGuidedStart] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -298,21 +634,6 @@ function AppShell({ lang, setLang }) {
   useEffect(() => {
     setMobileMenuOpen(false)
   }, [location.pathname, location.search])
-
-  useEffect(() => {
-    if (!session) {
-      setShowGuidedStart(false)
-      return
-    }
-
-    const dismissedKey = `surplox_guided_start_dismissed_${session.user.id}`
-    const shouldShow =
-      location.pathname === '/feed' &&
-      sessionStorage.getItem(dismissedKey) !== '1'
-
-    setShowGuidedStart(shouldShow)
-  }, [session, location.pathname])
-
 
   useEffect(() => {
     const previousHtmlOverflow = document.documentElement.style.overflow
@@ -353,6 +674,7 @@ function AppShell({ lang, setLang }) {
       { to: quickLinks.repair, label: lang === 'es' ? 'Mecánica / Reparación' : 'Mechanic / Repair' },
       { to: '/ai-tools', label: lang === 'es' ? 'Surplox AI Tools' : 'Surplox AI Tools' },
       { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
+      { to: '/messages', label: lang === 'es' ? 'Mensajes' : 'Messages' },
       { to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' }
     ]
   }, [session, lang, quickLinks.repair])
@@ -366,16 +688,8 @@ function AppShell({ lang, setLang }) {
 
   const isRepairActive = location.pathname.startsWith('/mechanics')
 
-  function handleCloseGuidedStart() {
-    if (session?.user?.id) {
-      sessionStorage.setItem(`surplox_guided_start_dismissed_${session.user.id}`, '1')
-    }
-    setShowGuidedStart(false)
-  }
-
   async function handleSignOut() {
     setMobileMenuOpen(false)
-    setShowGuidedStart(false)
     await supabase.auth.signOut()
   }
 
@@ -393,7 +707,6 @@ function AppShell({ lang, setLang }) {
 
   return (
     <div className="page-shell">
-      <GuidedStartModal lang={lang} open={showGuidedStart} onClose={handleCloseGuidedStart} />
       <header
         style={{
           position: 'sticky',
@@ -649,6 +962,10 @@ function AppShell({ lang, setLang }) {
             <Route
               path="/notifications"
               element={session ? <Notifications lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
+            />
+            <Route
+              path="/messages"
+              element={session ? <MessagesCenter lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
             />
             <Route
               path="/channels"
