@@ -9,6 +9,8 @@ const COPY = {
     backToFeed: 'Back to Feed',
     backToProfile: 'View Worker Profile',
     badge: 'Supplier Storefront',
+    importedBadge: 'Imported Supplier',
+    nativeBadge: 'Surplox Supplier',
     titleFallback: 'Supplier',
     heroTitleFallback: 'Construction supply storefront',
     heroBodyFallback:
@@ -28,12 +30,18 @@ const COPY = {
     quickTitle: 'Supplier Snapshot',
     roleLabel: 'Account Type',
     supplierRole: 'Supplier',
+    importedRole: 'Imported Supplier Lead',
     contactTitle: 'Storefront Actions',
     requestQuote: 'Request Materials',
     openProfile: 'Open Profile',
+    openWebsite: 'Open Website',
+    phoneLabel: 'Phone',
+    websiteLabel: 'Website',
     inventoryTitle: 'What this page is for',
     inventoryBody:
       'This storefront gives contractors and crews a cleaner way to understand what this supplier location offers before outreach.',
+    importedInventoryBody:
+      'This imported storefront gives Surplox a faster way to seed local supply options before the supplier creates a native Surplox account.',
     locationMissing: 'Business address not provided',
     hoursTitle: 'Business Hours',
     openNow: 'Open Now',
@@ -56,7 +64,12 @@ const COPY = {
       'Driver profiles now show vehicle type, trailer type, trailer length, payload capacity, and delivery radius so delivery capability is easier to verify.',
     supplierLaneTitle: 'Supplier lane',
     supplierLaneBody:
-      'This storefront now works as the supply-side anchor while Surplox delivery driver profiles handle transport capability.'
+      'This storefront now works as the supply-side anchor while Surplox delivery driver profiles handle transport capability.',
+    sourceLabel: 'Source',
+    sourceNative: 'Surplox account',
+    sourceImported: 'Google-imported',
+    importedLeadNote:
+      'This record was imported to seed supplier discovery. Verify details directly with the business before ordering.'
   },
   es: {
     loading: 'Cargando tienda proveedora…',
@@ -64,6 +77,8 @@ const COPY = {
     backToFeed: 'Volver al feed',
     backToProfile: 'Ver perfil',
     badge: 'Tienda proveedora',
+    importedBadge: 'Proveedor importado',
+    nativeBadge: 'Proveedor Surplox',
     titleFallback: 'Proveedor',
     heroTitleFallback: 'Ubicación proveedora de materiales',
     heroBodyFallback:
@@ -76,24 +91,30 @@ const COPY = {
     materialsTitle: 'Categorías de materiales',
     materialsEmpty: 'Todavía no hay categorías de materiales.',
     deliveryTitle: 'Radio de entrega',
-    deliveryEmpty: 'No se ha definido radio de entrega.',
+    deliveryEmpty: 'Todavía no se configuró radio de entrega.',
     miles: 'millas',
     aboutTitle: 'Sobre este proveedor',
-    aboutEmpty: 'Este proveedor todavía no agregó biografía.',
+    aboutEmpty: 'Todavía no hay biografía del proveedor.',
     quickTitle: 'Resumen del proveedor',
     roleLabel: 'Tipo de cuenta',
     supplierRole: 'Proveedor',
-    contactTitle: 'Acciones de la tienda',
+    importedRole: 'Proveedor importado',
+    contactTitle: 'Acciones de tienda',
     requestQuote: 'Solicitar materiales',
     openProfile: 'Abrir perfil',
+    openWebsite: 'Abrir sitio web',
+    phoneLabel: 'Teléfono',
+    websiteLabel: 'Sitio web',
     inventoryTitle: 'Para qué sirve esta página',
     inventoryBody:
-      'Esta tienda le da a contratistas y cuadrillas una forma más limpia de entender lo que ofrece esta ubicación antes de contactarla.',
+      'Esta tienda le da a contratistas y cuadrillas una forma más clara de entender lo que ofrece esta ubicación antes de contactarla.',
+    importedInventoryBody:
+      'Esta tienda importada le da a Surplox una forma más rápida de sembrar opciones locales de suministro antes de que el proveedor cree una cuenta nativa.',
     locationMissing: 'No se proporcionó dirección comercial',
-    hoursTitle: 'Horario Comercial',
-    openNow: 'Abierto Ahora',
-    closedNow: 'Cerrado Ahora',
-    closedAllDay: 'Cerrado Todo el Día',
+    hoursTitle: 'Horario comercial',
+    openNow: 'Abierto ahora',
+    closedNow: 'Cerrado ahora',
+    closedAllDay: 'Cerrado todo el día',
     monday: 'Lunes',
     tuesday: 'Martes',
     wednesday: 'Miércoles',
@@ -103,15 +124,20 @@ const COPY = {
     sunday: 'Domingo',
     deliveryBridgeTitle: 'Proveedor → Conductor → Obra',
     deliveryBridgeBody:
-      'Usa la línea de conductores para encontrar soporte de entrega que pueda mover material desde esta ubicación proveedora hasta la obra.',
-    searchDrivers: 'Buscar conductores de entrega',
+      'Usa la línea de conductores para encontrar apoyo de entrega que pueda mover material desde esta ubicación hasta la obra.',
+    searchDrivers: 'Buscar conductores',
     searchDriversByZip: 'Buscar conductores cerca de este ZIP',
     localHaulingTitle: 'Soporte local de acarreo',
     localHaulingBody:
-      'Los perfiles de conductor ahora muestran tipo de vehículo, tipo de remolque, largo del remolque, capacidad de carga y radio de entrega para validar mejor la capacidad.',
+      'Los perfiles de conductores ahora muestran tipo de vehículo, tipo de remolque, largo del remolque, capacidad de carga y radio de entrega para verificar mejor la capacidad.',
     supplierLaneTitle: 'Línea de proveedor',
     supplierLaneBody:
-      'Esta tienda ahora funciona como el ancla del lado de suministro mientras los perfiles de conductores de Surplox manejan la capacidad de transporte.'
+      'Esta tienda ahora funciona como el ancla del lado de suministro mientras los perfiles de conductores de Surplox manejan la capacidad de transporte.',
+    sourceLabel: 'Fuente',
+    sourceNative: 'Cuenta Surplox',
+    sourceImported: 'Importado de Google',
+    importedLeadNote:
+      'Este registro fue importado para sembrar descubrimiento de proveedores. Verifica los detalles directamente con el negocio antes de ordenar.'
   }
 }
 
@@ -125,20 +151,17 @@ const BUSINESS_HOUR_DAYS = [
   { key: 'sunday', copyKey: 'sunday' }
 ]
 
-function defaultBusinessHours() {
-  return {
-    monday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
-    tuesday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
-    wednesday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
-    thursday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
-    friday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
+function normalizeBusinessHours(value) {
+  const base = {
+    monday: { closed: true, open: '8:00 AM', close: '5:00 PM' },
+    tuesday: { closed: true, open: '8:00 AM', close: '5:00 PM' },
+    wednesday: { closed: true, open: '8:00 AM', close: '5:00 PM' },
+    thursday: { closed: true, open: '8:00 AM', close: '5:00 PM' },
+    friday: { closed: true, open: '8:00 AM', close: '5:00 PM' },
     saturday: { closed: true, open: '8:00 AM', close: '5:00 PM' },
     sunday: { closed: true, open: '8:00 AM', close: '5:00 PM' }
   }
-}
 
-function normalizeBusinessHours(value) {
-  const base = defaultBusinessHours()
   if (!value || typeof value !== 'object') return base
 
   const next = { ...base }
@@ -226,6 +249,28 @@ function StatTile({ label, value }) {
   )
 }
 
+function normalizeProfile(data, source = 'native') {
+  return {
+    source,
+    user_id: data?.user_id || null,
+    external_id: data?.external_id || null,
+    display_name: String(data?.display_name || '').trim(),
+    role: data?.role || 'supplier',
+    bio: String(data?.bio || '').trim(),
+    business_name: String(data?.business_name || data?.display_name || '').trim(),
+    business_address: String(data?.business_address || '').trim(),
+    business_zip: String(data?.business_zip || '').trim(),
+    materials_categories: Array.isArray(data?.materials_categories) ? data.materials_categories : [],
+    storefront: Boolean(data?.storefront),
+    delivery_radius: Number(data?.delivery_radius || 0) || 0,
+    business_hours: normalizeBusinessHours(data?.business_hours),
+    city: String(data?.city || '').trim(),
+    home_zip: String(data?.home_zip || '').trim(),
+    phone: String(data?.phone || '').trim(),
+    website_url: String(data?.website_url || '').trim()
+  }
+}
+
 export default function SupplierStorefront() {
   const { userId } = useParams()
 
@@ -263,7 +308,7 @@ export default function SupplierStorefront() {
         setLang(currentLang)
         localStorage.setItem('surplox_lang', currentLang)
 
-        const { data, error } = await supabase
+        const nativeResponse = await supabase
           .from('profiles')
           .select(
             `
@@ -286,23 +331,83 @@ export default function SupplierStorefront() {
           .eq('role', 'supplier')
           .maybeSingle()
 
-        if (error) throw error
-        if (!data) throw new Error(COPY[currentLang]?.notFound || COPY.en.notFound)
+        if (nativeResponse.error) throw nativeResponse.error
+
+        if (nativeResponse.data) {
+          if (!active) return
+          setProfile(normalizeProfile(nativeResponse.data, 'native'))
+          setLoading(false)
+          return
+        }
+
+        let importedQuery = supabase
+          .from('external_suppliers')
+          .select(
+            `
+            id,
+            external_id,
+            display_name,
+            business_name,
+            business_address,
+            business_zip,
+            materials_categories,
+            storefront,
+            delivery_radius,
+            business_hours,
+            bio,
+            phone,
+            website_url
+          `
+          )
+          .eq('external_id', userId)
+          .maybeSingle()
+
+        let importedResponse = await importedQuery
+
+        if (importedResponse.error && importedResponse.error.code !== 'PGRST116') {
+          throw importedResponse.error
+        }
+
+        if (!importedResponse.data && /^\d+$/.test(String(userId || ''))) {
+          importedResponse = await supabase
+            .from('external_suppliers')
+            .select(
+              `
+              id,
+              external_id,
+              display_name,
+              business_name,
+              business_address,
+              business_zip,
+              materials_categories,
+              storefront,
+              delivery_radius,
+              business_hours,
+              bio,
+              phone,
+              website_url
+            `
+            )
+            .eq('id', Number(userId))
+            .maybeSingle()
+
+          if (importedResponse.error && importedResponse.error.code !== 'PGRST116') {
+            throw importedResponse.error
+          }
+        }
+
+        if (!importedResponse.data) {
+          throw new Error(COPY[currentLang]?.notFound || COPY.en.notFound)
+        }
 
         if (!active) return
-
-        setProfile({
-          ...data,
-          materials_categories: Array.isArray(data.materials_categories) ? data.materials_categories : [],
-          business_hours: normalizeBusinessHours(data.business_hours)
-        })
+        setProfile(normalizeProfile(importedResponse.data, 'imported'))
       } catch (error) {
         console.error(error)
         if (!active) return
-        setMsg(error?.message || copy.notFound)
+        setMsg(error.message || copy.notFound)
       } finally {
-        if (!active) return
-        setLoading(false)
+        if (active) setLoading(false)
       }
     }
 
@@ -311,63 +416,24 @@ export default function SupplierStorefront() {
     return () => {
       active = false
     }
-  }, [userId])
-
-  const displayName = useMemo(() => {
-    if (!profile) return ''
-    return (
-      String(profile.business_name || '').trim() ||
-      String(profile.display_name || '').trim() ||
-      copy.titleFallback
-    )
-  }, [profile, copy.titleFallback])
-
-  const locationLine = useMemo(() => {
-    if (!profile) return ''
-    return String(profile.business_address || '').trim() || copy.locationMissing
-  }, [profile, copy.locationMissing])
-
-  const zipValue = useMemo(() => {
-    if (!profile) return ''
-    return String(profile.business_zip || profile.home_zip || '').trim() || '—'
-  }, [profile])
-
-  const deliveryValue = useMemo(() => {
-    if (!profile?.delivery_radius) return copy.deliveryEmpty
-    return `${profile.delivery_radius} ${copy.miles}`
-  }, [profile, copy.deliveryEmpty, copy.miles])
+  }, [userId, copy.notFound])
 
   const businessStatus = useMemo(() => {
-    if (!profile?.business_hours) return 'closed'
-    return getCurrentBusinessStatus(profile.business_hours)
+    return profile ? getCurrentBusinessStatus(profile.business_hours) : 'closed'
   }, [profile])
-
-  const driverDirectoryLink = useMemo(() => {
-    if (!zipValue || zipValue === '—') return '/delivery'
-    return `/delivery?zip=${encodeURIComponent(zipValue)}`
-  }, [zipValue])
 
   if (loading) {
     return <div className="card">{copy.loading}</div>
   }
 
-  if (msg) {
-    return (
-      <div className="grid" style={{ gap: 18 }}>
-        <div className="card">
-          <div className="h1" style={{ fontSize: 22 }}>
-            {msg}
-          </div>
-
-          <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <Link to="/feed" className="btn">
-              {copy.backToFeed}
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
+  if (msg || !profile) {
+    return <div className="card">{msg || copy.notFound}</div>
   }
+
+  const supplierName = profile.business_name || profile.display_name || copy.titleFallback
+  const heroTitle = supplierName || copy.heroTitleFallback
+  const heroBody = profile.bio || copy.heroBodyFallback
+  const isImported = profile.source === 'imported'
 
   return (
     <div className="grid" style={{ gap: 18 }}>
@@ -375,161 +441,109 @@ export default function SupplierStorefront() {
         className="card rounded-xl"
         style={{
           padding: 28,
-          background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
+          background: isImported
+            ? 'linear-gradient(180deg, #eef3ff 0%, #f7f7f2 100%)'
+            : 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
         }}
       >
-        <div className="badge" style={{ marginBottom: 14, background: '#f1e7a8' }}>
-          {copy.badge}
+        <div
+          className="badge"
+          style={{
+            marginBottom: 14,
+            background: isImported ? '#d8ecff' : '#f1e7a8',
+            color: isImported ? '#0d3f73' : '#111111'
+          }}
+        >
+          {isImported ? copy.importedBadge : copy.badge}
         </div>
 
-        <div className="h1" style={{ maxWidth: 760 }}>
-          {displayName}
-        </div>
+        <div className="h1" style={{ maxWidth: 760 }}>{heroTitle}</div>
 
         <p className="muted" style={{ marginTop: 12, maxWidth: 860, fontSize: 17, lineHeight: 1.7 }}>
-          {String(profile?.bio || '').trim() || copy.heroBodyFallback}
+          {heroBody}
         </p>
 
-        <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link to={`/u/${profile.user_id}`} className="btn">
-            {copy.backToProfile}
-          </Link>
-          <Link to="/feed" className="btn">
-            {copy.backToFeed}
-          </Link>
-          <Link to="/delivery" className="btn primary">
-            {copy.searchDrivers}
-          </Link>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+          <span className="badge">{copy.roleLabel}: {isImported ? copy.importedRole : copy.supplierRole}</span>
+          <span className="badge">{copy.sourceLabel}: {isImported ? copy.sourceImported : copy.sourceNative}</span>
+          <span className="badge">
+            {businessStatus === 'open' ? copy.openNow : copy.closedNow}
+          </span>
+          {profile.business_zip ? <span className="badge">{copy.zipLabel}: {profile.business_zip}</span> : null}
         </div>
       </div>
 
-      <div className="grid three">
-        <StatTile label={copy.roleLabel} value={copy.supplierRole} />
-        <StatTile label={copy.zipLabel} value={zipValue} />
+      <div className="grid three" style={{ gap: 14 }}>
+        <StatTile label={copy.roleLabel} value={isImported ? copy.importedRole : copy.supplierRole} />
+        <StatTile
+          label={copy.storefrontLabel}
+          value={profile.storefront ? copy.storefrontYes : copy.storefrontNo}
+        />
         <StatTile
           label={copy.deliveryTitle}
-          value={profile?.delivery_radius ? `${profile.delivery_radius} ${copy.miles}` : '—'}
+          value={
+            profile.delivery_radius > 0
+              ? `${profile.delivery_radius} ${copy.miles}`
+              : copy.deliveryEmpty
+          }
         />
       </div>
 
-      <div className="grid two">
+      <div className="grid two" style={{ gap: 18 }}>
         <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">{copy.locationTitle}</div>
-
-          <div style={{ marginTop: 14, fontWeight: 800, fontSize: 18, lineHeight: 1.35 }}>
-            {displayName}
-          </div>
-
-          <div style={{ marginTop: 10 }}>{locationLine}</div>
-
-          <div className="muted" style={{ marginTop: 8 }}>
-            {copy.zipLabel}: {zipValue}
-          </div>
-
-          <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <span className="badge" style={{ background: '#ecebe3' }}>
-              {copy.storefrontLabel}: {profile?.storefront ? copy.storefrontYes : copy.storefrontNo}
-            </span>
-
-            <span
-              className="badge"
-              style={
-                businessStatus === 'open'
-                  ? { background: '#dcf4e5', color: '#177245' }
-                  : { background: '#f8f7ef', color: '#111111' }
-              }
-            >
-              {businessStatus === 'open' ? copy.openNow : copy.closedNow}
-            </span>
-          </div>
-        </div>
-
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.contactTitle}</div>
-
-          <p className="muted" style={{ marginTop: 14, lineHeight: 1.7 }}>
-            {copy.inventoryBody}
+          <p style={{ marginTop: 10, lineHeight: 1.7 }}>
+            {profile.business_address || copy.locationMissing}
           </p>
 
-          <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <Link to="/new?type=discussion" className="btn primary">
-              {copy.requestQuote}
-            </Link>
+          <div className="grid two" style={{ gap: 12, marginTop: 16 }}>
+            <div className="card-soft">
+              <div className="card-section-title" style={{ fontSize: 15 }}>{copy.zipLabel}</div>
+              <div className="muted" style={{ marginTop: 6 }}>{profile.business_zip || '—'}</div>
+            </div>
 
-            <Link to={`/u/${profile.user_id}`} className="btn">
-              {copy.openProfile}
-            </Link>
-
-            <Link to={driverDirectoryLink} className="btn">
-              {copy.searchDriversByZip}
-            </Link>
+            <div className="card-soft">
+              <div className="card-section-title" style={{ fontSize: 15 }}>{copy.storefrontLabel}</div>
+              <div className="muted" style={{ marginTop: 6 }}>
+                {profile.storefront ? copy.storefrontYes : copy.storefrontNo}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div className="card rounded-xl" style={{ padding: 22 }}>
-        <div className="card-section-title">{copy.materialsTitle}</div>
+          {(profile.phone || profile.website_url) ? (
+            <div className="grid two" style={{ gap: 12, marginTop: 16 }}>
+              <div className="card-soft">
+                <div className="card-section-title" style={{ fontSize: 15 }}>{copy.phoneLabel}</div>
+                <div className="muted" style={{ marginTop: 6 }}>{profile.phone || '—'}</div>
+              </div>
 
-        {profile?.materials_categories?.length ? (
-          <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {profile.materials_categories.map((item) => (
-              <span key={item} className="badge" style={{ background: '#f1e7a8' }}>
-                {formatMaterialsLabel(item, lang)}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <div className="muted" style={{ marginTop: 14 }}>
-            {copy.materialsEmpty}
-          </div>
-        )}
-      </div>
-
-      <div className="grid two">
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.aboutTitle}</div>
-
-          <p className="muted" style={{ marginTop: 14, lineHeight: 1.8 }}>
-            {String(profile?.bio || '').trim() || copy.aboutEmpty}
-          </p>
+              <div className="card-soft">
+                <div className="card-section-title" style={{ fontSize: 15 }}>{copy.websiteLabel}</div>
+                <div className="muted" style={{ marginTop: 6, overflowWrap: 'anywhere' }}>
+                  {profile.website_url || '—'}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">{copy.hoursTitle}</div>
 
-          <div
-            className="card-soft"
-            style={{
-              minHeight: 'auto',
-              padding: 14,
-              marginTop: 14,
-              background: businessStatus === 'open' ? '#dcf4e5' : '#f8f7ef'
-            }}
-          >
-            <strong>{businessStatus === 'open' ? copy.openNow : copy.closedNow}</strong>
+          <div className="card-soft" style={{ marginTop: 14, background: businessStatus === 'open' ? '#dcf4e5' : '#f8f7ef' }}>
+            <div style={{ fontWeight: 800 }}>
+              {businessStatus === 'open' ? copy.openNow : copy.closedNow}
+            </div>
           </div>
 
-          <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+          <div className="grid" style={{ gap: 10, marginTop: 14 }}>
             {BUSINESS_HOUR_DAYS.map((day) => {
-              const row = normalizeBusinessHours(profile?.business_hours)[day.key]
+              const row = profile.business_hours?.[day.key]
               return (
-                <div
-                  key={day.key}
-                  className="card-soft"
-                  style={{ minHeight: 'auto', padding: 14, background: '#ffffff' }}
-                >
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1.2fr 1fr',
-                      gap: 10,
-                      alignItems: 'center'
-                    }}
-                  >
-                    <div style={{ fontWeight: 700 }}>{copy[day.copyKey]}</div>
-                    <div className="muted" style={{ textAlign: 'right' }}>
-                      {row.closed ? copy.closedAllDay : `${row.open} - ${row.close}`}
-                    </div>
+                <div key={day.key} className="card-soft" style={{ background: '#ffffff' }}>
+                  <div style={{ fontWeight: 800 }}>{copy[day.copyKey]}</div>
+                  <div className="muted" style={{ marginTop: 6 }}>
+                    {row?.closed ? copy.closedAllDay : `${row?.open || '8:00 AM'} – ${row?.close || '5:00 PM'}`}
                   </div>
                 </div>
               )
@@ -538,64 +552,105 @@ export default function SupplierStorefront() {
         </div>
       </div>
 
-      <div className="grid two">
-        <div className="card rounded-xl" style={{ padding: 22, background: '#eef6ff' }}>
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">{copy.materialsTitle}</div>
+
+        {profile.materials_categories.length === 0 ? (
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {copy.materialsEmpty}
+          </p>
+        ) : (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+            {profile.materials_categories.map((item) => (
+              <span key={`${profile.user_id || profile.external_id}-${item}`} className="badge">
+                {formatMaterialsLabel(item, lang)}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">{copy.aboutTitle}</div>
+        <p style={{ marginTop: 10, lineHeight: 1.7 }}>
+          {profile.bio || copy.aboutEmpty}
+        </p>
+
+        {isImported ? (
+          <div className="card-soft" style={{ marginTop: 16, background: '#eef3ff' }}>
+            {copy.importedLeadNote}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="grid two" style={{ gap: 18 }}>
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.contactTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {isImported ? copy.importedInventoryBody : copy.inventoryBody}
+          </p>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+            <Link className="btn primary" to="/new">
+              {copy.requestQuote}
+            </Link>
+
+            {!isImported && profile.user_id ? (
+              <Link className="btn" to={`/u/${profile.user_id}`}>
+                {copy.openProfile}
+              </Link>
+            ) : null}
+
+            {profile.website_url ? (
+              <a
+                className="btn"
+                href={profile.website_url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {copy.openWebsite}
+              </a>
+            ) : null}
+
+            <Link className="btn" to="/feed">
+              {copy.backToFeed}
+            </Link>
+          </div>
+        </div>
+
+        <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">{copy.deliveryBridgeTitle}</div>
           <p className="card-section-subtitle" style={{ marginTop: 8 }}>
             {copy.deliveryBridgeBody}
           </p>
 
-          <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <Link to="/delivery" className="btn primary">
+          <div className="card-soft" style={{ marginTop: 14 }}>
+            <div style={{ fontWeight: 800 }}>{copy.localHaulingTitle}</div>
+            <p className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>
+              {copy.localHaulingBody}
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+            <Link className="btn primary" to="/delivery">
               {copy.searchDrivers}
             </Link>
 
-            <Link to={driverDirectoryLink} className="btn">
+            <Link
+              className="btn"
+              to={`/delivery${profile.business_zip ? `?zip=${encodeURIComponent(profile.business_zip)}` : ''}`}
+            >
               {copy.searchDriversByZip}
             </Link>
           </div>
         </div>
-
-        <div className="card rounded-xl" style={{ padding: 22, background: '#fffaf0' }}>
-          <div className="card-section-title">{copy.localHaulingTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.localHaulingBody}
-          </p>
-        </div>
       </div>
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
-        <div className="card-section-title">{copy.quickTitle}</div>
-
-        <div className="list" style={{ marginTop: 14 }}>
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div style={{ fontWeight: 800 }}>{copy.locationTitle}</div>
-            <div className="muted" style={{ marginTop: 6 }}>
-              {locationLine}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div style={{ fontWeight: 800 }}>{copy.deliveryTitle}</div>
-            <div className="muted" style={{ marginTop: 6 }}>
-              {deliveryValue}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div style={{ fontWeight: 800 }}>{copy.storefrontLabel}</div>
-            <div className="muted" style={{ marginTop: 6 }}>
-              {profile?.storefront ? copy.storefrontYes : copy.storefrontNo}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div style={{ fontWeight: 800 }}>{copy.supplierLaneTitle}</div>
-            <div className="muted" style={{ marginTop: 6 }}>
-              {copy.supplierLaneBody}
-            </div>
-          </div>
-        </div>
+        <div className="card-section-title">{copy.supplierLaneTitle}</div>
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+          {copy.supplierLaneBody}
+        </p>
       </div>
     </div>
   )
