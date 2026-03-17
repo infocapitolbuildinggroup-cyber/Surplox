@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 
 function roleLabel(role) {
   const map = {
@@ -202,6 +202,58 @@ function buildQuickConnectLink(profile) {
   return `/new?type=need_crew&title=Need ${displayName} on this job&zip=${zip}`
 }
 
+
+function digitsOnly(value) {
+  return String(value || '').replace(/\D/g, '')
+}
+
+function formatPhoneDisplay(value) {
+  const digits = digitsOnly(value)
+  if (digits.length === 10) return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
+  return value || ''
+}
+
+function buildCompletionItems(profile, contact = {}) {
+  const items = []
+  if (!String(profile?.display_name || '').trim()) items.push('Add display name')
+  if (!String(profile?.home_zip || profile?.business_zip || '').trim()) items.push('Add ZIP')
+  if (!String(contact?.city || '').trim()) items.push('Add city')
+  if (!String(contact?.phone || '').trim()) items.push('Add phone number')
+  if (!String(contact?.email || '').trim()) items.push('Add email address')
+  if (!String(profile?.bio || '').trim()) items.push('Add bio / experience')
+  const tradeOptional = ['supplier', 'driver', 'mechanic'].includes(profile?.role)
+  if (!tradeOptional && !String(profile?.trade_name || '').trim()) items.push('Add trade')
+  if (profile?.role === 'supplier') {
+    if (!String(profile?.business_name || '').trim()) items.push('Add business name')
+    if (!String(profile?.business_address || '').trim()) items.push('Add business address')
+    if (!String(profile?.business_zip || '').trim()) items.push('Add business ZIP')
+    if (!Array.isArray(profile?.materials_categories) || profile.materials_categories.length === 0) items.push('Add materials categories')
+    if (!profile?.storefront) items.push('Enable storefront')
+  }
+  if (profile?.role === 'driver') {
+    if (!String(profile?.vehicle_type || '').trim()) items.push('Add vehicle type')
+    if (!String(profile?.trailer_type || '').trim()) items.push('Add trailer type')
+    if (!Number(profile?.payload_capacity || 0)) items.push('Add payload capacity')
+    if (!Number(profile?.delivery_radius || 0)) items.push('Add delivery radius')
+    if (!Array.isArray(profile?.service_tags) || profile.service_tags.length === 0) items.push('Add service tags')
+  }
+  if (profile?.role === 'mechanic' || profile?.support_type === 'equipment_fleet_repair') {
+    if (!String(profile?.vehicle_type || '').trim()) items.push('Add service vehicle')
+    if (!Number(profile?.delivery_radius || 0)) items.push('Add service radius')
+    if (!Array.isArray(profile?.service_tags) || profile.service_tags.length === 0) items.push('Add repair specialties')
+    if (!Array.isArray(profile?.equipment_tags) || profile.equipment_tags.length === 0) items.push('Add equipment / capability tags')
+  }
+  return items
+}
+
+function buildMessageDraft(profile) {
+  const name = profile?.business_name || profile?.display_name || 'your profile'
+  if (profile?.role === 'driver') return 'Hi, I found your driver profile on Surplox. I want to talk about delivery support.'
+  if (profile?.role === 'mechanic' || profile?.support_type === 'equipment_fleet_repair') return 'Hi, I found your mechanic profile on Surplox. I want to talk about repair support.'
+  if (profile?.role === 'supplier') return `Hi, I found your supplier storefront on Surplox. I want to talk about materials from ${name}.`
+  return 'Hi, I found your profile on Surplox. I want to talk about work opportunities.'
+}
+
 function StatCard({ label, value, dark = false }) {
   return (
     <div
@@ -228,6 +280,7 @@ function StatCard({ label, value, dark = false }) {
 
 export default function WorkerProfile() {
   const { userId } = useParams()
+  const navigate = useNavigate()
 
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
@@ -243,6 +296,7 @@ export default function WorkerProfile() {
   const [savingAvailability, setSavingAvailability] = useState(false)
   const [workedWith, setWorkedWith] = useState([])
   const [copyMsg, setCopyMsg] = useState('')
+  const [contactCard, setContactCard] = useState({ phone: '', email: '', city: '' })
   const [saveContactBusy, setSaveContactBusy] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
   const [endorsementCounts, setEndorsementCounts] = useState({})
@@ -259,38 +313,46 @@ export default function WorkerProfile() {
         const uid = sessionData.session?.user?.id || null
         setCurrentUserId(uid)
 
-        const { data: prof, error: profErr } = await supabase
-          .from('profiles')
-          .select(`
-            user_id,
-            display_name,
-            role,
-            home_zip,
-            travel_radius_miles,
-            is_available,
-            availability_status,
-            bio,
-            trade_id,
-            category_group,
-            service_tags,
-            equipment_tags,
-            contractor_verified,
-            business_name,
-            business_address,
-            business_zip,
-            materials_categories,
-            storefront,
-            vehicle_type,
-            trailer_type,
-            trailer_length,
-            payload_capacity,
-            delivery_radius,
-            trades(name)
-          `)
-          .eq('user_id', userId)
-          .maybeSingle()
+        const [{ data: prof, error: profErr }, { data: privateRow, error: privateErr }] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select(`
+              user_id,
+              display_name,
+              role,
+              home_zip,
+              travel_radius_miles,
+              is_available,
+              availability_status,
+              bio,
+              trade_id,
+              category_group,
+              service_tags,
+              equipment_tags,
+              contractor_verified,
+              business_name,
+              business_address,
+              business_zip,
+              materials_categories,
+              storefront,
+              vehicle_type,
+              trailer_type,
+              trailer_length,
+              payload_capacity,
+              delivery_radius,
+              trades(name)
+            `)
+            .eq('user_id', userId)
+            .maybeSingle(),
+          supabase
+            .from('contact_private')
+            .select('phone, email, city')
+            .eq('user_id', userId)
+            .maybeSingle()
+        ])
 
         if (profErr) throw profErr
+        if (privateErr) console.error(privateErr)
         if (!prof) throw new Error('Worker profile not found.')
 
         const serviceTags = Array.isArray(prof.service_tags) ? prof.service_tags : []
@@ -309,6 +371,12 @@ export default function WorkerProfile() {
             (prof.category_group || 'trade') === 'jobsite_support'
               ? detectSupportType(serviceTags, prof.vehicle_type || '')
               : null
+        })
+
+        setContactCard({
+          phone: String(privateRow?.phone || '').trim(),
+          email: String(privateRow?.email || '').trim(),
+          city: String(privateRow?.city || '').trim()
         })
 
         const { count: crewsJoinedCount } = await supabase
@@ -566,6 +634,30 @@ export default function WorkerProfile() {
     }
   }
 
+  async function handleDirectMessage() {
+    const email = String(contactCard.email || '').trim()
+    if (email) {
+      window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent('Surplox connection')}&body=${encodeURIComponent(buildMessageDraft(profile))}`
+      return
+    }
+    const smsDigits = digitsOnly(contactCard.phone)
+    if (smsDigits) {
+      window.location.href = `sms:${smsDigits}?body=${encodeURIComponent(buildMessageDraft(profile))}`
+      return
+    }
+    navigate(quickConnectLink || '/new')
+  }
+
+  async function handleCopyMessageTemplate() {
+    try {
+      await navigator.clipboard.writeText(buildMessageDraft(profile))
+      setCopyMsg('Message draft copied.')
+    } catch (err) {
+      console.error(err)
+      setCopyMsg('Unable to copy message draft.')
+    }
+  }
+
   async function toggleSavedContact() {
     if (!currentUserId || currentUserId === userId) return
 
@@ -684,6 +776,15 @@ export default function WorkerProfile() {
     [profile?.equipment_tags]
   )
   const quickConnectLink = useMemo(() => buildQuickConnectLink(profile), [profile])
+  const completionItems = useMemo(() => buildCompletionItems(profile, contactCard), [profile, contactCard])
+  const phoneHref = useMemo(() => {
+    const digits = digitsOnly(contactCard.phone)
+    return digits ? `tel:${digits}` : ''
+  }, [contactCard.phone])
+  const textHref = useMemo(() => {
+    const digits = digitsOnly(contactCard.phone)
+    return digits ? `sms:${digits}?body=${encodeURIComponent(buildMessageDraft(profile))}` : ''
+  }, [contactCard.phone, profile])
 
   if (loading) {
     return <div className="card">Loading worker profile…</div>
@@ -1092,6 +1193,59 @@ export default function WorkerProfile() {
                 View Storefront
               </Link>
             ) : null}
+          </div>
+        </div>
+      ) : null}
+
+
+      {!isOwnProfile ? (
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">Contact Actions</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            Move from profile discovery into real outreach with one tap.
+          </p>
+
+          <div className="grid two" style={{ marginTop: 14 }}>
+            <div className="card-soft">
+              <div className="card-section-title" style={{ fontSize: 15 }}>Direct Contact</div>
+              <div className="muted" style={{ marginTop: 8 }}>Phone: {formatPhoneDisplay(contactCard.phone) || 'Not available'}</div>
+              <div className="muted" style={{ marginTop: 6 }}>Email: {contactCard.email || 'Not available'}</div>
+              <div className="muted" style={{ marginTop: 6 }}>City: {contactCard.city || 'Not available'}</div>
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+                {phoneHref ? <a className="btn primary" href={phoneHref}>Call</a> : null}
+                {textHref ? <a className="btn" href={textHref}>Text</a> : null}
+                <button className="btn" type="button" onClick={handleDirectMessage}>Direct Message</button>
+              </div>
+            </div>
+
+            <div className="card-soft" style={{ background: '#f8f7ef' }}>
+              <div className="card-section-title" style={{ fontSize: 15 }}>Message Starter</div>
+              <p className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>{buildMessageDraft(profile)}</p>
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+                <button className="btn small" type="button" onClick={handleCopyMessageTemplate}>Copy Message Draft</button>
+                <Link className="btn small" to={quickConnectLink}>Build Request Post</Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isOwnProfile && completionItems.length > 0 ? (
+        <div className="card rounded-xl" style={{ padding: 22, background: '#fff4da' }}>
+          <div className="card-section-title">Profile Completion Push</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            Stronger profiles get more trust, better quick-connect results, and more useful jobsite actions.
+          </p>
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+            {completionItems.map((item) => <span key={item} className="badge">{item}</span>)}
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+            <Link className="btn primary" to="/account">Finish My Account</Link>
+            {profile.role === 'supplier' ? <Link className="btn" to={`/supplier/${profile.user_id}`}>Review Storefront</Link> : null}
           </div>
         </div>
       ) : null}
