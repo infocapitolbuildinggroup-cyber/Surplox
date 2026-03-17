@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-
-const STORAGE_KEY = 'surplox_admin_crm_v1'
+import { supabase } from '../supabaseClient'
 
 const COPY = {
   en: {
@@ -39,7 +38,14 @@ const COPY = {
     statsTotal: 'Total Records',
     statsOpen: 'Open Pipeline',
     statsWon: 'Won',
-    statsFollowUp: 'Need Follow-Up'
+    statsFollowUp: 'Need Follow-Up',
+    loading: 'Loading CRM…',
+    loadError: 'Unable to load CRM records right now.',
+    deleteError: 'Unable to delete CRM record right now.',
+    saveError: 'Unable to save CRM record right now.',
+    companyRequired: 'Company / Account is required.',
+    saved: 'CRM entry saved.',
+    deleted: 'CRM entry deleted.'
   },
   es: {
     badge: 'CRM Admin',
@@ -76,7 +82,14 @@ const COPY = {
     statsTotal: 'Registros Totales',
     statsOpen: 'Pipeline Abierto',
     statsWon: 'Ganados',
-    statsFollowUp: 'Necesitan Seguimiento'
+    statsFollowUp: 'Necesitan Seguimiento',
+    loading: 'Cargando CRM…',
+    loadError: 'No se pudieron cargar los registros CRM.',
+    deleteError: 'No se pudo eliminar el registro CRM.',
+    saveError: 'No se pudo guardar el registro CRM.',
+    companyRequired: 'Empresa / Cuenta es obligatoria.',
+    saved: 'Registro CRM guardado.',
+    deleted: 'Registro CRM eliminado.'
   }
 }
 
@@ -109,27 +122,65 @@ function labelForStage(stage, copy) {
   return stage
 }
 
+function mapDbRowToEntry(row = {}) {
+  return {
+    id: row.id || '',
+    company: row.company || '',
+    contact: row.contact || '',
+    phone: row.phone || '',
+    email: row.email || '',
+    city: row.city || '',
+    project: row.project || '',
+    estimatedValue: row.estimated_value || '',
+    stage: row.stage || 'lead',
+    nextFollowUp: row.next_follow_up || '',
+    notes: row.notes || '',
+    createdAt: row.created_at || ''
+  }
+}
+
 export default function AdminCRM({ lang = 'en' }) {
   const copy = COPY[lang] || COPY.en
   const [entries, setEntries] = useState([])
   const [search, setSearch] = useState('')
   const [stageFilter, setStageFilter] = useState('')
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [message, setMessage] = useState('')
   const [form, setForm] = useState(makeEmptyEntry())
 
   useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-      setEntries(Array.isArray(stored) ? stored : [])
-    } catch (error) {
-      console.error(error)
-      setEntries([])
-    }
-  }, [])
+    let active = true
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
-  }, [entries])
+    async function loadEntries() {
+      setLoading(true)
+      setMessage('')
+
+      try {
+        const { data, error } = await supabase
+          .from('admin_crm_records')
+          .select('id, company, contact, phone, email, city, project, estimated_value, stage, next_follow_up, notes, created_at')
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+        if (!active) return
+
+        setEntries(Array.isArray(data) ? data.map(mapDbRowToEntry) : [])
+      } catch (error) {
+        console.error(error)
+        if (!active) return
+        setMessage(copy.loadError)
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+
+    loadEntries()
+
+    return () => {
+      active = false
+    }
+  }, [copy.loadError])
 
   const filteredEntries = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -152,62 +203,113 @@ export default function AdminCRM({ lang = 'en' }) {
       .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
   }, [entries, search, stageFilter])
 
-  const stats = useMemo(() => ({
-    total: entries.length,
-    open: entries.filter((entry) => ['lead', 'bid', 'active', 'follow_up'].includes(entry.stage)).length,
-    won: entries.filter((entry) => entry.stage === 'won').length,
-    needsFollowUp: entries.filter((entry) => entry.stage === 'follow_up').length
-  }), [entries])
+  const stats = useMemo(
+    () => ({
+      total: entries.length,
+      open: entries.filter((entry) => ['lead', 'bid', 'active', 'follow_up'].includes(entry.stage)).length,
+      won: entries.filter((entry) => entry.stage === 'won').length,
+      needsFollowUp: entries.filter((entry) => entry.stage === 'follow_up').length
+    }),
+    [entries]
+  )
 
   function updateField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
-  function handleSave(event) {
+  async function handleSave(event) {
     event.preventDefault()
-    if (!String(form.company || '').trim()) return
 
-    setSaving(true)
-    const payload = {
-      ...form,
-      id: form.id || crypto.randomUUID(),
-      company: String(form.company || '').trim(),
-      contact: String(form.contact || '').trim(),
-      phone: String(form.phone || '').trim(),
-      email: String(form.email || '').trim(),
-      city: String(form.city || '').trim(),
-      project: String(form.project || '').trim(),
-      estimatedValue: String(form.estimatedValue || '').trim(),
-      notes: String(form.notes || '').trim(),
-      createdAt: form.createdAt || new Date().toISOString()
+    if (!String(form.company || '').trim()) {
+      setMessage(copy.companyRequired)
+      return
     }
 
-    setEntries((prev) => {
-      const idx = prev.findIndex((item) => item.id === payload.id)
-      if (idx >= 0) {
-        const next = [...prev]
-        next[idx] = payload
-        return next
-      }
-      return [payload, ...prev]
-    })
+    setSaving(true)
+    setMessage('')
 
-    setForm(makeEmptyEntry())
-    setSaving(false)
+    const payload = {
+      company: String(form.company || '').trim(),
+      contact: String(form.contact || '').trim() || null,
+      phone: String(form.phone || '').trim() || null,
+      email: String(form.email || '').trim() || null,
+      city: String(form.city || '').trim() || null,
+      project: String(form.project || '').trim() || null,
+      estimated_value: String(form.estimatedValue || '').trim() || null,
+      stage: String(form.stage || 'lead'),
+      next_follow_up: String(form.nextFollowUp || '').trim() || null,
+      notes: String(form.notes || '').trim() || null
+    }
+
+    try {
+      if (form.id) {
+        const { data, error } = await supabase
+          .from('admin_crm_records')
+          .update(payload)
+          .eq('id', form.id)
+          .select('id, company, contact, phone, email, city, project, estimated_value, stage, next_follow_up, notes, created_at')
+          .single()
+
+        if (error) throw error
+
+        const mapped = mapDbRowToEntry(data)
+        setEntries((prev) => prev.map((item) => (item.id === mapped.id ? mapped : item)))
+      } else {
+        const { data, error } = await supabase
+          .from('admin_crm_records')
+          .insert(payload)
+          .select('id, company, contact, phone, email, city, project, estimated_value, stage, next_follow_up, notes, created_at')
+          .single()
+
+        if (error) throw error
+
+        const mapped = mapDbRowToEntry(data)
+        setEntries((prev) => [mapped, ...prev])
+      }
+
+      setForm(makeEmptyEntry())
+      setMessage(copy.saved)
+    } catch (error) {
+      console.error(error)
+      setMessage(copy.saveError)
+    } finally {
+      setSaving(false)
+    }
   }
 
   function handleEdit(entry) {
     setForm(entry)
+    setMessage('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function handleDelete(id) {
-    setEntries((prev) => prev.filter((entry) => entry.id !== id))
-    if (form.id === id) setForm(makeEmptyEntry())
+  async function handleDelete(id) {
+    try {
+      setMessage('')
+      const { error } = await supabase.from('admin_crm_records').delete().eq('id', id)
+      if (error) throw error
+
+      setEntries((prev) => prev.filter((entry) => entry.id !== id))
+      if (form.id === id) setForm(makeEmptyEntry())
+      setMessage(copy.deleted)
+    } catch (error) {
+      console.error(error)
+      setMessage(copy.deleteError)
+    }
+  }
+
+  if (loading) {
+    return <div className="card">{copy.loading}</div>
   }
 
   return (
     <div className="grid" style={{ gap: 18 }}>
+      {message ? (
+        <div className="card-message" style={{ padding: 14, borderRadius: 18 }}>
+          {message}
+        </div>
+      ) : null}
+
       <div className="card rounded-xl" style={{ padding: 26, background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)' }}>
         <div className="badge" style={{ marginBottom: 12, background: '#f1e7a8' }}>{copy.badge}</div>
         <div className="h1">{copy.title}</div>
