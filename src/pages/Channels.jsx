@@ -343,7 +343,7 @@ export default function Channels({ lang: langProp = 'en' }) {
               background: 'linear-gradient(180deg, #f3f1e8 0%, #ffffff 100%)'
             }}
           >
-            <div className="badge" style={{ background: '#f1e7a8', color: '#111111' }}>
+            <div className="badge" style={{ background: '#ffe2cc', color: '#111111' }}>
               {copy.repairBadge}
             </div>
 
@@ -509,7 +509,7 @@ export default function Channels({ lang: langProp = 'en' }) {
               background: '#ffffff'
             }}
           >
-            <div className="badge" style={{ background: '#f1e7a8', color: '#111111' }}>
+            <div className="badge" style={{ background: '#ffe2cc', color: '#111111' }}>
               {copy.repairBadge}
             </div>
 
