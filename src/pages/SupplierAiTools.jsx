@@ -148,6 +148,19 @@ const COPY = {
     engineSuggestedLane: 'Suggested lane',
     engineScopeSignals: 'Scope signals',
     engineRecommendedAction: 'Recommended action',
+    engineLaunchpadTitle: 'Project Engine Launchpad',
+    engineLaunchpadBody: 'Turn the AI plan into real Surplox actions immediately with one-click handoff into supplier search, crew posts, delivery search, and support requests.',
+    engineOpenMessages: 'Open Messages',
+    engineOpenFeed: 'Open Feed',
+    engineCrewMatches: 'Crew matches',
+    engineSupplierMatches: 'Supplier matches',
+    engineDeliveryMatches: 'Delivery matches',
+    engineRunSummary: 'Engine Summary',
+    engineRecommendedNext: 'Best next move',
+    engineUseRepair: 'Open Repair Search',
+    engineBuildRepairPost: 'Create Repair Post',
+    engineNoMaterials: 'No materials plan generated yet.',
+    engineNoSignals: 'No scope signals generated yet.',
 
     fitLabel: 'Fit',
     website: 'Website',
@@ -327,6 +340,23 @@ function buildDeliveryPlan(materialsPlan = [], projectSummary = {}, fullText = '
   }
 }
 
+function recommendedNextMove(scopeSignals = {}, deliveryPlan = {}) {
+  const trades = Array.isArray(scopeSignals?.trades) ? scopeSignals.trades : []
+  const materials = Array.isArray(scopeSignals?.materials) ? scopeSignals.materials : []
+  const squareFeet = Number(scopeSignals?.squareFeet || 0)
+
+  if (materials.length >= 3) return 'Start with suppliers and staged delivery planning.'
+  if (trades.length >= 4 || squareFeet >= 15000) return 'Create a multi-trade crew post and source core trades first.'
+  if (deliveryPlan?.suggestedLane === 'cargo_van_delivery') return 'Find local last-mile delivery support first.'
+  return 'Start with one crew post and one supplier search to create momentum.'
+}
+
+function deliveryLaneLabel(value = '') {
+  if (value === 'cargo_van_delivery') return 'Cargo Van / Local Delivery'
+  if (value === 'material_delivery') return 'Material Delivery / Hot Shot'
+  return titleCase(value)
+}
+
 async function runSupplierEngine(materialsPlan = [], zip = '', supplierForm = {}) {
   const supplierGroups = []
 
@@ -473,6 +503,20 @@ function SupplierCard({ supplier, copy, onOpenSearch, onOpenStorefront }) {
         </div>
       ) : null}
     
+<div className="card-soft" style={{marginTop:16}}>
+  <div className="card-section-title">Project Engine</div>
+  <input type="file" onChange={handleBlueprintUpload} />
+  <textarea value={blueprintText} onChange={e=>setBlueprintText(e.target.value)} placeholder="Paste blueprint notes..." />
+  <button className="btn primary" onClick={runProjectEngine}>Run Project Engine</button>
+
+  {engineResult && (
+    <div style={{marginTop:12}}>
+      <div><strong>Crew Plan:</strong> {JSON.stringify(engineResult.crew)}</div>
+      <div><strong>Materials:</strong> {JSON.stringify(engineResult.materials)}</div>
+      <div><strong>Delivery:</strong> {JSON.stringify(engineResult.delivery)}</div>
+    </div>
+  )}
+</div>
 
 </div>
   )
@@ -498,6 +542,20 @@ function WorkerCard({ worker, copy, onBuildCrewPost }) {
         </button>
       </div>
     
+<div className="card-soft" style={{marginTop:16}}>
+  <div className="card-section-title">Project Engine</div>
+  <input type="file" onChange={handleBlueprintUpload} />
+  <textarea value={blueprintText} onChange={e=>setBlueprintText(e.target.value)} placeholder="Paste blueprint notes..." />
+  <button className="btn primary" onClick={runProjectEngine}>Run Project Engine</button>
+
+  {engineResult && (
+    <div style={{marginTop:12}}>
+      <div><strong>Crew Plan:</strong> {JSON.stringify(engineResult.crew)}</div>
+      <div><strong>Materials:</strong> {JSON.stringify(engineResult.materials)}</div>
+      <div><strong>Delivery:</strong> {JSON.stringify(engineResult.delivery)}</div>
+    </div>
+  )}
+</div>
 
 </div>
   )
@@ -526,6 +584,20 @@ function DriverCard({ driver, copy, onOpenDriverSearch, onBuildDeliveryPost }) {
         </button>
       </div>
     
+<div className="card-soft" style={{marginTop:16}}>
+  <div className="card-section-title">Project Engine</div>
+  <input type="file" onChange={handleBlueprintUpload} />
+  <textarea value={blueprintText} onChange={e=>setBlueprintText(e.target.value)} placeholder="Paste blueprint notes..." />
+  <button className="btn primary" onClick={runProjectEngine}>Run Project Engine</button>
+
+  {engineResult && (
+    <div style={{marginTop:12}}>
+      <div><strong>Crew Plan:</strong> {JSON.stringify(engineResult.crew)}</div>
+      <div><strong>Materials:</strong> {JSON.stringify(engineResult.materials)}</div>
+      <div><strong>Delivery:</strong> {JSON.stringify(engineResult.delivery)}</div>
+    </div>
+  )}
+</div>
 
 </div>
   )
@@ -730,6 +802,27 @@ async function fetchDeliveryMatches(form) {
 }
 
 
+// --- PROJECT ENGINE ENHANCEMENTS ---
+const [blueprintText, setBlueprintText] = useState("");
+const [engineResult, setEngineResult] = useState(null);
+
+function handleBlueprintUpload(e){
+  const file = e.target.files?.[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    setBlueprintText(String(reader.result||""));
+  };
+  reader.readAsText(file);
+}
+
+function runProjectEngine(){
+  const scope = blueprintText || projectInput || "";
+  const crew = buildCrewPlan(scope);
+  const materials = buildMaterialsPlan(scope);
+  const delivery = buildDeliveryPlan(scope);
+  setEngineResult({crew, materials, delivery});
+}
 
 export default function SupplierAiTools() {
   const navigate = useNavigate()
@@ -871,6 +964,31 @@ export default function SupplierAiTools() {
       urgent: overrides.urgent || '',
       compensation: overrides.compensation || '',
       start_date: overrides.start_date || ''
+    })
+  }
+
+  function openRepairSearch(overrides = {}) {
+    pushWithParams('/mechanics', {
+      q: overrides.q || 'diesel hydraulic trailer field service',
+      zip: overrides.zip || deliveryForm.jobsiteZip || supplierForm.zip || crewForm.zip
+    })
+  }
+
+  function openRepairPost(overrides = {}) {
+    pushWithParams('/new', {
+      type: 'discussion',
+      category: 'jobsite_support',
+      support: 'equipment_fleet_repair',
+      title:
+        overrides.title ||
+        `Need mechanic / repair support near ${overrides.zip || deliveryForm.jobsiteZip || supplierForm.zip || crewForm.zip || ''}`,
+      body:
+        overrides.body ||
+        projectNotes ||
+        extractedText ||
+        `Need mechanic or equipment repair support near ${overrides.zip || deliveryForm.jobsiteZip || supplierForm.zip || crewForm.zip || ''}.`,
+      zip: overrides.zip || deliveryForm.jobsiteZip || supplierForm.zip || crewForm.zip,
+      urgent: overrides.urgent || 'true'
     })
   }
 
@@ -1134,7 +1252,15 @@ export default function SupplierAiTools() {
         deliveryPlan: {
           ...deliveryPlan,
           matches: deliveryMatches
-        }
+        },
+        recommendedNext: recommendedNextMove(
+          {
+            trades: projectSummary.trades,
+            materials: projectSummary.materials,
+            squareFeet: extractSquareFeet(scopeText)
+          },
+          deliveryPlan
+        )
       }
 
       setProjectEngine(nextEngine)
@@ -1612,7 +1738,9 @@ export default function SupplierAiTools() {
                         {busy ? copy.runningOcr : copy.runOcr}
                       </button>
                     </div>
-                  ) : null}
+                  ) : (
+                    <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.engineNoMaterials}</p>
+                  )}
                 </div>
               ))}
             </div>
@@ -1630,10 +1758,38 @@ export default function SupplierAiTools() {
           </div>
 
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
-            <Chip onClick={runProjectEngine}>{busy ? copy.engineRunning : copy.analyzeButton}</Chip>
+            <Chip onClick={runProjectEngine}>{busy ? copy.engineRunning : copy.engineRunButton}</Chip>
             <Chip onClick={useAnalyzerForSupplier}>{copy.supplierTab}</Chip>
             <Chip onClick={useAnalyzerForCrew}>{copy.crewTab}</Chip>
             <Chip onClick={useAnalyzerForDelivery}>{copy.deliveryTab}</Chip>
+          </div>
+
+          <div className="card-soft" style={{ marginTop: 16, background: '#fffaf0' }}>
+            <div className="card-section-title">{copy.engineLaunchpadTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {copy.engineLaunchpadBody}
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+              <button className="btn" type="button" onClick={() => openSupplierSearch()}>
+                {copy.openSupplierSearch}
+              </button>
+              <button className="btn" type="button" onClick={() => openCrewPost()}>
+                {copy.openCrewPost}
+              </button>
+              <button className="btn" type="button" onClick={() => openDeliverySearch()}>
+                {copy.openDelivery}
+              </button>
+              <button className="btn" type="button" onClick={() => openRepairSearch()}>
+                {copy.engineUseRepair}
+              </button>
+              <Link className="btn" to="/messages">
+                {copy.engineOpenMessages}
+              </Link>
+              <Link className="btn" to="/feed">
+                {copy.engineOpenFeed}
+              </Link>
+            </div>
           </div>
 
           <div className="card-soft" style={{ marginTop: 16 }}>
@@ -1656,19 +1812,33 @@ export default function SupplierAiTools() {
                   </div>
                 </div>
 
+                <div className="card-soft" style={{ background: '#fffaf0' }}>
+                  <div className="card-section-title">{copy.engineRunSummary}</div>
+                  <div style={{ marginTop: 10, display: 'grid', gap: 10 }}>
+                    <div><strong>{copy.engineCrewMatches}:</strong> {projectEngine.crewPlan?.reduce((sum, item) => sum + ((item.matches || []).length), 0) || 0}</div>
+                    <div><strong>{copy.engineSupplierMatches}:</strong> {projectEngine.supplierGroups?.reduce((sum, item) => sum + ((item.suppliers || []).length), 0) || 0}</div>
+                    <div><strong>{copy.engineDeliveryMatches}:</strong> {projectEngine.deliveryPlan?.matches?.length || 0}</div>
+                    <div><strong>{copy.engineRecommendedNext}:</strong> {projectEngine.recommendedNext}</div>
+                  </div>
+                </div>
+
                 <div className="card-soft" style={{ background: '#ffffff' }}>
                   <div className="card-section-title">{copy.engineScopeSignals}</div>
-                  <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {(projectEngine.scopeSignals.trades || []).map((trade) => (
-                      <span key={`signal-trade-${trade}`} className="badge">{titleCase(trade)}</span>
-                    ))}
-                    {(projectEngine.scopeSignals.materials || []).map((material) => (
-                      <span key={`signal-material-${material}`} className="badge">{titleCase(material)}</span>
-                    ))}
-                    {projectEngine.scopeSignals.squareFeet ? (
-                      <span className="badge">{projectEngine.scopeSignals.squareFeet.toLocaleString()} SF</span>
-                    ) : null}
-                  </div>
+                  {(projectEngine.scopeSignals.trades || []).length || (projectEngine.scopeSignals.materials || []).length || projectEngine.scopeSignals.squareFeet ? (
+                    <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {(projectEngine.scopeSignals.trades || []).map((trade) => (
+                        <span key={`signal-trade-${trade}`} className="badge">{titleCase(trade)}</span>
+                      ))}
+                      {(projectEngine.scopeSignals.materials || []).map((material) => (
+                        <span key={`signal-material-${material}`} className="badge">{titleCase(material)}</span>
+                      ))}
+                      {projectEngine.scopeSignals.squareFeet ? (
+                        <span className="badge">{projectEngine.scopeSignals.squareFeet.toLocaleString()} SF</span>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.engineNoSignals}</p>
+                  )}
                 </div>
 
                 <div className="card-soft" style={{ background: '#ffffff' }}>
@@ -1792,7 +1962,7 @@ export default function SupplierAiTools() {
                         <div className="card-soft" style={{ background: '#f8f7ef' }}>
                           <div className="muted">{copy.engineSuggestedLane}</div>
                           <div style={{ marginTop: 6, fontWeight: 800 }}>
-                            {titleCase(projectEngine.deliveryPlan.suggestedLane)}
+                            {deliveryLaneLabel(projectEngine.deliveryPlan.suggestedLane)}
                           </div>
                         </div>
 
@@ -1928,6 +2098,31 @@ export default function SupplierAiTools() {
               >
                 {copy.openDelivery}
               </button>
+
+              <button
+                className="btn"
+                type="button"
+                onClick={() =>
+                  openRepairSearch({
+                    zip: deliveryForm.jobsiteZip || supplierForm.zip || crewForm.zip
+                  })
+                }
+              >
+                {copy.engineUseRepair}
+              </button>
+
+              <button
+                className="btn"
+                type="button"
+                onClick={() =>
+                  openRepairPost({
+                    zip: deliveryForm.jobsiteZip || supplierForm.zip || crewForm.zip,
+                    body: extractedText || projectNotes
+                  })
+                }
+              >
+                {copy.engineBuildRepairPost}
+              </button>
             </div>
           </div>
 
@@ -1956,6 +2151,20 @@ export default function SupplierAiTools() {
         </div>
       ) : null}
     
+<div className="card-soft" style={{marginTop:16}}>
+  <div className="card-section-title">Project Engine</div>
+  <input type="file" onChange={handleBlueprintUpload} />
+  <textarea value={blueprintText} onChange={e=>setBlueprintText(e.target.value)} placeholder="Paste blueprint notes..." />
+  <button className="btn primary" onClick={runProjectEngine}>Run Project Engine</button>
+
+  {engineResult && (
+    <div style={{marginTop:12}}>
+      <div><strong>Crew Plan:</strong> {JSON.stringify(engineResult.crew)}</div>
+      <div><strong>Materials:</strong> {JSON.stringify(engineResult.materials)}</div>
+      <div><strong>Delivery:</strong> {JSON.stringify(engineResult.delivery)}</div>
+    </div>
+  )}
+</div>
 
 </div>
   )
