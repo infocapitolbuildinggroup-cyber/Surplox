@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-
-const STORAGE_KEY = 'surplox_admin_timeclock_v1'
+import { supabase } from '../supabaseClient'
 
 const COPY = {
   en: {
@@ -23,7 +22,14 @@ const COPY = {
     activeCount: 'Active',
     totalHours: 'Estimated Hours',
     inAt: 'In',
-    outAt: 'Out'
+    outAt: 'Out',
+    loading: 'Loading time clock…',
+    loadError: 'Unable to load time entries right now.',
+    saveError: 'Unable to clock in right now.',
+    clockOutError: 'Unable to clock out right now.',
+    requiredFields: 'Jobsite and worker name are required.',
+    clockedIn: 'Worker clocked in.',
+    clockedOut: 'Worker clocked out.'
   },
   es: {
     badge: 'Reloj Admin',
@@ -44,7 +50,25 @@ const COPY = {
     activeCount: 'Activos',
     totalHours: 'Horas Estimadas',
     inAt: 'Entrada',
-    outAt: 'Salida'
+    outAt: 'Salida',
+    loading: 'Cargando reloj…',
+    loadError: 'No se pudieron cargar los registros de tiempo.',
+    saveError: 'No se pudo registrar la entrada.',
+    clockOutError: 'No se pudo registrar la salida.',
+    requiredFields: 'Obra y nombre del trabajador son obligatorios.',
+    clockedIn: 'Trabajador registrado en entrada.',
+    clockedOut: 'Trabajador registrado en salida.'
+  }
+}
+
+function mapDbRowToEntry(row = {}) {
+  return {
+    id: row.id || '',
+    jobsite: row.jobsite || '',
+    worker: row.worker || '',
+    role: row.role || '',
+    clockInAt: row.clock_in_at || '',
+    clockOutAt: row.clock_out_at || ''
   }
 }
 
@@ -54,23 +78,47 @@ export default function AdminTimeClock({ lang = 'en' }) {
   const [jobsite, setJobsite] = useState('')
   const [worker, setWorker] = useState('')
   const [role, setRole] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [message, setMessage] = useState('')
 
   useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-      setEntries(Array.isArray(stored) ? stored : [])
-    } catch (error) {
-      console.error(error)
-      setEntries([])
+    let active = true
+
+    async function loadEntries() {
+      setLoading(true)
+      setMessage('')
+
+      try {
+        const { data, error } = await supabase
+          .from('admin_time_entries')
+          .select('id, jobsite, worker, role, clock_in_at, clock_out_at')
+          .order('clock_in_at', { ascending: false })
+
+        if (error) throw error
+        if (!active) return
+
+        setEntries(Array.isArray(data) ? data.map(mapDbRowToEntry) : [])
+      } catch (error) {
+        console.error(error)
+        if (!active) return
+        setMessage(copy.loadError)
+      } finally {
+        if (active) setLoading(false)
+      }
     }
-  }, [])
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
-  }, [entries])
+    loadEntries()
+
+    return () => {
+      active = false
+    }
+  }, [copy.loadError])
 
   const activeEntries = useMemo(
-    () => entries.filter((entry) => !entry.clockOutAt).sort((a, b) => new Date(b.clockInAt).getTime() - new Date(a.clockInAt).getTime()),
+    () =>
+      entries
+        .filter((entry) => !entry.clockOutAt)
+        .sort((a, b) => new Date(b.clockInAt).getTime() - new Date(a.clockInAt).getTime()),
     [entries]
   )
 
@@ -80,6 +128,7 @@ export default function AdminTimeClock({ lang = 'en' }) {
       const diff = (new Date(entry.clockOutAt).getTime() - new Date(entry.clockInAt).getTime()) / 3600000
       return sum + Math.max(diff, 0)
     }, 0)
+
     return {
       totalEntries: entries.length,
       activeCount: activeEntries.length,
@@ -87,38 +136,79 @@ export default function AdminTimeClock({ lang = 'en' }) {
     }
   }, [entries, activeEntries])
 
-  function handleClockIn(event) {
+  async function handleClockIn(event) {
     event.preventDefault()
-    if (!String(jobsite || '').trim() || !String(worker || '').trim()) return
 
-    setEntries((prev) => [
-      {
-        id: crypto.randomUUID(),
+    if (!String(jobsite || '').trim() || !String(worker || '').trim()) {
+      setMessage(copy.requiredFields)
+      return
+    }
+
+    try {
+      setMessage('')
+
+      const payload = {
         jobsite: String(jobsite || '').trim(),
         worker: String(worker || '').trim(),
-        role: String(role || '').trim(),
-        clockInAt: new Date().toISOString(),
-        clockOutAt: ''
-      },
-      ...prev
-    ])
+        role: String(role || '').trim() || null,
+        clock_in_at: new Date().toISOString(),
+        clock_out_at: null
+      }
 
-    setWorker('')
-    setRole('')
+      const { data, error } = await supabase
+        .from('admin_time_entries')
+        .insert(payload)
+        .select('id, jobsite, worker, role, clock_in_at, clock_out_at')
+        .single()
+
+      if (error) throw error
+
+      const mapped = mapDbRowToEntry(data)
+      setEntries((prev) => [mapped, ...prev])
+      setWorker('')
+      setRole('')
+      setMessage(copy.clockedIn)
+    } catch (error) {
+      console.error(error)
+      setMessage(copy.saveError)
+    }
   }
 
-  function handleClockOut(id) {
-    setEntries((prev) =>
-      prev.map((entry) =>
-        entry.id === id && !entry.clockOutAt
-          ? { ...entry, clockOutAt: new Date().toISOString() }
-          : entry
-      )
-    )
+  async function handleClockOut(id) {
+    try {
+      setMessage('')
+
+      const { data, error } = await supabase
+        .from('admin_time_entries')
+        .update({ clock_out_at: new Date().toISOString() })
+        .eq('id', id)
+        .is('clock_out_at', null)
+        .select('id, jobsite, worker, role, clock_in_at, clock_out_at')
+        .single()
+
+      if (error) throw error
+
+      const mapped = mapDbRowToEntry(data)
+      setEntries((prev) => prev.map((entry) => (entry.id === mapped.id ? mapped : entry)))
+      setMessage(copy.clockedOut)
+    } catch (error) {
+      console.error(error)
+      setMessage(copy.clockOutError)
+    }
+  }
+
+  if (loading) {
+    return <div className="card">{copy.loading}</div>
   }
 
   return (
     <div className="grid" style={{ gap: 18 }}>
+      {message ? (
+        <div className="card-message" style={{ padding: 14, borderRadius: 18 }}>
+          {message}
+        </div>
+      ) : null}
+
       <div className="card rounded-xl" style={{ padding: 26, background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)' }}>
         <div className="badge" style={{ marginBottom: 12, background: '#f1e7a8' }}>{copy.badge}</div>
         <div className="h1">{copy.title}</div>
