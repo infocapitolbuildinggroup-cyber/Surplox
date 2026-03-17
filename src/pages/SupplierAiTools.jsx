@@ -120,12 +120,14 @@ const COPY = {
     analyzerActionsTitle: 'AI handoff actions',
     analyzerActionsBody:
       'Send the analyzer output directly into live marketplace flows so the work does not stop at the AI screen.',
+
     projectEngineTitle: 'Surplox Project Engine',
     projectEngineBody:
       'Project Analyzer now acts as the brain of the app: blueprint upload, scope extraction, crew plan, materials list, supplier suggestions, and delivery plan.',
     engineRunButton: 'Run Project Engine',
     engineRunning: 'Running Project Engine…',
-    engineEmpty: 'Upload a blueprint or add project scope notes to generate the full project engine plan.',
+    engineEmpty:
+      'Upload a blueprint or add project scope notes to generate the full project engine plan.',
     engineProjectType: 'Project Type',
     enginePrimaryZip: 'Primary ZIP',
     engineCrewPlan: 'Crew Needed',
@@ -228,7 +230,6 @@ function scoreScope(text = '') {
           : 'Smaller scope. Start with one lead trade and one supplier lane.'
   }
 }
-
 
 function extractZipFromText(text = '') {
   const match = String(text || '').match(/\b(\d{5})(?:-\d{4})?\b/)
@@ -434,7 +435,7 @@ function SupplierCard({ supplier, copy, onOpenSearch, onOpenStorefront }) {
             {copy.openSupplierSearch}
           </button>
           <button className="btn small" type="button" onClick={() => onOpenStorefront?.(supplier)}>
-            {copy.openStorefront || 'Open Storefront'}
+            {copy.openStorefront}
           </button>
         </div>
       </div>
@@ -725,6 +726,7 @@ async function fetchDeliveryMatches(form) {
 export default function SupplierAiTools() {
   const navigate = useNavigate()
   const copy = COPY.en
+
   const [tab, setTab] = useState('supplier')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -761,8 +763,11 @@ export default function SupplierAiTools() {
   const [uploadedFiles, setUploadedFiles] = useState([])
   const [extractedText, setExtractedText] = useState('')
   const [projectEngine, setProjectEngine] = useState(null)
-  const projectSummary = useMemo(() => scoreScope(`${projectNotes}
-${extractedText}`), [projectNotes, extractedText])
+
+  const projectSummary = useMemo(
+    () => scoreScope(`${projectNotes}\n${extractedText}`),
+    [projectNotes, extractedText]
+  )
 
   function setSupplierField(key, value) {
     setSupplierForm((prev) => ({ ...prev, [key]: value }))
@@ -775,7 +780,6 @@ ${extractedText}`), [projectNotes, extractedText])
   function setDeliveryField(key, value) {
     setDeliveryForm((prev) => ({ ...prev, [key]: value }))
   }
-
 
   function pushWithParams(path, values = {}) {
     const params = new URLSearchParams()
@@ -912,7 +916,7 @@ ${extractedText}`), [projectNotes, extractedText])
       body:
         projectNotes ||
         extractedText ||
-        `Need delivery support. Suggested match: ${driver?.display_name || 'driver'} with ${String(driver?.vehicle_type || '').replace(/_/g, ' ')} ${driver?.trailer_type ? `and ${String(driver.trailer_type).replace(/_/g, ' ')}` : ''}.`
+        `Need delivery support. Suggested match: ${driver?.display_name || 'driver'} with ${String(driver?.vehicle_type || '').replace(/_/g, ' ')}${driver?.trailer_type ? ` and ${String(driver.trailer_type).replace(/_/g, ' ')}` : ''}.`
     })
   }
 
@@ -968,6 +972,7 @@ ${extractedText}`), [projectNotes, extractedText])
   async function runCrewMatch() {
     setBusy(true)
     setMessage('')
+
     try {
       const { data, error } = await fetchCrewMatches(crewForm)
       if (error) throw error
@@ -984,6 +989,7 @@ ${extractedText}`), [projectNotes, extractedText])
   async function runDeliveryMatch() {
     setBusy(true)
     setMessage('')
+
     try {
       const { data, error } = await fetchDeliveryMatches(deliveryForm)
       if (error) throw error
@@ -1040,6 +1046,7 @@ ${extractedText}`), [projectNotes, extractedText])
   async function runOcrForFile(fileId) {
     setBusy(true)
     setMessage('')
+
     try {
       const target = uploadedFiles.find((item) => item.id === fileId)
       if (!target) throw new Error('File not found.')
@@ -1074,7 +1081,6 @@ ${extractedText}`), [projectNotes, extractedText])
       setBusy(false)
     }
   }
-
 
   async function runProjectEngine() {
     const scopeText = [projectNotes, extractedText].filter(Boolean).join('\n\n').trim()
@@ -1127,17 +1133,20 @@ ${extractedText}`), [projectNotes, extractedText])
 
       const firstMaterial = materialsPlan[0]?.label || ''
       const firstTrade = crewPlan[0]?.trade || ''
+
       setSupplierForm((prev) => ({
         ...prev,
         material: firstMaterial || prev.material,
         zip: detectedZip || prev.zip
       }))
+
       setCrewForm((prev) => ({
         ...prev,
         trade: firstTrade || prev.trade,
         zip: detectedZip || prev.zip,
         minCrew: crewPlan[0]?.crewRange?.split('-')?.[0] || prev.minCrew
       }))
+
       setDeliveryForm((prev) => ({
         ...prev,
         pickupZip: supplierForm.zip || detectedZip || prev.pickupZip,
@@ -1291,6 +1300,7 @@ ${extractedText}`), [projectNotes, extractedText])
                 <Link className="btn" to="/materials">
                   {copy.openMaterials}
                 </Link>
+
                 <button className="btn" type="button" onClick={() => openSupplierSearch()}>
                   {copy.openSupplierSearch}
                 </button>
@@ -1384,6 +1394,7 @@ ${extractedText}`), [projectNotes, extractedText])
                   <option value="busy">{copy.busy}</option>
                 </select>
               </div>
+
               <div>
                 <div className="muted" style={{ marginBottom: 8 }}>{copy.minCrewLabel}</div>
                 <input
@@ -1393,6 +1404,7 @@ ${extractedText}`), [projectNotes, extractedText])
                   onChange={(e) => setCrewField('minCrew', e.target.value)}
                 />
               </div>
+
               <div>
                 <div className="muted" style={{ marginBottom: 8 }}>{copy.radiusLabel}</div>
                 <input
@@ -1453,6 +1465,7 @@ ${extractedText}`), [projectNotes, extractedText])
                   placeholder={copy.pickupZipPlaceholder}
                 />
               </div>
+
               <div>
                 <div className="muted" style={{ marginBottom: 8 }}>{copy.jobsiteZipLabel}</div>
                 <input
@@ -1480,6 +1493,7 @@ ${extractedText}`), [projectNotes, extractedText])
                   ))}
                 </select>
               </div>
+
               <div>
                 <div className="muted" style={{ marginBottom: 8 }}>{copy.trailerLabel}</div>
                 <select
@@ -1495,6 +1509,7 @@ ${extractedText}`), [projectNotes, extractedText])
                   ))}
                 </select>
               </div>
+
               <div>
                 <div className="muted" style={{ marginBottom: 8 }}>{copy.payloadLabel}</div>
                 <input
@@ -1626,6 +1641,7 @@ ${extractedText}`), [projectNotes, extractedText])
                     <div className="muted">{copy.engineProjectType}</div>
                     <div style={{ marginTop: 6, fontWeight: 800 }}>{projectEngine.summary}</div>
                   </div>
+
                   <div className="card-soft" style={{ background: '#ffffff' }}>
                     <div className="muted">{copy.enginePrimaryZip}</div>
                     <div style={{ marginTop: 6, fontWeight: 800 }}>{projectEngine.primaryZip || '—'}</div>
@@ -1660,6 +1676,7 @@ ${extractedText}`), [projectNotes, extractedText])
                                 {copy.engineEstimatedCrew}: {item.crewRange}
                               </div>
                             </div>
+
                             <button
                               className="btn small"
                               type="button"
@@ -1674,7 +1691,9 @@ ${extractedText}`), [projectNotes, extractedText])
                               {copy.engineBuildCrewPost}
                             </button>
                           </div>
+
                           <div className="muted" style={{ marginTop: 8 }}>{item.recommendedAction}</div>
+
                           {item.matches?.length ? (
                             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                               {item.matches.slice(0, 3).map((match) => (
@@ -1705,6 +1724,7 @@ ${extractedText}`), [projectNotes, extractedText])
                                 {copy.enginePriority}: {item.priority}
                               </div>
                             </div>
+
                             <button
                               className="btn small"
                               type="button"
@@ -1763,14 +1783,21 @@ ${extractedText}`), [projectNotes, extractedText])
                       <div className="grid two" style={{ gap: 12 }}>
                         <div className="card-soft" style={{ background: '#f8f7ef' }}>
                           <div className="muted">{copy.engineSuggestedLane}</div>
-                          <div style={{ marginTop: 6, fontWeight: 800 }}>{titleCase(projectEngine.deliveryPlan.suggestedLane)}</div>
+                          <div style={{ marginTop: 6, fontWeight: 800 }}>
+                            {titleCase(projectEngine.deliveryPlan.suggestedLane)}
+                          </div>
                         </div>
+
                         <div className="card-soft" style={{ background: '#f8f7ef' }}>
                           <div className="muted">{copy.payloadLabel}</div>
-                          <div style={{ marginTop: 6, fontWeight: 800 }}>{projectEngine.deliveryPlan.payload || '—'}</div>
+                          <div style={{ marginTop: 6, fontWeight: 800 }}>
+                            {projectEngine.deliveryPlan.payload || '—'}
+                          </div>
                         </div>
                       </div>
+
                       <div className="muted">{projectEngine.deliveryPlan.notes}</div>
+
                       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                         <button
                           className="btn small"
@@ -1787,6 +1814,7 @@ ${extractedText}`), [projectNotes, extractedText])
                         >
                           {copy.engineUseDelivery}
                         </button>
+
                         <button
                           className="btn small"
                           type="button"
@@ -1801,6 +1829,7 @@ ${extractedText}`), [projectNotes, extractedText])
                           {copy.engineBuildDeliveryPost}
                         </button>
                       </div>
+
                       {projectEngine.deliveryPlan.matches?.length ? (
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                           {projectEngine.deliveryPlan.matches.slice(0, 4).map((driver) => (
@@ -1835,6 +1864,7 @@ ${extractedText}`), [projectNotes, extractedText])
             <p className="card-section-subtitle" style={{ marginTop: 8 }}>
               {copy.analyzerActionsBody}
             </p>
+
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
               <button
                 className="btn"
@@ -1848,6 +1878,7 @@ ${extractedText}`), [projectNotes, extractedText])
               >
                 {copy.openSupplierSearch}
               </button>
+
               <button
                 className="btn"
                 type="button"
@@ -1861,6 +1892,7 @@ ${extractedText}`), [projectNotes, extractedText])
               >
                 {copy.openCrewPost}
               </button>
+
               <button
                 className="btn"
                 type="button"
@@ -1874,6 +1906,7 @@ ${extractedText}`), [projectNotes, extractedText])
               >
                 {copy.openDeliveryPost}
               </button>
+
               <button
                 className="btn"
                 type="button"

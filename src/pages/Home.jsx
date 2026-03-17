@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { supabase } from '../supabaseClient'
 
 const COPY = {
   en: {
@@ -200,8 +201,137 @@ function ProofTile({ value }) {
   )
 }
 
+
+function roleCardConfig(profile, lang = 'en') {
+  const role = String(profile?.role || '').trim()
+  const isEs = lang === 'es'
+
+  if (role === 'contractor') {
+    return {
+      badge: isEs ? 'Experiencia del contratista' : 'Contractor experience',
+      title: isEs ? 'Convierte Surplox en tu tablero de ejecución.' : 'Turn Surplox into your execution board.',
+      body: isEs
+        ? 'Inicia el Project Engine, publica solicitudes de cuadrilla, descubre proveedores y coordina entregas desde un solo lugar.'
+        : 'Launch the Project Engine, post crew demand, discover suppliers, and coordinate delivery from one place.',
+      primaryLabel: isEs ? 'Abrir Project Engine' : 'Open Project Engine',
+      primaryTo: '/ai-tools',
+      secondaryLabel: isEs ? 'Crear publicación de cuadrilla' : 'Create Need Crew Post',
+      secondaryTo: '/new?type=need_crew'
+    }
+  }
+
+  if (role === 'supplier') {
+    return {
+      badge: isEs ? 'Experiencia del proveedor' : 'Supplier experience',
+      title: isEs ? 'Haz que tu tienda esté visible para la obra.' : 'Make your storefront visible to the field.',
+      body: isEs
+        ? 'Actualiza materiales, horas, radio de entrega y usa la búsqueda de materiales para ver cómo te descubre la red.'
+        : 'Update materials, hours, delivery radius, and use materials search to see how the network discovers you.',
+      primaryLabel: isEs ? 'Abrir materiales' : 'Open Materials',
+      primaryTo: '/materials',
+      secondaryLabel: isEs ? 'Abrir mi cuenta' : 'Open My Account',
+      secondaryTo: '/account'
+    }
+  }
+
+  if (role === 'driver') {
+    return {
+      badge: isEs ? 'Experiencia del conductor' : 'Driver experience',
+      title: isEs ? 'Encuentra entregas que encajen con tu capacidad.' : 'Find deliveries that fit your capability.',
+      body: isEs
+        ? 'Busca por vehículo, remolque, carga útil y radio para posicionarte en la línea proveedor → conductor → obra.'
+        : 'Search by vehicle, trailer, payload, and radius to position yourself in the supplier → driver → jobsite lane.',
+      primaryLabel: isEs ? 'Abrir entrega' : 'Open Delivery',
+      primaryTo: '/delivery',
+      secondaryLabel: isEs ? 'Crear publicación de entrega' : 'Create Delivery Support Post',
+      secondaryTo: '/new?category=jobsite_support&support=material_delivery'
+    }
+  }
+
+  if (role === 'mechanic') {
+    return {
+      badge: isEs ? 'Experiencia de reparación' : 'Repair experience',
+      title: isEs ? 'Mantente visible para soporte urgente de obra.' : 'Stay visible for urgent field repair support.',
+      body: isEs
+        ? 'Usa canales y el feed para responder más rápido a necesidades de reparación de equipo y flota.'
+        : 'Use channels and the feed to respond faster to equipment and fleet repair needs.',
+      primaryLabel: isEs ? 'Abrir canales' : 'Open Channels',
+      primaryTo: '/channels',
+      secondaryLabel: isEs ? 'Crear publicación de reparación' : 'Create Repair Support Post',
+      secondaryTo: '/new?category=jobsite_support&support=equipment_fleet_repair'
+    }
+  }
+
+  return {
+    badge: isEs ? 'Experiencia de Surplox' : 'Surplox experience',
+    title: isEs ? 'Ve directo a las oportunidades locales.' : 'Jump straight into local opportunities.',
+    body: isEs
+      ? 'Abre el feed, revisa canales y mantén tu perfil listo para nuevas conexiones.'
+      : 'Open the feed, check channels, and keep your profile ready for new connections.',
+    primaryLabel: isEs ? 'Abrir feed' : 'Open Feed',
+    primaryTo: '/feed',
+    secondaryLabel: isEs ? 'Abrir canales' : 'Open Channels',
+    secondaryTo: '/channels'
+  }
+}
+
 export default function Home({ lang = 'en' }) {
   const copy = COPY[lang] || COPY.en
+  const [session, setSession] = useState(null)
+  const [profile, setProfile] = useState(null)
+
+  useEffect(() => {
+    let mounted = true
+
+    async function load() {
+      const { data } = await supabase.auth.getSession()
+      if (!mounted) return
+      const nextSession = data.session || null
+      setSession(nextSession)
+
+      if (nextSession?.user?.id) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('user_id, role, display_name, business_name, category_group')
+          .eq('user_id', nextSession.user.id)
+          .maybeSingle()
+
+        if (!mounted) return
+        setProfile(profileData || null)
+      } else {
+        setProfile(null)
+      }
+    }
+
+    load()
+
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession || null)
+
+      if (!nextSession?.user?.id) {
+        setProfile(null)
+        return
+      }
+
+      supabase
+        .from('profiles')
+        .select('user_id, role, display_name, business_name, category_group')
+        .eq('user_id', nextSession.user.id)
+        .maybeSingle()
+        .then(({ data: profileData }) => {
+          if (mounted) setProfile(profileData || null)
+        })
+    })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  const roleExperience = useMemo(() => roleCardConfig(profile, lang), [profile, lang])
 
   return (
     <div className="grid" style={{ gap: 18 }}>
@@ -243,6 +373,38 @@ export default function Home({ lang = 'en' }) {
           <ProofTile value={copy.proof6} />
         </div>
       </div>
+
+      {session ? (
+        <div
+          className="card rounded-xl"
+          style={{
+            padding: 24,
+            background: 'linear-gradient(180deg, #eef3ff 0%, #ffffff 100%)'
+          }}
+        >
+          <div className="badge" style={{ marginBottom: 14, background: '#d8ecff', color: '#0d3f73' }}>
+            {roleExperience.badge}
+          </div>
+
+          <div className="h2" style={{ fontSize: 28, maxWidth: 860 }}>
+            {roleExperience.title}
+          </div>
+
+          <p className="muted" style={{ marginTop: 10, maxWidth: 900, lineHeight: 1.75 }}>
+            {roleExperience.body}
+          </p>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+            <Link className="btn primary" to={roleExperience.primaryTo}>
+              {roleExperience.primaryLabel}
+            </Link>
+            <Link className="btn" to={roleExperience.secondaryTo}>
+              {roleExperience.secondaryLabel}
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
 
       <div className="card rounded-xl" style={{ padding: 24 }}>
         <div className="card-section-title">{copy.missionTitle}</div>

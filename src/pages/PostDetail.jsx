@@ -385,7 +385,18 @@ const UI = {
     feetShort: 'ft',
     poundsShort: 'lbs',
     driverCapabilities: 'Driver Capabilities',
-    noTrailer: 'No Trailer'
+    noTrailer: 'No Trailer',
+    actionSystem: 'Action System',
+    actionSystemBody: 'Close the loop on this post by selecting a supplier, assigning a driver, or marking the job complete.',
+    selectSupplier: 'Select Supplier',
+    supplierSelected: 'Supplier selected',
+    assignDriver: 'Assign Driver',
+    driverAssigned: 'Driver assigned',
+    markComplete: 'Mark Complete',
+    completed: 'Completed',
+    actionSaved: 'Action saved.',
+    actionSaveError: 'Unable to save this action right now.',
+    onlyOwnerComplete: 'Only the post owner can mark this post complete.'
   },
   es: {
     unknownMember: 'Miembro desconocido',
@@ -496,7 +507,18 @@ const UI = {
     feetShort: 'ft',
     poundsShort: 'lbs',
     driverCapabilities: 'Capacidades del conductor',
-    noTrailer: 'Sin remolque'
+    noTrailer: 'Sin remolque',
+    actionSystem: 'Sistema de acciones',
+    actionSystemBody: 'Cierra el ciclo de esta publicación seleccionando proveedor, asignando conductor o marcando el trabajo como completo.',
+    selectSupplier: 'Seleccionar proveedor',
+    supplierSelected: 'Proveedor seleccionado',
+    assignDriver: 'Asignar conductor',
+    driverAssigned: 'Conductor asignado',
+    markComplete: 'Marcar completo',
+    completed: 'Completado',
+    actionSaved: 'Acción guardada.',
+    actionSaveError: 'No se pudo guardar esta acción.',
+    onlyOwnerComplete: 'Solo el dueño de la publicación puede marcarla como completada.'
   }
 }
 
@@ -537,6 +559,10 @@ export default function PostDetail({ lang: langProp = 'en' }) {
   const [myCrewMembership, setMyCrewMembership] = useState(false)
   const [crewActionLoading, setCrewActionLoading] = useState(false)
   const [workedBeforeMap, setWorkedBeforeMap] = useState({})
+  const [actionBusy, setActionBusy] = useState(false)
+  const [selectedSupplier, setSelectedSupplier] = useState(false)
+  const [assignedDriver, setAssignedDriver] = useState(false)
+  const [postCompleted, setPostCompleted] = useState(false)
 
   const [translatedPostBody, setTranslatedPostBody] = useState('')
   const [showTranslatedPost, setShowTranslatedPost] = useState(false)
@@ -693,6 +719,98 @@ export default function PostDetail({ lang: langProp = 'en' }) {
     }
   }
 
+  async function saveActionRelationship(relationshipType, targetUserId, notificationType, notificationMessage) {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const uid = sessionData.session?.user?.id
+
+      if (!uid) {
+        setMsg(copy.notSignedIn)
+        return false
+      }
+
+      setActionBusy(true)
+
+      const { error } = await supabase.from('user_relationships').upsert({
+        source_user_id: uid,
+        target_user_id: targetUserId,
+        relationship_type: relationshipType,
+        post_id: id
+      })
+
+      if (error) throw error
+
+      if (notificationType && notificationMessage && targetUserId && targetUserId !== uid) {
+        await createNotification({
+          userId: targetUserId,
+          actorUserId: uid,
+          postId: id,
+          type: notificationType,
+          message: notificationMessage
+        })
+      }
+
+      setMsg(copy.actionSaved)
+      return true
+    } catch (err) {
+      console.error(err)
+      setMsg(copy.actionSaveError)
+      return false
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
+  async function selectSupplier() {
+    if (!post?.author_id) return
+    const saved = await saveActionRelationship(
+      'selected_supplier_post',
+      post.author_id,
+      'supplier_activity',
+      lang === 'es' ? 'Tu proveedor fue seleccionado desde una publicación.' : 'Your supplier was selected from a post.'
+    )
+    if (saved) setSelectedSupplier(true)
+  }
+
+  async function assignDriver() {
+    if (!post?.author_id) return
+    const saved = await saveActionRelationship(
+      'assigned_delivery_post',
+      post.author_id,
+      'jobsite_support',
+      lang === 'es' ? 'Tu soporte de entrega fue asignado desde una publicación.' : 'Your delivery support was assigned from a post.'
+    )
+    if (saved) setAssignedDriver(true)
+  }
+
+  async function markPostComplete() {
+    try {
+      if (currentUserId !== post?.author_id) {
+        setMsg(copy.onlyOwnerComplete)
+        return
+      }
+
+      setActionBusy(true)
+
+      const { error } = await supabase.from('user_relationships').upsert({
+        source_user_id: currentUserId,
+        target_user_id: currentUserId,
+        relationship_type: 'completed_post',
+        post_id: id
+      })
+
+      if (error) throw error
+
+      setPostCompleted(true)
+      setMsg(copy.actionSaved)
+    } catch (err) {
+      console.error(err)
+      setMsg(copy.actionSaveError)
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
   useEffect(() => {
     let active = true
 
@@ -840,6 +958,39 @@ export default function PostDetail({ lang: langProp = 'en' }) {
         if (!active) return
         setScore((voteRows || []).reduce((sum, row) => sum + Number(row.value || 0), 0))
         setMyVote(Number((voteRows || []).find((row) => row.user_id === uid)?.value || 0))
+
+        const { data: actionRows, error: actionErr } = await supabase
+          .from('user_relationships')
+          .select('source_user_id,target_user_id,relationship_type,post_id')
+          .eq('post_id', id)
+          .in('relationship_type', ['selected_supplier_post', 'assigned_delivery_post', 'completed_post'])
+
+        if (actionErr) throw actionErr
+
+        if (!active) return
+        setSelectedSupplier(
+          Boolean(
+            uid &&
+              (actionRows || []).find(
+                (row) =>
+                  row.relationship_type === 'selected_supplier_post' &&
+                  row.source_user_id === uid &&
+                  row.target_user_id === normalizedPost.author_id
+              )
+          )
+        )
+        setAssignedDriver(
+          Boolean(
+            uid &&
+              (actionRows || []).find(
+                (row) =>
+                  row.relationship_type === 'assigned_delivery_post' &&
+                  row.source_user_id === uid &&
+                  row.target_user_id === normalizedPost.author_id
+              )
+          )
+        )
+        setPostCompleted(Boolean((actionRows || []).find((row) => row.relationship_type === 'completed_post')))
 
         if (normalizedPost.post_type === 'need_crew') {
           const { data: membershipRows, error: membersErr } = await supabase
@@ -1419,6 +1570,12 @@ export default function PostDetail({ lang: langProp = 'en' }) {
           ) : null}
 
           <span className="badge">{timeAgo(post.created_at, lang)}</span>
+
+          {postCompleted ? (
+            <span className="badge" style={{ background: '#111111', color: '#ffffff' }}>
+              {copy.completed}
+            </span>
+          ) : null}
         </div>
 
         <div className="h2">{post.title}</div>
@@ -1760,7 +1917,46 @@ export default function PostDetail({ lang: langProp = 'en' }) {
             <button className="btn" type="button" onClick={() => copyWorkerProfileLink(post.author_id)}>
               Copy Profile Link
             </button>
+
+            {post.author_role === 'supplier' && currentUserId && currentUserId !== post.author_id ? (
+              <button className="btn" type="button" onClick={selectSupplier} disabled={actionBusy || selectedSupplier}>
+                {selectedSupplier ? copy.supplierSelected : copy.selectSupplier}
+              </button>
+            ) : null}
+
+            {post.author_role === 'driver' && currentUserId && currentUserId !== post.author_id ? (
+              <button className="btn" type="button" onClick={assignDriver} disabled={actionBusy || assignedDriver}>
+                {assignedDriver ? copy.driverAssigned : copy.assignDriver}
+              </button>
+            ) : null}
           </div>
+        </div>
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">{copy.actionSystem}</div>
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+          {copy.actionSystemBody}
+        </p>
+
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+          {post.author_role === 'supplier' && currentUserId && currentUserId !== post.author_id ? (
+            <button className="btn" type="button" onClick={selectSupplier} disabled={actionBusy || selectedSupplier}>
+              {selectedSupplier ? copy.supplierSelected : copy.selectSupplier}
+            </button>
+          ) : null}
+
+          {post.author_role === 'driver' && currentUserId && currentUserId !== post.author_id ? (
+            <button className="btn" type="button" onClick={assignDriver} disabled={actionBusy || assignedDriver}>
+              {assignedDriver ? copy.driverAssigned : copy.assignDriver}
+            </button>
+          ) : null}
+
+          {post.author_id === currentUserId ? (
+            <button className="btn" type="button" onClick={markPostComplete} disabled={actionBusy || postCompleted}>
+              {postCompleted ? copy.completed : copy.markComplete}
+            </button>
+          ) : null}
         </div>
       </div>
 
