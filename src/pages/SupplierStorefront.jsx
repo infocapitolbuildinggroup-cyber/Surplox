@@ -518,6 +518,11 @@ export default function SupplierStorefront() {
   }
 
   function handleDirectMessage() {
+    if (currentUserId && profile?.user_id && currentUserId !== profile.user_id) {
+      navigate(`/messages?to=${encodeURIComponent(profile.user_id)}&draft=${encodeURIComponent(buildSupplierMessageDraft(profile))}`)
+      return
+    }
+
     if (profile.website_url) {
       window.open(profile.website_url, '_blank', 'noreferrer')
       return
