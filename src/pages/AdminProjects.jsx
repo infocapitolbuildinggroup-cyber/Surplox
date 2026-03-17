@@ -28,6 +28,8 @@ function badgeStyleForStatus(status) {
 export default function AdminProjects({ lang = 'en' }) {
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [sortBy, setSortBy] = useState('newest')
 
   useEffect(() => {
     let active = true
@@ -99,6 +101,32 @@ export default function AdminProjects({ lang = 'en' }) {
     }
   }, [projects])
 
+  const filteredProjects = useMemo(() => {
+    let rows = [...projects]
+
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'no_invoices') {
+        rows = rows.filter((project) => project.invoiceCount === 0)
+      } else if (statusFilter === 'no_time') {
+        rows = rows.filter((project) => project.timeEntries === 0)
+      } else {
+        rows = rows.filter((project) => project.project_status === statusFilter)
+      }
+    }
+
+    if (sortBy === 'highest_value') {
+      rows.sort((a, b) => b.totalValue - a.totalValue)
+    } else if (sortBy === 'most_hours') {
+      rows.sort((a, b) => b.totalHours - a.totalHours)
+    } else if (sortBy === 'fewest_invoices') {
+      rows.sort((a, b) => a.invoiceCount - b.invoiceCount)
+    } else {
+      rows.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
+    }
+
+    return rows
+  }, [projects, statusFilter, sortBy])
+
   if (loading) {
     return <div className="card">Loading projects...</div>
   }
@@ -132,11 +160,41 @@ export default function AdminProjects({ lang = 'en' }) {
         </div>
       </div>
 
-      {projects.length === 0 ? (
-        <div className="card-soft">No projects yet.</div>
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">Project Filters + Sorting</div>
+        <div className="grid two" style={{ marginTop: 14 }}>
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>Filter</div>
+            <select className="input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="all">All Projects</option>
+              <option value="active">Active Only</option>
+              <option value="estimating">Estimating Only</option>
+              <option value="completed">Completed Only</option>
+              <option value="paused">Paused Only</option>
+              <option value="lead">Lead Only</option>
+              <option value="archived">Archived Only</option>
+              <option value="no_invoices">No Invoices</option>
+              <option value="no_time">No Time Entries</option>
+            </select>
+          </div>
+
+          <div>
+            <div className="muted" style={{ marginBottom: 6 }}>Sort</div>
+            <select className="input" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <option value="newest">Newest</option>
+              <option value="highest_value">Highest Value</option>
+              <option value="most_hours">Most Hours</option>
+              <option value="fewest_invoices">Fewest Invoices</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {filteredProjects.length === 0 ? (
+        <div className="card-soft">No projects match the current filter.</div>
       ) : (
         <div className="list">
-          {projects.map((project) => (
+          {filteredProjects.map((project) => (
             <Link
               key={project.id}
               to={`/admin/projects/${project.id}`}
