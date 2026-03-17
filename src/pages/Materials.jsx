@@ -36,7 +36,11 @@ const COPY = {
     about: 'About',
     noBio: 'No supplier bio added yet.',
     openStorefront: 'Open Storefront',
-    openProfile: 'Open Profile'
+    openProfile: 'Open Profile',
+    website: 'Website',
+    phone: 'Phone',
+    sourceImported: 'Google-imported',
+    sourceNative: 'Surplox account'
   },
   es: {
     badge: 'Búsqueda de materiales',
@@ -71,7 +75,11 @@ const COPY = {
     about: 'Acerca de',
     noBio: 'Este proveedor todavía no agregó biografía.',
     openStorefront: 'Abrir tienda',
-    openProfile: 'Abrir perfil'
+    openProfile: 'Abrir perfil',
+    website: 'Sitio web',
+    phone: 'Teléfono',
+    sourceImported: 'Importado de Google',
+    sourceNative: 'Cuenta Surplox'
   }
 }
 
@@ -104,6 +112,10 @@ function normalizeMaterialLabel(value) {
     .trim()
 }
 
+function normalizeText(value) {
+  return String(value || '').trim()
+}
+
 function scoreSupplier(supplier, query, material, zipFilter, storefrontOnly) {
   let score = 0
 
@@ -112,6 +124,8 @@ function scoreSupplier(supplier, query, material, zipFilter, storefrontOnly) {
     supplier.display_name,
     supplier.business_zip,
     supplier.bio,
+    supplier.phone,
+    supplier.website_url,
     ...supplier.materials_categories
   ]
     .join(' ')
@@ -147,9 +161,45 @@ function scoreSupplier(supplier, query, material, zipFilter, storefrontOnly) {
     score += 6
   }
 
+  if (supplier.source === 'native') score += 4
   score += Math.min(Number(supplier.delivery_radius || 0), 100) / 10
 
   return score
+}
+
+function makeNativeSupplier(item) {
+  return {
+    id: item.user_id,
+    source: 'native',
+    user_id: item.user_id,
+    display_name: normalizeText(item.display_name),
+    business_name: normalizeText(item.business_name) || normalizeText(item.display_name),
+    business_zip: normalizeText(item.business_zip),
+    delivery_radius: Number(item.delivery_radius || 0) || 0,
+    materials_categories: normalizeMaterials(item.materials_categories).map(normalizeMaterialLabel),
+    storefront: Boolean(item.storefront),
+    bio: normalizeText(item.bio),
+    phone: '',
+    website_url: ''
+  }
+}
+
+function makeImportedSupplier(item) {
+  return {
+    id: item.id || item.external_id,
+    external_id: item.external_id,
+    source: 'imported',
+    user_id: null,
+    display_name: normalizeText(item.display_name) || normalizeText(item.business_name),
+    business_name: normalizeText(item.business_name) || normalizeText(item.display_name),
+    business_zip: normalizeText(item.business_zip),
+    delivery_radius: Number(item.delivery_radius || 0) || 0,
+    materials_categories: normalizeMaterials(item.materials_categories).map(normalizeMaterialLabel),
+    storefront: Boolean(item.storefront),
+    bio: normalizeText(item.bio),
+    phone: normalizeText(item.phone),
+    website_url: normalizeText(item.website_url)
+  }
 }
 
 export default function Materials({ lang = 'en' }) {
@@ -173,31 +223,60 @@ export default function Materials({ lang = 'en' }) {
       setError('')
 
       try {
-        const { data, error: supplierError } = await supabase
-          .from('profiles')
-          .select(`
-            user_id,
-            display_name,
-            business_name,
-            business_zip,
-            delivery_radius,
-            materials_categories,
-            storefront,
-            bio,
-            role
-          `)
-          .eq('role', 'supplier')
-          .order('business_name', { ascending: true })
+        const [nativeResponse, importedResponse] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select(`
+              user_id,
+              display_name,
+              business_name,
+              business_zip,
+              delivery_radius,
+              materials_categories,
+              storefront,
+              bio,
+              role
+            `)
+            .eq('role', 'supplier')
+            .order('business_name', { ascending: true }),
+          supabase
+            .from('external_suppliers')
+            .select(`
+              id,
+              external_id,
+              display_name,
+              business_name,
+              business_zip,
+              delivery_radius,
+              materials_categories,
+              storefront,
+              bio,
+              phone,
+              website_url
+            `)
+            .order('business_name', { ascending: true })
+        ])
 
-        if (supplierError) throw supplierError
+        if (nativeResponse.error) throw nativeResponse.error
+        if (importedResponse.error && importedResponse.error.code !== 'PGRST116') {
+          throw importedResponse.error
+        }
+
         if (!active) return
 
-        setSuppliers(
-          (data || []).map((item) => ({
-            ...item,
-            materials_categories: normalizeMaterials(item.materials_categories).map(normalizeMaterialLabel)
-          }))
+        const nativeSuppliers = (nativeResponse.data || []).map(makeNativeSupplier)
+        const importedSuppliers = (importedResponse.data || []).map(makeImportedSupplier)
+
+        const deduped = Array.from(
+          new Map(
+            [...nativeSuppliers, ...importedSuppliers].map((item) => {
+              const key = `${normalizeText(item.business_name).toLowerCase()}::${normalizeText(item.business_zip)}`
+              return [key, item]
+            })
+          ).values()
         )
+
+        setSuppliers(deduped)
       } catch (err) {
         console.error(err)
         if (!active) return
@@ -237,6 +316,8 @@ export default function Materials({ lang = 'en' }) {
           supplier.display_name,
           supplier.business_zip,
           supplier.bio,
+          supplier.phone,
+          supplier.website_url,
           ...supplier.materials_categories
         ]
           .join(' ')
@@ -340,11 +421,7 @@ export default function Materials({ lang = 'en' }) {
 
             <div>
               <div className="muted" style={{ marginBottom: 8 }}>{copy.materialLabel}</div>
-              <select
-                className="input"
-                value={material}
-                onChange={(e) => setMaterial(e.target.value)}
-              >
+              <select className="input" value={material} onChange={(e) => setMaterial(e.target.value)}>
                 <option value="">{copy.allMaterials}</option>
                 {materialOptions.map((option) => (
                   <option key={option} value={option}>
@@ -356,19 +433,6 @@ export default function Materials({ lang = 'en' }) {
           </div>
 
           <div className="grid two" style={{ gap: 14 }}>
-            <div>
-              <div className="muted" style={{ marginBottom: 8 }}>{copy.sortLabel}</div>
-              <select
-                className="input"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="best">{copy.sortBest}</option>
-                <option value="radius">{copy.sortRadius}</option>
-                <option value="name">{copy.sortName}</option>
-              </select>
-            </div>
-
             <div style={{ display: 'flex', alignItems: 'flex-end' }}>
               <button
                 type="button"
@@ -377,6 +441,15 @@ export default function Materials({ lang = 'en' }) {
               >
                 {copy.storefrontOnly}
               </button>
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 8 }}>{copy.sortLabel}</div>
+              <select className="input" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                <option value="best">{copy.sortBest}</option>
+                <option value="radius">{copy.sortRadius}</option>
+                <option value="name">{copy.sortName}</option>
+              </select>
             </div>
           </div>
 
@@ -401,99 +474,117 @@ export default function Materials({ lang = 'en' }) {
         </div>
       ) : (
         <div className="grid" style={{ gap: 16 }}>
-          {filteredSuppliers.map((supplier) => {
-            const displayName =
-              String(supplier.business_name || '').trim() ||
-              String(supplier.display_name || '').trim() ||
-              copy.supplier
-
-            return (
-              <div key={supplier.user_id} className="card rounded-xl" style={{ padding: 22 }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    flexWrap: 'wrap',
-                    alignItems: 'flex-start'
-                  }}
-                >
-                  <div>
-                    <div className="h2" style={{ fontSize: 24 }}>{displayName}</div>
-
-                    <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <span className="badge">
-                        {copy.zip}: {supplier.business_zip || '—'}
-                      </span>
-
-                      <span className="badge">
-                        {copy.deliveryRadius}:{' '}
-                        {Number(supplier.delivery_radius || 0) > 0
-                          ? `${supplier.delivery_radius} ${copy.miles}`
-                          : '—'}
-                      </span>
-
-                      <span
-                        className="badge"
-                        style={
-                          supplier.storefront
-                            ? { background: '#dcf4e5', color: '#177245' }
-                            : { background: '#f8f7ef', color: '#111111' }
-                        }
-                      >
-                        {supplier.storefront ? copy.storefrontYes : copy.storefrontNo}
-                      </span>
-                    </div>
+          {filteredSuppliers.map((supplier) => (
+            <div key={supplier.id || supplier.external_id || supplier.business_name} className="card rounded-xl" style={{ padding: 22 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  flexWrap: 'wrap',
+                  alignItems: 'flex-start'
+                }}
+              >
+                <div>
+                  <div className="h2" style={{ fontSize: 24 }}>
+                    {supplier.business_name || supplier.display_name || copy.supplier}
                   </div>
 
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <Link className="btn small primary" to={`/supplier/${supplier.user_id}`}>
-                      {copy.openStorefront}
-                    </Link>
-                    <Link className="btn small" to={`/u/${supplier.user_id}`}>
-                      {copy.openProfile}
-                    </Link>
+                  <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <span className="badge">
+                      {supplier.source === 'imported' ? copy.sourceImported : copy.sourceNative}
+                    </span>
+
+                    <span className="badge">
+                      {supplier.storefront ? copy.storefrontYes : copy.storefrontNo}
+                    </span>
+
+                    <span className="badge">
+                      {copy.zip}: {supplier.business_zip || '—'}
+                    </span>
                   </div>
                 </div>
 
-                <div style={{ marginTop: 16 }}>
-                  <div className="muted">{copy.materials}</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {supplier.source === 'native' && supplier.user_id ? (
+                    <>
+                      <Link className="btn small primary" to={`/supplier/${supplier.user_id}`}>
+                        {copy.openStorefront}
+                      </Link>
+                      <Link className="btn small" to={`/u/${supplier.user_id}`}>
+                        {copy.openProfile}
+                      </Link>
+                    </>
+                  ) : (
+                    <Link className="btn small" to="/ai-tools">
+                      {copy.openStorefront}
+                    </Link>
+                  )}
+                </div>
+              </div>
 
+              <div className="grid two" style={{ gap: 14, marginTop: 16 }}>
+                <div className="card-soft" style={{ background: '#fffaf0' }}>
+                  <div className="card-section-title" style={{ fontSize: 15 }}>
+                    {copy.deliveryRadius}
+                  </div>
+                  <div className="muted" style={{ marginTop: 6 }}>
+                    {Number(supplier.delivery_radius || 0) > 0
+                      ? `${Number(supplier.delivery_radius)} ${copy.miles}`
+                      : '—'}
+                  </div>
+                </div>
+
+                <div className="card-soft" style={{ background: '#fffaf0' }}>
+                  <div className="card-section-title" style={{ fontSize: 15 }}>
+                    {copy.materials}
+                  </div>
                   {supplier.materials_categories.length > 0 ? (
-                    <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
                       {supplier.materials_categories.map((item) => (
-                        <button
-                          key={`${supplier.user_id}-${item}`}
-                          type="button"
-                          className="badge"
-                          style={{
-                            background: '#f1e7a8',
-                            color: '#111111',
-                            border: 'none',
-                            cursor: 'pointer'
-                          }}
-                          onClick={() => setMaterial(item)}
-                        >
+                        <span key={`${supplier.id || supplier.external_id}-${item}`} className="badge">
                           {item}
-                        </button>
+                        </span>
                       ))}
                     </div>
                   ) : (
-                    <div className="muted" style={{ marginTop: 8 }}>
+                    <div className="muted" style={{ marginTop: 6 }}>
                       {copy.noMaterials}
                     </div>
                   )}
                 </div>
-
-                <div style={{ marginTop: 16 }}>
-                  <div className="muted">{copy.about}</div>
-                  <p style={{ marginTop: 8, lineHeight: 1.7 }}>
-                    {String(supplier.bio || '').trim() || copy.noBio}
-                  </p>
-                </div>
               </div>
-            )
-          })}
+
+              {(supplier.phone || supplier.website_url) ? (
+                <div className="grid two" style={{ gap: 14, marginTop: 16 }}>
+                  <div className="card-soft">
+                    <div className="card-section-title" style={{ fontSize: 15 }}>
+                      {copy.phone}
+                    </div>
+                    <div className="muted" style={{ marginTop: 6 }}>
+                      {supplier.phone || '—'}
+                    </div>
+                  </div>
+
+                  <div className="card-soft">
+                    <div className="card-section-title" style={{ fontSize: 15 }}>
+                      {copy.website}
+                    </div>
+                    <div className="muted" style={{ marginTop: 6, overflowWrap: 'anywhere' }}>
+                      {supplier.website_url || '—'}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              <div style={{ marginTop: 16 }}>
+                <div className="muted">{copy.about}</div>
+                <p style={{ marginTop: 8, lineHeight: 1.7 }}>
+                  {supplier.bio || copy.noBio}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
