@@ -11,7 +11,7 @@ const COPY = {
     supportBadge: 'Jobsite Support',
     deliveryBadge: 'Delivery',
     cargoVanBadge: 'Delivery',
-    repairBadge: 'Equipment / Fleet Repair',
+    repairBadge: 'Mechanic / Repair',
     supplierBadge: 'Supplier',
     heroBadge: 'Trades + actions',
     heroTitle: 'Move faster through the right channels.',
@@ -76,7 +76,7 @@ const COPY = {
     cargoVanDeliveryTitle: 'Delivery',
     cargoVanDeliveryBody:
       'Best for cargo van operators handling local runs, last-mile delivery, same-day pickups, tools, and lighter materials between stores, yards, and jobsites.',
-    fleetRepairTitle: 'Equipment / Fleet Repair',
+    fleetRepairTitle: 'Mechanic / Repair',
     fleetRepairBody:
       'Best for diesel mechanics, trailer repair, heavy equipment repair, and emergency field support.'
   },
@@ -87,7 +87,7 @@ const COPY = {
     supportBadge: 'Soporte de obra',
     deliveryBadge: 'Entrega',
     cargoVanBadge: 'Entrega',
-    repairBadge: 'Reparación de equipo / flota',
+    repairBadge: 'Mecánica / Reparación',
     supplierBadge: 'Proveedor',
     heroBadge: 'Oficios + acciones',
     heroTitle: 'Muévete más rápido por los canales correctos.',
@@ -152,7 +152,7 @@ const COPY = {
     cargoVanDeliveryTitle: 'Entrega',
     cargoVanDeliveryBody:
       'Ideal para operadores con cargo van que manejan viajes locales, última milla, recogidas el mismo día, herramientas y materiales ligeros entre tiendas, patios y obras.',
-    fleetRepairTitle: 'Reparación de equipo / flota',
+    fleetRepairTitle: 'Mecánica / Reparación',
     fleetRepairBody:
       'Ideal para mecánicos diésel, reparación de remolques, reparación de equipo pesado y soporte de emergencia en campo.'
   }
