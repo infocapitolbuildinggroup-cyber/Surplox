@@ -29,7 +29,9 @@ const COPY = {
     clockOutError: 'Unable to clock out right now.',
     requiredFields: 'Jobsite and worker name are required.',
     clockedIn: 'Worker clocked in.',
-    clockedOut: 'Worker clocked out.'
+    clockedOut: 'Worker clocked out.',
+    crmJobsiteHint: 'Choose an existing CRM project/jobsite or type a new one.',
+    noCrmRecords: 'No CRM project records found yet. You can still type a jobsite manually.'
   },
   es: {
     badge: 'Reloj Admin',
@@ -57,7 +59,9 @@ const COPY = {
     clockOutError: 'No se pudo registrar la salida.',
     requiredFields: 'Obra y nombre del trabajador son obligatorios.',
     clockedIn: 'Trabajador registrado en entrada.',
-    clockedOut: 'Trabajador registrado en salida.'
+    clockedOut: 'Trabajador registrado en salida.',
+    crmJobsiteHint: 'Elige un proyecto/obra existente del CRM o escribe uno nuevo.',
+    noCrmRecords: 'Todavía no hay proyectos CRM. Aún puedes escribir la obra manualmente.'
   }
 }
 
@@ -75,6 +79,7 @@ function mapDbRowToEntry(row = {}) {
 export default function AdminTimeClock({ lang = 'en' }) {
   const copy = COPY[lang] || COPY.en
   const [entries, setEntries] = useState([])
+  const [crmRecords, setCrmRecords] = useState([])
   const [jobsite, setJobsite] = useState('')
   const [worker, setWorker] = useState('')
   const [role, setRole] = useState('')
@@ -89,15 +94,23 @@ export default function AdminTimeClock({ lang = 'en' }) {
       setMessage('')
 
       try {
-        const { data, error } = await supabase
-          .from('admin_time_entries')
-          .select('id, jobsite, worker, role, clock_in_at, clock_out_at')
-          .order('clock_in_at', { ascending: false })
+        const [timeRes, crmRes] = await Promise.all([
+          supabase
+            .from('admin_time_entries')
+            .select('id, jobsite, worker, role, clock_in_at, clock_out_at')
+            .order('clock_in_at', { ascending: false }),
+          supabase
+            .from('admin_crm_records')
+            .select('id, company, project, created_at')
+            .order('created_at', { ascending: false })
+        ])
 
-        if (error) throw error
+        if (timeRes.error) throw timeRes.error
+        if (crmRes.error) throw crmRes.error
         if (!active) return
 
-        setEntries(Array.isArray(data) ? data.map(mapDbRowToEntry) : [])
+        setEntries(Array.isArray(timeRes.data) ? timeRes.data.map(mapDbRowToEntry) : [])
+        setCrmRecords(Array.isArray(crmRes.data) ? crmRes.data : [])
       } catch (error) {
         console.error(error)
         if (!active) return
@@ -113,6 +126,16 @@ export default function AdminTimeClock({ lang = 'en' }) {
       active = false
     }
   }, [copy.loadError])
+
+  const crmJobsites = useMemo(() => {
+    return Array.from(
+      new Set(
+        crmRecords
+          .map((row) => String(row.project || '').trim())
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b))
+  }, [crmRecords])
 
   const activeEntries = useMemo(
     () =>
@@ -222,7 +245,24 @@ export default function AdminTimeClock({ lang = 'en' }) {
         <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">{copy.clockIn}</div>
           <form onSubmit={handleClockIn} className="grid" style={{ gap: 12, marginTop: 14 }}>
-            <input className="input" value={jobsite} onChange={(e) => setJobsite(e.target.value)} placeholder={copy.jobsite} />
+            <div>
+              <input
+                className="input"
+                list="crm-jobsite-options"
+                value={jobsite}
+                onChange={(e) => setJobsite(e.target.value)}
+                placeholder={copy.jobsite}
+              />
+              <datalist id="crm-jobsite-options">
+                {crmJobsites.map((project) => (
+                  <option key={project} value={project} />
+                ))}
+              </datalist>
+              <div className="muted" style={{ marginTop: 6 }}>
+                {crmJobsites.length > 0 ? copy.crmJobsiteHint : copy.noCrmRecords}
+              </div>
+            </div>
+
             <input className="input" value={worker} onChange={(e) => setWorker(e.target.value)} placeholder={copy.worker} />
             <input className="input" value={role} onChange={(e) => setRole(e.target.value)} placeholder={copy.role} />
             <button className="btn primary" type="submit">{copy.clockIn}</button>
