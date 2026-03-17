@@ -92,7 +92,7 @@ img {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 16px 20px;
+  padding: 20px 20px;
 }
 
 .nav-brand-row {
@@ -233,15 +233,15 @@ img {
 }
 
 .nav-logo-image {
-  width: 58px;
-  height: 58px;
+  width: 88px;
+  height: 88px;
   object-fit: contain;
   display: block;
 }
 
 .nav-logo-fallback {
-  width: 58px;
-  height: 58px;
+  width: 88px;
+  height: 88px;
   border-radius: 16px;
   background: #111111;
   color: #ffffff;
@@ -739,8 +739,8 @@ hr {
 
   .nav-logo-image,
   .nav-logo-fallback {
-    width: 52px;
-    height: 52px;
+    width: 72px;
+    height: 72px;
   }
 
   .nav-session-shortcuts,
