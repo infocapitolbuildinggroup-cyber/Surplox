@@ -2,9 +2,27 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 
+const PROJECT_STATUSES = [
+  { value: 'lead', label: 'Lead' },
+  { value: 'estimating', label: 'Estimating' },
+  { value: 'active', label: 'Active' },
+  { value: 'paused', label: 'Paused' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'archived', label: 'Archived' }
+]
+
 function money(value) {
   const number = Number(value || 0)
   return `$${number.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function normalizeProject(record) {
+  return {
+    ...record,
+    project_status: record?.project_status || 'active',
+    project_phase: record?.project_phase || '',
+    project_next_action: record?.project_next_action || ''
+  }
 }
 
 export default function AdminProjectDetail() {
@@ -16,6 +34,7 @@ export default function AdminProjectDetail() {
   const [message, setMessage] = useState('')
   const [savingInvoice, setSavingInvoice] = useState(false)
   const [clockingIn, setClockingIn] = useState(false)
+  const [savingProjectMeta, setSavingProjectMeta] = useState(false)
 
   const [invoiceForm, setInvoiceForm] = useState({
     type: 'invoice',
@@ -27,6 +46,12 @@ export default function AdminProjectDetail() {
   const [timeForm, setTimeForm] = useState({
     worker: '',
     role: ''
+  })
+
+  const [projectMeta, setProjectMeta] = useState({
+    project_status: 'active',
+    project_phase: '',
+    project_next_action: ''
   })
 
   useEffect(() => {
@@ -53,6 +78,8 @@ export default function AdminProjectDetail() {
           return
         }
 
+        const normalizedProject = normalizeProject(crm)
+
         const [invRes, timeRes] = await Promise.all([
           supabase.from('admin_invoices').select('*'),
           supabase.from('admin_time_entries').select('*')
@@ -63,14 +90,19 @@ export default function AdminProjectDetail() {
         if (!active) return
 
         const projectInvoices = (invRes.data || []).filter(
-          (invoice) => invoice.project === crm.project && invoice.client === crm.company
+          (invoice) => invoice.project === normalizedProject.project && invoice.client === normalizedProject.company
         )
 
         const projectTime = (timeRes.data || []).filter(
-          (entry) => entry.jobsite === crm.project
+          (entry) => entry.jobsite === normalizedProject.project
         )
 
-        setProject(crm)
+        setProject(normalizedProject)
+        setProjectMeta({
+          project_status: normalizedProject.project_status || 'active',
+          project_phase: normalizedProject.project_phase || '',
+          project_next_action: normalizedProject.project_next_action || ''
+        })
         setInvoices(projectInvoices)
         setTimeEntries(projectTime)
       } catch (error) {
@@ -220,6 +252,45 @@ export default function AdminProjectDetail() {
     }
   }
 
+  async function handleSaveProjectMeta(event) {
+    event.preventDefault()
+    if (!project) return
+
+    setSavingProjectMeta(true)
+    setMessage('')
+
+    try {
+      const payload = {
+        project_status: projectMeta.project_status,
+        project_phase: String(projectMeta.project_phase || '').trim() || null,
+        project_next_action: String(projectMeta.project_next_action || '').trim() || null
+      }
+
+      const { data, error } = await supabase
+        .from('admin_crm_records')
+        .update(payload)
+        .eq('id', project.id)
+        .select('*')
+        .single()
+
+      if (error) throw error
+
+      const normalized = normalizeProject(data)
+      setProject(normalized)
+      setProjectMeta({
+        project_status: normalized.project_status || 'active',
+        project_phase: normalized.project_phase || '',
+        project_next_action: normalized.project_next_action || ''
+      })
+      setMessage('Project status and phase updated.')
+    } catch (error) {
+      console.error(error)
+      setMessage('Unable to update project status right now.')
+    } finally {
+      setSavingProjectMeta(false)
+    }
+  }
+
   if (loading) return <div className="card">Loading project...</div>
   if (!project) return <div className="card">Project not found.</div>
 
@@ -237,6 +308,8 @@ export default function AdminProjectDetail() {
         <div className="muted" style={{ marginTop: 8 }}>{project.company || 'Unknown Client'}</div>
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+          <span className="badge">Status: {project.project_status || 'active'}</span>
+          {project.project_phase ? <span className="badge">Phase: {project.project_phase}</span> : null}
           <span className="badge">Invoices: {invoices.length}</span>
           <span className="badge">Time Entries: {timeEntries.length}</span>
           <span className="badge">Revenue: {money(totalValue)}</span>
@@ -249,6 +322,39 @@ export default function AdminProjectDetail() {
       </div>
 
       <div className="grid three">
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">Project Status + Phase Tracking</div>
+          <form onSubmit={handleSaveProjectMeta} className="grid" style={{ gap: 12, marginTop: 14 }}>
+            <select
+              className="input"
+              value={projectMeta.project_status}
+              onChange={(e) => setProjectMeta((prev) => ({ ...prev, project_status: e.target.value }))}
+            >
+              {PROJECT_STATUSES.map((status) => (
+                <option key={status.value} value={status.value}>{status.label}</option>
+              ))}
+            </select>
+
+            <input
+              className="input"
+              value={projectMeta.project_phase}
+              onChange={(e) => setProjectMeta((prev) => ({ ...prev, project_phase: e.target.value }))}
+              placeholder="Current phase (demo, framing, rough-in, finish, etc.)"
+            />
+
+            <textarea
+              className="input"
+              value={projectMeta.project_next_action}
+              onChange={(e) => setProjectMeta((prev) => ({ ...prev, project_next_action: e.target.value }))}
+              placeholder="Next action / blocker / priority"
+            />
+
+            <button className="btn primary" type="submit" disabled={savingProjectMeta}>
+              {savingProjectMeta ? 'Saving…' : 'Save Project Status'}
+            </button>
+          </form>
+        </div>
+
         <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">Create Invoice for This Project</div>
           <form onSubmit={handleCreateInvoice} className="grid" style={{ gap: 12, marginTop: 14 }}>
@@ -335,7 +441,9 @@ export default function AdminProjectDetail() {
             </button>
           </form>
         </div>
+      </div>
 
+      <div className="grid two">
         <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">Project Profitability Summary</div>
           <div className="list" style={{ marginTop: 14 }}>
@@ -355,11 +463,15 @@ export default function AdminProjectDetail() {
               <div className="muted">Estimated Gross Margin</div>
               <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{money(profitability)}</div>
             </div>
+            {project.project_next_action ? (
+              <div className="card-soft" style={{ background: '#ffffff' }}>
+                <div className="muted">Next Action</div>
+                <div style={{ marginTop: 8, lineHeight: 1.7 }}>{project.project_next_action}</div>
+              </div>
+            ) : null}
           </div>
         </div>
-      </div>
 
-      <div className="grid two">
         <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">Invoices</div>
           {invoices.length === 0 ? (
@@ -382,28 +494,28 @@ export default function AdminProjectDetail() {
             </div>
           )}
         </div>
+      </div>
 
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">Time Entries</div>
-          {timeEntries.length === 0 ? (
-            <div className="card-soft" style={{ marginTop: 14 }}>No time entries tied to this project yet.</div>
-          ) : (
-            <div className="list" style={{ marginTop: 14 }}>
-              {timeEntries.map((entry) => (
-                <div key={entry.id} className="card-soft" style={{ background: '#ffffff' }}>
-                  <div style={{ fontWeight: 900 }}>{entry.worker}</div>
-                  <div className="muted" style={{ marginTop: 8 }}>
-                    {entry.role ? `${entry.role} · ` : ''}{entry.jobsite}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                    <span className="badge">In: {new Date(entry.clock_in_at).toLocaleString()}</span>
-                    <span className="badge">Out: {entry.clock_out_at ? new Date(entry.clock_out_at).toLocaleString() : '—'}</span>
-                  </div>
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">Time Entries</div>
+        {timeEntries.length === 0 ? (
+          <div className="card-soft" style={{ marginTop: 14 }}>No time entries tied to this project yet.</div>
+        ) : (
+          <div className="list" style={{ marginTop: 14 }}>
+            {timeEntries.map((entry) => (
+              <div key={entry.id} className="card-soft" style={{ background: '#ffffff' }}>
+                <div style={{ fontWeight: 900 }}>{entry.worker}</div>
+                <div className="muted" style={{ marginTop: 8 }}>
+                  {entry.role ? `${entry.role} · ` : ''}{entry.jobsite}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  <span className="badge">In: {new Date(entry.clock_in_at).toLocaleString()}</span>
+                  <span className="badge">Out: {entry.clock_out_at ? new Date(entry.clock_out_at).toLocaleString() : '—'}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {project.notes ? (
