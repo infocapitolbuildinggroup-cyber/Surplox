@@ -183,6 +183,25 @@ function materialCategoryLabel(value) {
   return map[value] || value
 }
 
+function buildQuickConnectLink(profile) {
+  const zip = encodeURIComponent(profile?.business_zip || profile?.home_zip || '')
+  const displayName = encodeURIComponent(profile?.business_name || profile?.display_name || 'this contact')
+
+  if (profile?.role === 'driver') {
+    return `/new?category=jobsite_support&support=material_delivery&title=Request delivery support from ${displayName}&zip=${zip}&urgent=true`
+  }
+
+  if (profile?.role === 'mechanic' || profile?.support_type === 'equipment_fleet_repair') {
+    return `/new?category=jobsite_support&support=equipment_fleet_repair&title=Request mechanic support from ${displayName}&zip=${zip}&urgent=true`
+  }
+
+  if (profile?.role === 'supplier') {
+    return `/new?category=trade&type=discussion&title=Request materials from ${displayName}&zip=${zip}`
+  }
+
+  return `/new?type=need_crew&title=Need ${displayName} on this job&zip=${zip}`
+}
+
 function StatCard({ label, value, dark = false }) {
   return (
     <div
@@ -664,6 +683,7 @@ export default function WorkerProfile() {
     ),
     [profile?.equipment_tags]
   )
+  const quickConnectLink = useMemo(() => buildQuickConnectLink(profile), [profile])
 
   if (loading) {
     return <div className="card">Loading worker profile…</div>
@@ -1003,6 +1023,18 @@ export default function WorkerProfile() {
                 : 'Rehire / Share Profile'}
           </button>
 
+          {!isOwnProfile ? (
+            <Link className="btn primary" to={quickConnectLink}>
+              {profile.role === 'driver'
+                ? 'Request Delivery'
+                : isMechanicProfile
+                  ? 'Request Repair'
+                  : profile.role === 'supplier'
+                    ? 'Request Materials'
+                    : 'Create Need Crew Post'}
+            </Link>
+          ) : null}
+
           {profile.role === 'supplier' ? (
             <Link className="btn primary" to={`/supplier/${profile.user_id}`}>
               View Storefront
@@ -1026,6 +1058,43 @@ export default function WorkerProfile() {
           </div>
         ) : null}
       </div>
+
+      {!isOwnProfile ? (
+        <div className="card rounded-xl" style={{ padding: 22, background: '#fffaf0' }}>
+          <div className="card-section-title">Quick Connect</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            Jump straight into the next action so this profile can turn into an actual jobsite outcome.
+          </p>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+            <Link className="btn primary" to={quickConnectLink}>
+              {profile.role === 'driver'
+                ? 'Request Delivery'
+                : isMechanicProfile
+                  ? 'Request Repair'
+                  : profile.role === 'supplier'
+                    ? 'Request Materials'
+                    : 'Create Need Crew Post'}
+            </Link>
+
+            <button className="btn" onClick={copyProfileInvite}>
+              {profile.role === 'driver'
+                ? 'Share Driver Profile'
+                : isMechanicProfile
+                  ? 'Share Mechanic Profile'
+                  : profile.role === 'supplier'
+                    ? 'Share Supplier Profile'
+                    : 'Share Worker Profile'}
+            </button>
+
+            {profile.role === 'supplier' ? (
+              <Link className="btn" to={`/supplier/${profile.user_id}`}>
+                View Storefront
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">Reputation Graph</div>
