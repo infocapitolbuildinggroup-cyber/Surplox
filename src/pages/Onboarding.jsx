@@ -101,6 +101,14 @@ const COPY = {
     errPhone: 'Enter a valid phone number.',
     errEmailValid: 'Enter a valid email address.',
     errLanguage: 'Select a valid language.',
+    errCity: 'Add your city.',
+    errVehicleType: 'Select a vehicle type for your driver profile.',
+    errTrailerType: 'Select a trailer type for your driver profile.',
+    errTrailerLength: 'Enter a valid trailer length.',
+    errPayloadCapacity: 'Enter a valid payload capacity.',
+    errDeliveryRadius: 'Enter a valid delivery radius.',
+    errBusinessName: 'Business name is required for supplier accounts.',
+    errBusinessZip: 'Enter a valid business ZIP code.',
     errGeneric: 'Unable to save account setup.',
     heroBadge: 'Finish setup',
     heroTitle: 'Get your profile into stronger shape.',
@@ -141,6 +149,9 @@ const COPY = {
     driverLaneBody:
       'Driver accounts stay separate from worker, subcontractor, and contractor accounts. Finish your hauling setup here so supplier → driver → jobsite discovery works correctly.',
     lockedBySignup: 'This was selected during signup and is being kept locked here.',
+    noTrailerHint: 'No trailer selected. Trailer length is optional when there is no trailer.',
+    driverFieldsHint:
+      'These fields power the Delivery search so suppliers and jobsites can filter you by vehicle, trailer, payload, and radius.',
     goFeed: 'Go to Feed'
   },
   es: {
@@ -176,6 +187,14 @@ const COPY = {
     errPhone: 'Ingresa un número de teléfono válido.',
     errEmailValid: 'Ingresa un correo electrónico válido.',
     errLanguage: 'Selecciona un idioma válido.',
+    errCity: 'Agrega tu ciudad.',
+    errVehicleType: 'Selecciona un tipo de vehículo para tu perfil de conductor.',
+    errTrailerType: 'Selecciona un tipo de remolque para tu perfil de conductor.',
+    errTrailerLength: 'Ingresa un largo de remolque válido.',
+    errPayloadCapacity: 'Ingresa una capacidad de carga válida.',
+    errDeliveryRadius: 'Ingresa un radio de entrega válido.',
+    errBusinessName: 'El nombre del negocio es obligatorio para cuentas de proveedor.',
+    errBusinessZip: 'Ingresa un ZIP comercial válido.',
     errGeneric: 'No se pudieron guardar los detalles de la cuenta.',
     heroBadge: 'Terminar configuración',
     heroTitle: 'Haz que tu perfil se vea más fuerte.',
@@ -216,6 +235,9 @@ const COPY = {
     driverLaneBody:
       'Las cuentas de conductor se mantienen separadas de las cuentas de trabajador, subcontratista y contratista. Termina aquí tu configuración de carga para que funcione bien el descubrimiento proveedor → conductor → obra.',
     lockedBySignup: 'Esto se seleccionó en el registro y aquí se mantiene bloqueado.',
+    noTrailerHint: 'No se seleccionó remolque. El largo del remolque es opcional cuando no hay remolque.',
+    driverFieldsHint:
+      'Estos campos alimentan la búsqueda de Delivery para que proveedores y obras puedan filtrarte por vehículo, remolque, carga y radio.',
     goFeed: 'Ir al feed'
   }
 }
@@ -278,6 +300,12 @@ function prettyMaterialLabel(value) {
     tools: 'Tools'
   }
   return map[value] || value
+}
+
+function numericOrNull(value) {
+  if (value === '' || value === null || typeof value === 'undefined') return null
+  const num = Number(value)
+  return Number.isFinite(num) ? num : null
 }
 
 export default function Onboarding({ lang = 'en', setLang }) {
@@ -500,6 +528,15 @@ export default function Onboarding({ lang = 'en', setLang }) {
     }
   }, [isDriverProfile, isMechanicProfile, isSupplierProfile, form.jobsite_support_type])
 
+  useEffect(() => {
+    if (form.trailer_type === 'none') {
+      setForm((prev) => ({
+        ...prev,
+        trailer_length: ''
+      }))
+    }
+  }, [form.trailer_type])
+
   async function save() {
     setSaving(true)
     setMsg('')
@@ -512,9 +549,7 @@ export default function Onboarding({ lang = 'en', setLang }) {
       if (!form.display_name.trim()) throw new Error(copy.errDisplayName)
       if (!/^[0-9]{5}$/.test(form.home_zip)) throw new Error(copy.errZip)
 
-      const roleRequiresTrade =
-        form.category_group === 'trade' && form.role !== 'supplier'
-
+      const roleRequiresTrade = form.category_group === 'trade' && form.role !== 'supplier'
       if (roleRequiresTrade && !form.trade_id) throw new Error(copy.errTrade)
 
       const phoneDigits = normalizePhone(form.phone)
@@ -522,11 +557,38 @@ export default function Onboarding({ lang = 'en', setLang }) {
       if (form.email.trim() && !isValidEmail(form.email)) throw new Error(copy.errEmailValid)
       if (!['en', 'es'].includes(form.preferred_language)) throw new Error(copy.errLanguage)
 
+      if (!String(form.city || '').trim()) throw new Error(copy.errCity)
+
+      if (isSupplierProfile) {
+        if (!String(form.business_name || '').trim()) throw new Error(copy.errBusinessName)
+        if (form.business_zip && !/^[0-9]{5}$/.test(String(form.business_zip || '').trim())) {
+          throw new Error(copy.errBusinessZip)
+        }
+      }
+
+      if (isDriverProfile) {
+        if (!String(form.vehicle_type || '').trim()) throw new Error(copy.errVehicleType)
+        if (!String(form.trailer_type || '').trim()) throw new Error(copy.errTrailerType)
+
+        const payloadCapacity = numericOrNull(form.payload_capacity)
+        const deliveryRadius = numericOrNull(form.delivery_radius)
+        const trailerLength = numericOrNull(form.trailer_length)
+
+        if (payloadCapacity === null || payloadCapacity <= 0) throw new Error(copy.errPayloadCapacity)
+        if (deliveryRadius === null || deliveryRadius <= 0) throw new Error(copy.errDeliveryRadius)
+        if (form.trailer_type !== 'none' && (trailerLength === null || trailerLength <= 0)) {
+          throw new Error(copy.errTrailerLength)
+        }
+      }
+
       const displayName = form.display_name.trim()
       const firstName =
         isSupplierProfile
           ? ''
           : form.first_name.trim() || displayName.split(/\s+/)[0] || displayName
+
+      const trailerLengthValue =
+        isDriverProfile && form.trailer_type !== 'none' ? numericOrNull(form.trailer_length) : null
 
       const profilePayload = {
         user_id: user.id,
@@ -564,9 +626,9 @@ export default function Onboarding({ lang = 'en', setLang }) {
         storefront: isSupplierProfile ? Boolean(form.storefront) : false,
         vehicle_type: isDriverProfile ? form.vehicle_type || null : null,
         trailer_type: isDriverProfile ? form.trailer_type || 'none' : null,
-        trailer_length: isDriverProfile && form.trailer_length !== '' ? Number(form.trailer_length) : null,
-        payload_capacity: isDriverProfile && form.payload_capacity !== '' ? Number(form.payload_capacity) : null,
-        delivery_radius: isDriverProfile ? Number(form.delivery_radius || 50) : null
+        trailer_length: isDriverProfile ? trailerLengthValue : null,
+        payload_capacity: isDriverProfile ? numericOrNull(form.payload_capacity) : null,
+        delivery_radius: isDriverProfile ? numericOrNull(form.delivery_radius) : null
       }
 
       const { error: profErr } = await supabase.from('profiles').upsert(profilePayload)
@@ -962,6 +1024,9 @@ export default function Onboarding({ lang = 'en', setLang }) {
             <p className="card-section-subtitle" style={{ marginTop: 8 }}>
               {copy.driverSectionBody}
             </p>
+            <p className="muted" style={{ marginTop: 8 }}>
+              {copy.driverFieldsHint}
+            </p>
 
             <div className="grid two" style={{ marginTop: 14 }}>
               <div>
@@ -993,6 +1058,11 @@ export default function Onboarding({ lang = 'en', setLang }) {
                     </option>
                   ))}
                 </select>
+                {form.trailer_type === 'none' ? (
+                  <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
+                    {copy.noTrailerHint}
+                  </div>
+                ) : null}
               </div>
 
               <div>
@@ -1002,6 +1072,7 @@ export default function Onboarding({ lang = 'en', setLang }) {
                   type="number"
                   value={form.trailer_length}
                   onChange={(e) => setField('trailer_length', e.target.value)}
+                  disabled={form.trailer_type === 'none'}
                 />
               </div>
 
