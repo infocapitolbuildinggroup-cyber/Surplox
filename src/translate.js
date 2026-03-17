@@ -74,7 +74,10 @@ export function detectLikelyLanguage(text = '') {
 
   if (/[áéíóúñ¿¡]/i.test(value)) spanishScore += 2
 
-  return spanishScore >= englishScore ? 'es' : 'en'
+  // Prefer English on ties so neutral/short English text
+  // does not get misclassified as Spanish.
+  if (spanishScore > englishScore) return 'es'
+  return 'en'
 }
 
 function normalizeLanguageCode(value) {
