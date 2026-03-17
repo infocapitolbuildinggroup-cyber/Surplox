@@ -75,8 +75,14 @@ function categoryGroupLabel(value) {
 function detectSupportType(serviceTags = [], vehicleType = '') {
   const repairTags = new Set([
     'diesel_mechanic',
+    'small_engine_repair',
+    'skid_steer_repair',
+    'tractor_repair',
+    'mini_ex_repair',
     'heavy_equipment_repair',
+    'hydraulic_repair',
     'trailer_repair',
+    'field_service',
     'emergency_repair',
     'jobsite_service'
   ])
@@ -96,7 +102,7 @@ function supportTypeLabel(value) {
   const map = {
     material_delivery: 'Material Delivery / Hot Shot',
     cargo_van_delivery: 'Cargo Van / Local Delivery',
-    equipment_fleet_repair: 'Equipment / Fleet Repair'
+    equipment_fleet_repair: 'Mechanic / Equipment Repair'
   }
   return map[value] || value
 }
@@ -114,13 +120,24 @@ function formatTagLabel(tag) {
     flatbed_trailer: 'Flatbed Trailer',
     gooseneck_trailer: 'Gooseneck Trailer',
     diesel_mechanic: 'Diesel Mechanic',
+    small_engine_repair: 'Small Engine Repair',
+    skid_steer_repair: 'Skid Steer Repair',
+    tractor_repair: 'Tractor Repair',
+    mini_ex_repair: 'Mini Excavator Repair',
     heavy_equipment_repair: 'Heavy Equipment Repair',
+    hydraulic_repair: 'Hydraulic Repair',
     trailer_repair: 'Trailer Repair',
+    field_service: 'Mobile Field Service',
     emergency_repair: 'Emergency Repair',
     jobsite_service: 'Jobsite Service',
     mobile_repair_truck: 'Mobile Repair Truck',
     diesel_diagnostics: 'Diesel Diagnostics',
-    trailer_brake_tools: 'Trailer Brake Tools'
+    hydraulic_tools: 'Hydraulic Tools',
+    welder_generator: 'Welder / Generator',
+    trailer_brake_tools: 'Trailer Brake Tools',
+    battery_jump_setup: 'Battery / Jump Setup',
+    service_truck: 'Service Truck',
+    on_site_tools: 'On-Site Tools'
   }
   return map[tag] || tag
 }
@@ -130,7 +147,9 @@ function vehicleTypeLabel(value) {
     pickup_truck: 'Pickup Truck',
     cargo_van: 'Cargo Van',
     box_truck: 'Box Truck',
-    flatbed_truck: 'Flatbed Truck'
+    flatbed_truck: 'Flatbed Truck',
+    mobile_repair_truck: 'Mobile Repair Truck',
+    service_truck: 'Service Truck'
   }
   return map[value] || value || 'Not set'
 }
@@ -611,6 +630,40 @@ export default function WorkerProfile() {
   }
 
   const isOwnProfile = useMemo(() => currentUserId === profile?.user_id, [currentUserId, profile])
+  const isMechanicProfile = profile?.role === 'mechanic' || profile?.support_type === 'equipment_fleet_repair'
+  const mechanicServiceTags = useMemo(
+    () => (profile?.service_tags || []).filter((tag) =>
+      [
+        'diesel_mechanic',
+        'small_engine_repair',
+        'skid_steer_repair',
+        'tractor_repair',
+        'mini_ex_repair',
+        'heavy_equipment_repair',
+        'hydraulic_repair',
+        'trailer_repair',
+        'field_service',
+        'emergency_repair',
+        'jobsite_service'
+      ].includes(tag)
+    ),
+    [profile?.service_tags]
+  )
+  const mechanicCapabilityTags = useMemo(
+    () => (profile?.equipment_tags || []).filter((tag) =>
+      [
+        'mobile_repair_truck',
+        'diesel_diagnostics',
+        'hydraulic_tools',
+        'welder_generator',
+        'trailer_brake_tools',
+        'battery_jump_setup',
+        'service_truck',
+        'on_site_tools'
+      ].includes(tag)
+    ),
+    [profile?.equipment_tags]
+  )
 
   if (loading) {
     return <div className="card">Loading worker profile…</div>
@@ -635,9 +688,11 @@ export default function WorkerProfile() {
           background:
             profile.role === 'driver'
               ? 'linear-gradient(180deg, #e9f4ff 0%, #f7f7f2 100%)'
-              : profile.role === 'supplier'
-                ? 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
-                : 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
+              : isMechanicProfile
+                ? 'linear-gradient(180deg, #f1e9ff 0%, #f7f7f2 100%)'
+                : profile.role === 'supplier'
+                  ? 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
+                  : 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
         }}
       >
         <div
@@ -645,14 +700,18 @@ export default function WorkerProfile() {
           style={
             profile.role === 'driver'
               ? { marginBottom: 14, background: '#d8ecff', color: '#0d3f73' }
-              : { marginBottom: 14, background: '#f1e7a8' }
+              : isMechanicProfile
+                ? { marginBottom: 14, background: '#e8defa', color: '#4d2f82' }
+                : { marginBottom: 14, background: '#f1e7a8' }
           }
         >
           {profile.role === 'driver'
-            ? 'Driver profile'
-            : profile.role === 'supplier'
-              ? 'Supplier profile'
-              : 'Worker profile'}
+            ? 'Driver Profile'
+            : isMechanicProfile
+              ? 'Mechanic / Equipment Repair Profile'
+              : profile.role === 'supplier'
+                ? 'Supplier Profile'
+                : 'Worker Profile'}
         </div>
 
         <div className="postMeta" style={{ marginBottom: 12 }}>
@@ -692,9 +751,11 @@ export default function WorkerProfile() {
         <p className="muted" style={{ marginTop: 10, maxWidth: 760, fontSize: 17, lineHeight: 1.7 }}>
           {profile.role === 'driver'
             ? 'A cleaner driver-first Surplox profile view built for supplier → driver → jobsite matching, repeat hauling, and trusted delivery coverage.'
-            : profile.role === 'supplier'
-              ? 'A storefront-ready Surplox profile view built for material sourcing, repeat purchasing, and trusted supplier discovery.'
-              : 'A cleaner reputation-first Surplox profile view built for rehiring, crew decisions, jobsite support, and trusted repeat connections.'}
+            : isMechanicProfile
+              ? 'A mechanic-first Surplox profile view built for diesel repair, small engine work, skid steer and tractor repair, field service, and trusted equipment uptime support around active jobsites.'
+              : profile.role === 'supplier'
+                ? 'A storefront-ready Surplox profile view built for material sourcing, repeat purchasing, and trusted supplier discovery.'
+                : 'A cleaner reputation-first Surplox profile view built for rehiring, crew decisions, jobsite support, and trusted repeat connections.'}
         </p>
 
         <div className="grid two" style={{ marginTop: 18 }}>
@@ -828,13 +889,69 @@ export default function WorkerProfile() {
           </div>
         ) : null}
 
+        {isMechanicProfile ? (
+          <div className="grid two" style={{ marginTop: 16 }}>
+            <div className="card-soft" style={{ background: '#f6f0ff' }}>
+              <div className="card-section-title" style={{ fontSize: 15 }}>
+                Repair Specialties
+              </div>
+              <p className="muted" style={{ marginTop: 8 }}>
+                Use this section to quickly understand whether this mechanic handles diesel, small engine repair,
+                skid steer and tractor work, trailers, hydraulics, or mobile field service.
+              </p>
+              {mechanicServiceTags.length > 0 ? (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  {mechanicServiceTags.map((tag) => (
+                    <span key={tag} className="badge">
+                      {formatTagLabel(tag)}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <div className="muted" style={{ marginTop: 8 }}>No repair specialties listed yet.</div>
+              )}
+            </div>
+
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="card-section-title" style={{ fontSize: 15 }}>
+                Equipment / Service Capabilities
+              </div>
+              <div className="muted" style={{ marginTop: 6 }}>
+                Vehicle: {vehicleTypeLabel(profile.vehicle_type)}
+              </div>
+              <div className="muted" style={{ marginTop: 6 }}>
+                Trailer: {trailerTypeLabel(profile.trailer_type)}
+              </div>
+              <div className="muted" style={{ marginTop: 6 }}>
+                Delivery / Service Radius:{' '}
+                {profile.delivery_radius
+                  ? `${profile.delivery_radius} miles`
+                  : profile.travel_radius_miles
+                    ? `${profile.travel_radius_miles} miles`
+                    : 'Not set'}
+              </div>
+              {mechanicCapabilityTags.length > 0 ? (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  {mechanicCapabilityTags.map((tag) => (
+                    <span key={tag} className="badge">
+                      {formatTagLabel(tag)}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <div className="muted" style={{ marginTop: 8 }}>No equipment capabilities listed yet.</div>
+              )}
+            </div>
+          </div>
+        ) : null}
+
         {profile.category_group === 'jobsite_support' &&
         (profile.service_tags.length > 0 || profile.equipment_tags.length > 0) ? (
           <div className="grid two" style={{ marginTop: 16 }}>
             {profile.service_tags.length > 0 ? (
               <div className="card-soft" style={{ background: '#fffaf0' }}>
                 <div className="card-section-title" style={{ fontSize: 15 }}>
-                  Service Tags
+                  {isMechanicProfile ? 'All Service Tags' : 'Service Tags'}
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                   {profile.service_tags.map((tag) => (
@@ -849,7 +966,7 @@ export default function WorkerProfile() {
             {profile.equipment_tags.length > 0 ? (
               <div className="card-soft" style={{ background: '#f8f7ef' }}>
                 <div className="card-section-title" style={{ fontSize: 15 }}>
-                  Equipment Tags
+                  {isMechanicProfile ? 'All Equipment / Capability Tags' : 'Equipment Tags'}
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
                   {profile.equipment_tags.map((tag) => (
@@ -872,12 +989,18 @@ export default function WorkerProfile() {
                   ? 'Turn Off Availability'
                   : profile.role === 'driver'
                     ? 'Mark Available for Deliveries'
-                    : 'Mark Available for Work'}
+                    : isMechanicProfile
+                      ? 'Mark Available for Repair Calls'
+                      : 'Mark Available for Work'}
             </button>
           ) : null}
 
           <button className="btn" onClick={copyProfileInvite}>
-            {profile.role === 'driver' ? 'Share Driver Profile' : 'Rehire / Share Profile'}
+            {profile.role === 'driver'
+              ? 'Share Driver Profile'
+              : isMechanicProfile
+                ? 'Share Mechanic Profile'
+                : 'Rehire / Share Profile'}
           </button>
 
           {profile.role === 'supplier' ? (
