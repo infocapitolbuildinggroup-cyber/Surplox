@@ -243,31 +243,6 @@ export default function Channels({ lang: langProp = 'en' }) {
 
   return (
     <div className="grid" style={{ gap: 18 }}>
-      <div
-        className="card rounded-xl"
-        style={{
-          padding: 28,
-          background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
-        }}
-      >
-        <div className="badge" style={{ marginBottom: 14, background: '#f1e7a8' }}>
-          {copy.heroBadge}
-        </div>
-
-        <div className="h1" style={{ maxWidth: 760 }}>
-          {copy.heroTitle}
-        </div>
-
-        <p className="muted" style={{ marginTop: 12, maxWidth: 820, fontSize: 17, lineHeight: 1.7 }}>
-          {copy.heroBody}
-        </p>
-
-        <div className="grid two" style={{ marginTop: 18 }}>
-          <InfoTile value={copy.stat1} />
-          <InfoTile value={copy.stat2} />
-          <InfoTile value={copy.stat3} />
-        </div>
-      </div>
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="h1">{copy.title}</div>
