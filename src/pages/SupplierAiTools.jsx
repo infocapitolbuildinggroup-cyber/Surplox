@@ -11,6 +11,7 @@ const COPY = {
     supplierTab: 'Supplier Suggestions AI',
     crewTab: 'Crew Matching AI',
     deliveryTab: 'Delivery Coordination AI',
+    projectTab: 'Project Analyzer AI',
     supplierTitle: 'Find the best nearby suppliers for a jobsite.',
     supplierBody:
       'Search Surplox supplier records by material, ZIP, storefront status, business name, and delivery radius to get ranked supplier suggestions.',
@@ -117,6 +118,74 @@ const COPY = {
     feet: 'ft',
     pickupSummary: 'Pickup / Supplier',
     jobsiteSummary: 'Jobsite',
+    projectTitle: 'Turn project notes into a crew, supplier, and logistics plan.',
+    projectBody:
+      'This first Project Analyzer AI turns pasted blueprint notes, scope descriptions, or bid summaries into a project summary, required trades, suggested crew sizing, supplier categories, and delivery coordination notes. File parsing can be layered in next.',
+    projectPasteLabel: 'Paste blueprint notes / project scope',
+    projectPastePlaceholder:
+      'Example: 18,000 sq ft ground-up retail shell in Fort Worth with sitework, concrete slab, structural steel, framing, roofing, HVAC, plumbing, electrical, storefront glass, drywall, paint, and final finishes. 6 month schedule.',
+    projectTypeLabel: 'Project type',
+    projectTypeGeneral: 'General build',
+    projectTypeGroundUp: 'Ground-up',
+    projectTypeTenant: 'Tenant finish / remodel',
+    projectTypeSitework: 'Sitework / civil',
+    projectTypeIndustrial: 'Industrial / warehouse',
+    projectTypeResidential: 'Residential',
+    projectSizeLabel: 'Project size',
+    projectSizeSmall: 'Small',
+    projectSizeMedium: 'Medium',
+    projectSizeLarge: 'Large',
+    projectFloorsLabel: 'Floors / levels',
+    projectUrgencyLabel: 'Schedule urgency',
+    projectUrgencyNormal: 'Normal schedule',
+    projectUrgencyFast: 'Fast-track',
+    projectUrgencyEmergency: 'Emergency / immediate',
+    runProject: 'Run Project Analyzer',
+    projectSummary: 'Project summary',
+    requiredTradesTitle: 'Required trades',
+    suggestedCrewTitle: 'Suggested crew sizing',
+    supplierPlanTitle: 'Supplier suggestion categories',
+    deliveryPlanTitle: 'Delivery coordination notes',
+    projectAssumptionsTitle: 'Assumptions',
+    analyzerReady: 'Project Analyzer AI is ready',
+    analyzerReadyBody:
+      'Paste project notes now. This first version uses Surplox-side heuristics and your current marketplace data. Blueprint upload parsing can be added next as a second phase.',
+    noProjectInput: 'Add project notes or blueprint scope text to generate a project analysis.',
+    summaryFallback: 'General construction project with multiple scopes that will need phased labor, supplier support, and delivery coordination.',
+    projectTitle: 'Convierte notas del proyecto en un plan de cuadrilla, proveedores y logística.',
+    projectBody:
+      'Esta primera versión del AI de Análisis de Proyecto convierte notas pegadas de planos, alcances o resúmenes de oferta en un resumen del proyecto, oficios requeridos, tamaño sugerido de cuadrillas, categorías de proveedores y notas de coordinación de entrega. El análisis directo de archivos se puede agregar después.',
+    projectPasteLabel: 'Pega notas del plano / alcance del proyecto',
+    projectPastePlaceholder:
+      'Ejemplo: obra comercial nueva de 18,000 pies cuadrados en Fort Worth con sitework, losa de concreto, acero estructural, framing, roofing, HVAC, plumbing, electrical, vidrio de fachada, drywall, pintura y acabados finales. Programa de 6 meses.',
+    projectTypeLabel: 'Tipo de proyecto',
+    projectTypeGeneral: 'Construcción general',
+    projectTypeGroundUp: 'Obra nueva',
+    projectTypeTenant: 'Acabado interior / remodelación',
+    projectTypeSitework: 'Sitework / civil',
+    projectTypeIndustrial: 'Industrial / bodega',
+    projectTypeResidential: 'Residencial',
+    projectSizeLabel: 'Tamaño del proyecto',
+    projectSizeSmall: 'Pequeño',
+    projectSizeMedium: 'Mediano',
+    projectSizeLarge: 'Grande',
+    projectFloorsLabel: 'Pisos / niveles',
+    projectUrgencyLabel: 'Urgencia del programa',
+    projectUrgencyNormal: 'Programa normal',
+    projectUrgencyFast: 'Fast-track',
+    projectUrgencyEmergency: 'Emergencia / inmediato',
+    runProject: 'Ejecutar análisis',
+    projectSummary: 'Resumen del proyecto',
+    requiredTradesTitle: 'Oficios requeridos',
+    suggestedCrewTitle: 'Tamaño sugerido de cuadrillas',
+    supplierPlanTitle: 'Categorías sugeridas de proveedores',
+    deliveryPlanTitle: 'Notas de coordinación de entrega',
+    projectAssumptionsTitle: 'Suposiciones',
+    analyzerReady: 'El AI de Análisis de Proyecto ya está listo',
+    analyzerReadyBody:
+      'Pega notas del proyecto ahora. Esta primera versión usa heurísticas de Surplox y los datos actuales del marketplace. El análisis directo de planos/archivos se puede agregar en una segunda fase.',
+    noProjectInput: 'Agrega notas del proyecto o texto del alcance para generar el análisis.',
+    summaryFallback: 'Proyecto de construcción general con múltiples alcances que necesitará mano de obra por fases, soporte de proveedores y coordinación de entregas.',
     quickNote:
       'This first version ranks existing Surplox records. Later versions can add external supplier enrichment, project analysis, and smarter logistics coordination.'
   },
@@ -128,6 +197,7 @@ const COPY = {
     supplierTab: 'AI de Proveedores',
     crewTab: 'AI de Crew Matching',
     deliveryTab: 'AI de Coordinación de Entrega',
+    projectTab: 'AI de Análisis de Proyecto',
     supplierTitle: 'Encuentra los mejores proveedores cercanos para una obra.',
     supplierBody:
       'Busca registros de proveedores de Surplox por material, ZIP, tienda física, nombre comercial y radio de entrega para obtener sugerencias clasificadas.',
@@ -540,6 +610,179 @@ function InfoCard({ label, value }) {
   )
 }
 
+
+const PROJECT_SCOPE_LIBRARY = [
+  {
+    key: 'sitework_excavation',
+    keywords: ['sitework', 'excavation', 'grading', 'earthwork', 'civil', 'utility trench', 'storm drain', 'paving'],
+    tradeHint: 'Sitework & Excavation',
+    supplierCategories: ['Concrete', 'Tools'],
+    crew: { base: 4, medium: 6, large: 10 },
+    delivery: 'Plan dirt-moving support, aggregate staging, and concrete or utility material drops early.'
+  },
+  {
+    key: 'concrete',
+    keywords: ['concrete', 'slab', 'footing', 'foundation', 'rebar', 'formwork'],
+    tradeHint: 'Concrete & Flatwork',
+    supplierCategories: ['Concrete', 'Tools', 'Fasteners'],
+    crew: { base: 5, medium: 8, large: 12 },
+    delivery: 'Coordinate concrete pours, rebar drops, form material staging, and same-day tool runs.'
+  },
+  {
+    key: 'steel',
+    keywords: ['steel', 'structural steel', 'joist', 'decking', 'metal building'],
+    tradeHint: 'Welding & Fabrication',
+    supplierCategories: ['Steel', 'Tools'],
+    crew: { base: 4, medium: 6, large: 10 },
+    delivery: 'Use heavier hauling capacity, trailer coordination, and scheduled steel deliveries.'
+  },
+  {
+    key: 'framing',
+    keywords: ['framing', 'carpentry', 'wood framing', 'metal stud', 'blocking'],
+    tradeHint: 'Framing & Carpentry',
+    supplierCategories: ['Lumber', 'Fasteners', 'Tools'],
+    crew: { base: 4, medium: 6, large: 10 },
+    delivery: 'Bundle framing material runs with fasteners and same-day pickup flexibility.'
+  },
+  {
+    key: 'roofing',
+    keywords: ['roof', 'roofing', 'tpo', 'shingle', 'flashing', 'waterproofing'],
+    tradeHint: 'Roofing',
+    supplierCategories: ['Tools', 'Safety Equipment'],
+    crew: { base: 3, medium: 5, large: 8 },
+    delivery: 'Sequence roof material drops carefully with weather windows and lift access.'
+  },
+  {
+    key: 'hvac',
+    keywords: ['hvac', 'duct', 'rtu', 'air handler', 'mechanical'],
+    tradeHint: 'HVAC',
+    supplierCategories: ['Tools', 'Safety Equipment'],
+    crew: { base: 3, medium: 5, large: 8 },
+    delivery: 'Plan equipment delivery windows for rooftop units, duct, and mechanical accessories.'
+  },
+  {
+    key: 'plumbing',
+    keywords: ['plumbing', 'pipe', 'domestic water', 'sanitary', 'waste', 'fixture'],
+    tradeHint: 'Plumbing',
+    supplierCategories: ['Plumbing', 'Tools'],
+    crew: { base: 3, medium: 5, large: 8 },
+    delivery: 'Keep local pipe, fittings, and fixture supply close for quick replenishment.'
+  },
+  {
+    key: 'electrical',
+    keywords: ['electrical', 'panel', 'conduit', 'wire', 'switchgear', 'lighting'],
+    tradeHint: 'Electrical',
+    supplierCategories: ['Electrical', 'Tools'],
+    crew: { base: 3, medium: 5, large: 8 },
+    delivery: 'Use local supply access for conduit, wire, gear, and same-day pickup support.'
+  },
+  {
+    key: 'drywall',
+    keywords: ['drywall', 'sheetrock', 'tape and bed', 'texture'],
+    tradeHint: 'Drywall',
+    supplierCategories: ['Drywall', 'Tools'],
+    crew: { base: 4, medium: 6, large: 10 },
+    delivery: 'Coordinate drywall drops floor-by-floor and keep damage replacement options nearby.'
+  },
+  {
+    key: 'paint',
+    keywords: ['paint', 'painting', 'coating'],
+    tradeHint: 'Painting',
+    supplierCategories: ['Tools', 'Safety Equipment'],
+    crew: { base: 2, medium: 4, large: 6 },
+    delivery: 'Plan smaller recurring paint and finish material runs rather than one large drop.'
+  },
+  {
+    key: 'masonry',
+    keywords: ['masonry', 'cmu', 'brick', 'block', 'stone'],
+    tradeHint: 'Masonry',
+    supplierCategories: ['Concrete', 'Tools'],
+    crew: { base: 4, medium: 6, large: 10 },
+    delivery: 'Coordinate pallets, mortar, block, and crane or forklift-compatible staging.'
+  },
+  {
+    key: 'fencing',
+    keywords: ['fence', 'fencing', 'gate'],
+    tradeHint: 'Fencing & Gates',
+    supplierCategories: ['Steel', 'Tools'],
+    crew: { base: 2, medium: 4, large: 6 },
+    delivery: 'Use trailer-capable delivery for panels, posts, and gate hardware.'
+  }
+]
+
+function chooseCrewBand(size, libraryCrew) {
+  if (size === 'large') return libraryCrew.large
+  if (size === 'medium') return libraryCrew.medium
+  return libraryCrew.base
+}
+
+function analyzeProjectScope({ projectText, projectType, projectSize, floors, urgency, trades }) {
+  const text = normalizeText(projectText).toLowerCase()
+  const matched = PROJECT_SCOPE_LIBRARY.filter((item) => item.keywords.some((keyword) => text.includes(keyword)))
+  const uniqueTradeNames = []
+  const supplierCategories = new Set()
+  const deliveryNotes = []
+
+  matched.forEach((item) => {
+    if (!uniqueTradeNames.includes(item.tradeHint)) uniqueTradeNames.push(item.tradeHint)
+    item.supplierCategories.forEach((cat) => supplierCategories.add(cat))
+    deliveryNotes.push(item.delivery)
+  })
+
+  if (!matched.length) {
+    uniqueTradeNames.push('General Construction')
+    supplierCategories.add('Tools')
+    supplierCategories.add('Safety Equipment')
+    deliveryNotes.push('Stage basic tools, safety items, and flexible local delivery capacity while scope details become clearer.')
+  }
+
+  const tradeMap = new Map((trades || []).map((trade) => [String(trade.name || '').toLowerCase(), trade]))
+  const tradeSummaries = uniqueTradeNames.map((tradeName) => {
+    const libraryItem = matched.find((item) => item.tradeHint === tradeName)
+    const baseSize = libraryItem ? chooseCrewBand(projectSize, libraryItem.crew) : (projectSize === 'large' ? 8 : projectSize === 'medium' ? 5 : 3)
+    const adjustedSize = baseSize + Math.max(0, numericValue(floors) - 1)
+    return {
+      name: tradeName,
+      tradeId: tradeMap.get(tradeName.toLowerCase())?.id || '',
+      suggestedCrew: adjustedSize
+    }
+  })
+
+  const typeLabelMap = {
+    general: 'general construction',
+    ground_up: 'ground-up',
+    tenant_finish: 'tenant finish / remodel',
+    sitework: 'sitework / civil',
+    industrial: 'industrial / warehouse',
+    residential: 'residential'
+  }
+
+  const urgencyLabelMap = {
+    normal: 'normal schedule',
+    fast_track: 'fast-track',
+    emergency: 'emergency'
+  }
+
+  const summary = text
+    ? `This looks like a ${typeLabelMap[projectType] || 'general construction'} project with ${tradeSummaries.length} main scope lanes, ${numericValue(floors) || 1} level(s), and a ${urgencyLabelMap[urgency] || 'normal schedule'} pace. ${matched.length ? 'The pasted scope clearly points to phased labor, supplier coordination, and delivery planning.' : 'The pasted scope is still broad, so this version is making a conservative first-pass recommendation.'}`
+    : ''
+
+  const assumptions = [
+    'This v1 reads pasted scope text, not actual plan sheets or symbols yet.',
+    'Crew sizing is a first-pass estimate and should be adjusted by square footage, phasing, schedule, and specialty complexity.',
+    'Supplier categories are suggested from scope keywords and should later be tied to live external supplier enrichment.',
+    'Delivery notes assume local Surplox drivers and hauling support are being used for staged material movement.'
+  ]
+
+  return {
+    summary,
+    tradeSummaries,
+    supplierCategories: Array.from(supplierCategories),
+    deliveryNotes: Array.from(new Set(deliveryNotes)).slice(0, 6),
+    assumptions
+  }
+}
+
 export default function SupplierAiTools({ lang = 'en' }) {
   const copy = COPY[lang] || COPY.en
   const [loading, setLoading] = useState(true)
@@ -549,6 +792,13 @@ export default function SupplierAiTools({ lang = 'en' }) {
   const [suppliers, setSuppliers] = useState([])
   const [workers, setWorkers] = useState([])
   const [drivers, setDrivers] = useState([])
+
+  const [projectText, setProjectText] = useState('')
+  const [projectType, setProjectType] = useState('general')
+  const [projectSize, setProjectSize] = useState('medium')
+  const [projectFloors, setProjectFloors] = useState(1)
+  const [projectUrgency, setProjectUrgency] = useState('normal')
+  const [ranProject, setRanProject] = useState(false)
 
   const [supplierQuery, setSupplierQuery] = useState('')
   const [supplierMaterial, setSupplierMaterial] = useState('')
@@ -670,6 +920,18 @@ export default function SupplierAiTools({ lang = 'en' }) {
     })
     return Array.from(set).sort((a, b) => a.localeCompare(b))
   }, [suppliers])
+
+
+  const projectAnalysis = useMemo(() => {
+    return analyzeProjectScope({
+      projectText,
+      projectType,
+      projectSize,
+      floors: projectFloors,
+      urgency: projectUrgency,
+      trades
+    })
+  }, [projectText, projectType, projectSize, projectFloors, projectUrgency, trades])
 
   const selectedSupplier = useMemo(() => {
     return suppliers.find((supplier) => String(supplier.user_id) === String(deliverySupplierId)) || null
@@ -937,8 +1199,199 @@ export default function SupplierAiTools({ lang = 'en' }) {
           >
             {copy.deliveryTab}
           </button>
+          <button
+            type="button"
+            className={tab === 'project' ? 'btn primary' : 'btn'}
+            onClick={() => setTab('project')}
+          >
+            {copy.projectTab}
+          </button>
         </div>
       </div>
+
+
+      {tab === 'project' ? (
+        <>
+          <div className="card rounded-xl" style={{ padding: 22 }}>
+            <div className="card-section-title">{copy.projectTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.projectBody}</p>
+
+            <div className="card-soft" style={{ marginTop: 16, background: '#f8f7ef' }}>
+              <div className="card-section-title" style={{ fontSize: 16 }}>{copy.analyzerReady}</div>
+              <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.analyzerReadyBody}</p>
+            </div>
+
+            <div className="grid" style={{ gap: 14, marginTop: 16 }}>
+              <div>
+                <div className="muted" style={{ marginBottom: 8 }}>{copy.projectPasteLabel}</div>
+                <textarea
+                  className="input"
+                  value={projectText}
+                  onChange={(e) => setProjectText(e.target.value)}
+                  placeholder={copy.projectPastePlaceholder}
+                  style={{ minHeight: 180 }}
+                />
+              </div>
+
+              <div className="grid two" style={{ gap: 14 }}>
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.projectTypeLabel}</div>
+                  <select className="input" value={projectType} onChange={(e) => setProjectType(e.target.value)}>
+                    <option value="general">{copy.projectTypeGeneral}</option>
+                    <option value="ground_up">{copy.projectTypeGroundUp}</option>
+                    <option value="tenant_finish">{copy.projectTypeTenant}</option>
+                    <option value="sitework">{copy.projectTypeSitework}</option>
+                    <option value="industrial">{copy.projectTypeIndustrial}</option>
+                    <option value="residential">{copy.projectTypeResidential}</option>
+                  </select>
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.projectSizeLabel}</div>
+                  <select className="input" value={projectSize} onChange={(e) => setProjectSize(e.target.value)}>
+                    <option value="small">{copy.projectSizeSmall}</option>
+                    <option value="medium">{copy.projectSizeMedium}</option>
+                    <option value="large">{copy.projectSizeLarge}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid two" style={{ gap: 14 }}>
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.projectFloorsLabel}</div>
+                  <input
+                    className="input"
+                    type="number"
+                    min="1"
+                    value={projectFloors}
+                    onChange={(e) => setProjectFloors(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.projectUrgencyLabel}</div>
+                  <select className="input" value={projectUrgency} onChange={(e) => setProjectUrgency(e.target.value)}>
+                    <option value="normal">{copy.projectUrgencyNormal}</option>
+                    <option value="fast_track">{copy.projectUrgencyFast}</option>
+                    <option value="emergency">{copy.projectUrgencyEmergency}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button type="button" className="btn primary" onClick={() => setRanProject(true)}>
+                  {copy.runProject}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {ranProject ? (
+            normalizeText(projectText) ? (
+              <div className="grid" style={{ gap: 16 }}>
+                <div className="card rounded-xl" style={{ padding: 22 }}>
+                  <div className="card-section-title">{copy.projectSummary}</div>
+                  <p style={{ marginTop: 10, lineHeight: 1.7 }}>{projectAnalysis.summary || copy.summaryFallback}</p>
+                </div>
+
+                <div className="card rounded-xl" style={{ padding: 22 }}>
+                  <div className="card-section-title">{copy.requiredTradesTitle}</div>
+                  <div className="grid" style={{ gap: 12, marginTop: 14 }}>
+                    {projectAnalysis.tradeSummaries.map((trade) => (
+                      <div key={trade.name} className="card-soft" style={{ background: '#ffffff' }}>
+                        <div style={{ fontWeight: 900 }}>{trade.name}</div>
+                        <div className="muted" style={{ marginTop: 8 }}>
+                          {copy.suggestedCrewTitle}: {trade.suggestedCrew}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                          {trade.tradeId ? (
+                            <button
+                              type="button"
+                              className="btn small"
+                              onClick={() => {
+                                setCrewTradeId(String(trade.tradeId))
+                                setTab('crew')
+                                setRanCrew(true)
+                              }}
+                            >
+                              {copy.crewTab}
+                            </button>
+                          ) : null}
+                          <Link className="btn small primary" to="/new?type=need_crew">
+                            {copy.createNeedCrew}
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="card rounded-xl" style={{ padding: 22 }}>
+                  <div className="card-section-title">{copy.supplierPlanTitle}</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+                    {projectAnalysis.supplierCategories.map((category) => (
+                      <button
+                        key={category}
+                        type="button"
+                        className="badge"
+                        style={{ border: 'none', cursor: 'pointer' }}
+                        onClick={() => {
+                          setSupplierMaterial(category)
+                          setTab('supplier')
+                          setRanSupplier(true)
+                        }}
+                      >
+                        {category}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="card rounded-xl" style={{ padding: 22 }}>
+                  <div className="card-section-title">{copy.deliveryPlanTitle}</div>
+                  <div className="list" style={{ marginTop: 14 }}>
+                    {projectAnalysis.deliveryNotes.map((note, index) => (
+                      <div key={`${index}-${note}`} className="card-soft" style={{ background: '#ffffff' }}>
+                        {note}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+                    <button
+                      type="button"
+                      className="btn small"
+                      onClick={() => {
+                        setTab('delivery')
+                        setRanDelivery(true)
+                      }}
+                    >
+                      {copy.deliveryTab}
+                    </button>
+                    <Link className="btn small primary" to="/new?category=jobsite_support&support=material_delivery">
+                      {copy.createDeliveryPost}
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="card rounded-xl" style={{ padding: 22 }}>
+                  <div className="card-section-title">{copy.projectAssumptionsTitle}</div>
+                  <div className="list" style={{ marginTop: 14 }}>
+                    {projectAnalysis.assumptions.map((item, index) => (
+                      <div key={`${index}-${item}`} className="card-soft" style={{ background: '#ffffff' }}>
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="card rounded-xl" style={{ padding: 22 }}>
+                <div className="card-section-subtitle">{copy.noProjectInput}</div>
+              </div>
+            )
+          ) : null}
+        </>
+      ) : null}
 
       {tab === 'supplier' ? (
         <>
