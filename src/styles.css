@@ -233,15 +233,15 @@ img {
 }
 
 .nav-logo-image {
-  width: 88px;
-  height: 88px;
+  width: 98px;
+  height: 98px;
   object-fit: contain;
   display: block;
 }
 
 .nav-logo-fallback {
-  width: 88px;
-  height: 88px;
+  width: 98px;
+  height: 98px;
   border-radius: 16px;
   background: #111111;
   color: #ffffff;
@@ -739,8 +739,8 @@ hr {
 
   .nav-logo-image,
   .nav-logo-fallback {
-    width: 72px;
-    height: 72px;
+    width: 82px;
+    height: 82px;
   }
 
   .nav-session-shortcuts,
