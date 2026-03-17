@@ -59,16 +59,7 @@ function LanguageSlider({ lang, setLang }) {
   )
 }
 
-function HamburgerIcon({ open = false }) {
-  const barStyle = {
-    display: 'block',
-    width: '100%',
-    height: 2,
-    borderRadius: 999,
-    background: 'currentColor',
-    transition: 'transform 0.2s ease, opacity 0.2s ease'
-  }
-
+function HamburgerIcon() {
   return (
     <span
       aria-hidden="true"
@@ -83,20 +74,29 @@ function HamburgerIcon({ open = false }) {
     >
       <span
         style={{
-          ...barStyle,
-          transform: open ? 'translateY(6px) rotate(45deg)' : 'none'
+          display: 'block',
+          width: '100%',
+          height: 2,
+          borderRadius: 999,
+          background: 'currentColor'
         }}
       />
       <span
         style={{
-          ...barStyle,
-          opacity: open ? 0 : 1
+          display: 'block',
+          width: '100%',
+          height: 2,
+          borderRadius: 999,
+          background: 'currentColor'
         }}
       />
       <span
         style={{
-          ...barStyle,
-          transform: open ? 'translateY(-6px) rotate(-45deg)' : 'none'
+          display: 'block',
+          width: '100%',
+          height: 2,
+          borderRadius: 999,
+          background: 'currentColor'
         }}
       />
     </span>
@@ -172,20 +172,20 @@ function AppShell({ lang, setLang }) {
   }, [location.pathname, location.search])
 
   useEffect(() => {
-    const originalHtmlOverflow = document.documentElement.style.overflow
-    const originalBodyOverflow = document.body.style.overflow
+    const previousHtmlOverflow = document.documentElement.style.overflow
+    const previousBodyOverflow = document.body.style.overflow
 
     if (mobileMenuOpen) {
       document.documentElement.style.overflow = 'hidden'
       document.body.style.overflow = 'hidden'
     } else {
-      document.documentElement.style.overflow = originalHtmlOverflow
-      document.body.style.overflow = originalBodyOverflow
+      document.documentElement.style.overflow = previousHtmlOverflow
+      document.body.style.overflow = previousBodyOverflow
     }
 
     return () => {
-      document.documentElement.style.overflow = originalHtmlOverflow
-      document.body.style.overflow = originalBodyOverflow
+      document.documentElement.style.overflow = previousHtmlOverflow
+      document.body.style.overflow = previousBodyOverflow
     }
   }, [mobileMenuOpen])
 
@@ -305,7 +305,7 @@ function AppShell({ lang, setLang }) {
                     }
                     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    <HamburgerIcon open={mobileMenuOpen} />
+                    <HamburgerIcon />
                   </button>
                 </>
               ) : (
@@ -335,7 +335,7 @@ function AppShell({ lang, setLang }) {
                     }
                     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    <HamburgerIcon open={mobileMenuOpen} />
+                    <HamburgerIcon />
                   </button>
                 </>
               )}
