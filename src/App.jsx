@@ -449,8 +449,14 @@ function MessagesCenter({ lang = 'en' }) {
 
   return (
     <div className="grid" style={{ gap: 18 }}>
-      <div className="card rounded-xl" style={{ padding: 24 }}>
-        <div className="badge" style={{ marginBottom: 12, background: '#e8defa', color: '#4d2f82' }}>
+      <div
+        className="card rounded-xl"
+        style={{
+          padding: 24,
+          background: 'linear-gradient(180deg, #e8f6ee 0%, #f7f7f2 100%)'
+        }}
+      >
+        <div className="badge" style={{ marginBottom: 12, background: '#dcf4e5', color: '#177245' }}>
           {copy.title}
         </div>
         <div className="h1">{copy.title}</div>
