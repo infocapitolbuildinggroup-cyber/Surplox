@@ -406,7 +406,7 @@ export default function MechanicRepair({ lang = 'en' }) {
         className="card rounded-xl"
         style={{ padding: 28, background: 'linear-gradient(180deg, #f2eaff 0%, #f7f7f2 100%)' }}
       >
-        <div className="badge" style={{ marginBottom: 14, background: '#e8defa', color: '#4d2f82' }}>
+        <div className="badge" style={{ marginBottom: 14, background: '#ffe3c2', color: '#a55400' }}>
           {copy.badge}
         </div>
 
@@ -536,7 +536,7 @@ export default function MechanicRepair({ lang = 'en' }) {
                     <div className="h2" style={{ fontSize: 24 }}>{displayName}</div>
 
                     <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <span className="badge" style={{ background: '#e8defa', color: '#4d2f82' }}>{copy.mechanic}</span>
+                      <span className="badge" style={{ background: '#ffe3c2', color: '#a55400' }}>{copy.mechanic}</span>
                       <span className="badge">{copy.city}: {normalizeText(mechanic.city) || copy.noCity}</span>
                       <span className="badge">{copy.zip}: {normalizeText(mechanic.home_zip) || '—'}</span>
                     </div>
@@ -558,7 +558,7 @@ export default function MechanicRepair({ lang = 'en' }) {
                           key={`${mechanic.user_id}-${item}`}
                           type="button"
                           className="badge"
-                          style={{ background: '#e8defa', color: '#4d2f82', border: 'none', cursor: 'pointer' }}
+                          style={{ background: '#ffe3c2', color: '#a55400', border: 'none', cursor: 'pointer' }}
                           onClick={() => setSpecialtyFilter(item)}
                         >
                           {labelForMap(SPECIALTY_LABELS, item, lang)}
