@@ -362,31 +362,6 @@ export default function Channels({ lang: langProp = 'en' }) {
 
           <Link
             className="card rounded-xl"
-            to="/new?type=discussion&group=jobsite_support&support=cargo_van_delivery"
-            style={{
-              padding: 22,
-              background: 'linear-gradient(180deg, #eef6ff 0%, #ffffff 100%)'
-            }}
-          >
-            <div className="badge" style={{ background: '#d8ecff', color: '#0d3f73' }}>
-              {copy.cargoVanBadge}
-            </div>
-
-            <div style={{ fontWeight: 900, fontSize: 22, marginTop: 14, lineHeight: 1.15 }}>
-              {copy.supportCargoVanTitle}
-            </div>
-
-            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-              {copy.supportCargoVanBody}
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <span className="btn small">{copy.supportCargoVanButton}</span>
-            </div>
-          </Link>
-
-          <Link
-            className="card rounded-xl"
             to="/new?type=discussion&group=jobsite_support&support=equipment_fleet_repair"
             style={{
               padding: 22,
