@@ -243,7 +243,6 @@ export default function Channels({ lang: langProp = 'en' }) {
 
   return (
     <div className="grid" style={{ gap: 18 }}>
-
       <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{copy.quickActions}</div>
 
@@ -450,81 +449,6 @@ export default function Channels({ lang: langProp = 'en' }) {
 
             <div style={{ marginTop: 16 }}>
               <span className="btn small">{copy.viewSupplierFeed}</span>
-            </div>
-          </Link>
-        </div>
-      </div>
-
-      <div className="card rounded-xl" style={{ padding: 22 }}>
-        <div className="card-section-title">{copy.jobsiteSupportTitle}</div>
-
-        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-          {copy.jobsiteSupportIntro}
-        </p>
-
-        <div className="grid two" style={{ marginTop: 14 }}>
-          <Link
-            className="card rounded-xl"
-            to="/feed?category=jobsite_support&support=cargo_van_delivery"
-            style={{
-              padding: 20,
-              background: '#ffffff'
-            }}
-          >
-            <div className="badge" style={{ background: '#d8ecff', color: '#0d3f73' }}>
-              {copy.cargoVanBadge}
-            </div>
-
-            <div
-              style={{
-                fontWeight: 900,
-                fontSize: 20,
-                marginTop: 14,
-                lineHeight: 1.15
-              }}
-            >
-              {copy.cargoVanDeliveryTitle}
-            </div>
-
-            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-              {copy.cargoVanDeliveryBody}
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <span className="btn small">{copy.viewSupportPosts}</span>
-            </div>
-          </Link>
-
-          <Link
-            className="card rounded-xl"
-            to="/feed?category=jobsite_support&support=equipment_fleet_repair"
-            style={{
-              padding: 20,
-              background: 'linear-gradient(180deg, #fff4e8 0%, #f7f7f2 100%)',
-              border: '1px solid rgba(180,83,9,0.12)'
-            }}
-          >
-            <div className="badge" style={{ background: '#ffe2cc', color: '#b45309' }}>
-              {copy.repairBadge}
-            </div>
-
-            <div
-              style={{
-                fontWeight: 900,
-                fontSize: 20,
-                marginTop: 14,
-                lineHeight: 1.15
-              }}
-            >
-              {copy.fleetRepairTitle}
-            </div>
-
-            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-              {copy.fleetRepairBody}
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <span className="btn small">{copy.viewSupportPosts}</span>
             </div>
           </Link>
         </div>
