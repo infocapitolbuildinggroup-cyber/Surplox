@@ -91,7 +91,12 @@ export default function AdminProjects({ lang = 'en' }) {
       ) : (
         <div className="list">
           {projects.map((project) => (
-            <div key={project.id} className="card-soft" style={{ background: '#fff' }}>
+            <Link
+              key={project.id}
+              to={`/admin/projects/${project.id}`}
+              className="card-soft"
+              style={{ background: '#fff', textDecoration: 'none', display: 'block' }}
+            >
               <div style={{ fontWeight: 900, fontSize: 18 }}>
                 {project.project || 'Unnamed Project'}
               </div>
@@ -115,7 +120,7 @@ export default function AdminProjects({ lang = 'en' }) {
                 <Link className="btn small" to="/admin/invoices">Invoices</Link>
                 <Link className="btn small" to="/admin/timeclock">Time Clock</Link>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}
