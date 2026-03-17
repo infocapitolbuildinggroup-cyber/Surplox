@@ -270,13 +270,6 @@ export default function Channels({ lang: langProp = 'en' }) {
       </div>
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
-        <div className="h1">{copy.title}</div>
-        <p className="muted" style={{ marginTop: 8 }}>
-          {copy.intro}
-        </p>
-      </div>
-
-      <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{copy.quickActions}</div>
 
         <p className="card-section-subtitle" style={{ marginTop: 8 }}>
@@ -478,7 +471,7 @@ export default function Channels({ lang: langProp = 'en' }) {
 
           <Link
             className="card rounded-xl"
-            to="/feed?role=supplier"
+            to="/materials"
             style={{
               padding: 20,
               background: '#ffffff'
@@ -518,38 +511,6 @@ export default function Channels({ lang: langProp = 'en' }) {
         </p>
 
         <div className="grid two" style={{ marginTop: 14 }}>
-          <Link
-            className="card rounded-xl"
-            to="/feed?category=jobsite_support&support=material_delivery"
-            style={{
-              padding: 20,
-              background: '#ffffff'
-            }}
-          >
-            <div className="badge" style={{ background: '#111111', color: '#ffffff' }}>
-              {copy.deliveryBadge}
-            </div>
-
-            <div
-              style={{
-                fontWeight: 900,
-                fontSize: 20,
-                marginTop: 14,
-                lineHeight: 1.15
-              }}
-            >
-              {copy.materialDeliveryTitle}
-            </div>
-
-            <div className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
-              {copy.materialDeliveryBody}
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <span className="btn small">{copy.viewSupportPosts}</span>
-            </div>
-          </Link>
-
           <Link
             className="card rounded-xl"
             to="/feed?category=jobsite_support&support=cargo_van_delivery"
