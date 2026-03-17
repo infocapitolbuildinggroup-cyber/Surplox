@@ -404,11 +404,13 @@ const UI = {
     driverCapabilities: 'Driver Capabilities',
     noTrailer: 'No Trailer',
     actionSystem: 'Action System',
-    actionSystemBody: 'Close the loop on this post by selecting a supplier, assigning a driver, or marking the job complete.',
+    actionSystemBody: 'Close the loop on this post by selecting a supplier, assigning a driver, assigning a mechanic, or marking the job complete.',
     selectSupplier: 'Select Supplier',
     supplierSelected: 'Supplier selected',
     assignDriver: 'Assign Driver',
     driverAssigned: 'Driver assigned',
+    assignMechanic: 'Assign Mechanic',
+    mechanicAssigned: 'Mechanic assigned',
     markComplete: 'Mark Complete',
     completed: 'Completed',
     actionSaved: 'Action saved.',
@@ -526,11 +528,13 @@ const UI = {
     driverCapabilities: 'Capacidades del conductor',
     noTrailer: 'Sin remolque',
     actionSystem: 'Sistema de acciones',
-    actionSystemBody: 'Cierra el ciclo de esta publicación seleccionando proveedor, asignando conductor o marcando el trabajo como completo.',
+    actionSystemBody: 'Cierra el ciclo de esta publicación seleccionando proveedor, asignando conductor, asignando mecánico o marcando el trabajo como completo.',
     selectSupplier: 'Seleccionar proveedor',
     supplierSelected: 'Proveedor seleccionado',
     assignDriver: 'Asignar conductor',
     driverAssigned: 'Conductor asignado',
+    assignMechanic: 'Asignar mecánico',
+    mechanicAssigned: 'Mecánico asignado',
     markComplete: 'Marcar completo',
     completed: 'Completado',
     actionSaved: 'Acción guardada.',
@@ -579,6 +583,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
   const [actionBusy, setActionBusy] = useState(false)
   const [selectedSupplier, setSelectedSupplier] = useState(false)
   const [assignedDriver, setAssignedDriver] = useState(false)
+  const [assignedMechanic, setAssignedMechanic] = useState(false)
   const [postCompleted, setPostCompleted] = useState(false)
 
   const [translatedPostBody, setTranslatedPostBody] = useState('')
@@ -800,6 +805,19 @@ export default function PostDetail({ lang: langProp = 'en' }) {
     if (saved) setAssignedDriver(true)
   }
 
+  async function assignMechanic() {
+    if (!post?.author_id) return
+    const saved = await saveActionRelationship(
+      'assigned_repair_post',
+      post.author_id,
+      'jobsite_support',
+      lang === 'es'
+        ? 'Tu soporte de mecánica fue asignado desde una publicación.'
+        : 'Your mechanic support was assigned from a post.'
+    )
+    if (saved) setAssignedMechanic(true)
+  }
+
   async function markPostComplete() {
     try {
       if (currentUserId !== post?.author_id) {
@@ -980,7 +998,7 @@ export default function PostDetail({ lang: langProp = 'en' }) {
           .from('user_relationships')
           .select('source_user_id,target_user_id,relationship_type,post_id')
           .eq('post_id', id)
-          .in('relationship_type', ['selected_supplier_post', 'assigned_delivery_post', 'completed_post'])
+          .in('relationship_type', ['selected_supplier_post', 'assigned_delivery_post', 'assigned_repair_post', 'completed_post'])
 
         if (actionErr) throw actionErr
 
@@ -1002,6 +1020,17 @@ export default function PostDetail({ lang: langProp = 'en' }) {
               (actionRows || []).find(
                 (row) =>
                   row.relationship_type === 'assigned_delivery_post' &&
+                  row.source_user_id === uid &&
+                  row.target_user_id === normalizedPost.author_id
+              )
+          )
+        )
+        setAssignedMechanic(
+          Boolean(
+            uid &&
+              (actionRows || []).find(
+                (row) =>
+                  row.relationship_type === 'assigned_repair_post' &&
                   row.source_user_id === uid &&
                   row.target_user_id === normalizedPost.author_id
               )
@@ -1946,6 +1975,12 @@ export default function PostDetail({ lang: langProp = 'en' }) {
                 {assignedDriver ? copy.driverAssigned : copy.assignDriver}
               </button>
             ) : null}
+
+            {post.author_role === 'mechanic' && currentUserId && currentUserId !== post.author_id ? (
+              <button className="btn" type="button" onClick={assignMechanic} disabled={actionBusy || assignedMechanic}>
+                {assignedMechanic ? copy.mechanicAssigned : copy.assignMechanic}
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -1966,6 +2001,12 @@ export default function PostDetail({ lang: langProp = 'en' }) {
           {post.author_role === 'driver' && currentUserId && currentUserId !== post.author_id ? (
             <button className="btn" type="button" onClick={assignDriver} disabled={actionBusy || assignedDriver}>
               {assignedDriver ? copy.driverAssigned : copy.assignDriver}
+            </button>
+          ) : null}
+
+          {post.author_role === 'mechanic' && currentUserId && currentUserId !== post.author_id ? (
+            <button className="btn" type="button" onClick={assignMechanic} disabled={actionBusy || assignedMechanic}>
+              {assignedMechanic ? copy.mechanicAssigned : copy.assignMechanic}
             </button>
           ) : null}
 
