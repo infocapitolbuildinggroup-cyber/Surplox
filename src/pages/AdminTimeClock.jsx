@@ -12,6 +12,7 @@ const COPY = {
     jobsite: 'Jobsite',
     worker: 'Worker Name',
     role: 'Role / Trade',
+    selectAssignedWorker: 'Select Assigned Worker',
     clockIn: 'Clock In',
     clockOut: 'Clock Out',
     activeWorkers: 'Currently Clocked In',
@@ -37,7 +38,9 @@ const COPY = {
     activeJobsiteBody: 'Start a jobsite from the project command center and it will appear here for live field tracking.',
     todayHeadcount: 'Today On-Site Headcount',
     todayLaborCost: 'Today On-Site Labor Cost',
-    todayHours: 'Today On-Site Hours'
+    todayHours: 'Today On-Site Hours',
+    assignedWorkers: 'Assigned Workers',
+    noAssignedWorkers: 'No assigned workers for the active jobsite yet. You can still type a name manually.'
   },
   es: {
     badge: 'Reloj Admin',
@@ -48,6 +51,7 @@ const COPY = {
     jobsite: 'Obra',
     worker: 'Nombre del Trabajador',
     role: 'Rol / Oficio',
+    selectAssignedWorker: 'Seleccionar Trabajador Asignado',
     clockIn: 'Entrada',
     clockOut: 'Salida',
     activeWorkers: 'Actualmente Activos',
@@ -73,7 +77,9 @@ const COPY = {
     activeJobsiteBody: 'Inicia una obra desde el panel del proyecto y aparecerá aquí para el seguimiento en campo.',
     todayHeadcount: 'Personal en Sitio Hoy',
     todayLaborCost: 'Costo Laboral Hoy',
-    todayHours: 'Horas en Sitio Hoy'
+    todayHours: 'Horas en Sitio Hoy',
+    assignedWorkers: 'Trabajadores Asignados',
+    noAssignedWorkers: 'Todavía no hay trabajadores asignados a la obra activa. Aún puedes escribir un nombre manualmente.'
   }
 }
 
@@ -108,6 +114,7 @@ export default function AdminTimeClock({ lang = 'en' }) {
   const [entries, setEntries] = useState([])
   const [crmRecords, setCrmRecords] = useState([])
   const [activeJob, setActiveJob] = useState(null)
+  const [assignedWorkers, setAssignedWorkers] = useState([])
   const [jobsite, setJobsite] = useState('')
   const [worker, setWorker] = useState('')
   const [role, setRole] = useState('')
@@ -147,6 +154,21 @@ export default function AdminTimeClock({ lang = 'en' }) {
         setEntries(Array.isArray(timeRes.data) ? timeRes.data.map(mapDbRowToEntry) : [])
         setCrmRecords(Array.isArray(crmRes.data) ? crmRes.data : [])
         setActiveJob(activeJobRes.data || null)
+
+        if (activeJobRes.data?.id) {
+          const workersRes = await supabase
+            .from('admin_project_workers')
+            .select('*')
+            .eq('project_record_id', activeJobRes.data.id)
+            .order('created_at', { ascending: false })
+
+          if (workersRes.error) throw workersRes.error
+          if (!active) return
+
+          setAssignedWorkers(workersRes.data || [])
+        } else {
+          setAssignedWorkers([])
+        }
 
         if (!String(jobsite || '').trim() && activeJobRes.data?.project) {
           setJobsite(activeJobRes.data.project)
@@ -223,6 +245,14 @@ export default function AdminTimeClock({ lang = 'en' }) {
       totalHours
     }
   }, [entries, activeEntries])
+
+  function handleAssignedWorkerChange(value) {
+    setWorker(value)
+    const match = assignedWorkers.find((row) => row.worker_name === value)
+    if (match?.role) {
+      setRole(match.role)
+    }
+  }
 
   async function handleClockIn(event) {
     event.preventDefault()
@@ -335,6 +365,20 @@ export default function AdminTimeClock({ lang = 'en' }) {
               <div className="muted">{copy.todayLaborCost}</div>
               <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{money(todayOnSiteLaborCost)}</div>
             </div>
+            <div className="card-soft" style={{ marginTop: 12, background: '#faf9f4' }}>
+              <div className="card-section-title" style={{ fontSize: 15 }}>{copy.assignedWorkers}</div>
+              {assignedWorkers.length === 0 ? (
+                <div className="muted" style={{ marginTop: 8 }}>{copy.noAssignedWorkers}</div>
+              ) : (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  {assignedWorkers.map((row) => (
+                    <span key={row.id} className="badge">
+                      {row.worker_name}{row.role ? ` · ${row.role}` : ''}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <div className="card-soft" style={{ marginTop: 14 }}>
@@ -365,6 +409,17 @@ export default function AdminTimeClock({ lang = 'en' }) {
                 {crmJobsites.length > 0 ? copy.crmJobsiteHint : copy.noCrmRecords}
               </div>
             </div>
+
+            {assignedWorkers.length > 0 ? (
+              <select className="input" value={worker} onChange={(e) => handleAssignedWorkerChange(e.target.value)}>
+                <option value="">{copy.selectAssignedWorker}</option>
+                {assignedWorkers.map((row) => (
+                  <option key={row.id} value={row.worker_name}>
+                    {row.worker_name}{row.role ? ` · ${row.role}` : ''}
+                  </option>
+                ))}
+              </select>
+            ) : null}
 
             <input className="input" value={worker} onChange={(e) => setWorker(e.target.value)} placeholder={copy.worker} />
             <input className="input" value={role} onChange={(e) => setRole(e.target.value)} placeholder={copy.role} />

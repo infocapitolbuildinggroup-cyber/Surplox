@@ -37,6 +37,7 @@ export default function AdminProjectDetail() {
   const [invoices, setInvoices] = useState([])
   const [timeEntries, setTimeEntries] = useState([])
   const [materials, setMaterials] = useState([])
+  const [assignedWorkers, setAssignedWorkers] = useState([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [savingInvoice, setSavingInvoice] = useState(false)
@@ -44,6 +45,7 @@ export default function AdminProjectDetail() {
   const [savingProjectMeta, setSavingProjectMeta] = useState(false)
   const [savingMaterial, setSavingMaterial] = useState(false)
   const [savingActiveJob, setSavingActiveJob] = useState(false)
+  const [savingWorkerAssignment, setSavingWorkerAssignment] = useState(false)
 
   const [invoiceForm, setInvoiceForm] = useState({
     type: 'invoice',
@@ -71,6 +73,11 @@ export default function AdminProjectDetail() {
     notes: ''
   })
 
+  const [workerForm, setWorkerForm] = useState({
+    worker_name: '',
+    role: ''
+  })
+
   useEffect(() => {
     let active = true
 
@@ -91,6 +98,7 @@ export default function AdminProjectDetail() {
             setInvoices([])
             setTimeEntries([])
             setMaterials([])
+            setAssignedWorkers([])
             setLoading(false)
           }
           return
@@ -98,15 +106,17 @@ export default function AdminProjectDetail() {
 
         const normalizedProject = normalizeProject(crm)
 
-        const [invRes, timeRes, materialsRes] = await Promise.all([
+        const [invRes, timeRes, materialsRes, workersRes] = await Promise.all([
           supabase.from('admin_invoices').select('*'),
           supabase.from('admin_time_entries').select('*'),
-          supabase.from('admin_project_materials').select('*').eq('project_record_id', id).order('created_at', { ascending: false })
+          supabase.from('admin_project_materials').select('*').eq('project_record_id', id).order('created_at', { ascending: false }),
+          supabase.from('admin_project_workers').select('*').eq('project_record_id', id).order('created_at', { ascending: false })
         ])
 
         if (invRes.error) throw invRes.error
         if (timeRes.error) throw timeRes.error
         if (materialsRes.error) throw materialsRes.error
+        if (workersRes.error) throw workersRes.error
         if (!active) return
 
         const projectInvoices = (invRes.data || []).filter(
@@ -126,6 +136,7 @@ export default function AdminProjectDetail() {
         setInvoices(projectInvoices)
         setTimeEntries(projectTime)
         setMaterials(materialsRes.data || [])
+        setAssignedWorkers(workersRes.data || [])
       } catch (error) {
         console.error(error)
         if (!active) return
@@ -410,6 +421,57 @@ export default function AdminProjectDetail() {
     }
   }
 
+  async function handleAssignWorker(event) {
+    event.preventDefault()
+    if (!project) return
+    if (!String(workerForm.worker_name || '').trim()) {
+      setMessage('Worker name is required.')
+      return
+    }
+
+    setSavingWorkerAssignment(true)
+    setMessage('')
+
+    try {
+      const payload = {
+        project_record_id: project.id,
+        project_name: project.project || '',
+        worker_name: String(workerForm.worker_name || '').trim(),
+        role: String(workerForm.role || '').trim() || null
+      }
+
+      const { data, error } = await supabase
+        .from('admin_project_workers')
+        .insert(payload)
+        .select('*')
+        .single()
+
+      if (error) throw error
+
+      setAssignedWorkers((prev) => [data, ...prev])
+      setWorkerForm({ worker_name: '', role: '' })
+      setMessage('Worker assigned to this project.')
+    } catch (error) {
+      console.error(error)
+      setMessage('Unable to assign worker right now.')
+    } finally {
+      setSavingWorkerAssignment(false)
+    }
+  }
+
+  async function handleRemoveWorker(id) {
+    try {
+      setMessage('')
+      const { error } = await supabase.from('admin_project_workers').delete().eq('id', id)
+      if (error) throw error
+      setAssignedWorkers((prev) => prev.filter((worker) => worker.id !== id))
+      setMessage('Worker removed from this project.')
+    } catch (error) {
+      console.error(error)
+      setMessage('Unable to remove worker right now.')
+    }
+  }
+
   if (loading) return <div className="card">Loading project...</div>
   if (!project) return <div className="card">Project not found.</div>
 
@@ -435,6 +497,7 @@ export default function AdminProjectDetail() {
           <span className="badge">Paid In: {money(totalPaid)}</span>
           <span className="badge">Hours: {totalHours.toFixed(1)}</span>
           <span className="badge">{project.is_active_job ? 'ACTIVE JOBSITE' : 'Inactive Jobsite'}</span>
+          <span className="badge">Assigned Workers: {assignedWorkers.length}</span>
         </div>
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
@@ -585,6 +648,45 @@ export default function AdminProjectDetail() {
 
       <div className="grid two">
         <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">Worker Assignment</div>
+          <form onSubmit={handleAssignWorker} className="grid" style={{ gap: 12, marginTop: 14 }}>
+            <input
+              className="input"
+              value={workerForm.worker_name}
+              onChange={(e) => setWorkerForm((prev) => ({ ...prev, worker_name: e.target.value }))}
+              placeholder="Worker Name"
+            />
+            <input
+              className="input"
+              value={workerForm.role}
+              onChange={(e) => setWorkerForm((prev) => ({ ...prev, role: e.target.value }))}
+              placeholder="Role / Trade"
+            />
+            <button className="btn primary" type="submit" disabled={savingWorkerAssignment}>
+              {savingWorkerAssignment ? 'Assigning…' : 'Assign Worker'}
+            </button>
+          </form>
+
+          {assignedWorkers.length === 0 ? (
+            <div className="card-soft" style={{ marginTop: 14 }}>No workers assigned yet.</div>
+          ) : (
+            <div className="list" style={{ marginTop: 14 }}>
+              {assignedWorkers.map((worker) => (
+                <div key={worker.id} className="card-soft" style={{ background: '#ffffff' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 900 }}>{worker.worker_name}</div>
+                    <button type="button" className="btn small" onClick={() => handleRemoveWorker(worker.id)}>
+                      Remove
+                    </button>
+                  </div>
+                  <div className="muted" style={{ marginTop: 8 }}>{worker.role || 'No role set'}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">Materials / Cost Tracking</div>
           <form onSubmit={handleAddMaterial} className="grid" style={{ gap: 12, marginTop: 14 }}>
             <input
@@ -647,7 +749,9 @@ export default function AdminProjectDetail() {
             </div>
           )}
         </div>
+      </div>
 
+      <div className="grid two">
         <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">Project Profitability Summary</div>
           <div className="list" style={{ marginTop: 14 }}>
@@ -683,9 +787,7 @@ export default function AdminProjectDetail() {
             ) : null}
           </div>
         </div>
-      </div>
 
-      <div className="grid two">
         <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">Live Crew On Site</div>
           {activeCrew.length === 0 ? (
@@ -706,28 +808,28 @@ export default function AdminProjectDetail() {
             </div>
           )}
         </div>
+      </div>
 
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">Time Entries</div>
-          {timeEntries.length === 0 ? (
-            <div className="card-soft" style={{ marginTop: 14 }}>No time entries tied to this project yet.</div>
-          ) : (
-            <div className="list" style={{ marginTop: 14 }}>
-              {timeEntries.map((entry) => (
-                <div key={entry.id} className="card-soft" style={{ background: '#ffffff' }}>
-                  <div style={{ fontWeight: 900 }}>{entry.worker}</div>
-                  <div className="muted" style={{ marginTop: 8 }}>
-                    {entry.role ? `${entry.role} · ` : ''}{entry.jobsite}
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                    <span className="badge">In: {new Date(entry.clock_in_at).toLocaleString()}</span>
-                    <span className="badge">Out: {entry.clock_out_at ? new Date(entry.clock_out_at).toLocaleString() : '—'}</span>
-                  </div>
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">Time Entries</div>
+        {timeEntries.length === 0 ? (
+          <div className="card-soft" style={{ marginTop: 14 }}>No time entries tied to this project yet.</div>
+        ) : (
+          <div className="list" style={{ marginTop: 14 }}>
+            {timeEntries.map((entry) => (
+              <div key={entry.id} className="card-soft" style={{ background: '#ffffff' }}>
+                <div style={{ fontWeight: 900 }}>{entry.worker}</div>
+                <div className="muted" style={{ marginTop: 8 }}>
+                  {entry.role ? `${entry.role} · ` : ''}{entry.jobsite}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  <span className="badge">In: {new Date(entry.clock_in_at).toLocaleString()}</span>
+                  <span className="badge">Out: {entry.clock_out_at ? new Date(entry.clock_out_at).toLocaleString() : '—'}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {project.notes ? (
