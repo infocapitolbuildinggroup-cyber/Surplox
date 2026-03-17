@@ -120,6 +120,32 @@ const COPY = {
     analyzerActionsTitle: 'AI handoff actions',
     analyzerActionsBody:
       'Send the analyzer output directly into live marketplace flows so the work does not stop at the AI screen.',
+    projectEngineTitle: 'Surplox Project Engine',
+    projectEngineBody:
+      'Project Analyzer now acts as the brain of the app: blueprint upload, scope extraction, crew plan, materials list, supplier suggestions, and delivery plan.',
+    engineRunButton: 'Run Project Engine',
+    engineRunning: 'Running Project Engine…',
+    engineEmpty: 'Upload a blueprint or add project scope notes to generate the full project engine plan.',
+    engineProjectType: 'Project Type',
+    enginePrimaryZip: 'Primary ZIP',
+    engineCrewPlan: 'Crew Needed',
+    engineMaterialsPlan: 'Materials List',
+    engineSuppliersPlan: 'Suppliers',
+    engineDeliveryPlan: 'Delivery Plan',
+    engineNoSuppliers: 'No supplier suggestions generated yet.',
+    engineNoDelivery: 'No delivery plan generated yet.',
+    engineNoCrew: 'No crew plan generated yet.',
+    engineUseSupplier: 'Use in Supplier Search',
+    engineUseCrew: 'Use in Crew Matching',
+    engineUseDelivery: 'Use in Delivery Search',
+    engineBuildCrewPost: 'Create Crew Post',
+    engineBuildDeliveryPost: 'Create Delivery Post',
+    engineEstimatedCrew: 'Estimated crew',
+    enginePriority: 'Priority',
+    engineTopMatches: 'Top matches',
+    engineSuggestedLane: 'Suggested lane',
+    engineScopeSignals: 'Scope signals',
+    engineRecommendedAction: 'Recommended action',
 
     fitLabel: 'Fit',
     website: 'Website',
@@ -201,6 +227,169 @@ function scoreScope(text = '') {
           ? 'Mid-size project. Start with 2–4 core trades and phase supplier and delivery support.'
           : 'Smaller scope. Start with one lead trade and one supplier lane.'
   }
+}
+
+
+function extractZipFromText(text = '') {
+  const match = String(text || '').match(/\b(\d{5})(?:-\d{4})?\b/)
+  return match ? match[1] : ''
+}
+
+function extractSquareFeet(text = '') {
+  const match = String(text || '')
+    .replace(/,/g, '')
+    .match(/\b(\d{3,7})\s*(sf|sq\.?\s?ft|square\s?feet)\b/i)
+
+  return match ? Number(match[1]) : 0
+}
+
+function titleCase(value = '') {
+  return String(value || '')
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+function uniqueList(values = []) {
+  return Array.from(new Set((values || []).filter(Boolean)))
+}
+
+function estimateCrewRange(trade, squareFeet = 0, scopeText = '') {
+  const lower = String(scopeText || '').toLowerCase()
+  const largeJob = squareFeet >= 15000 || lower.includes('warehouse') || lower.includes('multifamily')
+  const mediumJob = squareFeet >= 6000 || lower.includes('office') || lower.includes('school')
+
+  const map = {
+    concrete: largeJob ? '6-10' : mediumJob ? '4-6' : '2-4',
+    steel: largeJob ? '4-8' : mediumJob ? '3-5' : '2-3',
+    framing: largeJob ? '6-10' : mediumJob ? '4-6' : '2-4',
+    drywall: largeJob ? '6-12' : mediumJob ? '4-6' : '2-4',
+    electrical: largeJob ? '4-8' : mediumJob ? '3-5' : '2-3',
+    plumbing: largeJob ? '3-6' : mediumJob ? '2-4' : '1-3',
+    roofing: largeJob ? '4-7' : mediumJob ? '3-5' : '2-4',
+    hvac: largeJob ? '3-6' : mediumJob ? '2-4' : '1-3',
+    sitework: largeJob ? '4-8' : mediumJob ? '3-5' : '2-4'
+  }
+
+  return map[trade] || (largeJob ? '4-8' : mediumJob ? '2-4' : '1-3')
+}
+
+function buildCrewPlan(projectSummary, fullText = '') {
+  const squareFeet = extractSquareFeet(fullText)
+  const trades = projectSummary?.trades?.length ? projectSummary.trades : ['general_construction']
+
+  return trades.map((trade) => ({
+    trade,
+    label: titleCase(trade),
+    crewRange: estimateCrewRange(trade, squareFeet, fullText),
+    recommendedAction: `Start sourcing ${titleCase(trade)} coverage early for ${squareFeet ? `${squareFeet.toLocaleString()} SF` : 'this scope'}.`
+  }))
+}
+
+function buildMaterialsPlan(projectSummary, fullText = '') {
+  const lower = String(fullText || '').toLowerCase()
+  const base = projectSummary?.materials?.length ? [...projectSummary.materials] : []
+
+  if (lower.includes('rebar')) base.push('steel')
+  if (lower.includes('anchors') || lower.includes('bolts') || lower.includes('screws')) base.push('fasteners')
+  if (lower.includes('equipment') || lower.includes('lift')) base.push('equipment_rental')
+  if (lower.includes('safety') || lower.includes('ppe')) base.push('safety_equipment')
+
+  return uniqueList(base).map((material, index) => ({
+    material,
+    label: titleCase(material),
+    priority: index < 2 ? 'High' : index < 4 ? 'Medium' : 'Low'
+  }))
+}
+
+function buildDeliveryPlan(materialsPlan = [], projectSummary = {}, fullText = '') {
+  const lower = String(fullText || '').toLowerCase()
+  const heavyMaterials = new Set(['concrete', 'steel', 'lumber', 'drywall', 'equipment_rental'])
+  const needsCargoVan = lower.includes('tool') || lower.includes('last mile') || lower.includes('cargo van')
+  const needsFlatbed =
+    materialsPlan.some((item) => heavyMaterials.has(item.material)) || lower.includes('flatbed') || lower.includes('trailer')
+
+  const suggestedLane = needsCargoVan && !needsFlatbed ? 'cargo_van_delivery' : 'material_delivery'
+  const vehicleType = needsCargoVan && !needsFlatbed ? 'cargo_van' : 'pickup_truck'
+  const trailerType = needsFlatbed ? 'flatbed_trailer' : needsCargoVan ? 'none' : ''
+  const payload = needsFlatbed ? '10000' : needsCargoVan ? '2500' : '5000'
+
+  return {
+    suggestedLane,
+    vehicleType,
+    trailerType,
+    payload,
+    notes: needsFlatbed
+      ? 'Prioritize drivers who can haul heavier materials with trailer capacity and delivery radius.'
+      : 'Prioritize local delivery drivers for lighter materials, tools, and last-mile runs.'
+  }
+}
+
+async function runSupplierEngine(materialsPlan = [], zip = '', supplierForm = {}) {
+  const supplierGroups = []
+
+  for (const item of materialsPlan.slice(0, 3)) {
+    try {
+      const response = await fetch(API_SUPPLIER_SEARCH_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          material: item.label,
+          zip: zip || supplierForm.zip,
+          city: supplierForm.city || '',
+          state: supplierForm.state || 'TX'
+        })
+      })
+
+      const data = await response.json()
+      if (!response.ok) continue
+
+      supplierGroups.push({
+        material: item.material,
+        label: item.label,
+        suppliers: Array.isArray(data?.suppliers) ? data.suppliers.slice(0, 4) : []
+      })
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  return supplierGroups
+}
+
+async function runCrewEngine(crewPlan = [], zip = '') {
+  const groups = []
+
+  for (const item of crewPlan.slice(0, 4)) {
+    const { data } = await fetchCrewMatches({
+      trade: item.trade,
+      zip,
+      availability: '',
+      minCrew: item.crewRange.split('-')[0] || '',
+      minRadius: ''
+    })
+
+    groups.push({
+      ...item,
+      matches: Array.isArray(data) ? data.slice(0, 4) : []
+    })
+  }
+
+  return groups
+}
+
+async function runDeliveryEngine(deliveryPlan = {}, pickupZip = '', jobsiteZip = '') {
+  const { data } = await fetchDeliveryMatches({
+    pickupZip,
+    jobsiteZip,
+    vehicleType: deliveryPlan.vehicleType || '',
+    trailerType: deliveryPlan.trailerType || '',
+    payload: deliveryPlan.payload || '',
+    supportType: deliveryPlan.suggestedLane || ''
+  })
+
+  return Array.isArray(data) ? data.slice(0, 6) : []
 }
 
 function Chip({ children, active = false, onClick, type = 'button' }) {
@@ -571,7 +760,9 @@ export default function SupplierAiTools() {
   const [projectNotes, setProjectNotes] = useState('')
   const [uploadedFiles, setUploadedFiles] = useState([])
   const [extractedText, setExtractedText] = useState('')
-  const projectSummary = useMemo(() => scoreScope(`${projectNotes}\n${extractedText}`), [projectNotes, extractedText])
+  const [projectEngine, setProjectEngine] = useState(null)
+  const projectSummary = useMemo(() => scoreScope(`${projectNotes}
+${extractedText}`), [projectNotes, extractedText])
 
   function setSupplierField(key, value) {
     setSupplierForm((prev) => ({ ...prev, [key]: value }))
@@ -879,6 +1070,97 @@ export default function SupplierAiTools() {
     } catch (error) {
       console.error(error)
       setMessage(error.message || 'OCR failed.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+
+  async function runProjectEngine() {
+    const scopeText = [projectNotes, extractedText].filter(Boolean).join('\n\n').trim()
+    if (!scopeText) {
+      setMessage(copy.engineEmpty)
+      return
+    }
+
+    setBusy(true)
+    setMessage('')
+
+    try {
+      const detectedZip =
+        extractZipFromText(scopeText) ||
+        supplierForm.zip ||
+        crewForm.zip ||
+        deliveryForm.jobsiteZip ||
+        deliveryForm.pickupZip
+
+      const materialsPlan = buildMaterialsPlan(projectSummary, scopeText)
+      const crewPlan = buildCrewPlan(projectSummary, scopeText)
+      const deliveryPlan = buildDeliveryPlan(materialsPlan, projectSummary, scopeText)
+
+      const supplierGroups = await runSupplierEngine(materialsPlan, detectedZip, supplierForm)
+      const crewGroups = await runCrewEngine(crewPlan, detectedZip)
+      const deliveryMatches = await runDeliveryEngine(
+        deliveryPlan,
+        supplierForm.zip || detectedZip,
+        detectedZip
+      )
+
+      const nextEngine = {
+        summary: projectSummary.summary,
+        primaryZip: detectedZip,
+        scopeSignals: {
+          trades: projectSummary.trades,
+          materials: projectSummary.materials,
+          squareFeet: extractSquareFeet(scopeText)
+        },
+        crewPlan: crewGroups,
+        materialsPlan,
+        supplierGroups,
+        deliveryPlan: {
+          ...deliveryPlan,
+          matches: deliveryMatches
+        }
+      }
+
+      setProjectEngine(nextEngine)
+
+      const firstMaterial = materialsPlan[0]?.label || ''
+      const firstTrade = crewPlan[0]?.trade || ''
+      setSupplierForm((prev) => ({
+        ...prev,
+        material: firstMaterial || prev.material,
+        zip: detectedZip || prev.zip
+      }))
+      setCrewForm((prev) => ({
+        ...prev,
+        trade: firstTrade || prev.trade,
+        zip: detectedZip || prev.zip,
+        minCrew: crewPlan[0]?.crewRange?.split('-')?.[0] || prev.minCrew
+      }))
+      setDeliveryForm((prev) => ({
+        ...prev,
+        pickupZip: supplierForm.zip || detectedZip || prev.pickupZip,
+        jobsiteZip: detectedZip || prev.jobsiteZip,
+        vehicleType: deliveryPlan.vehicleType || prev.vehicleType,
+        trailerType: deliveryPlan.trailerType || prev.trailerType,
+        payload: deliveryPlan.payload || prev.payload,
+        supportType: deliveryPlan.suggestedLane || prev.supportType
+      }))
+
+      setSupplierSuggestions(
+        supplierGroups.flatMap((group) =>
+          (group.suppliers || []).map((supplier) => ({
+            ...supplier,
+            engine_material: group.label
+          }))
+        )
+      )
+      setCrewResults(crewGroups.flatMap((group) => group.matches || []))
+      setDeliveryResults(deliveryMatches)
+    } catch (error) {
+      console.error(error)
+      setMessage(error.message || 'Project Engine failed.')
     } finally {
       setBusy(false)
     }
@@ -1325,10 +1607,227 @@ export default function SupplierAiTools() {
           </div>
 
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
-            <Chip>{copy.analyzeButton}</Chip>
+            <Chip onClick={runProjectEngine}>{busy ? copy.engineRunning : copy.analyzeButton}</Chip>
             <Chip onClick={useAnalyzerForSupplier}>{copy.supplierTab}</Chip>
             <Chip onClick={useAnalyzerForCrew}>{copy.crewTab}</Chip>
             <Chip onClick={useAnalyzerForDelivery}>{copy.deliveryTab}</Chip>
+          </div>
+
+          <div className="card-soft" style={{ marginTop: 16 }}>
+            <div className="card-section-title">{copy.projectEngineTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {copy.projectEngineBody}
+            </p>
+
+            {projectEngine ? (
+              <div style={{ display: 'grid', gap: 16, marginTop: 14 }}>
+                <div className="grid two" style={{ gap: 14 }}>
+                  <div className="card-soft" style={{ background: '#ffffff' }}>
+                    <div className="muted">{copy.engineProjectType}</div>
+                    <div style={{ marginTop: 6, fontWeight: 800 }}>{projectEngine.summary}</div>
+                  </div>
+                  <div className="card-soft" style={{ background: '#ffffff' }}>
+                    <div className="muted">{copy.enginePrimaryZip}</div>
+                    <div style={{ marginTop: 6, fontWeight: 800 }}>{projectEngine.primaryZip || '—'}</div>
+                  </div>
+                </div>
+
+                <div className="card-soft" style={{ background: '#ffffff' }}>
+                  <div className="card-section-title">{copy.engineScopeSignals}</div>
+                  <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {(projectEngine.scopeSignals.trades || []).map((trade) => (
+                      <span key={`signal-trade-${trade}`} className="badge">{titleCase(trade)}</span>
+                    ))}
+                    {(projectEngine.scopeSignals.materials || []).map((material) => (
+                      <span key={`signal-material-${material}`} className="badge">{titleCase(material)}</span>
+                    ))}
+                    {projectEngine.scopeSignals.squareFeet ? (
+                      <span className="badge">{projectEngine.scopeSignals.squareFeet.toLocaleString()} SF</span>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="card-soft" style={{ background: '#ffffff' }}>
+                  <div className="card-section-title">{copy.engineCrewPlan}</div>
+                  {projectEngine.crewPlan?.length ? (
+                    <div className="grid" style={{ gap: 12, marginTop: 12 }}>
+                      {projectEngine.crewPlan.map((item) => (
+                        <div key={`crew-plan-${item.trade}`} className="card-soft" style={{ background: '#f8f7ef' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                            <div>
+                              <div style={{ fontWeight: 800 }}>{item.label}</div>
+                              <div className="muted" style={{ marginTop: 4 }}>
+                                {copy.engineEstimatedCrew}: {item.crewRange}
+                              </div>
+                            </div>
+                            <button
+                              className="btn small"
+                              type="button"
+                              onClick={() =>
+                                openCrewPost({
+                                  trade: item.trade,
+                                  zip: projectEngine.primaryZip,
+                                  crew_size: item.crewRange.split('-')[0] || ''
+                                })
+                              }
+                            >
+                              {copy.engineBuildCrewPost}
+                            </button>
+                          </div>
+                          <div className="muted" style={{ marginTop: 8 }}>{item.recommendedAction}</div>
+                          {item.matches?.length ? (
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                              {item.matches.slice(0, 3).map((match) => (
+                                <span key={`${item.trade}-${match.user_id}`} className="badge">
+                                  {match.display_name} · {match.match_score}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.engineNoCrew}</p>
+                  )}
+                </div>
+
+                <div className="card-soft" style={{ background: '#ffffff' }}>
+                  <div className="card-section-title">{copy.engineMaterialsPlan}</div>
+                  {projectEngine.materialsPlan?.length ? (
+                    <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+                      {projectEngine.materialsPlan.map((item) => (
+                        <div key={`material-plan-${item.material}`} className="card-soft" style={{ background: '#f8f7ef' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                            <div>
+                              <div style={{ fontWeight: 800 }}>{item.label}</div>
+                              <div className="muted" style={{ marginTop: 4 }}>
+                                {copy.enginePriority}: {item.priority}
+                              </div>
+                            </div>
+                            <button
+                              className="btn small"
+                              type="button"
+                              onClick={() =>
+                                openSupplierSearch({
+                                  material: item.label,
+                                  q: item.label,
+                                  zip: projectEngine.primaryZip
+                                })
+                              }
+                            >
+                              {copy.engineUseSupplier}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+
+                <div className="card-soft" style={{ background: '#ffffff' }}>
+                  <div className="card-section-title">{copy.engineSuppliersPlan}</div>
+                  {projectEngine.supplierGroups?.some((group) => group.suppliers?.length) ? (
+                    <div className="grid" style={{ gap: 12, marginTop: 12 }}>
+                      {projectEngine.supplierGroups.map((group) => (
+                        <div key={`supplier-group-${group.material}`} className="card-soft" style={{ background: '#f8f7ef' }}>
+                          <div style={{ fontWeight: 800 }}>{group.label}</div>
+                          {group.suppliers?.length ? (
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                              {group.suppliers.slice(0, 4).map((supplier) => (
+                                <button
+                                  key={`${group.material}-${supplier.external_id || supplier.id || supplier.business_name}`}
+                                  className="btn small"
+                                  type="button"
+                                  onClick={() => openSupplierStorefrontFromCard(supplier)}
+                                >
+                                  {supplier.business_name || supplier.display_name}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="muted" style={{ marginTop: 8 }}>{copy.engineNoSuppliers}</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.engineNoSuppliers}</p>
+                  )}
+                </div>
+
+                <div className="card-soft" style={{ background: '#ffffff' }}>
+                  <div className="card-section-title">{copy.engineDeliveryPlan}</div>
+                  {projectEngine.deliveryPlan ? (
+                    <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+                      <div className="grid two" style={{ gap: 12 }}>
+                        <div className="card-soft" style={{ background: '#f8f7ef' }}>
+                          <div className="muted">{copy.engineSuggestedLane}</div>
+                          <div style={{ marginTop: 6, fontWeight: 800 }}>{titleCase(projectEngine.deliveryPlan.suggestedLane)}</div>
+                        </div>
+                        <div className="card-soft" style={{ background: '#f8f7ef' }}>
+                          <div className="muted">{copy.payloadLabel}</div>
+                          <div style={{ marginTop: 6, fontWeight: 800 }}>{projectEngine.deliveryPlan.payload || '—'}</div>
+                        </div>
+                      </div>
+                      <div className="muted">{projectEngine.deliveryPlan.notes}</div>
+                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                        <button
+                          className="btn small"
+                          type="button"
+                          onClick={() =>
+                            openDeliverySearch({
+                              vehicle: projectEngine.deliveryPlan.vehicleType,
+                              trailer: projectEngine.deliveryPlan.trailerType,
+                              support: projectEngine.deliveryPlan.suggestedLane,
+                              payload: projectEngine.deliveryPlan.payload,
+                              zip: projectEngine.primaryZip
+                            })
+                          }
+                        >
+                          {copy.engineUseDelivery}
+                        </button>
+                        <button
+                          className="btn small"
+                          type="button"
+                          onClick={() =>
+                            openDeliveryPost({
+                              support: projectEngine.deliveryPlan.suggestedLane,
+                              zip: projectEngine.primaryZip,
+                              body: extractedText || projectNotes
+                            })
+                          }
+                        >
+                          {copy.engineBuildDeliveryPost}
+                        </button>
+                      </div>
+                      {projectEngine.deliveryPlan.matches?.length ? (
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {projectEngine.deliveryPlan.matches.slice(0, 4).map((driver) => (
+                            <button
+                              key={`engine-driver-${driver.user_id}`}
+                              className="btn small"
+                              type="button"
+                              onClick={() => openDriverSearchFromMatch(driver)}
+                            >
+                              {driver.display_name} · {driver.match_score}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="card-section-subtitle">{copy.engineNoDelivery}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.engineNoDelivery}</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+                {copy.engineEmpty}
+              </p>
+            )}
           </div>
 
           <div className="card-soft" style={{ marginTop: 16 }}>
