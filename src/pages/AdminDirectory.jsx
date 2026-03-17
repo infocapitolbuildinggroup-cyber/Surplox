@@ -1343,7 +1343,37 @@ export default function AdminDirectory() {
         </p>
       </div>
 
-      <div className="card rounded-xl" style={{ padding: 22 }}>
+      <div className="card rounded-xl" style={{ padding: 22, marginTop: 18 }}>
+        <div className="card-section-title">Contractor Tools (Admin Only)</div>
+        <p className="muted" style={{ marginTop: 6 }}>
+          Internal tools to run Capitol Building Group operations directly inside Surplox.
+        </p>
+
+        <div className="grid three" style={{ marginTop: 14 }}>
+          <Link to="/admin/crm" className="card-soft" style={{ textDecoration: 'none' }}>
+            <div className="card-section-title">CRM</div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              Manage leads, clients, and relationships.
+            </div>
+          </Link>
+
+          <Link to="/admin/invoices" className="card-soft" style={{ textDecoration: 'none' }}>
+            <div className="card-section-title">Invoices & Estimates</div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              Create estimates, send invoices, and track payments.
+            </div>
+          </Link>
+
+          <Link to="/admin/timeclock" className="card-soft" style={{ textDecoration: 'none' }}>
+            <div className="card-section-title">Time Clock</div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              Track worker hours with clock in / clock out.
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      <div className="card rounded-xl" style={ padding: 22 }>
         <div className="card-section-title">{copy.analyticsTitle}</div>
         <div className="grid two" style={{ marginTop: 14 }}>
           <StatCard label={copy.totalUsers} value={analytics.totalUsers} dark />

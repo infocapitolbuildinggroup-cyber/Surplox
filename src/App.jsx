@@ -18,6 +18,9 @@ import Materials from './pages/Materials'
 import Delivery from './pages/Delivery'
 import MechanicRepair from './pages/MechanicRepair'
 import SupplierAiTools from './pages/SupplierAiTools'
+import AdminCRM from './pages/AdminCRM'
+import AdminInvoices from './pages/AdminInvoices'
+import AdminTimeClock from './pages/AdminTimeClock'
 
 import './styles.css'
 
@@ -1007,6 +1010,18 @@ function AppShell({ lang, setLang }) {
             <Route
               path="/admin"
               element={session && isAdmin ? <AdminDirectory lang={lang} /> : <Navigate to="/feed" replace />}
+            />
+            <Route
+              path="/admin/crm"
+              element={session && isAdmin ? <AdminCRM lang={lang} /> : <Navigate to="/feed" replace />}
+            />
+            <Route
+              path="/admin/invoices"
+              element={session && isAdmin ? <AdminInvoices lang={lang} /> : <Navigate to="/feed" replace />}
+            />
+            <Route
+              path="/admin/timeclock"
+              element={session && isAdmin ? <AdminTimeClock lang={lang} /> : <Navigate to="/feed" replace />}
             />
             <Route path="*" element={<Navigate to={session ? '/feed' : '/'} replace />} />
           </Routes>
