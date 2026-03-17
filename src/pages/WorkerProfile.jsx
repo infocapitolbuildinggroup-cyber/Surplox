@@ -635,16 +635,25 @@ export default function WorkerProfile() {
   }
 
   async function handleDirectMessage() {
+    if (currentUserId && profile?.user_id && currentUserId !== profile.user_id) {
+      navigate(
+        `/messages?to=${encodeURIComponent(profile.user_id)}&draft=${encodeURIComponent(buildMessageDraft(profile))}`
+      )
+      return
+    }
+
     const email = String(contactCard.email || '').trim()
     if (email) {
       window.location.href = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent('Surplox connection')}&body=${encodeURIComponent(buildMessageDraft(profile))}`
       return
     }
+
     const smsDigits = digitsOnly(contactCard.phone)
     if (smsDigits) {
       window.location.href = `sms:${smsDigits}?body=${encodeURIComponent(buildMessageDraft(profile))}`
       return
     }
+
     navigate(quickConnectLink || '/new')
   }
 
@@ -1202,7 +1211,7 @@ export default function WorkerProfile() {
         <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">Contact Actions</div>
           <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            Move from profile discovery into real outreach with one tap.
+            Move from profile discovery into real outreach with call, text, or in-app messaging.
           </p>
 
           <div className="grid two" style={{ marginTop: 14 }}>
@@ -1222,6 +1231,9 @@ export default function WorkerProfile() {
             <div className="card-soft" style={{ background: '#f8f7ef' }}>
               <div className="card-section-title" style={{ fontSize: 15 }}>Message Starter</div>
               <p className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>{buildMessageDraft(profile)}</p>
+              <div className="muted" style={{ marginTop: 8 }}>
+                Direct Message opens the in-app inbox when both users are inside Surplox.
+              </div>
 
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
                 <button className="btn small" type="button" onClick={handleCopyMessageTemplate}>Copy Message Draft</button>
