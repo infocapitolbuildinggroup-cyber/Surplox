@@ -11,12 +11,12 @@ const COPY = {
     supportBadge: 'Jobsite Support',
     deliveryBadge: 'Delivery',
     cargoVanBadge: 'Delivery',
-    repairBadge: 'Equipment / Fleet Repair',
+    repairBadge: 'Mechanic / Equipment Repair',
     supplierBadge: 'Supplier',
     heroBadge: 'Trades + actions',
     heroTitle: 'Move faster through the right channels.',
     heroBody:
-      'Jump directly into labor requests, availability posts, trade discussions, supplier visibility, delivery support, or fleet repair activity without digging through the wrong feed.',
+      'Jump directly into labor requests, availability posts, trade discussions, supplier visibility, delivery support, or mechanic and equipment repair activity without digging through the wrong feed.',
     stat1: 'Quick post shortcuts',
     stat2: 'Trade-based browsing',
     stat3: 'Cleaner jobsite support discovery',
@@ -42,9 +42,9 @@ const COPY = {
     supportCargoVanBody:
       'Post delivery support for cargo vans, local runs, last-mile delivery, same-day pickups, tool transport, and lighter material movement between yards, stores, and jobsites.',
     supportCargoVanButton: 'Create Delivery Support Post',
-    supportRepairTitle: 'Equipment / Fleet Repair',
+    supportRepairTitle: 'Mechanic / Equipment Repair',
     supportRepairBody:
-      'Post diesel mechanic, trailer repair, or heavy equipment support for field service and jobsite uptime.',
+      'Post diesel mechanic, small engine repair, skid steer repair, tractor repair, trailer repair, hydraulic repair, or mobile field service for jobsite uptime.',
     supportRepairButton: 'Create Repair Support Post',
     supplierActionTitle: 'Supplier Visibility',
     supplierActionBody:
@@ -76,9 +76,9 @@ const COPY = {
     cargoVanDeliveryTitle: 'Delivery',
     cargoVanDeliveryBody:
       'Best for cargo van operators handling local runs, last-mile delivery, same-day pickups, tools, and lighter materials between stores, yards, and jobsites.',
-    fleetRepairTitle: 'Equipment / Fleet Repair',
+    fleetRepairTitle: 'Mechanic / Equipment Repair',
     fleetRepairBody:
-      'Best for diesel mechanics, trailer repair, heavy equipment repair, and emergency field support.'
+      'Best for diesel mechanics, small engine repair, skid steer and tractor repair, trailer repair, hydraulic work, and emergency field support.'
   },
   es: {
     needCrewBadge: 'Se necesita cuadrilla',
@@ -87,12 +87,12 @@ const COPY = {
     supportBadge: 'Soporte de obra',
     deliveryBadge: 'Entrega',
     cargoVanBadge: 'Entrega',
-    repairBadge: 'Reparación de equipo / flota',
+    repairBadge: 'Mecánica / Reparación de equipo',
     supplierBadge: 'Proveedor',
     heroBadge: 'Oficios + acciones',
     heroTitle: 'Muévete más rápido por los canales correctos.',
     heroBody:
-      'Entra directo a solicitudes de mano de obra, publicaciones de disponibilidad, discusiones del oficio, visibilidad de proveedores, soporte de entrega o actividad de reparación de flota sin perder tiempo en el feed equivocado.',
+      'Entra directo a solicitudes de mano de obra, publicaciones de disponibilidad, discusiones del oficio, visibilidad de proveedores, soporte de entrega o actividad de mecánica y reparación de equipo sin perder tiempo en el feed equivocado.',
     stat1: 'Atajos para publicar',
     stat2: 'Exploración por oficio',
     stat3: 'Descubrimiento más limpio de soporte de obra',
@@ -118,9 +118,9 @@ const COPY = {
     supportCargoVanBody:
       'Publica soporte de entrega para cargo vans, viajes locales, última milla, recogidas el mismo día, transporte de herramientas y movimiento ligero de materiales entre patios, tiendas y obras.',
     supportCargoVanButton: 'Crear publicación de entrega',
-    supportRepairTitle: 'Reparación de equipo / flota',
+    supportRepairTitle: 'Mecánica / Reparación de equipo',
     supportRepairBody:
-      'Publica soporte de mecánico diésel, reparación de remolques o equipo pesado para servicio de campo y continuidad en obra.',
+      'Publica soporte de mecánico diésel, motores pequeños, reparación de skid steer, tractor, remolques, hidráulica o servicio móvil en campo para continuidad en obra.',
     supportRepairButton: 'Crear publicación de reparación',
     supplierActionTitle: 'Visibilidad de proveedor',
     supplierActionBody:
@@ -141,7 +141,7 @@ const COPY = {
       'Abre un feed específico por oficio para ver discusión local y actividad de mano de obra.',
     jobsiteSupportTitle: 'Tableros de soporte de obra',
     jobsiteSupportIntro:
-      'Explora secciones de soporte para movimiento de entregas y reparación de flota o equipo alrededor de obras activas.',
+      'Explora secciones de soporte para movimiento de entregas y mecánica / reparación de equipo alrededor de obras activas.',
     emptyTitle: 'No se encontraron canales',
     emptyBody: 'Todavía no hay tableros de oficio disponibles.',
     viewPosts: 'Abrir canal',
@@ -152,9 +152,9 @@ const COPY = {
     cargoVanDeliveryTitle: 'Entrega',
     cargoVanDeliveryBody:
       'Ideal para operadores con cargo van que manejan viajes locales, última milla, recogidas el mismo día, herramientas y materiales ligeros entre tiendas, patios y obras.',
-    fleetRepairTitle: 'Reparación de equipo / flota',
+    fleetRepairTitle: 'Mecánica / Reparación de equipo',
     fleetRepairBody:
-      'Ideal para mecánicos diésel, reparación de remolques, reparación de equipo pesado y soporte de emergencia en campo.'
+      'Ideal para mecánicos diésel, motores pequeños, reparación de skid steer y tractor, remolques, hidráulica y soporte de emergencia en campo.'
   }
 }
 
