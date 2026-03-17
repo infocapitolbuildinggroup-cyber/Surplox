@@ -324,6 +324,73 @@ async function extractTextFromFile(file) {
   }
 }
 
+async function runOcrExtraction(file) {
+  if (!file) {
+    return {
+      extractedText: '',
+      extractionType: 'ocr_unavailable',
+      method: 'none',
+      reason: 'Original file is not available for OCR.'
+    }
+  }
+
+  const type = normalizeText(file.type).toLowerCase()
+  const name = normalizeText(file.name).toLowerCase()
+  const endpoint = normalizeText(import.meta.env.VITE_OCR_ENDPOINT)
+
+  if (endpoint) {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      body: formData
+    })
+
+    if (!response.ok) {
+      throw new Error(`OCR endpoint failed with status ${response.status}`)
+    }
+
+    const data = await response.json().catch(() => ({}))
+    const extractedText = cleanExtractedText(
+      data?.text || data?.extractedText || data?.content || ''
+    )
+
+    return {
+      extractedText,
+      extractionType: extractedText ? 'ocr_text' : 'ocr_empty',
+      method: 'endpoint',
+      reason: extractedText ? '' : 'OCR endpoint returned no readable text.'
+    }
+  }
+
+  if (type.startsWith('image/') && typeof window !== 'undefined' && window.Tesseract?.recognize) {
+    const result = await window.Tesseract.recognize(file, 'eng')
+    const extractedText = cleanExtractedText(result?.data?.text || '')
+    return {
+      extractedText,
+      extractionType: extractedText ? 'ocr_text' : 'ocr_empty',
+      method: 'tesseract',
+      reason: extractedText ? '' : 'Local OCR ran but no readable text was detected.'
+    }
+  }
+
+  if (type === 'application/pdf' || /\.pdf$/i.test(name)) {
+    return {
+      extractedText: '',
+      extractionType: 'ocr_unavailable',
+      method: 'none',
+      reason: 'Scanned PDFs need a configured OCR endpoint. Set VITE_OCR_ENDPOINT to enable PDF OCR.'
+    }
+  }
+
+  return {
+    extractedText: '',
+    extractionType: 'ocr_unavailable',
+    method: 'none',
+    reason: 'Image OCR needs either VITE_OCR_ENDPOINT or a window.Tesseract loader.'
+  }
+}
+
 function SectionCard({ title, children, soft = false }) {
   return (
     <div className={soft ? 'card-soft rounded-xl' : 'card rounded-xl'} style={{ padding: soft ? 18 : 22 }}>
@@ -360,6 +427,7 @@ export default function SupplierAiTools() {
   const [dataMsg, setDataMsg] = useState('')
   const [projectMsg, setProjectMsg] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [ocrFileId, setOcrFileId] = useState('')
 
   const [projectForm, setProjectForm] = useState({
     projectName: '',
@@ -529,7 +597,10 @@ export default function SupplierAiTools() {
           extractedText: extraction.extractedText,
           extractionType: extraction.extractionType,
           previewUrl: extraction.previewUrl,
-          storagePath
+          storagePath,
+          ocrMethod: '',
+          ocrReason: '',
+          rawFile: file
         })
       }
 
@@ -550,6 +621,43 @@ export default function SupplierAiTools() {
       if (file?.previewUrl) URL.revokeObjectURL(file.previewUrl)
       return prev.filter((item) => item.id !== fileId)
     })
+  }
+
+
+  async function runOcrForUploadedFile(fileId) {
+    const selected = uploadedFiles.find((item) => item.id === fileId)
+    if (!selected) return
+
+    setOcrFileId(fileId)
+    setProjectMsg('')
+
+    try {
+      const result = await runOcrExtraction(selected.rawFile)
+      setUploadedFiles((prev) =>
+        prev.map((item) =>
+          item.id === fileId
+            ? {
+                ...item,
+                extractedText: result.extractedText || item.extractedText,
+                extractionType: result.extractionType,
+                ocrMethod: result.method || '',
+                ocrReason: result.reason || ''
+              }
+            : item
+        )
+      )
+
+      setProjectMsg(
+        result.extractedText
+          ? `OCR finished for ${selected.name}. Review the extracted text preview and rerun Project Analysis.`
+          : result.reason || `OCR finished for ${selected.name}, but no readable text was extracted.`
+      )
+    } catch (error) {
+      console.error(error)
+      setProjectMsg(`OCR could not be completed for ${selected.name} right now.`)
+    } finally {
+      setOcrFileId('')
+    }
   }
 
   function runProjectAnalysis() {
@@ -640,9 +748,9 @@ export default function SupplierAiTools() {
 
             <div style={{ marginTop: 14 }}>
               <div className="muted" style={{ marginBottom: 8 }}>Upload blueprint files, scope notes, PDFs, images, or text files</div>
-              <input className="input" type="file" multiple accept=".pdf,.txt,.csv,.json,.md,image/*" onChange={handleFilesSelected} disabled={uploading} />
+              <input className="input" type="file" multiple accept=".pdf,.txt,.csv,.json,.md,image/*" onChange={handleFilesSelected} disabled={uploading || ocrFileId !== ''} />
               <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
-                Text-based PDFs and note files are extracted automatically. Image files are preserved for review and can be combined with your written scope notes below.
+                Text-based PDFs and note files are extracted automatically. Scanned PDFs and images can now run through the OCR-ready path below when VITE_OCR_ENDPOINT is configured, or image OCR can use window.Tesseract if you load it on the page.
               </div>
             </div>
 
@@ -665,6 +773,9 @@ export default function SupplierAiTools() {
 
           {uploadedFiles.length > 0 ? (
             <SectionCard title="Uploaded Blueprint Files">
+              <div className="card-soft" style={{ background: '#eef6ff', marginBottom: 14 }}>
+                OCR for scanned PDFs and images is now wired into this page. To fully enable it in production, set VITE_OCR_ENDPOINT to your OCR service. Image OCR can also run locally if a Tesseract loader is attached to window.Tesseract.
+              </div>
               <div className="grid" style={{ gap: 14 }}>
                 {uploadedFiles.map((file) => (
                   <div key={file.id} className="card-soft" style={{ background: '#ffffff' }}>
@@ -674,11 +785,29 @@ export default function SupplierAiTools() {
                         <div className="muted" style={{ marginTop: 6 }}>
                           Extraction: {titleCase(file.extractionType.replace(/_/g, ' ')) || 'None'} · {(file.size / 1024).toFixed(1)} KB
                         </div>
+                        {file.ocrMethod ? (
+                          <div className="muted" style={{ marginTop: 6 }}>OCR method: {titleCase(file.ocrMethod)}</div>
+                        ) : null}
+                        {file.ocrReason ? (
+                          <div className="muted" style={{ marginTop: 6 }}>{file.ocrReason}</div>
+                        ) : null}
                         {file.storagePath ? (
                           <div className="muted" style={{ marginTop: 6 }}>Stored path: {file.storagePath}</div>
                         ) : null}
                       </div>
-                      <button type="button" className="btn small" onClick={() => removeUploadedFile(file.id)}>Remove</button>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {['image_preview', 'pdf_needs_ocr', 'ocr_unavailable', 'ocr_empty'].includes(file.extractionType) ? (
+                          <button
+                            type="button"
+                            className="btn small primary"
+                            onClick={() => runOcrForUploadedFile(file.id)}
+                            disabled={ocrFileId === file.id || uploading}
+                          >
+                            {ocrFileId === file.id ? 'Running OCR…' : 'Run OCR'}
+                          </button>
+                        ) : null}
+                        <button type="button" className="btn small" onClick={() => removeUploadedFile(file.id)}>Remove</button>
+                      </div>
                     </div>
                     {file.previewUrl ? (
                       <div style={{ marginTop: 12 }}>
