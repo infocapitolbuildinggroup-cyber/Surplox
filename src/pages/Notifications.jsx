@@ -25,6 +25,10 @@ const COPY = {
     typeMarkedHired: 'Marked Hired',
     typeJobsiteSupport: 'Jobsite Support',
     typeSupplier: 'Supplier Activity',
+    typeDriverAssigned: 'Driver Assigned',
+    typeMechanicAssigned: 'Mechanic Assigned',
+    typeCompleted: 'Completed',
+    typeUrgent: 'Urgent Activity',
     reminderTitle: 'Complete your profile to unlock more value',
     reminderBody:
       'You can already use Surplox, but finishing these details will make your profile stronger and unlock more posting use cases.',
@@ -55,7 +59,11 @@ const COPY = {
       'Replies, crew joins, hires, support activity, supplier visibility, and account reminders all surface here in one cleaner alerts view.',
     statUnread: 'Unread alerts',
     statTotal: 'Total alerts',
-    statProfile: 'Profile reminders'
+    statProfile: 'Profile reminders',
+    statAction: 'Action alerts',
+    urgencyTitle: 'High-priority activity',
+    urgencyBody: 'Assignments, completions, and urgent activity rise to the top here so you can close loops faster.',
+    openAlertsFeed: 'Open Feed'
   },
   es: {
     loading: 'Cargando alertas…',
@@ -79,6 +87,10 @@ const COPY = {
     typeMarkedHired: 'Marcado como contratado',
     typeJobsiteSupport: 'Soporte de obra',
     typeSupplier: 'Actividad de proveedor',
+    typeDriverAssigned: 'Conductor asignado',
+    typeMechanicAssigned: 'Mecánico asignado',
+    typeCompleted: 'Completado',
+    typeUrgent: 'Actividad urgente',
     reminderTitle: 'Completa tu perfil para desbloquear más valor',
     reminderBody:
       'Ya puedes usar Surplox, pero completar estos detalles hará tu perfil más fuerte y desbloqueará más usos al publicar.',
@@ -109,7 +121,11 @@ const COPY = {
       'Las respuestas, uniones a cuadrillas, contrataciones, actividad de soporte, visibilidad de proveedor y recordatorios de cuenta aparecen aquí en una vista más limpia.',
     statUnread: 'Alertas sin leer',
     statTotal: 'Alertas totales',
-    statProfile: 'Recordatorios de perfil'
+    statProfile: 'Recordatorios de perfil',
+    statAction: 'Alertas de acción',
+    urgencyTitle: 'Actividad prioritaria',
+    urgencyBody: 'Las asignaciones, cierres y actividad urgente suben primero aquí para cerrar ciclos más rápido.',
+    openAlertsFeed: 'Abrir feed'
   }
 }
 
@@ -131,7 +147,7 @@ function timeAgo(ts, lang = 'en') {
 }
 
 function notificationTypeStyle(type) {
-  if (type === 'crew_hired') {
+  if (type === 'crew_hired' || type === 'completed_post') {
     return {
       background: '#111111',
       color: '#ffffff'
@@ -145,7 +161,7 @@ function notificationTypeStyle(type) {
     }
   }
 
-  if (type === 'jobsite_support') {
+  if (type === 'jobsite_support' || type === 'assigned_delivery_post' || type === 'assigned_repair_post') {
     return {
       background: '#f1e7a8',
       color: '#111111'
@@ -155,6 +171,13 @@ function notificationTypeStyle(type) {
   if (type === 'supplier_activity') {
     return {
       background: '#fff7cf',
+      color: '#111111'
+    }
+  }
+
+  if (type === 'urgent_post') {
+    return {
+      background: '#ffde59',
       color: '#111111'
     }
   }
@@ -171,7 +194,15 @@ function notificationTypeLabel(type, lang = 'en') {
   if (type === 'crew_join') return copy.typeCrewJoined
   if (type === 'jobsite_support') return copy.typeJobsiteSupport
   if (type === 'supplier_activity') return copy.typeSupplier
+  if (type === 'assigned_delivery_post') return copy.typeDriverAssigned
+  if (type === 'assigned_repair_post') return copy.typeMechanicAssigned
+  if (type === 'completed_post') return copy.typeCompleted
+  if (type === 'urgent_post') return copy.typeUrgent
   return copy.typeReply
+}
+
+function isActionType(type) {
+  return ['crew_hired', 'assigned_delivery_post', 'assigned_repair_post', 'completed_post', 'urgent_post'].includes(type)
 }
 
 function getReminderItems(profile = {}, contact = {}, lang = 'en') {
@@ -456,6 +487,14 @@ export default function Notifications({ lang: langProp = 'en' }) {
 
   const totalCount = notifications.length
   const reminderCount = profileReminderItems.length
+  const actionCount = useMemo(
+    () => notifications.filter((item) => isActionType(item.type)).length,
+    [notifications]
+  )
+  const priorityNotifications = useMemo(
+    () => notifications.filter((item) => isActionType(item.type)).slice(0, 5),
+    [notifications]
+  )
 
   if (loading) {
     return <div className="card">{copy.loading}</div>
@@ -493,6 +532,10 @@ export default function Notifications({ lang: langProp = 'en' }) {
           <StatCard label={copy.statTotal} value={totalCount} />
           <StatCard label={copy.statProfile} value={reminderCount} />
         </div>
+
+        <div style={{ marginTop: 14, maxWidth: 260 }}>
+          <StatCard label={copy.statAction} value={actionCount} />
+        </div>
       </div>
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
@@ -522,6 +565,55 @@ export default function Notifications({ lang: langProp = 'en' }) {
           </div>
         </div>
       </div>
+
+      {priorityNotifications.length > 0 ? (
+        <div className="card rounded-xl" style={{ padding: 22, background: '#fffaf0' }}>
+          <div className="card-section-title">{copy.urgencyTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {copy.urgencyBody}
+          </p>
+
+          <div className="list" style={{ marginTop: 14 }}>
+            {priorityNotifications.map((item) => (
+              <div
+                key={`priority-${item.id}`}
+                className="card-soft"
+                style={{ background: '#ffffff', minHeight: 'auto' }}
+              >
+                <div className="postMeta">
+                  <span className="badge" style={notificationTypeStyle(item.type)}>
+                    {notificationTypeLabel(item.type, lang)}
+                  </span>
+                  <span className="badge">{timeAgo(item.created_at, lang)}</span>
+                  {!item.is_read ? <span className="badge">{copy.unread}</span> : null}
+                </div>
+
+                <div style={{ marginTop: 10, lineHeight: 1.7 }}>
+                  {item.message}
+                </div>
+
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+                  {item.post_id ? (
+                    <Link className="btn small primary" to={`/p/${item.post_id}`}>
+                      {copy.openPost}
+                    </Link>
+                  ) : (
+                    <Link className="btn small primary" to="/feed">
+                      {copy.openAlertsFeed}
+                    </Link>
+                  )}
+
+                  {!item.is_read ? (
+                    <button className="btn small" onClick={() => markOneRead(item.id)}>
+                      {copy.markRead}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {profileReminderItems.length > 0 ? (
         <div className="card rounded-xl" style={{ padding: 22, background: '#fffaf0' }}>
