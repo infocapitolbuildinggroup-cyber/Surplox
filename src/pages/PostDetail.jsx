@@ -480,7 +480,9 @@ const UI = {
     messageDraftCopied: 'Message draft copied.',
     messageDraftCopyError: 'Unable to copy message draft.',
     contactActions: 'Contact Actions',
-    contactActionsBody: 'Move from post discovery into real outreach with call, text, or in-app messaging.'
+    contactActionsBody: 'Move from post discovery into real outreach with call, text, or in-app messaging.',
+    topActionBar: 'Quick Actions',
+    topActionBarBody: 'Reach out or act on this post immediately without scrolling down the full contact card.'
   },
   es: {
     unknownMember: 'Miembro desconocido',
@@ -614,7 +616,9 @@ const UI = {
     messageDraftCopied: 'Mensaje copiado.',
     messageDraftCopyError: 'No se pudo copiar el mensaje.',
     contactActions: 'Acciones de contacto',
-    contactActionsBody: 'Pasa del descubrimiento de una publicación al contacto real con llamada, texto o mensaje dentro de la app.'
+    contactActionsBody: 'Pasa del descubrimiento de una publicación al contacto real con llamada, texto o mensaje dentro de la app.',
+    topActionBar: 'Acciones rápidas',
+    topActionBarBody: 'Contacta o toma acción en esta publicación de inmediato sin bajar hasta la tarjeta completa de contacto.'
   }
 }
 
@@ -1783,6 +1787,70 @@ export default function PostDetail({ lang: langProp = 'en' }) {
             ) : null}
           </div>
         ) : null}
+
+        <div
+          className="card-soft"
+          style={{
+            marginTop: 16,
+            background: post.is_urgent ? '#fff4da' : '#f8f7ef',
+            border: '1px solid rgba(17,17,17,0.06)'
+          }}
+        >
+          <div className="card-section-title" style={{ fontSize: 15 }}>{copy.topActionBar}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            {copy.topActionBarBody}
+          </p>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+            {authorPhoneHref ? (
+              <a className="btn primary" href={authorPhoneHref}>
+                {copy.call}
+              </a>
+            ) : null}
+
+            {authorTextHref ? (
+              <a className="btn" href={authorTextHref}>
+                {copy.text}
+              </a>
+            ) : null}
+
+            {currentUserId && currentUserId !== post.author_id ? (
+              <Link className="btn" to={directMessageLink}>
+                {copy.directMessage}
+              </Link>
+            ) : null}
+
+            {currentUserId && currentUserId !== post.author_id ? (
+              <Link className="btn" to={requestPostLink}>
+                {copy.buildRequestPost}
+              </Link>
+            ) : null}
+
+            {post.author_role === 'supplier' && currentUserId && currentUserId !== post.author_id ? (
+              <button className="btn" type="button" onClick={selectSupplier} disabled={actionBusy || selectedSupplier}>
+                {selectedSupplier ? copy.supplierSelected : copy.selectSupplier}
+              </button>
+            ) : null}
+
+            {post.author_role === 'driver' && currentUserId && currentUserId !== post.author_id ? (
+              <button className="btn" type="button" onClick={assignDriver} disabled={actionBusy || assignedDriver}>
+                {assignedDriver ? copy.driverAssigned : copy.assignDriver}
+              </button>
+            ) : null}
+
+            {post.author_role === 'mechanic' && currentUserId && currentUserId !== post.author_id ? (
+              <button className="btn" type="button" onClick={assignMechanic} disabled={actionBusy || assignedMechanic}>
+                {assignedMechanic ? copy.mechanicAssigned : copy.assignMechanic}
+              </button>
+            ) : null}
+
+            {post.author_id === currentUserId ? (
+              <button className="btn" type="button" onClick={markPostComplete} disabled={actionBusy || postCompleted}>
+                {postCompleted ? copy.completed : copy.markComplete}
+              </button>
+            ) : null}
+          </div>
+        </div>
 
         {post.image_paths && post.image_paths.length > 0 ? (
           <div style={{ marginTop: 18 }}>
