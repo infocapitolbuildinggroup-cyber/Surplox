@@ -172,20 +172,26 @@ function AppShell({ lang, setLang }) {
   }, [location.pathname, location.search])
 
   useEffect(() => {
-    const previousHtmlOverflow = document.documentElement.style.overflow
-    const previousBodyOverflow = document.body.style.overflow
+    if (!mobileMenuOpen) return undefined
 
-    if (mobileMenuOpen) {
-      document.documentElement.style.overflow = 'hidden'
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.documentElement.style.overflow = previousHtmlOverflow
-      document.body.style.overflow = previousBodyOverflow
+    let lastScrollY = window.scrollY
+
+    const closeMenuOnPageScroll = () => {
+      const nextScrollY = window.scrollY
+      if (Math.abs(nextScrollY - lastScrollY) > 4) {
+        setMobileMenuOpen(false)
+      }
+      lastScrollY = nextScrollY
     }
 
+    window.addEventListener('scroll', closeMenuOnPageScroll, { passive: true })
+    window.addEventListener('wheel', closeMenuOnPageScroll, { passive: true })
+    window.addEventListener('touchmove', closeMenuOnPageScroll, { passive: true })
+
     return () => {
-      document.documentElement.style.overflow = previousHtmlOverflow
-      document.body.style.overflow = previousBodyOverflow
+      window.removeEventListener('scroll', closeMenuOnPageScroll)
+      window.removeEventListener('wheel', closeMenuOnPageScroll)
+      window.removeEventListener('touchmove', closeMenuOnPageScroll)
     }
   }, [mobileMenuOpen])
 
@@ -524,5 +530,6 @@ function AppShell({ lang, setLang }) {
 
 export default function App() {
   const [lang, setLang] = usePreferredLanguage()
+
   return <AppShell lang={lang} setLang={setLang} />
 }
