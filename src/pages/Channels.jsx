@@ -245,13 +245,6 @@ export default function Channels({ lang: langProp = 'en' }) {
     <div className="grid" style={{ gap: 18 }}>
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
-        <div className="h1">{copy.title}</div>
-        <p className="muted" style={{ marginTop: 8 }}>
-          {copy.intro}
-        </p>
-      </div>
-
-      <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{copy.quickActions}</div>
 
         <p className="card-section-subtitle" style={{ marginTop: 8 }}>
@@ -340,10 +333,11 @@ export default function Channels({ lang: langProp = 'en' }) {
             to="/new?type=discussion&group=jobsite_support&support=equipment_fleet_repair"
             style={{
               padding: 22,
-              background: 'linear-gradient(180deg, #f3f1e8 0%, #ffffff 100%)'
+              background: 'linear-gradient(180deg, #fff4e8 0%, #f7f7f2 100%)',
+              border: '1px solid rgba(180,83,9,0.12)'
             }}
           >
-            <div className="badge" style={{ background: '#ffe2cc', color: '#111111' }}>
+            <div className="badge" style={{ background: '#ffe2cc', color: '#b45309' }}>
               {copy.repairBadge}
             </div>
 
@@ -429,7 +423,7 @@ export default function Channels({ lang: langProp = 'en' }) {
 
           <Link
             className="card rounded-xl"
-            to="/feed?role=supplier"
+            to="/materials"
             style={{
               padding: 20,
               background: '#ffffff'
@@ -506,10 +500,11 @@ export default function Channels({ lang: langProp = 'en' }) {
             to="/feed?category=jobsite_support&support=equipment_fleet_repair"
             style={{
               padding: 20,
-              background: '#ffffff'
+              background: 'linear-gradient(180deg, #fff4e8 0%, #f7f7f2 100%)',
+              border: '1px solid rgba(180,83,9,0.12)'
             }}
           >
-            <div className="badge" style={{ background: '#ffe2cc', color: '#111111' }}>
+            <div className="badge" style={{ background: '#ffe2cc', color: '#b45309' }}>
               {copy.repairBadge}
             </div>
 
@@ -535,14 +530,7 @@ export default function Channels({ lang: langProp = 'en' }) {
         </div>
       </div>
 
-      <div
-  className="card rounded-xl"
-  style={{
-    padding: 22,
-    background: 'linear-gradient(180deg, #fff7ed 0%, #ffe2cc 100%)',
-    border: '1px solid rgba(249,115,22,0.15)'
-  }}
->
+      <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{copy.allTradesTitle}</div>
 
         <p className="card-section-subtitle" style={{ marginTop: 8 }}>
