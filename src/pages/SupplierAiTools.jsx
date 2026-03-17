@@ -7,9 +7,10 @@ const COPY = {
     badge: 'Surplox AI Tools',
     title: 'AI tools for project planning, hiring, supply, and logistics.',
     body:
-      'This hub is where Surplox AI tools live. Start with Supplier Suggestions and Crew Matching, then expand into delivery coordination and project analysis.',
+      'This hub is where Surplox AI tools live. Start with Supplier Suggestions, Crew Matching, and Delivery Coordination, then expand into project analysis.',
     supplierTab: 'Supplier Suggestions AI',
     crewTab: 'Crew Matching AI',
+    deliveryTab: 'Delivery Coordination AI',
     supplierTitle: 'Find the best nearby suppliers for a jobsite.',
     supplierBody:
       'Search Surplox supplier records by material, ZIP, storefront status, business name, and delivery radius to get ranked supplier suggestions.',
@@ -71,16 +72,62 @@ const COPY = {
     crewSizeMatch: 'Crew size fit',
     profileComplete: 'Stronger profile',
     radiusFit: 'Travel radius fit',
+    supplierReady: 'Supplier chosen',
+    laneMatch: 'Delivery lane fit',
+    payloadFit: 'Payload fit',
+    trailerFit: 'Trailer fit',
+    vehicleFit: 'Vehicle fit',
+    supplierZipFit: 'Pickup ZIP fit',
+    deliveryTitle: 'Coordinate the best delivery support from supplier to jobsite.',
+    deliveryBody:
+      'Start with a supplier or pickup ZIP, then rank nearby Surplox drivers by lane, vehicle, trailer, payload, delivery radius, and local fit.',
+    chooseSupplier: 'Supplier pickup point',
+    allSuppliers: 'All suppliers',
+    supplierOptional: 'Optional: choose a supplier storefront',
+    pickupZipLabel: 'Pickup ZIP',
+    pickupZipPlaceholder: '76102',
+    jobsiteZipLabel: 'Jobsite ZIP',
+    jobsiteZipPlaceholder: '76028',
+    deliveryLaneLabel: 'Delivery lane',
+    allDeliveryLanes: 'All delivery lanes',
+    vehicleLabel: 'Vehicle type',
+    allVehicles: 'All vehicles',
+    trailerLabel: 'Trailer type',
+    allTrailers: 'All trailers',
+    minPayloadLabel: 'Minimum payload (lbs)',
+    minTrailerLengthLabel: 'Minimum trailer length (ft)',
+    minDeliveryRadiusLabel: 'Minimum delivery radius (mi)',
+    runDelivery: 'Run Delivery Coordination',
+    deliveryResults: 'Ranked delivery matches',
+    noDeliveryResults:
+      'No delivery matches yet. Try widening the lane, trailer, payload, or ZIP filters while more drivers join Surplox.',
+    openDriver: 'Open Driver Profile',
+    createDeliveryPost: 'Create Delivery Support Post',
+    supportLane: 'Delivery Lane',
+    vehicleType: 'Vehicle',
+    trailerType: 'Trailer',
+    payloadCapacity: 'Payload',
+    deliveryRadiusLabel: 'Delivery Radius',
+    trailerLength: 'Trailer Length',
+    serviceTags: 'Service Tags',
+    noServiceTags: 'No service tags listed yet.',
+    city: 'City',
+    noCity: 'No city listed',
+    pounds: 'lbs',
+    feet: 'ft',
+    pickupSummary: 'Pickup / Supplier',
+    jobsiteSummary: 'Jobsite',
     quickNote:
-      'This first version ranks existing Surplox records. Later versions can add external supplier enrichment, project analysis, and logistics coordination.'
+      'This first version ranks existing Surplox records. Later versions can add external supplier enrichment, project analysis, and smarter logistics coordination.'
   },
   es: {
     badge: 'Herramientas AI de Surplox',
     title: 'Herramientas AI para planeación, contratación, suministro y logística.',
     body:
-      'Este centro reúne las herramientas AI de Surplox. Empieza con Sugerencias de Proveedores y Crew Matching, y luego expándelo hacia coordinación de entregas y análisis de proyectos.',
+      'Este centro reúne las herramientas AI de Surplox. Empieza con Sugerencias de Proveedores, Crew Matching y Coordinación de Entrega, y luego expándelo hacia análisis de proyectos.',
     supplierTab: 'AI de Proveedores',
     crewTab: 'AI de Crew Matching',
+    deliveryTab: 'AI de Coordinación de Entrega',
     supplierTitle: 'Encuentra los mejores proveedores cercanos para una obra.',
     supplierBody:
       'Busca registros de proveedores de Surplox por material, ZIP, tienda física, nombre comercial y radio de entrega para obtener sugerencias clasificadas.',
@@ -142,8 +189,53 @@ const COPY = {
     crewSizeMatch: 'Encaje por tamaño de cuadrilla',
     profileComplete: 'Perfil más fuerte',
     radiusFit: 'Encaje por radio de viaje',
+    supplierReady: 'Proveedor seleccionado',
+    laneMatch: 'Encaje por línea de entrega',
+    payloadFit: 'Encaje por carga',
+    trailerFit: 'Encaje por remolque',
+    vehicleFit: 'Encaje por vehículo',
+    supplierZipFit: 'Encaje por ZIP de recolección',
+    deliveryTitle: 'Coordina el mejor soporte de entrega desde proveedor hasta obra.',
+    deliveryBody:
+      'Empieza con un proveedor o ZIP de recolección y luego clasifica conductores cercanos de Surplox por línea, vehículo, remolque, carga, radio de entrega y encaje local.',
+    chooseSupplier: 'Punto de recolección del proveedor',
+    allSuppliers: 'Todos los proveedores',
+    supplierOptional: 'Opcional: elige una tienda proveedora',
+    pickupZipLabel: 'ZIP de recolección',
+    pickupZipPlaceholder: '76102',
+    jobsiteZipLabel: 'ZIP de la obra',
+    jobsiteZipPlaceholder: '76028',
+    deliveryLaneLabel: 'Línea de entrega',
+    allDeliveryLanes: 'Todas las líneas de entrega',
+    vehicleLabel: 'Tipo de vehículo',
+    allVehicles: 'Todos los vehículos',
+    trailerLabel: 'Tipo de remolque',
+    allTrailers: 'Todos los remolques',
+    minPayloadLabel: 'Carga mínima (lbs)',
+    minTrailerLengthLabel: 'Largo mínimo del remolque (ft)',
+    minDeliveryRadiusLabel: 'Radio mínimo de entrega (mi)',
+    runDelivery: 'Ejecutar coordinación de entrega',
+    deliveryResults: 'Mejores coincidencias de entrega',
+    noDeliveryResults:
+      'Todavía no hay coincidencias de entrega. Amplía los filtros de línea, remolque, carga o ZIP mientras más conductores se unen a Surplox.',
+    openDriver: 'Abrir perfil del conductor',
+    createDeliveryPost: 'Crear publicación de entrega',
+    supportLane: 'Línea de entrega',
+    vehicleType: 'Vehículo',
+    trailerType: 'Remolque',
+    payloadCapacity: 'Capacidad de carga',
+    deliveryRadiusLabel: 'Radio de entrega',
+    trailerLength: 'Largo del remolque',
+    serviceTags: 'Etiquetas de servicio',
+    noServiceTags: 'Todavía no hay etiquetas de servicio.',
+    city: 'Ciudad',
+    noCity: 'Sin ciudad',
+    pounds: 'lbs',
+    feet: 'ft',
+    pickupSummary: 'Recolección / Proveedor',
+    jobsiteSummary: 'Obra',
     quickNote:
-      'Esta primera versión clasifica registros existentes de Surplox. Las siguientes pueden agregar enriquecimiento externo de proveedores, análisis de proyectos y coordinación logística.'
+      'Esta primera versión clasifica registros existentes de Surplox. Las siguientes pueden agregar enriquecimiento externo de proveedores, análisis de proyectos y coordinación logística más inteligente.'
   }
 }
 
@@ -159,6 +251,39 @@ const DEFAULT_MATERIALS = [
   'Equipment Rental',
   'Safety Equipment'
 ]
+
+const VEHICLE_LABELS = {
+  pickup_truck: { en: 'Pickup Truck', es: 'Pickup' },
+  cargo_van: { en: 'Cargo Van', es: 'Cargo van' },
+  box_truck: { en: 'Box Truck', es: 'Camión caja' },
+  flatbed_truck: { en: 'Flatbed Truck', es: 'Camión plataforma' }
+}
+
+const TRAILER_LABELS = {
+  none: { en: 'No Trailer', es: 'Sin remolque' },
+  no_trailer: { en: 'No Trailer', es: 'Sin remolque' },
+  utility_trailer: { en: 'Utility Trailer', es: 'Remolque utilitario' },
+  flatbed_trailer: { en: 'Flatbed Trailer', es: 'Remolque plataforma' },
+  gooseneck_trailer: { en: 'Gooseneck Trailer', es: 'Remolque gooseneck' },
+  equipment_trailer: { en: 'Equipment Trailer', es: 'Remolque para equipo' },
+  enclosed_trailer: { en: 'Enclosed Trailer', es: 'Remolque cerrado' }
+}
+
+const SUPPORT_TYPE_LABELS = {
+  material_delivery: { en: 'Material Delivery / Hot Shot', es: 'Entrega de materiales / Hot Shot' },
+  cargo_van_delivery: { en: 'Cargo Van / Local Delivery', es: 'Cargo Van / Entrega local' }
+}
+
+const SERVICE_TAG_LABELS = {
+  material_delivery: { en: 'Material Delivery', es: 'Entrega de materiales' },
+  hot_shot: { en: 'Hot Shot', es: 'Hot Shot' },
+  last_mile_delivery: { en: 'Last Mile Delivery', es: 'Última milla' },
+  local_runs: { en: 'Local Runs', es: 'Viajes locales' },
+  same_day_delivery: { en: 'Same Day Delivery', es: 'Entrega el mismo día' },
+  long_distance: { en: 'Long Distance', es: 'Larga distancia' },
+  cargo_van: { en: 'Cargo Van', es: 'Cargo van' },
+  pickup_truck: { en: 'Pickup Truck', es: 'Pickup' }
+}
 
 function normalizeText(value) {
   return String(value || '').trim()
@@ -200,11 +325,28 @@ function availabilityLabel(value, lang = 'en') {
   return labels[value]?.[lang] || labels[value]?.en || value || '—'
 }
 
+function labelForMap(map, value, lang = 'en') {
+  const key = normalizeText(value)
+  if (!key) return ''
+  return map[key]?.[lang] || map[key]?.en || key.replace(/_/g, ' ')
+}
+
 function startsWithZipRegion(a, b) {
   const left = normalizeText(a)
   const right = normalizeText(b)
   if (!left || !right) return false
   return left.slice(0, 3) === right.slice(0, 3)
+}
+
+function detectSupportType(serviceTags = [], vehicleType = '') {
+  if (
+    serviceTags.includes('local_runs') ||
+    serviceTags.includes('last_mile_delivery') ||
+    vehicleType === 'cargo_van'
+  ) {
+    return 'cargo_van_delivery'
+  }
+  return 'material_delivery'
 }
 
 function profileStrength(worker) {
@@ -324,6 +466,61 @@ function scoreWorker(worker, { selectedTradeId, jobZip, radius, minCrewSize, ava
   return score
 }
 
+function deliveryReasons(driver, { supplier, pickupZip, jobsiteZip, supportType, vehicleType, trailerType, minPayload, minTrailerLength, minDeliveryRadius, copy }) {
+  const reasons = []
+  const driverHomeZip = normalizeText(driver.home_zip)
+  const supplierZip = normalizeText(supplier?.business_zip) || normalizeText(pickupZip)
+  const driverSupportType = normalizeText(driver.support_type)
+  const driverVehicle = normalizeText(driver.vehicle_type)
+  const driverTrailer = normalizeText(driver.trailer_type)
+
+  if (supplier?.user_id) reasons.push(copy.supplierReady)
+  if (supplierZip && driverHomeZip === supplierZip) reasons.push(copy.supplierZipFit)
+  else if (supplierZip && startsWithZipRegion(driverHomeZip, supplierZip)) reasons.push(copy.nearbyZip)
+  if (jobsiteZip && driverHomeZip === normalizeText(jobsiteZip)) reasons.push(copy.exactZip)
+  else if (jobsiteZip && startsWithZipRegion(driverHomeZip, jobsiteZip)) reasons.push(copy.nearbyZip)
+  if (supportType && driverSupportType === supportType) reasons.push(copy.laneMatch)
+  if (vehicleType && driverVehicle === vehicleType) reasons.push(copy.vehicleFit)
+  if (trailerType && driverTrailer === trailerType) reasons.push(copy.trailerFit)
+  if (numericValue(minPayload) > 0 && numericValue(driver.payload_capacity) >= numericValue(minPayload)) reasons.push(copy.payloadFit)
+  if (numericValue(minTrailerLength) > 0 && numericValue(driver.trailer_length) >= numericValue(minTrailerLength)) reasons.push(copy.trailerFit)
+  if (numericValue(minDeliveryRadius) > 0 && numericValue(driver.delivery_radius) >= numericValue(minDeliveryRadius)) reasons.push(copy.deliveryCoverage)
+
+  return Array.from(new Set(reasons)).slice(0, 5)
+}
+
+function scoreDriver(driver, { supplier, pickupZip, jobsiteZip, supportType, vehicleType, trailerType, minPayload, minTrailerLength, minDeliveryRadius }) {
+  let score = 0
+  const supplierZip = normalizeText(supplier?.business_zip) || normalizeText(pickupZip)
+  const driverHomeZip = normalizeText(driver.home_zip)
+  const driverBusinessZip = normalizeText(driver.business_zip)
+  const deliveryZipMatch = [driverHomeZip, driverBusinessZip].filter(Boolean)
+
+  if (supplierZip) {
+    if (deliveryZipMatch.includes(supplierZip)) score += 20
+    else if (deliveryZipMatch.some((zip) => startsWithZipRegion(zip, supplierZip))) score += 10
+  }
+
+  if (jobsiteZip) {
+    if (deliveryZipMatch.includes(normalizeText(jobsiteZip))) score += 14
+    else if (deliveryZipMatch.some((zip) => startsWithZipRegion(zip, jobsiteZip))) score += 8
+  }
+
+  if (supportType && normalizeText(driver.support_type) === supportType) score += 22
+  if (vehicleType && normalizeText(driver.vehicle_type) === vehicleType) score += 18
+  if (trailerType && normalizeText(driver.trailer_type) === trailerType) score += 16
+  if (numericValue(minPayload) > 0 && numericValue(driver.payload_capacity) >= numericValue(minPayload)) score += 18
+  if (numericValue(minTrailerLength) > 0 && numericValue(driver.trailer_length) >= numericValue(minTrailerLength)) score += 12
+  if (numericValue(minDeliveryRadius) > 0 && numericValue(driver.delivery_radius) >= numericValue(minDeliveryRadius)) score += 12
+
+  score += Math.min(numericValue(driver.delivery_radius), 200) / 8
+  score += Math.min(numericValue(driver.payload_capacity), 24000) / 1800
+  if (!['', 'none', 'no_trailer'].includes(normalizeText(driver.trailer_type))) score += 4
+  if (normalizeText(driver.bio)) score += 3
+
+  return score
+}
+
 function InfoCard({ label, value }) {
   return (
     <div className="card-soft" style={{ minHeight: 92 }}>
@@ -351,6 +548,7 @@ export default function SupplierAiTools({ lang = 'en' }) {
   const [trades, setTrades] = useState([])
   const [suppliers, setSuppliers] = useState([])
   const [workers, setWorkers] = useState([])
+  const [drivers, setDrivers] = useState([])
 
   const [supplierQuery, setSupplierQuery] = useState('')
   const [supplierMaterial, setSupplierMaterial] = useState('')
@@ -365,6 +563,17 @@ export default function SupplierAiTools({ lang = 'en' }) {
   const [crewAvailability, setCrewAvailability] = useState('')
   const [ranCrew, setRanCrew] = useState(false)
 
+  const [deliverySupplierId, setDeliverySupplierId] = useState('')
+  const [pickupZip, setPickupZip] = useState('')
+  const [deliveryJobsiteZip, setDeliveryJobsiteZip] = useState('')
+  const [deliverySupportType, setDeliverySupportType] = useState('')
+  const [deliveryVehicleType, setDeliveryVehicleType] = useState('')
+  const [deliveryTrailerType, setDeliveryTrailerType] = useState('')
+  const [deliveryMinPayload, setDeliveryMinPayload] = useState('')
+  const [deliveryMinTrailerLength, setDeliveryMinTrailerLength] = useState('')
+  const [deliveryMinRadius, setDeliveryMinRadius] = useState('')
+  const [ranDelivery, setRanDelivery] = useState(false)
+
   useEffect(() => {
     let active = true
 
@@ -373,7 +582,13 @@ export default function SupplierAiTools({ lang = 'en' }) {
       setError('')
 
       try {
-        const [{ data: tradesData, error: tradesError }, { data: supplierData, error: supplierError }, { data: workerData, error: workerError }, { data: contactsData, error: contactsError }] = await Promise.all([
+        const [
+          { data: tradesData, error: tradesError },
+          { data: supplierData, error: supplierError },
+          { data: workerData, error: workerError },
+          { data: driverData, error: driverError },
+          { data: contactsData, error: contactsError }
+        ] = await Promise.all([
           supabase.from('trades').select('id,name').order('name'),
           supabase
             .from('profiles')
@@ -385,24 +600,30 @@ export default function SupplierAiTools({ lang = 'en' }) {
             .select('user_id, display_name, first_name, last_name, role, trade_id, home_zip, travel_radius_miles, crew_size, bio, availability_status, category_group, trades(name)')
             .in('role', ['laborer', 'subcontractor', 'contractor'])
             .order('display_name', { ascending: true }),
+          supabase
+            .from('profiles')
+            .select('user_id, display_name, first_name, last_name, home_zip, bio, role, category_group, service_tags, vehicle_type, trailer_type, trailer_length, payload_capacity, delivery_radius, business_zip')
+            .eq('role', 'driver')
+            .order('display_name', { ascending: true }),
           supabase.from('contact_private').select('user_id, city, phone')
         ])
 
         if (tradesError) throw tradesError
         if (supplierError) throw supplierError
         if (workerError) throw workerError
+        if (driverError) throw driverError
         if (contactsError) throw contactsError
         if (!active) return
 
         const contactMap = new Map((contactsData || []).map((row) => [row.user_id, row]))
 
+        const normalizedSuppliers = (supplierData || []).map((item) => ({
+          ...item,
+          materials_categories: normalizeMaterials(item.materials_categories)
+        }))
+
         setTrades(tradesData || [])
-        setSuppliers(
-          (supplierData || []).map((item) => ({
-            ...item,
-            materials_categories: normalizeMaterials(item.materials_categories)
-          }))
-        )
+        setSuppliers(normalizedSuppliers)
         setWorkers(
           (workerData || []).map((item) => {
             const contact = contactMap.get(item.user_id) || {}
@@ -411,6 +632,19 @@ export default function SupplierAiTools({ lang = 'en' }) {
               trade_name: item.trades?.name || '',
               city: normalizeText(contact.city),
               phone: normalizeText(contact.phone)
+            }
+          })
+        )
+        setDrivers(
+          (driverData || []).map((item) => {
+            const contact = contactMap.get(item.user_id) || {}
+            const serviceTags = normalizeList(item.service_tags)
+            return {
+              ...item,
+              city: normalizeText(contact.city),
+              phone: normalizeText(contact.phone),
+              service_tags: serviceTags,
+              support_type: detectSupportType(serviceTags, normalizeText(item.vehicle_type))
             }
           })
         )
@@ -436,6 +670,18 @@ export default function SupplierAiTools({ lang = 'en' }) {
     })
     return Array.from(set).sort((a, b) => a.localeCompare(b))
   }, [suppliers])
+
+  const selectedSupplier = useMemo(() => {
+    return suppliers.find((supplier) => String(supplier.user_id) === String(deliverySupplierId)) || null
+  }, [suppliers, deliverySupplierId])
+
+  useEffect(() => {
+    if (!selectedSupplier) return
+    const nextPickupZip = normalizeText(selectedSupplier.business_zip)
+    if (nextPickupZip) {
+      setPickupZip(nextPickupZip)
+    }
+  }, [selectedSupplier])
 
   const supplierResults = useMemo(() => {
     let next = [...suppliers]
@@ -533,6 +779,115 @@ export default function SupplierAiTools({ lang = 'en' }) {
       .slice(0, 12)
   }, [workers, crewTradeId, crewZip, crewAvailability, crewMinSize, crewRadius, copy])
 
+  const deliveryResults = useMemo(() => {
+    let next = [...drivers]
+    const normalizedPickupZip = normalizeText(pickupZip) || normalizeText(selectedSupplier?.business_zip)
+    const normalizedJobsiteZip = normalizeText(deliveryJobsiteZip)
+    const minPayload = numericValue(deliveryMinPayload)
+    const minTrailerLength = numericValue(deliveryMinTrailerLength)
+    const minDeliveryRadius = numericValue(deliveryMinRadius)
+
+    if (deliverySupportType) {
+      next = next.filter((driver) => normalizeText(driver.support_type) === deliverySupportType)
+    }
+    if (deliveryVehicleType) {
+      next = next.filter((driver) => normalizeText(driver.vehicle_type) === deliveryVehicleType)
+    }
+    if (deliveryTrailerType) {
+      next = next.filter((driver) => normalizeText(driver.trailer_type) === deliveryTrailerType)
+    }
+    if (minPayload > 0) {
+      next = next.filter((driver) => numericValue(driver.payload_capacity) >= minPayload)
+    }
+    if (minTrailerLength > 0) {
+      next = next.filter((driver) => numericValue(driver.trailer_length) >= minTrailerLength)
+    }
+    if (minDeliveryRadius > 0) {
+      next = next.filter((driver) => numericValue(driver.delivery_radius) >= minDeliveryRadius)
+    }
+    if (normalizedPickupZip) {
+      next = next.filter((driver) => {
+        const homeZip = normalizeText(driver.home_zip)
+        const businessZip = normalizeText(driver.business_zip)
+        return (
+          homeZip === normalizedPickupZip ||
+          businessZip === normalizedPickupZip ||
+          startsWithZipRegion(homeZip, normalizedPickupZip) ||
+          startsWithZipRegion(businessZip, normalizedPickupZip)
+        )
+      })
+    }
+
+    return next
+      .map((driver) => ({
+        ...driver,
+        delivery_score: scoreDriver(driver, {
+          supplier: selectedSupplier,
+          pickupZip: normalizedPickupZip,
+          jobsiteZip: normalizedJobsiteZip,
+          supportType: deliverySupportType,
+          vehicleType: deliveryVehicleType,
+          trailerType: deliveryTrailerType,
+          minPayload,
+          minTrailerLength,
+          minDeliveryRadius
+        }),
+        reasons: deliveryReasons(driver, {
+          supplier: selectedSupplier,
+          pickupZip: normalizedPickupZip,
+          jobsiteZip: normalizedJobsiteZip,
+          supportType: deliverySupportType,
+          vehicleType: deliveryVehicleType,
+          trailerType: deliveryTrailerType,
+          minPayload,
+          minTrailerLength,
+          minDeliveryRadius,
+          copy
+        })
+      }))
+      .sort((a, b) => b.delivery_score - a.delivery_score)
+      .slice(0, 12)
+  }, [
+    drivers,
+    selectedSupplier,
+    pickupZip,
+    deliveryJobsiteZip,
+    deliverySupportType,
+    deliveryVehicleType,
+    deliveryTrailerType,
+    deliveryMinPayload,
+    deliveryMinTrailerLength,
+    deliveryMinRadius,
+    copy
+  ])
+
+  const driverVehicleOptions = useMemo(() => {
+    const set = new Set(Object.keys(VEHICLE_LABELS))
+    drivers.forEach((driver) => {
+      const value = normalizeText(driver.vehicle_type)
+      if (value) set.add(value)
+    })
+    return Array.from(set)
+  }, [drivers])
+
+  const driverTrailerOptions = useMemo(() => {
+    const set = new Set(Object.keys(TRAILER_LABELS))
+    drivers.forEach((driver) => {
+      const value = normalizeText(driver.trailer_type)
+      if (value) set.add(value)
+    })
+    return Array.from(set)
+  }, [drivers])
+
+  const driverLaneOptions = useMemo(() => {
+    const set = new Set(Object.keys(SUPPORT_TYPE_LABELS))
+    drivers.forEach((driver) => {
+      const value = normalizeText(driver.support_type)
+      if (value) set.add(value)
+    })
+    return Array.from(set)
+  }, [drivers])
+
   if (loading) {
     return <div className="card">{copy.loading}</div>
   }
@@ -574,6 +929,13 @@ export default function SupplierAiTools({ lang = 'en' }) {
             onClick={() => setTab('crew')}
           >
             {copy.crewTab}
+          </button>
+          <button
+            type="button"
+            className={tab === 'delivery' ? 'btn primary' : 'btn'}
+            onClick={() => setTab('delivery')}
+          >
+            {copy.deliveryTab}
           </button>
         </div>
       </div>
@@ -812,6 +1174,201 @@ export default function SupplierAiTools({ lang = 'en' }) {
                     <div style={{ marginTop: 16 }}>
                       <div className="muted">Bio</div>
                       <p style={{ marginTop: 8, lineHeight: 1.7 }}>{normalizeText(worker.bio) || copy.noBio}</p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : null}
+        </>
+      ) : null}
+
+      {tab === 'delivery' ? (
+        <>
+          <div className="card rounded-xl" style={{ padding: 22 }}>
+            <div className="card-section-title">{copy.deliveryTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.deliveryBody}</p>
+
+            <div className="grid" style={{ gap: 14, marginTop: 16 }}>
+              <div>
+                <div className="muted" style={{ marginBottom: 8 }}>{copy.chooseSupplier}</div>
+                <select className="input" value={deliverySupplierId} onChange={(e) => setDeliverySupplierId(e.target.value)}>
+                  <option value="">{copy.allSuppliers}</option>
+                  {suppliers.map((supplier) => (
+                    <option key={supplier.user_id} value={supplier.user_id}>
+                      {normalizeText(supplier.business_name) || normalizeText(supplier.display_name) || 'Supplier'}
+                    </option>
+                  ))}
+                </select>
+                <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>{copy.supplierOptional}</div>
+              </div>
+
+              <div className="grid two" style={{ gap: 14 }}>
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.pickupZipLabel}</div>
+                  <input
+                    className="input"
+                    value={pickupZip}
+                    onChange={(e) => setPickupZip(e.target.value.replace(/[^\d]/g, '').slice(0, 5))}
+                    placeholder={copy.pickupZipPlaceholder}
+                  />
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.jobsiteZipLabel}</div>
+                  <input
+                    className="input"
+                    value={deliveryJobsiteZip}
+                    onChange={(e) => setDeliveryJobsiteZip(e.target.value.replace(/[^\d]/g, '').slice(0, 5))}
+                    placeholder={copy.jobsiteZipPlaceholder}
+                  />
+                </div>
+              </div>
+
+              <div className="grid two" style={{ gap: 14 }}>
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.deliveryLaneLabel}</div>
+                  <select className="input" value={deliverySupportType} onChange={(e) => setDeliverySupportType(e.target.value)}>
+                    <option value="">{copy.allDeliveryLanes}</option>
+                    {driverLaneOptions.map((option) => (
+                      <option key={option} value={option}>{labelForMap(SUPPORT_TYPE_LABELS, option, lang)}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.vehicleLabel}</div>
+                  <select className="input" value={deliveryVehicleType} onChange={(e) => setDeliveryVehicleType(e.target.value)}>
+                    <option value="">{copy.allVehicles}</option>
+                    {driverVehicleOptions.map((option) => (
+                      <option key={option} value={option}>{labelForMap(VEHICLE_LABELS, option, lang)}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid two" style={{ gap: 14 }}>
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.trailerLabel}</div>
+                  <select className="input" value={deliveryTrailerType} onChange={(e) => setDeliveryTrailerType(e.target.value)}>
+                    <option value="">{copy.allTrailers}</option>
+                    {driverTrailerOptions.map((option) => (
+                      <option key={option} value={option}>{labelForMap(TRAILER_LABELS, option, lang)}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.minPayloadLabel}</div>
+                  <input
+                    className="input"
+                    type="number"
+                    value={deliveryMinPayload}
+                    onChange={(e) => setDeliveryMinPayload(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid two" style={{ gap: 14 }}>
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.minTrailerLengthLabel}</div>
+                  <input
+                    className="input"
+                    type="number"
+                    value={deliveryMinTrailerLength}
+                    onChange={(e) => setDeliveryMinTrailerLength(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <div className="muted" style={{ marginBottom: 8 }}>{copy.minDeliveryRadiusLabel}</div>
+                  <input
+                    className="input"
+                    type="number"
+                    value={deliveryMinRadius}
+                    onChange={(e) => setDeliveryMinRadius(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button type="button" className="btn primary" onClick={() => setRanDelivery(true)}>
+                  {copy.runDelivery}
+                </button>
+                <Link className="btn" to="/new?category=jobsite_support&support=material_delivery">
+                  {copy.createDeliveryPost}
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {ranDelivery ? (
+            <div className="grid" style={{ gap: 16 }}>
+              <div className="card rounded-xl" style={{ padding: 22 }}>
+                <div className="card-section-title">{copy.deliveryResults}</div>
+              </div>
+
+              {deliveryResults.length === 0 ? (
+                <div className="card rounded-xl" style={{ padding: 22 }}>
+                  <div className="card-section-subtitle">{copy.noDeliveryResults}</div>
+                </div>
+              ) : (
+                deliveryResults.map((driver) => (
+                  <div key={driver.user_id} className="card rounded-xl" style={{ padding: 22 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <div>
+                        <div className="h2" style={{ fontSize: 24 }}>
+                          {normalizeText(driver.display_name) || normalizeText(`${driver.first_name || ''} ${driver.last_name || ''}`) || prettyRole('driver', lang)}
+                        </div>
+                        <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          <span className="badge">AI {copy.matchScore}: {driver.delivery_score}</span>
+                          <span className="badge">{copy.supportLane}: {labelForMap(SUPPORT_TYPE_LABELS, driver.support_type, lang) || '—'}</span>
+                          <span className="badge">{copy.city}: {normalizeText(driver.city) || copy.noCity}</span>
+                          <span className="badge">{copy.zip}: {normalizeText(driver.home_zip) || normalizeText(driver.business_zip) || '—'}</span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <Link className="btn small primary" to={`/u/${driver.user_id}`}>
+                          {copy.openDriver}
+                        </Link>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                      gap: 14,
+                      marginTop: 16
+                    }}>
+                      <InfoCard label={copy.pickupSummary} value={normalizeText(selectedSupplier?.business_name) || normalizeText(selectedSupplier?.display_name) || normalizeText(pickupZip) || '—'} />
+                      <InfoCard label={copy.jobsiteSummary} value={normalizeText(deliveryJobsiteZip) || '—'} />
+                      <InfoCard label={copy.vehicleType} value={labelForMap(VEHICLE_LABELS, driver.vehicle_type, lang) || '—'} />
+                      <InfoCard label={copy.trailerType} value={labelForMap(TRAILER_LABELS, driver.trailer_type, lang) || '—'} />
+                      <InfoCard label={copy.payloadCapacity} value={numericValue(driver.payload_capacity) > 0 ? `${numericValue(driver.payload_capacity)} ${copy.pounds}` : '—'} />
+                      <InfoCard label={copy.deliveryRadiusLabel} value={numericValue(driver.delivery_radius) > 0 ? `${numericValue(driver.delivery_radius)} ${copy.miles}` : '—'} />
+                      <InfoCard label={copy.trailerLength} value={numericValue(driver.trailer_length) > 0 ? `${numericValue(driver.trailer_length)} ${copy.feet}` : '—'} />
+                      <InfoCard label={copy.whyMatched} value={driver.reasons.join(' • ') || '—'} />
+                    </div>
+
+                    <div style={{ marginTop: 16 }}>
+                      <div className="muted">{copy.serviceTags}</div>
+                      {driver.service_tags.length > 0 ? (
+                        <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          {driver.service_tags.map((tag) => (
+                            <span key={`${driver.user_id}-${tag}`} className="badge" style={{ background: '#d8ecff', color: '#0d3f73' }}>
+                              {labelForMap(SERVICE_TAG_LABELS, tag, lang)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="muted" style={{ marginTop: 8 }}>{copy.noServiceTags}</div>
+                      )}
+                    </div>
+
+                    <div style={{ marginTop: 16 }}>
+                      <div className="muted">About</div>
+                      <p style={{ marginTop: 8, lineHeight: 1.7 }}>{normalizeText(driver.bio) || copy.noBio}</p>
                     </div>
                   </div>
                 ))
