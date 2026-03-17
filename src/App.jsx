@@ -679,6 +679,8 @@ function AppShell({ lang, setLang }) {
     }
   }, [])
 
+  const isAdmin = useMemo(() => hasAdminAccess(session?.user), [session?.user])
+
   const navItems = useMemo(() => {
     if (!session) return []
 
@@ -695,8 +697,6 @@ function AppShell({ lang, setLang }) {
       { to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' }
     ]
   }, [session, lang, quickLinks.repair, isAdmin])
-
-  const isAdmin = useMemo(() => hasAdminAccess(session?.user), [session?.user])
 
   const isActive = (to) => {
     if (to === '/') return location.pathname === '/'
