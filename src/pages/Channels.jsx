@@ -244,6 +244,26 @@ export default function Channels({ lang: langProp = 'en' }) {
   return (
     <div className="grid" style={{ gap: 18 }}>
       <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="badge" style={{ background: '#ecebe3', color: '#111111' }}>
+          {copy.heroBadge}
+        </div>
+
+        <div style={{ fontWeight: 900, fontSize: 28, marginTop: 14, lineHeight: 1.15 }}>
+          {copy.title}
+        </div>
+
+        <p className="muted" style={{ marginTop: 10, lineHeight: 1.6 }}>
+          {copy.intro}
+        </p>
+
+        <div className="grid three" style={{ marginTop: 14 }}>
+          <InfoTile value={copy.stat1} />
+          <InfoTile value={copy.stat2} />
+          <InfoTile value={copy.stat3} />
+        </div>
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">{copy.quickActions}</div>
 
         <p className="card-section-subtitle" style={{ marginTop: 8 }}>
