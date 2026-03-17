@@ -194,7 +194,7 @@ function AppShell({ lang, setLang }) {
     return [
       { to: '/feed', label: lang === 'es' ? 'Feed' : 'Feed' },
       { to: '/materials', label: lang === 'es' ? 'Materiales' : 'Materials' },
-      { to: '/delivery', label: lang === 'es' ? 'Delivery' : 'Delivery' },
+      { to: '/delivery', label: lang === 'es' ? 'Entrega' : 'Delivery' },
       { to: '/channels', label: lang === 'es' ? 'Canales' : 'Channels' },
       { to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
       { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
@@ -209,7 +209,6 @@ function AppShell({ lang, setLang }) {
       labor: '/feed',
       materials: '/materials',
       deliveryDirectory: '/delivery',
-      deliveryFeed: '/feed?category=jobsite_support&support=material_delivery',
       repair: '/feed?category=jobsite_support&support=equipment_fleet_repair'
     }
   }, [])
@@ -218,10 +217,6 @@ function AppShell({ lang, setLang }) {
     if (to === '/') return location.pathname === '/'
     return location.pathname.startsWith(to)
   }
-
-  const isDeliveryFeedActive =
-    location.pathname.startsWith('/feed') &&
-    isSupportSearchActive(location.search, ['material_delivery', 'cargo_van_delivery'])
 
   const isRepairActive =
     location.pathname.startsWith('/feed') &&
@@ -387,7 +382,7 @@ function AppShell({ lang, setLang }) {
           ) : null}
 
           {mobileMenuOpen ? (
-            <div className="nav-mobile-menu" style={{ paddingBottom: 12 }}>
+            <div className="nav-mobile-menu">
               <div
                 className="card rounded-xl"
                 style={{
@@ -395,20 +390,11 @@ function AppShell({ lang, setLang }) {
                   overflowY: 'auto',
                   overscrollBehavior: 'contain',
                   WebkitOverflowScrolling: 'touch',
-                  touchAction: 'pan-y',
-                  padding: 14
+                  touchAction: 'pan-y'
                 }}
               >
                 {session ? (
-                  <div
-                    className="nav-mobile-menu-list"
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 10,
-                      paddingBottom: 12
-                    }}
-                  >
+                  <div className="nav-mobile-menu-list">
                     {navItems.map((item) => (
                       <Link
                         key={item.to}
