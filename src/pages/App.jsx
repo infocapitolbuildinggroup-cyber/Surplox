@@ -20,7 +20,6 @@ import Delivery from './pages/Delivery'
 import './styles.css'
 
 const ADMIN_EMAILS = new Set(['david@capitolbuildinggroup.com'])
-const REPAIR_ROUTE = '/feed?category=jobsite_support&support=equipment_fleet_repair'
 
 function usePreferredLanguage() {
   const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
@@ -195,7 +194,7 @@ function AppShell({ lang, setLang }) {
     return [
       { to: '/feed', label: lang === 'es' ? 'Feed' : 'Feed' },
       { to: '/materials', label: lang === 'es' ? 'Materiales' : 'Materials' },
-      { to: '/delivery', label: lang === 'es' ? 'Entrega' : 'Delivery' },
+      { to: '/delivery', label: lang === 'es' ? 'Delivery' : 'Delivery' },
       { to: '/channels', label: lang === 'es' ? 'Canales' : 'Channels' },
       { to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
       { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
@@ -205,10 +204,24 @@ function AppShell({ lang, setLang }) {
 
   const isAdmin = useMemo(() => hasAdminAccess(session?.user), [session?.user])
 
+  const quickLinks = useMemo(() => {
+    return {
+      labor: '/feed',
+      materials: '/materials',
+      deliveryDirectory: '/delivery',
+      deliveryFeed: '/feed?category=jobsite_support&support=material_delivery',
+      repair: '/feed?category=jobsite_support&support=equipment_fleet_repair'
+    }
+  }, [])
+
   const isActive = (to) => {
     if (to === '/') return location.pathname === '/'
     return location.pathname.startsWith(to)
   }
+
+  const isDeliveryFeedActive =
+    location.pathname.startsWith('/feed') &&
+    isSupportSearchActive(location.search, ['material_delivery', 'cargo_van_delivery'])
 
   const isRepairActive =
     location.pathname.startsWith('/feed') &&
@@ -351,7 +364,7 @@ function AppShell({ lang, setLang }) {
                 {session ? (
                   <>
                     <Link
-                      to={REPAIR_ROUTE}
+                      to={quickLinks.repair}
                       className={isRepairActive ? 'btn primary small' : 'btn small'}
                       style={{ textDecoration: 'none' }}
                     >
@@ -406,7 +419,7 @@ function AppShell({ lang, setLang }) {
                       </Link>
                     ))}
 
-                    <Link to={REPAIR_ROUTE} className={isRepairActive ? 'btn primary' : 'btn'}>
+                    <Link to={quickLinks.repair} className={isRepairActive ? 'btn primary' : 'btn'}>
                       {lang === 'es' ? 'Equipo / Reparación' : 'Equipment / Repair'}
                     </Link>
 
