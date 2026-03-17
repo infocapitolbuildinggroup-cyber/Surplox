@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
 import { t } from '../i18n'
+import { detectLikelyLanguage } from '../translate'
 
 const POST_TYPE_OPTIONS = [
   { value: 'discussion', en: 'Discussion', es: 'Discusión' },
@@ -778,6 +779,8 @@ export default function NewPost({ lang: langProp = 'en' }) {
 
       const uploadedPaths = await uploadPostImages(selectedFiles, user.id)
 
+      const detectedLanguage = detectLikelyLanguage(`${form.title} ${form.body}`)
+
       const payload = {
         author_id: user.id,
         post_type: form.post_type,
@@ -790,7 +793,7 @@ export default function NewPost({ lang: langProp = 'en' }) {
         body: form.body.trim(),
         center_zip: form.center_zip,
         radius_miles: radius,
-        source_language: form.source_language,
+        source_language: detectedLanguage || form.source_language,
         service_tags: form.category_group === 'jobsite_support' ? form.service_tags : [],
         equipment_tags: form.category_group === 'jobsite_support' ? form.equipment_tags : [],
         is_urgent: Boolean(form.is_urgent),
