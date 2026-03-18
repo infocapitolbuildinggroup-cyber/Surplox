@@ -9,7 +9,7 @@ const COPY = {
     heroBody:
       'Surplox helps crews, laborers, contractors, suppliers, runners, delivery support, and repair support connect faster so work keeps moving. Start with labor today. Expand into supplier storefronts, supplier access, cargo van delivery, material delivery, and fleet support as the network grows.',
     ctaPrimary: 'Enter Surplox',
-    ctaSecondary: 'View Channels',
+    ctaSecondary: 'View Trades',
 
     proof1: 'Need crew',
     proof2: 'Looking for work',
@@ -78,7 +78,7 @@ const COPY = {
     finalBody:
       'The more real workers, contractors, suppliers, runners, drivers, mechanics, and repair specialists who use Surplox locally, the more valuable the network becomes for everyone inside it.',
     finalCtaPrimary: 'Sign In',
-    finalCtaSecondary: 'Explore Channels'
+    finalCtaSecondary: 'Explore Trades'
   },
   es: {
     heroBadge: 'Red operativa de construcción',
@@ -86,7 +86,7 @@ const COPY = {
     heroBody:
       'Surplox ayuda a cuadrillas, trabajadores, contratistas, proveedores, runners, soporte de entrega y soporte de reparación a conectarse más rápido para que el trabajo siga avanzando. Empieza con mano de obra hoy. Expándete hacia tiendas proveedoras, acceso a proveedores, cargo van, entrega de materiales y soporte de flota conforme crece la red.',
     ctaPrimary: 'Entrar a Surplox',
-    ctaSecondary: 'Ver canales',
+    ctaSecondary: 'Ver oficios',
 
     proof1: 'Se necesita cuadrilla',
     proof2: 'Buscando trabajo',
@@ -155,7 +155,7 @@ const COPY = {
     finalBody:
       'Entre más trabajadores, contratistas, proveedores, runners, conductores, mecánicos y especialistas de reparación usen Surplox localmente, más valiosa se vuelve la red para todos los que están dentro.',
     finalCtaPrimary: 'Entrar',
-    finalCtaSecondary: 'Explorar canales'
+    finalCtaSecondary: 'Explorar oficios'
   }
 }
 
