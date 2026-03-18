@@ -53,7 +53,13 @@ const COPY = {
     paymentSaved: 'Payment updated.',
     paymentError: 'Unable to update payment right now.',
     balanceDue: 'Balance Due',
-    noPaymentDate: 'No payment date'
+    noPaymentDate: 'No payment date',
+    importProjectCosts: 'Import Project Costs',
+    importingCosts: 'Importing costs…',
+    importedCosts: 'Project costs imported.',
+    importCostsError: 'Unable to import project costs right now.',
+    importProjectRequired: 'Select a project before importing costs.',
+    noProjectCostsFound: 'No completed labor or material costs found for that project.'
   },
   es: {
     badge: 'Facturas y Estimados',
@@ -105,12 +111,18 @@ const COPY = {
     paymentSaved: 'Pago actualizado.',
     paymentError: 'No se pudo actualizar el pago.',
     balanceDue: 'Saldo Pendiente',
-    noPaymentDate: 'Sin fecha de pago'
+    noPaymentDate: 'Sin fecha de pago',
+    importProjectCosts: 'Importar Costos del Proyecto',
+    importingCosts: 'Importando costos…',
+    importedCosts: 'Costos del proyecto importados.',
+    importCostsError: 'No se pudieron importar los costos del proyecto.',
+    importProjectRequired: 'Selecciona un proyecto antes de importar costos.',
+    noProjectCostsFound: 'No se encontraron costos de materiales o mano de obra completada para ese proyecto.'
   }
 }
 
-function makeLineItem() {
-  return { id: crypto.randomUUID(), label: '', amount: '' }
+function makeLineItem(label = '', amount = '') {
+  return { id: crypto.randomUUID(), label, amount }
 }
 
 function makeEmptyDoc() {
@@ -261,6 +273,7 @@ export default function AdminInvoices({ lang = 'en' }) {
   const [form, setForm] = useState(makeEmptyDoc())
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [importingCosts, setImportingCosts] = useState(false)
   const [message, setMessage] = useState('')
 
   useEffect(() => {
@@ -384,6 +397,84 @@ export default function AdminInvoices({ lang = 'en' }) {
 
       return next
     })
+  }
+
+  async function handleImportProjectCosts() {
+    const selectedProject = String(form.project || '').trim()
+    if (!selectedProject) {
+      setMessage(copy.importProjectRequired)
+      return
+    }
+
+    try {
+      setImportingCosts(true)
+      setMessage('')
+
+      const [materialsRes, timeRes, workersRes] = await Promise.all([
+        supabase
+          .from('admin_project_materials')
+          .select('project_name, client_name, quantity, unit_cost')
+          .eq('project_name', selectedProject),
+        supabase
+          .from('admin_time_entries')
+          .select('jobsite, worker, role, clock_in_at, clock_out_at')
+          .eq('jobsite', selectedProject),
+        supabase
+          .from('admin_workers')
+          .select('name, hourly_rate')
+      ])
+
+      if (materialsRes.error) throw materialsRes.error
+      if (timeRes.error) throw timeRes.error
+      if (workersRes.error) throw workersRes.error
+
+      const selectedClient = String(form.client || '').trim().toLowerCase()
+
+      const filteredMaterials = selectedClient
+        ? (materialsRes.data || []).filter(
+            (row) => String(row.client_name || '').trim().toLowerCase() === selectedClient
+          )
+        : (materialsRes.data || [])
+
+      const workerRateMap = new Map(
+        (workersRes.data || []).map((row) => [String(row.name || '').trim(), Number(row.hourly_rate || 0)])
+      )
+
+      const totalMaterials = filteredMaterials.reduce(
+        (sum, row) => sum + Number(row.quantity || 0) * Number(row.unit_cost || 0),
+        0
+      )
+
+      const totalLabor = (timeRes.data || []).reduce((sum, row) => {
+        if (!row.clock_out_at) return sum
+        const hours = Math.max(
+          (new Date(row.clock_out_at).getTime() - new Date(row.clock_in_at).getTime()) / 3600000,
+          0
+        )
+        const rate = workerRateMap.get(String(row.worker || '').trim()) || 35
+        return sum + hours * rate
+      }, 0)
+
+      if (totalMaterials <= 0 && totalLabor <= 0) {
+        setMessage(copy.noProjectCostsFound)
+        return
+      }
+
+      const importedItems = []
+      if (totalMaterials > 0) importedItems.push(makeLineItem('Materials Cost', totalMaterials))
+      if (totalLabor > 0) importedItems.push(makeLineItem('Labor Cost', totalLabor))
+
+      setForm((prev) => ({
+        ...prev,
+        items: importedItems.length > 0 ? importedItems : prev.items
+      }))
+      setMessage(copy.importedCosts)
+    } catch (error) {
+      console.error(error)
+      setMessage(copy.importCostsError)
+    } finally {
+      setImportingCosts(false)
+    }
   }
 
   function generatePdf(doc) {
@@ -628,6 +719,10 @@ export default function AdminInvoices({ lang = 'en' }) {
                 />
               </div>
             </div>
+
+            <button type="button" className="btn" onClick={handleImportProjectCosts} disabled={importingCosts}>
+              {importingCosts ? copy.importingCosts : copy.importProjectCosts}
+            </button>
 
             <div className="card-soft" style={{ background: '#ffffff' }}>
               <div className="muted">{copy.subtotal}</div>
