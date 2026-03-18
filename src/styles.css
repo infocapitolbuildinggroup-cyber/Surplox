@@ -810,3 +810,12 @@ hr {
     display: none;
   }
 }
+
+.nav-mobile-menu-scroll {
+  max-height: min(72vh, calc(100dvh - 112px));
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}

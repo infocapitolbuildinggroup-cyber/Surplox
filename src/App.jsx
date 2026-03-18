@@ -456,7 +456,7 @@ function MessagesCenter({ lang = 'en' }) {
   return (
     <div className="grid" style={{ gap: 18 }}>
       <div
-        className="card rounded-xl"
+        className="card rounded-xl nav-mobile-menu-scroll"
         style={{
           padding: 24,
           background: 'linear-gradient(180deg, #e8f6ee 0%, #f7f7f2 100%)'
@@ -646,35 +646,6 @@ function AppShell({ lang, setLang }) {
   useEffect(() => {
     setMobileMenuOpen(false)
   }, [location.pathname, location.search])
-
-  useEffect(() => {
-    if (!mobileMenuOpen) return
-
-    function handleScroll() {
-      setMobileMenuOpen(false)
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [mobileMenuOpen])
-
-  useEffect(() => {
-    const previousHtmlOverflow = document.documentElement.style.overflow
-    const previousBodyOverflow = document.body.style.overflow
-
-    if (mobileMenuOpen) {
-      document.documentElement.style.overflow = 'hidden'
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.documentElement.style.overflow = previousHtmlOverflow
-      document.body.style.overflow = previousBodyOverflow
-    }
-
-    return () => {
-      document.documentElement.style.overflow = previousHtmlOverflow
-      document.body.style.overflow = previousBodyOverflow
-    }
-  }, [mobileMenuOpen])
 
   const quickLinks = useMemo(() => {
     return {
@@ -870,8 +841,9 @@ function AppShell({ lang, setLang }) {
               <div
                 className="card rounded-xl"
                 style={{
-                  maxHeight: 'calc(100vh - 112px)',
+                  maxHeight: 'min(72vh, calc(100dvh - 112px))',
                   overflowY: 'auto',
+                  overflowX: 'hidden',
                   overscrollBehavior: 'contain',
                   WebkitOverflowScrolling: 'touch',
                   touchAction: 'pan-y',
