@@ -90,7 +90,26 @@ const COPY = {
     referenceNumber: 'Reference Number',
     shareCopied: 'Invoice copied to clipboard.',
     quickPay: 'Quick Pay',
-    downloadReady: 'PDF downloaded.'
+    downloadReady: 'PDF downloaded.',
+    paymentMethod: 'Payment Method',
+    partialPayment: 'Add Partial Payment',
+    paymentHistoryTitle: 'Payment History',
+    paymentAmount: 'Payment Amount',
+    paymentNotes: 'Payment Notes',
+    card: 'Card',
+    cash: 'Cash',
+    check: 'Check',
+    wire: 'Wire',
+    ach: 'ACH',
+    other: 'Other',
+    noPaymentHistory: 'No payment history yet.',
+    publicLink: 'Public Link',
+    openLink: 'Open Link',
+    copyLink: 'Copy Link',
+    shareLinkCopied: 'Share link copied.',
+    attachPdfHelp: 'Download the PDF, then attach it to your email from your mail app.',
+    sendShareTitle: 'Send / Share',
+    paymentAdded: 'Payment recorded.'
   },
   es: {
     badge: 'Facturas y Estimados',
@@ -177,7 +196,26 @@ const COPY = {
     referenceNumber: 'Número de Referencia',
     shareCopied: 'Factura copiada al portapapeles.',
     quickPay: 'Pago Rápido',
-    downloadReady: 'PDF descargado.'
+    downloadReady: 'PDF descargado.',
+    paymentMethod: 'Método de Pago',
+    partialPayment: 'Agregar Pago Parcial',
+    paymentHistoryTitle: 'Historial de Pagos',
+    paymentAmount: 'Monto del Pago',
+    paymentNotes: 'Notas del Pago',
+    card: 'Tarjeta',
+    cash: 'Efectivo',
+    check: 'Cheque',
+    wire: 'Transferencia',
+    ach: 'ACH',
+    other: 'Otro',
+    noPaymentHistory: 'Todavía no hay historial de pagos.',
+    publicLink: 'Enlace Público',
+    openLink: 'Abrir Enlace',
+    copyLink: 'Copiar Enlace',
+    shareLinkCopied: 'Enlace copiado.',
+    attachPdfHelp: 'Descarga el PDF y luego adjúntalo desde tu app de correo.',
+    sendShareTitle: 'Enviar / Compartir',
+    paymentAdded: 'Pago registrado.'
   }
 }
 
@@ -228,7 +266,11 @@ function makeEmptyDoc() {
     customerPhone: '',
     customerEmail: '',
     invoiceDate: '',
-    referenceNumber: ''
+    referenceNumber: '',
+    paymentMethod: '',
+    paymentHistory: [],
+    paymentAmount: '',
+    paymentNotes: ''
   }
 }
 
@@ -268,7 +310,11 @@ function mapDbRowToDoc(row = {}) {
     customerPhone: row.customer_phone || '',
     customerEmail: row.customer_email || '',
     invoiceDate: row.invoice_date || '',
-    referenceNumber: row.reference_number || ''
+    referenceNumber: row.reference_number || '',
+    paymentMethod: row.payment_method || '',
+    paymentHistory: Array.isArray(row.payment_history) ? row.payment_history : [],
+    paymentAmount: '',
+    paymentNotes: ''
   }
 }
 
@@ -324,7 +370,7 @@ export default function AdminInvoices({ lang = 'en' }) {
         const [invoiceRes, crmRes] = await Promise.all([
           supabase
             .from('admin_invoices')
-            .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at, company_name, company_address, company_phone, company_email, logo_url, invoice_for_name, payable_to_name, customer_phone, customer_email, invoice_date, reference_number')
+            .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at, company_name, company_address, company_phone, company_email, logo_url, invoice_for_name, payable_to_name, customer_phone, customer_email, invoice_date, reference_number, payment_method, payment_history')
             .order('created_at', { ascending: false }),
           supabase
             .from('admin_crm_records')
@@ -753,7 +799,9 @@ export default function AdminInvoices({ lang = 'en' }) {
       customer_phone: String(form.customerPhone || '').trim() || null,
       customer_email: String(form.customerEmail || '').trim() || null,
       invoice_date: form.invoiceDate || null,
-      reference_number: String(form.referenceNumber || '').trim() || null
+      reference_number: String(form.referenceNumber || '').trim() || null,
+      payment_method: String(form.paymentMethod || '').trim() || null,
+      payment_history: Array.isArray(form.paymentHistory) ? form.paymentHistory : []
     }
 
     try {
@@ -762,7 +810,7 @@ export default function AdminInvoices({ lang = 'en' }) {
           .from('admin_invoices')
           .update(payload)
           .eq('id', form.id)
-          .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at, company_name, company_address, company_phone, company_email, logo_url, invoice_for_name, payable_to_name, customer_phone, customer_email, invoice_date, reference_number')
+          .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at, company_name, company_address, company_phone, company_email, logo_url, invoice_for_name, payable_to_name, customer_phone, customer_email, invoice_date, reference_number, payment_method, payment_history')
           .single()
 
         if (error) throw error
@@ -772,7 +820,7 @@ export default function AdminInvoices({ lang = 'en' }) {
         const { data, error } = await supabase
           .from('admin_invoices')
           .insert(payload)
-          .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at, company_name, company_address, company_phone, company_email, logo_url, invoice_for_name, payable_to_name, customer_phone, customer_email, invoice_date, reference_number')
+          .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at, company_name, company_address, company_phone, company_email, logo_url, invoice_for_name, payable_to_name, customer_phone, customer_email, invoice_date, reference_number, payment_method, payment_history')
           .single()
 
         if (error) throw error
@@ -820,14 +868,24 @@ export default function AdminInvoices({ lang = 'en' }) {
       const payload = {
         status: 'paid',
         amount_paid: total,
-        payment_received_at: new Date().toISOString().slice(0, 10)
+        payment_received_at: new Date().toISOString().slice(0, 10),
+        payment_method: doc.paymentMethod || null,
+        payment_history: [
+          ...(Array.isArray(doc.paymentHistory) ? doc.paymentHistory : []),
+          {
+            amount: Math.max(total - Number(doc.amountPaid || 0), 0),
+            date: new Date().toISOString(),
+            method: doc.paymentMethod || '',
+            notes: 'Marked paid'
+          }
+        ]
       }
 
       const { data, error } = await supabase
         .from('admin_invoices')
         .update(payload)
         .eq('id', doc.id)
-        .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at, company_name, company_address, company_phone, company_email, logo_url, invoice_for_name, payable_to_name, customer_phone, customer_email, invoice_date, reference_number')
+        .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at, company_name, company_address, company_phone, company_email, logo_url, invoice_for_name, payable_to_name, customer_phone, customer_email, invoice_date, reference_number, payment_method, payment_history')
         .single()
 
       if (error) throw error
@@ -866,14 +924,74 @@ export default function AdminInvoices({ lang = 'en' }) {
 
   function emailInvoice(doc) {
     const total = docTotal(doc)
-    const body = encodeURIComponent(`Invoice ${doc.invoiceNumber || ''}\nClient: ${doc.client}\nProject: ${doc.project}\nTotal: ${money(total)}\nDue: ${doc.dueDate || 'N/A'}`)
+    const body = encodeURIComponent(`Invoice ${doc.invoiceNumber || ''}\nClient: ${doc.client}\nProject: ${doc.project}\nTotal: ${money(total)}\nDue: ${doc.dueDate || 'N/A'}\nLink: ${getPublicInvoiceLink(doc)}\n\n${copy.attachPdfHelp}`)
     window.open(`mailto:${doc.customerEmail || ''}?subject=Invoice ${doc.invoiceNumber || ''}&body=${body}`)
   }
 
   function smsInvoice(doc) {
     const total = docTotal(doc)
-    const body = encodeURIComponent(`Invoice ${doc.invoiceNumber || ''}\nTotal: ${money(total)}\nDue: ${doc.dueDate || 'N/A'}`)
+    const body = encodeURIComponent(`Invoice ${doc.invoiceNumber || ''}\nTotal: ${money(total)}\nDue: ${doc.dueDate || 'N/A'}\nLink: ${getPublicInvoiceLink(doc)}`)
     window.open(`sms:${doc.customerPhone || ''}?body=${body}`)
+  }
+
+
+  function getPublicInvoiceLink(doc) {
+    return `${window.location.origin}/invoice/${doc.id}`
+  }
+
+  function copyInvoiceLink(doc) {
+    navigator.clipboard.writeText(getPublicInvoiceLink(doc))
+    setMessage(copy.shareLinkCopied)
+  }
+
+  function openInvoiceLink(doc) {
+    window.open(getPublicInvoiceLink(doc), '_blank')
+  }
+
+  async function recordPayment(doc, amountOverride = null) {
+    try {
+      const paymentAmount = Number(amountOverride ?? doc.paymentAmount ?? 0)
+      if (!paymentAmount || paymentAmount <= 0) return
+
+      const existingHistory = Array.isArray(doc.paymentHistory) ? doc.paymentHistory : []
+      const nextHistory = [
+        ...existingHistory,
+        {
+          amount: paymentAmount,
+          date: new Date().toISOString(),
+          method: doc.paymentMethod || '',
+          notes: String(doc.paymentNotes || '').trim()
+        }
+      ]
+
+      const totalPaid = Math.min(Number(doc.amountPaid || 0) + paymentAmount, docTotal(doc))
+      const nextStatus = totalPaid >= docTotal(doc) && docTotal(doc) > 0 ? 'paid' : 'sent'
+
+      const { data, error } = await supabase
+        .from('admin_invoices')
+        .update({
+          amount_paid: totalPaid,
+          payment_received_at: new Date().toISOString().slice(0, 10),
+          payment_method: doc.paymentMethod || null,
+          payment_history: nextHistory,
+          status: nextStatus
+        })
+        .eq('id', doc.id)
+        .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at, company_name, company_address, company_phone, company_email, logo_url, invoice_for_name, payable_to_name, customer_phone, customer_email, invoice_date, reference_number, payment_method, payment_history')
+        .single()
+
+      if (error) throw error
+
+      const mapped = mapDbRowToDoc(data)
+      setDocuments((prev) => prev.map((item) => (item.id === mapped.id ? mapped : item)))
+      if (form.id === mapped.id) {
+        setForm((prev) => ({ ...mapped, paymentAmount: '', paymentNotes: '' }))
+      }
+      setMessage(copy.paymentAdded)
+    } catch (error) {
+      console.error(error)
+      setMessage(copy.paymentError)
+    }
   }
 
   if (loading) {
@@ -1007,6 +1125,15 @@ export default function AdminInvoices({ lang = 'en' }) {
                 <input className="input" type="number" step="0.01" value={form.amountPaid} onChange={(e) => setField('amountPaid', e.target.value)} placeholder={copy.amountPaid} />
                 <input className="input" type="date" value={form.paymentDate} onChange={(e) => setField('paymentDate', e.target.value)} />
               </div>
+              <select className="input" style={{ marginTop: 12 }} value={form.paymentMethod} onChange={(e) => setField('paymentMethod', e.target.value)}>
+                <option value="">{copy.paymentMethod}</option>
+                <option value="card">{copy.card}</option>
+                <option value="cash">{copy.cash}</option>
+                <option value="check">{copy.check}</option>
+                <option value="wire">{copy.wire}</option>
+                <option value="ach">{copy.ach}</option>
+                <option value="other">{copy.other}</option>
+              </select>
             </div>
 
             <button type="button" className="btn" onClick={handleImportProjectCosts} disabled={importingCosts}>
@@ -1082,6 +1209,8 @@ export default function AdminInvoices({ lang = 'en' }) {
                           <button type="button" className="btn small primary" onClick={() => generatePdf(doc)}>{copy.pdf}</button>
                           <button type="button" className="btn small" onClick={() => duplicateInvoice(doc)}>{copy.duplicate}</button>
                           <button type="button" className="btn small" onClick={() => shareInvoice(doc)}>{copy.copyShare}</button>
+                          <button type="button" className="btn small" onClick={() => copyInvoiceLink(doc)}>{copy.copyLink}</button>
+                          <button type="button" className="btn small" onClick={() => openInvoiceLink(doc)}>{copy.openLink}</button>
                           <button type="button" className="btn small" onClick={() => emailInvoice(doc)}>{copy.email}</button>
                           <button type="button" className="btn small" onClick={() => smsInvoice(doc)}>{copy.sms}</button>
                           <button type="button" className="btn small" onClick={() => quickAddPayment(doc,100)}>+100</button>
@@ -1090,6 +1219,41 @@ export default function AdminInvoices({ lang = 'en' }) {
                           {smartStatus !== 'paid' ? (
                             <button type="button" className="btn small" onClick={() => handleMarkPaid(doc)}>{copy.markPaid}</button>
                           ) : null}
+                        </div>
+                        <div className="grid two" style={{ marginTop: 12 }}>
+                          <select className="input" value={doc.paymentMethod || ''} onChange={(e) => setDocuments((prev) => prev.map((item) => item.id === doc.id ? { ...item, paymentMethod: e.target.value } : item))}>
+                            <option value="">{copy.paymentMethod}</option>
+                            <option value="card">{copy.card}</option>
+                            <option value="cash">{copy.cash}</option>
+                            <option value="check">{copy.check}</option>
+                            <option value="wire">{copy.wire}</option>
+                            <option value="ach">{copy.ach}</option>
+                            <option value="other">{copy.other}</option>
+                          </select>
+                          <input className="input" type="number" step="0.01" value={doc.paymentAmount || ''} onChange={(e) => setDocuments((prev) => prev.map((item) => item.id === doc.id ? { ...item, paymentAmount: e.target.value } : item))} placeholder={copy.paymentAmount} />
+                        </div>
+                        <input className="input" style={{ marginTop: 10 }} value={doc.paymentNotes || ''} onChange={(e) => setDocuments((prev) => prev.map((item) => item.id === doc.id ? { ...item, paymentNotes: e.target.value } : item))} placeholder={copy.paymentNotes} />
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+                          <button type="button" className="btn small primary" onClick={() => recordPayment(doc)}>{copy.partialPayment}</button>
+                          <span className="badge">{copy.publicLink}: /invoice/{doc.id}</span>
+                        </div>
+                        <div className="card-soft" style={{ marginTop: 12, background: '#f8f8f4' }}>
+                          <div className="card-section-title" style={{ fontSize: 15 }}>{copy.paymentHistoryTitle}</div>
+                          {Array.isArray(doc.paymentHistory) && doc.paymentHistory.length > 0 ? (
+                            <div className="list" style={{ marginTop: 10 }}>
+                              {doc.paymentHistory.map((entry, idx) => (
+                                <div key={idx} className="card-soft" style={{ background: '#ffffff' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                                    <div>{entry.date ? new Date(entry.date).toLocaleDateString() : copy.noPaymentDate}</div>
+                                    <div>{money(entry.amount || 0)}</div>
+                                  </div>
+                                  <div className="muted" style={{ marginTop: 8 }}>{entry.method || '—'}{entry.notes ? ` · ${entry.notes}` : ''}</div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="muted" style={{ marginTop: 10 }}>{copy.noPaymentHistory}</div>
+                          )}
                         </div>
                       </div>
                     )
