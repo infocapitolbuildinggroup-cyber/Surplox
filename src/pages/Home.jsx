@@ -484,17 +484,6 @@ export default function Home({ lang = 'en' }) {
       </div>
 
       <div className="card rounded-xl" style={{ padding: 24 }}>
-        <div className="card-section-title">{copy.roadmapTitle}</div>
-
-        <div className="grid two" style={{ marginTop: 16 }}>
-          <ProofTile value={copy.roadmap1} />
-          <ProofTile value={copy.roadmap2} />
-          <ProofTile value={copy.roadmap3} />
-          <ProofTile value={copy.roadmap4} />
-        </div>
-      </div>
-
-      <div className="card rounded-xl" style={{ padding: 24 }}>
         <div className="card-section-title">{copy.supportTitle}</div>
         <p className="muted" style={{ marginTop: 10, lineHeight: 1.75, maxWidth: 920 }}>
           {copy.supportBody}
