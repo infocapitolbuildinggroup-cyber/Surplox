@@ -188,7 +188,20 @@ const COPY = {
     addWorker: 'Add Worker',
     workerSaved: 'Worker saved.',
     workerSaveError: 'Unable to save worker right now.',
-    noWorkersYet: 'No internal workers added yet.'
+    noWorkersYet: 'No internal workers added yet.',
+    searchWorkers: 'Search Workers',
+    searchWorkersPlaceholder: 'Search by name, phone, or trade',
+    allWorkerStatuses: 'All Worker Statuses',
+    editWorker: 'Edit Worker',
+    updateWorker: 'Update Worker',
+    cancelEdit: 'Cancel',
+    deleteWorker: 'Delete Worker',
+    deactivateWorker: 'Deactivate',
+    reactivateWorker: 'Reactivate',
+    workerUpdated: 'Worker updated.',
+    workerDeleted: 'Worker deleted.',
+    workerDeleteError: 'Unable to delete worker right now.',
+    workerUpdateError: 'Unable to update worker right now.'
   },
   es: {
     pageTitle: 'Panel de Administración',
@@ -618,6 +631,11 @@ export default function AdminDirectory() {
   const [zipMap, setZipMap] = useState(new Map())
   const [adminWorkers, setAdminWorkers] = useState([])
   const [savingWorkerRecord, setSavingWorkerRecord] = useState(false)
+  const [savingWorkerEditId, setSavingWorkerEditId] = useState(null)
+  const [deletingWorkerId, setDeletingWorkerId] = useState(null)
+  const [workerSearch, setWorkerSearch] = useState('')
+  const [workerStatusFilter, setWorkerStatusFilter] = useState('all')
+  const [editingWorkerId, setEditingWorkerId] = useState('')
   const [workerForm, setWorkerForm] = useState({
     name: '',
     phone: '',
