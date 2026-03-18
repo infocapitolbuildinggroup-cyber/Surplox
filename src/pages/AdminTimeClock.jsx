@@ -115,6 +115,7 @@ export default function AdminTimeClock({ lang = 'en' }) {
   const [crmRecords, setCrmRecords] = useState([])
   const [activeJob, setActiveJob] = useState(null)
   const [assignedWorkers, setAssignedWorkers] = useState([])
+  const [workerRates, setWorkerRates] = useState({})
   const [jobsite, setJobsite] = useState('')
   const [worker, setWorker] = useState('')
   const [role, setRole] = useState('')
@@ -166,6 +167,21 @@ export default function AdminTimeClock({ lang = 'en' }) {
           if (!active) return
 
           setAssignedWorkers(workersRes.data || [])
+
+        const workersRes2 = await supabase
+          .from('admin_workers')
+          .select('name, hourly_rate')
+
+        if (workersRes2.error) throw workersRes2.error
+        if (!active) return
+
+        const rateMap = {}
+        ;(workersRes2.data || []).forEach((w) => {
+          rateMap[w.name] = Number(w.hourly_rate || 0)
+        })
+
+        setWorkerRates(rateMap)
+
         } else {
           setAssignedWorkers([])
         }
@@ -230,7 +246,17 @@ export default function AdminTimeClock({ lang = 'en' }) {
     }, 0)
   }, [todayActiveJobEntries])
 
-  const todayOnSiteLaborCost = useMemo(() => todayOnSiteHours * 35, [todayOnSiteHours])
+  const todayOnSiteLaborCost = useMemo(() => {
+    return todayActiveJobEntries.reduce((sum, entry) => {
+      const start = new Date(entry.clockInAt).getTime()
+      const end = entry.clockOutAt ? new Date(entry.clockOutAt).getTime() : Date.now()
+      const hours = Math.max((end - start) / 3600000, 0)
+
+      const rate = workerRates[entry.worker] || 35
+
+      return sum + hours * rate
+    }, 0)
+  }, [todayActiveJobEntries, workerRates])
 
   const stats = useMemo(() => {
     const totalHours = entries.reduce((sum, entry) => {
