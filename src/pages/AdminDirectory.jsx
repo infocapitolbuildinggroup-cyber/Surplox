@@ -1478,6 +1478,13 @@ export default function AdminDirectory() {
               View all projects, clients, invoices, and jobsite activity in one place.
             </div>
           </Link>
+
+          <Link to="/ai-tools" className="card-soft" style={{ textDecoration: 'none' }}>
+            <div className="card-section-title">Surplox AI Tools</div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              Analyze projects, build crews, source materials, and plan logistics with AI tools.
+            </div>
+          </Link>
         </div>
       </div>
 
