@@ -453,29 +453,6 @@ export default function Home({ lang = 'en' }) {
         </div>
       </div>
 
-      <div className="grid three">
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.lane1Title}</div>
-          <p className="muted" style={{ marginTop: 10, lineHeight: 1.7 }}>
-            {copy.lane1Body}
-          </p>
-        </div>
-
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.lane2Title}</div>
-          <p className="muted" style={{ marginTop: 10, lineHeight: 1.7 }}>
-            {copy.lane2Body}
-          </p>
-        </div>
-
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.lane3Title}</div>
-          <p className="muted" style={{ marginTop: 10, lineHeight: 1.7 }}>
-            {copy.lane3Body}
-          </p>
-        </div>
-      </div>
-
       <div className="card rounded-xl" style={{ padding: 24 }}>
         <div className="card-section-title">{copy.supportTitle}</div>
         <p className="muted" style={{ marginTop: 10, lineHeight: 1.75, maxWidth: 920 }}>
