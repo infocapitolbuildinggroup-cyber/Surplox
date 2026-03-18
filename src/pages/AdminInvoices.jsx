@@ -229,96 +229,87 @@ function renderPdfHtml(doc, copy) {
   const total = docTotal(doc)
   const amountPaid = Number(doc.amountPaid || 0)
   const balanceDue = Math.max(total - amountPaid, 0)
-  const title = doc.type === 'estimate' ? copy.estimate : copy.invoice
-  const statusText = statusLabel(computedStatus(doc), copy)
 
   const rows = (doc.items || [])
     .map(
       (item) => `
         <tr>
-          <td style="padding:10px 12px;border-bottom:1px solid #e7e5da;">${escapeHtml(item.label || '—')}</td>
-          <td style="padding:10px 12px;border-bottom:1px solid #e7e5da;text-align:right;">${escapeHtml(money(item.amount || 0))}</td>
+          <td>${escapeHtml(item.label || '')}</td>
+          <td style="text-align:center;">1</td>
+          <td style="text-align:right;">${money(item.amount || 0)}</td>
+          <td style="text-align:right;">${money(item.amount || 0)}</td>
         </tr>
       `
     )
     .join('')
 
   return `
-    <!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <title>${escapeHtml(title)} - ${escapeHtml(doc.client || 'Surplox')}</title>
-        <style>
-          body { font-family: Arial, Helvetica, sans-serif; color: #111; margin: 32px; }
-          .shell { max-width: 860px; margin: 0 auto; }
-          .top { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; }
-          .brand { font-size: 28px; font-weight: 800; }
-          .meta { text-align:right; }
-          .badge { display:inline-block; padding:6px 10px; border-radius:999px; background:#f1e7a8; font-size:12px; font-weight:700; margin-bottom:8px; }
-          .section { margin-top: 26px; }
-          table { width:100%; border-collapse: collapse; margin-top: 10px; }
-          th { text-align:left; padding:10px 12px; background:#f8f7ef; }
-          .totals { margin-top: 18px; display:flex; justify-content:flex-end; }
-          .totalbox { min-width: 280px; padding: 16px; border-radius: 14px; background:#f8f7ef; }
-          .notes { white-space: pre-wrap; line-height:1.6; padding:16px; border-radius:14px; background:#faf9f4; }
-          @media print { body { margin: 16px; } }
-        </style>
-      </head>
-      <body>
-        <div class="shell">
-          <div class="top">
-            <div>
-              <div class="badge">${escapeHtml(title)}</div>
-              <div class="brand">Surplox / Capitol Building Group</div>
-              <div style="margin-top:10px;color:#555;">${escapeHtml(doc.client || '')}</div>
-              ${doc.project ? `<div style="margin-top:6px;color:#555;">${escapeHtml(doc.project)}</div>` : ''}
-            </div>
-            <div class="meta">
-              <div style="font-size:14px;color:#666;">${escapeHtml(copy.invoiceNumber)}</div>
-              <div>${escapeHtml(doc.invoiceNumber || '—')}</div>
-              <div style="margin-top:10px;font-size:14px;color:#666;">${escapeHtml(copy.status)}</div>
-              <div style="font-weight:700;">${escapeHtml(statusText)}</div>
-              <div style="margin-top:10px;font-size:14px;color:#666;">Created</div>
-              <div>${escapeHtml(new Date(doc.createdAt || Date.now()).toLocaleString())}</div>
-              <div style="margin-top:10px;font-size:14px;color:#666;">${escapeHtml(copy.dueDate)}</div>
-              <div>${escapeHtml(doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : copy.noDueDate)}</div>
-              <div style="margin-top:10px;font-size:14px;color:#666;">${escapeHtml(copy.paymentDate)}</div>
-              <div>${escapeHtml(doc.paymentDate ? new Date(doc.paymentDate).toLocaleDateString() : copy.noPaymentDate)}</div>
-            </div>
-          </div>
+  <html>
+    <head>
+      <style>
+        body { font-family: Arial; padding: 40px; color:#111; }
+        .header { display:flex; justify-content:space-between; align-items:flex-start; }
+        .logo { font-size:24px; font-weight:bold; }
+        .invoice-title { font-size:32px; color:#c0392b; font-weight:bold; }
+        .section { margin-top:30px; }
+        table { width:100%; border-collapse:collapse; margin-top:10px; }
+        th, td { border-bottom:1px solid #ddd; padding:10px; }
+        th { background:#f5f5f5; text-align:left; }
+        .totals { margin-top:20px; width:300px; float:right; }
+        .totals div { display:flex; justify-content:space-between; margin-top:6px; }
+        .notes { margin-top:40px; padding:15px; background:#fafafa; border-radius:10px; }
+      </style>
+    </head>
+    <body>
 
-          <div class="section">
-            <table>
-              <thead>
-                <tr>
-                  <th>${escapeHtml(copy.lineItem)}</th>
-                  <th style="text-align:right;">${escapeHtml(copy.amount)}</th>
-                </tr>
-              </thead>
-              <tbody>${rows}</tbody>
-            </table>
-          </div>
-
-          <div class="totals">
-            <div class="totalbox">
-              <div style="display:flex;justify-content:space-between;gap:12px;"><span>${escapeHtml(copy.subtotal)}</span><strong>${escapeHtml(money(total))}</strong></div>
-              <div style="display:flex;justify-content:space-between;gap:12px;margin-top:8px;"><span>${escapeHtml(copy.amountPaid)}</span><strong>${escapeHtml(money(amountPaid))}</strong></div>
-              <div style="display:flex;justify-content:space-between;gap:12px;margin-top:8px;"><span>${escapeHtml(copy.balanceDue)}</span><strong>${escapeHtml(money(balanceDue))}</strong></div>
-            </div>
-          </div>
-
-          ${
-            doc.notes
-              ? `<div class="section">
-                  <div style="font-size:12px;text-transform:uppercase;letter-spacing:0.08em;color:#666;margin-bottom:10px;">${escapeHtml(copy.notes)}</div>
-                  <div class="notes">${escapeHtml(doc.notes)}</div>
-                </div>`
-              : ''
-          }
+      <div class="header">
+        <div>
+          <div class="logo">Capitol Building Group</div>
+          <div>surplox.com</div>
         </div>
-      </body>
-    </html>
+        <div class="invoice-title">INVOICE</div>
+      </div>
+
+      <div class="section">
+        <strong>Invoice #:</strong> ${doc.invoiceNumber || '—'}<br/>
+        <strong>Client:</strong> ${escapeHtml(doc.client)}<br/>
+        <strong>Project:</strong> ${escapeHtml(doc.project || '')}<br/>
+        <strong>Due Date:</strong> ${doc.dueDate || 'N/A'}
+      </div>
+
+      <div class="section">
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th style="text-align:center;">Qty</th>
+              <th style="text-align:right;">Unit Price</th>
+              <th style="text-align:right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="totals">
+        <div><span>Subtotal</span><strong>${money(total)}</strong></div>
+        <div><span>Paid</span><strong>${money(amountPaid)}</strong></div>
+        <div><span>Balance</span><strong>${money(balanceDue)}</strong></div>
+      </div>
+
+      ${
+        doc.notes
+          ? `<div class="notes">
+              <strong>Notes</strong>
+              <div>${escapeHtml(doc.notes)}</div>
+            </div>`
+          : ''
+      }
+
+    </body>
+  </html>
   `
 }
 
