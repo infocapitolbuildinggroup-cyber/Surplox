@@ -38,6 +38,7 @@ export default function AdminProjectDetail() {
   const [timeEntries, setTimeEntries] = useState([])
   const [materials, setMaterials] = useState([])
   const [assignedWorkers, setAssignedWorkers] = useState([])
+  const [workerRates, setWorkerRates] = useState({})
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [savingInvoice, setSavingInvoice] = useState(false)
@@ -106,17 +107,19 @@ export default function AdminProjectDetail() {
 
         const normalizedProject = normalizeProject(crm)
 
-        const [invRes, timeRes, materialsRes, workersRes] = await Promise.all([
+        const [invRes, timeRes, materialsRes, workersRes, adminWorkersRes] = await Promise.all([
           supabase.from('admin_invoices').select('*'),
           supabase.from('admin_time_entries').select('*'),
           supabase.from('admin_project_materials').select('*').eq('project_record_id', id).order('created_at', { ascending: false }),
-          supabase.from('admin_project_workers').select('*').eq('project_record_id', id).order('created_at', { ascending: false })
+          supabase.from('admin_project_workers').select('*').eq('project_record_id', id).order('created_at', { ascending: false }),
+          supabase.from('admin_workers').select('name, hourly_rate')
         ])
 
         if (invRes.error) throw invRes.error
         if (timeRes.error) throw timeRes.error
         if (materialsRes.error) throw materialsRes.error
         if (workersRes.error) throw workersRes.error
+        if (adminWorkersRes.error) throw adminWorkersRes.error
         if (!active) return
 
         const projectInvoices = (invRes.data || []).filter(
@@ -137,6 +140,11 @@ export default function AdminProjectDetail() {
         setTimeEntries(projectTime)
         setMaterials(materialsRes.data || [])
         setAssignedWorkers(workersRes.data || [])
+        const rateMap = {}
+        ;(adminWorkersRes.data || []).forEach((row) => {
+          rateMap[String(row.name || '').trim()] = Number(row.hourly_rate || 0)
+        })
+        setWorkerRates(rateMap)
       } catch (error) {
         console.error(error)
         if (!active) return
@@ -171,7 +179,15 @@ export default function AdminProjectDetail() {
     }, 0)
   }, [timeEntries])
 
-  const laborCost = useMemo(() => totalHours * 35, [totalHours])
+  const laborCost = useMemo(() => {
+    return timeEntries.reduce((sum, entry) => {
+      if (!entry.clock_out_at) return sum
+      const diff = (new Date(entry.clock_out_at).getTime() - new Date(entry.clock_in_at).getTime()) / 3600000
+      const hours = Math.max(diff, 0)
+      const rate = workerRates[String(entry.worker || '').trim()] || 35
+      return sum + hours * rate
+    }, 0)
+  }, [timeEntries, workerRates])
   const materialCost = useMemo(() => materials.reduce((sum, row) => sum + materialTotal(row), 0), [materials])
   const profitability = useMemo(() => totalValue - laborCost - materialCost, [totalValue, laborCost, materialCost])
 
@@ -179,6 +195,40 @@ export default function AdminProjectDetail() {
     if (!project?.project) return []
     return timeEntries.filter((entry) => !entry.clock_out_at && entry.jobsite === project.project)
   }, [timeEntries, project])
+
+  const laborBreakdown = useMemo(() => {
+    const map = new Map()
+
+    timeEntries.forEach((entry) => {
+      if (!entry.clock_out_at) return
+
+      const workerName = String(entry.worker || '').trim() || 'Unknown Worker'
+      const rate = workerRates[workerName] || 35
+      const hours = Math.max(
+        (new Date(entry.clock_out_at).getTime() - new Date(entry.clock_in_at).getTime()) / 3600000,
+        0
+      )
+      const cost = hours * rate
+
+      if (!map.has(workerName)) {
+        map.set(workerName, {
+          worker: workerName,
+          role: entry.role || '',
+          hours: 0,
+          rate,
+          cost: 0
+        })
+      }
+
+      const current = map.get(workerName)
+      current.hours += hours
+      current.cost += cost
+      current.rate = rate
+      if (!current.role && entry.role) current.role = entry.role
+    })
+
+    return Array.from(map.values()).sort((a, b) => b.cost - a.cost)
+  }, [timeEntries, workerRates])
 
   function updateInvoiceItem(id, key, value) {
     setInvoiceForm((prev) => ({
@@ -768,7 +818,7 @@ export default function AdminProjectDetail() {
               <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{totalHours.toFixed(1)}</div>
             </div>
             <div className="card-soft" style={{ background: '#ffffff' }}>
-              <div className="muted">Estimated Labor Cost @ $35/hr</div>
+              <div className="muted">Labor Cost (real worker rates)</div>
               <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{money(laborCost)}</div>
             </div>
             <div className="card-soft" style={{ background: '#ffffff' }}>
@@ -786,6 +836,27 @@ export default function AdminProjectDetail() {
               </div>
             ) : null}
           </div>
+        </div>
+
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">Labor Cost Breakdown</div>
+          {laborBreakdown.length === 0 ? (
+            <div className="card-soft" style={{ marginTop: 14 }}>No completed labor entries to cost yet.</div>
+          ) : (
+            <div className="list" style={{ marginTop: 14 }}>
+              {laborBreakdown.map((row) => (
+                <div key={row.worker} className="card-soft" style={{ background: '#ffffff' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 900 }}>{row.worker}</div>
+                    <span className="badge">{money(row.cost)}</span>
+                  </div>
+                  <div className="muted" style={{ marginTop: 8 }}>
+                    {row.role ? `${row.role} · ` : ''}{row.hours.toFixed(1)} hrs @ {money(row.rate)}/hr
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="card rounded-xl" style={{ padding: 22 }}>
