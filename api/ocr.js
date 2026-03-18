@@ -7,18 +7,17 @@ export const config = {
   };
   
   const ALLOWED_TYPES = [
-    "application/pdf",
     "image/png",
     "image/jpeg",
     "image/jpg"
-  ];
+  ]; // ❌ removed PDF for now (fix later properly)
   
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const MAX_FILE_SIZE = 10 * 1024 * 1024;
   
-  // simple in-memory rate limit
+  // rate limit
   const RATE_LIMIT = {};
-  const LIMIT = 20; // requests
-  const WINDOW = 60 * 1000; // 1 minute
+  const LIMIT = 20;
+  const WINDOW = 60 * 1000;
   
   function rateLimit(ip) {
     const now = Date.now();
@@ -45,6 +44,13 @@ export const config = {
         return res.status(405).json({ error: "Method not allowed" });
       }
   
+      // 🔑 CHECK API KEY FIRST
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(500).json({
+          error: "Missing OpenAI API key"
+        });
+      }
+  
       const ip =
         req.headers["x-forwarded-for"] ||
         req.socket.remoteAddress ||
@@ -66,7 +72,7 @@ export const config = {
   
       if (!ALLOWED_TYPES.includes(mimeType)) {
         return res.status(400).json({
-          error: "File type not allowed"
+          error: "Only PNG/JPG supported for now"
         });
       }
   
@@ -78,6 +84,7 @@ export const config = {
         });
       }
   
+      // 🚀 CALL OPENAI
       const response = await fetch(
         "https://api.openai.com/v1/responses",
         {
@@ -87,9 +94,7 @@ export const config = {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({
-            model:
-              process.env.OPENAI_OCR_MODEL ||
-              "gpt-4.1-mini",
+            model: "gpt-4.1-mini",
             input: [
               {
                 role: "user",
@@ -110,17 +115,41 @@ export const config = {
         }
       );
   
+      // ❗ CRITICAL FIX
+      if (!response.ok) {
+        const err = await response.text();
+        console.error("OpenAI Error:", err);
+  
+        return res.status(500).json({
+          error: "OpenAI OCR failed",
+          details: err
+        });
+      }
+  
       const data = await response.json();
   
+      // ✅ SAFE TEXT EXTRACTION
       const text =
-        data.output?.[0]?.content?.[0]?.text || "";
+        data.output_text ||
+        data.output?.map(o =>
+          o.content?.map(c => c.text).join(" ")
+        ).join(" ") ||
+        "";
+  
+      if (!text || text.trim().length === 0) {
+        return res.status(200).json({
+          success: false,
+          error: "No text detected in image"
+        });
+      }
   
       return res.status(200).json({
         success: true,
         extractedText: text
       });
+  
     } catch (error) {
-      console.error(error);
+      console.error("OCR ERROR:", error);
   
       return res.status(500).json({
         error: "OCR processing failed"
