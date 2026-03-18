@@ -177,7 +177,18 @@ const COPY = {
       'Track marketplace health, spot shortages, review worker quality, and manage admin follow-up from one premium control center.',
     filteredMembers: 'Filtered Members',
     networkHealth: 'Network Health',
-    demandSignals: 'Demand Signals'
+    demandSignals: 'Demand Signals',
+    workerRosterTitle: 'Crew Roster / Worker Records',
+    workerRosterIntro: 'Create internal worker records with phone, trade, pay rate, and active status so Surplox can move toward payroll-ready labor costing.',
+    workerName: 'Worker Name',
+    hourlyRate: 'Hourly Rate',
+    activeStatus: 'Active Status',
+    activeWorker: 'Active',
+    inactiveWorker: 'Inactive',
+    addWorker: 'Add Worker',
+    workerSaved: 'Worker saved.',
+    workerSaveError: 'Unable to save worker right now.',
+    noWorkersYet: 'No internal workers added yet.'
   },
   es: {
     pageTitle: 'Panel de Administración',
@@ -353,7 +364,18 @@ const COPY = {
       'Sigue la salud del marketplace, detecta faltantes, revisa la calidad de trabajadores y administra el seguimiento desde un solo centro de control.',
     filteredMembers: 'Miembros filtrados',
     networkHealth: 'Salud de la red',
-    demandSignals: 'Señales de demanda'
+    demandSignals: 'Señales de demanda',
+    workerRosterTitle: 'Roster de Cuadrilla / Registros de Trabajadores',
+    workerRosterIntro: 'Crea registros internos de trabajadores con teléfono, oficio, tarifa por hora y estado activo para que Surplox avance hacia costos laborales listos para nómina.',
+    workerName: 'Nombre del Trabajador',
+    hourlyRate: 'Tarifa por Hora',
+    activeStatus: 'Estado Activo',
+    activeWorker: 'Activo',
+    inactiveWorker: 'Inactivo',
+    addWorker: 'Agregar Trabajador',
+    workerSaved: 'Trabajador guardado.',
+    workerSaveError: 'No se pudo guardar el trabajador.',
+    noWorkersYet: 'Todavía no hay trabajadores internos.'
   }
 }
 
@@ -594,6 +616,15 @@ export default function AdminDirectory() {
   const [crewMemberships, setCrewMemberships] = useState([])
   const [relationships, setRelationships] = useState([])
   const [zipMap, setZipMap] = useState(new Map())
+  const [adminWorkers, setAdminWorkers] = useState([])
+  const [savingWorkerRecord, setSavingWorkerRecord] = useState(false)
+  const [workerForm, setWorkerForm] = useState({
+    name: '',
+    phone: '',
+    trade: '',
+    hourly_rate: '',
+    is_active: true
+  })
 
   const [filters, setFilters] = useState({
     job_zip: '',
@@ -642,7 +673,8 @@ export default function AdminDirectory() {
           postsRes,
           commentsRes,
           crewRes,
-          relsRes
+          relsRes,
+          adminWorkersRes
         ] = await Promise.all([
           supabase.from('trades').select('id, name').order('name'),
           supabase
@@ -672,7 +704,11 @@ export default function AdminDirectory() {
             .order('created_at', { ascending: false }),
           supabase
             .from('user_relationships')
-            .select('source_user_id, target_user_id, relationship_type, post_id, created_at')
+            .select('source_user_id, target_user_id, relationship_type, post_id, created_at'),
+          supabase
+            .from('admin_workers')
+            .select('*')
+            .order('created_at', { ascending: false })
         ])
 
         if (tradesRes.error) throw tradesRes.error
@@ -682,6 +718,7 @@ export default function AdminDirectory() {
         if (commentsRes.error) throw commentsRes.error
         if (crewRes.error) throw crewRes.error
         if (relsRes.error) throw relsRes.error
+        if (adminWorkersRes.error) throw adminWorkersRes.error
 
         const prows = profilesRes.data || []
 
@@ -715,6 +752,7 @@ export default function AdminDirectory() {
         setCrewMemberships(crewRes.data || [])
         setRelationships(relsRes.data || [])
         setZipMap(builtZipMap)
+        setAdminWorkers(adminWorkersRes.data || [])
       } catch (e) {
         console.error(e)
         if (!alive) return
@@ -1298,6 +1336,51 @@ export default function AdminDirectory() {
     }
   }
 
+  async function handleSaveWorkerRecord(event) {
+    event.preventDefault()
+
+    if (!String(workerForm.name || '').trim()) {
+      setMsg(copy.workerSaveError)
+      return
+    }
+
+    try {
+      setSavingWorkerRecord(true)
+      setMsg('')
+
+      const payload = {
+        name: String(workerForm.name || '').trim(),
+        phone: String(workerForm.phone || '').trim() || null,
+        trade: String(workerForm.trade || '').trim() || null,
+        hourly_rate: Number(workerForm.hourly_rate || 0),
+        is_active: !!workerForm.is_active
+      }
+
+      const { data, error } = await supabase
+        .from('admin_workers')
+        .insert(payload)
+        .select('*')
+        .single()
+
+      if (error) throw error
+
+      setAdminWorkers((prev) => [data, ...prev])
+      setWorkerForm({
+        name: '',
+        phone: '',
+        trade: '',
+        hourly_rate: '',
+        is_active: true
+      })
+      setMsg(copy.workerSaved)
+    } catch (err) {
+      console.error(err)
+      setMsg(err.message || copy.workerSaveError)
+    } finally {
+      setSavingWorkerRecord(false)
+    }
+  }
+
   if (loading) return <div className="card">{copy.loading}</div>
 
   return (
@@ -1377,6 +1460,84 @@ export default function AdminDirectory() {
               View all projects, clients, invoices, and jobsite activity in one place.
             </div>
           </Link>
+        </div>
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">{copy.workerRosterTitle}</div>
+        <p className="muted" style={{ marginTop: 6 }}>
+          {copy.workerRosterIntro}
+        </p>
+
+        <div className="grid two" style={{ marginTop: 14, alignItems: 'start' }}>
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <form onSubmit={handleSaveWorkerRecord} className="grid" style={{ gap: 12 }}>
+              <input
+                className="input"
+                value={workerForm.name}
+                onChange={(e) => setWorkerForm((prev) => ({ ...prev, name: e.target.value }))}
+                placeholder={copy.workerName}
+              />
+              <input
+                className="input"
+                value={workerForm.phone}
+                onChange={(e) => setWorkerForm((prev) => ({ ...prev, phone: e.target.value }))}
+                placeholder={copy.contact === 'Contact' ? 'Phone' : 'Teléfono'}
+              />
+              <input
+                className="input"
+                value={workerForm.trade}
+                onChange={(e) => setWorkerForm((prev) => ({ ...prev, trade: e.target.value }))}
+                placeholder={copy.trade}
+              />
+              <input
+                className="input"
+                type="number"
+                step="0.01"
+                value={workerForm.hourly_rate}
+                onChange={(e) => setWorkerForm((prev) => ({ ...prev, hourly_rate: e.target.value }))}
+                placeholder={copy.hourlyRate}
+              />
+              <select
+                className="input"
+                value={workerForm.is_active ? 'active' : 'inactive'}
+                onChange={(e) => setWorkerForm((prev) => ({ ...prev, is_active: e.target.value === 'active' }))}
+              >
+                <option value="active">{copy.activeWorker}</option>
+                <option value="inactive">{copy.inactiveWorker}</option>
+              </select>
+
+              <button className="btn primary" type="submit" disabled={savingWorkerRecord}>
+                {savingWorkerRecord ? copy.saving : copy.addWorker}
+              </button>
+            </form>
+          </div>
+
+          <div className="list">
+            {adminWorkers.length === 0 ? (
+              <div className="card-soft">{copy.noWorkersYet}</div>
+            ) : (
+              adminWorkers.map((worker) => (
+                <div key={worker.id} className="card-soft" style={{ background: '#ffffff' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ fontWeight: 900, fontSize: 18 }}>{worker.name}</div>
+                    <span
+                      className="badge"
+                      style={worker.is_active ? { background: '#dcf4e5', color: '#177245' } : {}}
+                    >
+                      {worker.is_active ? copy.activeWorker : copy.inactiveWorker}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                    {worker.trade ? <span className="badge">{worker.trade}</span> : null}
+                    <span className="badge">{copy.hourlyRate}: ${Number(worker.hourly_rate || 0).toFixed(2)}</span>
+                    {worker.phone ? <span className="badge">{worker.phone}</span> : null}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
 
@@ -2126,6 +2287,3 @@ export default function AdminDirectory() {
     </div>
   )
 }  
-
-// --- WORKER ROSTER SECTION ADDED ---
-// (integrated safely, no existing logic removed)
