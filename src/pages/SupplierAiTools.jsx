@@ -187,60 +187,168 @@ const TRAILER_OPTIONS = [
 const SUPPORT_OPTIONS = ['material_delivery', 'cargo_van_delivery']
 
 function scoreScope(text = '') {
-  const lower = String(text || '').toLowerCase()
-  const trades = []
-  const materials = []
+  const raw = String(text || '')
+  const lower = raw.toLowerCase()
 
-  const tradeMap = [
-    ['concrete', ['concrete', 'foundation', 'slab', 'flatwork']],
-    ['steel', ['steel', 'metal', 'rebar']],
-    ['framing', ['frame', 'framing', 'wood framing']],
-    ['drywall', ['drywall', 'sheetrock', 'gypsum']],
-    ['electrical', ['electrical', 'power', 'lighting']],
-    ['plumbing', ['plumbing', 'pipe', 'piping']],
-    ['roofing', ['roof', 'roofing']],
-    ['hvac', ['hvac', 'mechanical', 'air handler']],
-    ['sitework', ['sitework', 'excavation', 'grading', 'dirt']]
-  ]
+  const repeatedCount = (needle) => {
+    const matches = lower.match(new RegExp(needle, 'g'))
+    return matches ? matches.length : 0
+  }
 
-  const materialMap = [
-    ['concrete', ['concrete', 'cement']],
-    ['steel', ['steel', 'rebar']],
-    ['lumber', ['lumber', 'framing']],
-    ['drywall', ['drywall', 'sheetrock']],
-    ['electrical', ['electrical', 'lighting']],
-    ['plumbing', ['plumbing', 'pipe']],
-    ['tools', ['tools']],
-    ['fasteners', ['fasteners', 'screws', 'anchors']]
-  ]
+  const hasAny = (values = []) => values.some((value) => lower.includes(value))
 
-  tradeMap.forEach(([value, needles]) => {
-    if (needles.some((needle) => lower.includes(needle))) trades.push(value)
-  })
-
-  materialMap.forEach(([value, needles]) => {
-    if (needles.some((needle) => lower.includes(needle))) materials.push(value)
-  })
-
-  const normalizedTrades = Array.from(new Set(trades))
-  const normalizedMaterials = Array.from(new Set(materials))
+  const scopeSignals = {
+    trashEnclosure:
+      repeatedCount('trash enclosure') * 4 +
+      repeatedCount('trash enclosure plan') * 5 +
+      repeatedCount('trash enclosure elevation') * 5 +
+      repeatedCount('trash enclosure door') * 4 +
+      repeatedCount('enclosure door') * 2,
+    sitePlan:
+      repeatedCount('site plan') * 3 +
+      repeatedCount('lot') * 2 +
+      repeatedCount('parking') * 2 +
+      repeatedCount('bollard') * 2,
+    plumbing:
+      repeatedCount('plumbing') * 3 + repeatedCount('pipe') * 2 + repeatedCount('sanitary') * 2,
+    framing:
+      repeatedCount('framing') * 3 + repeatedCount('wood framing') * 3 + repeatedCount('stud') * 2,
+    electrical:
+      repeatedCount('electrical') * 3 + repeatedCount('lighting') * 2 + repeatedCount('power') * 2,
+    signageStriping:
+      repeatedCount('sign') * 2 + repeatedCount('striping') * 2 + repeatedCount('parking detail') * 1
+  }
 
   let summary = 'General construction project'
-  if (lower.includes('warehouse')) summary = 'Warehouse / industrial project'
-  else if (lower.includes('office')) summary = 'Office / commercial interior project'
-  else if (lower.includes('multifamily') || lower.includes('apartment')) summary = 'Multifamily project'
-  else if (lower.includes('school')) summary = 'Education / institutional project'
+  let detectedScope = 'general construction'
+  const why = []
+  const primaryTrades = []
+  const secondaryTrades = []
+  const ignoredTrades = []
+  const materials = []
+  const supplierCategories = []
 
-  return {
-    summary,
-    trades: normalizedTrades,
-    materials: normalizedMaterials,
-    crewSuggestion:
-      normalizedTrades.length >= 5
+  if (scopeSignals.trashEnclosure >= 6) {
+    detectedScope = 'trash enclosure package'
+    summary = 'Trash enclosure construction scope tied to a site / detail sheet.'
+    why.push('Repeated “trash enclosure” labels indicate the primary scope.')
+    if (lower.includes('trash enclosure plan')) why.push('The sheet includes a “Trash Enclosure Plan.”')
+    if (lower.includes('trash enclosure elevation')) why.push('The sheet includes one or more “Trash Enclosure Elevation” details.')
+    if (lower.includes('trash enclosure door')) why.push('A “Trash Enclosure Door” schedule/detail is present.')
+    if (lower.includes('site plan')) why.push('The enclosure is shown within a site-plan context.')
+
+    primaryTrades.push('concrete', 'masonry', 'metal gate install')
+    secondaryTrades.push('site layout', 'general labor')
+    if (scopeSignals.signageStriping > 0) secondaryTrades.push('signage / striping')
+    if (scopeSignals.plumbing > 0) ignoredTrades.push('plumbing')
+    if (scopeSignals.framing > 0) ignoredTrades.push('framing')
+    if (scopeSignals.electrical > 0) ignoredTrades.push('electrical')
+
+    materials.push('concrete', 'cmu block / masonry', 'steel posts', 'gate hardware', 'bollards / anchors')
+    supplierCategories.push('concrete supplier', 'masonry yard', 'steel / gate fabricator', 'site hardware supplier')
+  } else if (hasAny(['warehouse', 'industrial'])) {
+    detectedScope = 'warehouse / industrial building'
+    summary = 'Warehouse / industrial project'
+    why.push('Warehouse / industrial terms appear in the document text.')
+    primaryTrades.push('concrete', 'steel', 'framing')
+    secondaryTrades.push('electrical', 'plumbing')
+    materials.push('concrete', 'steel', 'lumber')
+    supplierCategories.push('concrete supplier', 'steel supplier', 'lumber yard')
+  } else if (hasAny(['office'])) {
+    detectedScope = 'office / commercial interior'
+    summary = 'Office / commercial interior project'
+    why.push('Office / commercial wording appears in the document text.')
+    primaryTrades.push('framing', 'drywall', 'electrical')
+    secondaryTrades.push('plumbing', 'hvac')
+    materials.push('lumber', 'drywall', 'electrical')
+    supplierCategories.push('lumber yard', 'drywall supplier', 'electrical supplier')
+  } else if (hasAny(['multifamily', 'apartment'])) {
+    detectedScope = 'multifamily project'
+    summary = 'Multifamily project'
+    why.push('Multifamily / apartment wording appears in the document text.')
+    primaryTrades.push('concrete', 'framing', 'plumbing', 'electrical')
+    secondaryTrades.push('drywall', 'hvac')
+    materials.push('concrete', 'lumber', 'plumbing', 'electrical')
+    supplierCategories.push('concrete supplier', 'lumber yard', 'MEP supplier')
+  } else {
+    const broadTrades = []
+    const tradeMap = [
+      ['concrete', ['concrete', 'foundation', 'slab', 'flatwork', 'footing']],
+      ['steel', ['steel', 'metal', 'rebar']],
+      ['framing', ['frame', 'framing', 'wood framing']],
+      ['drywall', ['drywall', 'sheetrock', 'gypsum']],
+      ['electrical', ['electrical', 'power', 'lighting']],
+      ['plumbing', ['plumbing', 'pipe', 'piping']],
+      ['roofing', ['roof', 'roofing']],
+      ['hvac', ['hvac', 'mechanical', 'air handler']],
+      ['sitework', ['sitework', 'excavation', 'grading', 'dirt', 'parking', 'curb']]
+    ]
+
+    const materialMap = [
+      ['concrete', ['concrete', 'cement']],
+      ['steel', ['steel', 'rebar']],
+      ['lumber', ['lumber', 'framing']],
+      ['drywall', ['drywall', 'sheetrock']],
+      ['electrical', ['electrical', 'lighting']],
+      ['plumbing', ['plumbing', 'pipe']],
+      ['tools', ['tools']],
+      ['fasteners', ['fasteners', 'screws', 'anchors']]
+    ]
+
+    tradeMap.forEach(([value, needles]) => {
+      if (needles.some((needle) => lower.includes(needle))) broadTrades.push(value)
+    })
+
+    materialMap.forEach(([value, needles]) => {
+      if (needles.some((needle) => lower.includes(needle))) materials.push(value)
+    })
+
+    const normalizedTrades = Array.from(new Set(broadTrades))
+    primaryTrades.push(...normalizedTrades.slice(0, 3))
+    secondaryTrades.push(...normalizedTrades.slice(3))
+    supplierCategories.push(...Array.from(new Set(materials)).map((item) => `${titleCase(item)} supplier`))
+    why.push('No dominant sub-scope label was detected, so the analyzer used trade/material signals from the document text.')
+  }
+
+  const normalizedPrimary = uniqueList(primaryTrades)
+  const normalizedSecondary = uniqueList(secondaryTrades).filter((item) => !normalizedPrimary.includes(item))
+  const normalizedIgnored = uniqueList(ignoredTrades)
+  const normalizedMaterials = uniqueList(materials)
+  const normalizedSupplierCategories = uniqueList(supplierCategories)
+
+  const tradeAliases = {
+    'metal gate install': 'steel',
+    'site layout': 'sitework',
+    'general labor': 'sitework',
+    'signage / striping': 'sitework'
+  }
+
+  const trades = uniqueList(
+    [...normalizedPrimary, ...normalizedSecondary]
+      .map((trade) => tradeAliases[trade] || trade)
+      .filter(Boolean)
+  )
+
+  const crewSuggestion =
+    detectedScope === 'trash enclosure package'
+      ? 'Small targeted site package. Start with a concrete / masonry lead, one metal / gate installer, and general labor support.'
+      : trades.length >= 5
         ? 'Multi-trade project. Start with contractor, concrete, steel/framing, electrical, and plumbing coverage.'
-        : normalizedTrades.length >= 3
+        : trades.length >= 3
           ? 'Mid-size project. Start with 2–4 core trades and phase supplier and delivery support.'
           : 'Smaller scope. Start with one lead trade and one supplier lane.'
+
+  return {
+    detectedScope,
+    summary,
+    why: uniqueList(why),
+    primaryTrades: normalizedPrimary,
+    secondaryTrades: normalizedSecondary,
+    ignoredTrades: normalizedIgnored,
+    trades,
+    materials: normalizedMaterials,
+    supplierCategories: normalizedSupplierCategories,
+    crewSuggestion
   }
 }
 
@@ -2076,10 +2184,26 @@ export default function SupplierAiTools() {
           <div className="card-soft" style={{ marginTop: 16 }}>
             <div className="card-section-title">{copy.summaryLabel}</div>
             {(projectNotes.trim() || extractedText.trim()) ? (
-              <div style={{ marginTop: 10, display: 'grid', gap: 10 }}>
-                <div><strong>{projectSummary.summary}</strong></div>
-                <div><strong>Trades:</strong> {projectSummary.trades.length ? projectSummary.trades.join(', ') : 'General construction'}</div>
-                <div><strong>Supplier categories:</strong> {projectSummary.materials.length ? projectSummary.materials.join(', ') : 'General materials'}</div>
+              <div style={{ marginTop: 10, display: 'grid', gap: 12 }}>
+                <div><strong>Scope:</strong> {projectSummary.detectedScope || projectSummary.summary}</div>
+                <div><strong>Project summary:</strong> {projectSummary.summary}</div>
+
+                {projectSummary.why?.length ? (
+                  <div>
+                    <strong>Why:</strong>
+                    <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
+                      {projectSummary.why.map((item) => (
+                        <li key={`why-${item}`} style={{ marginTop: 4 }}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                <div><strong>High confidence trades:</strong> {projectSummary.primaryTrades?.length ? projectSummary.primaryTrades.join(', ') : 'General construction'}</div>
+                <div><strong>Secondary trades:</strong> {projectSummary.secondaryTrades?.length ? projectSummary.secondaryTrades.join(', ') : 'None detected'}</div>
+                <div><strong>Ignore / context only:</strong> {projectSummary.ignoredTrades?.length ? projectSummary.ignoredTrades.join(', ') : 'None flagged'}</div>
+                <div><strong>Supplier categories:</strong> {projectSummary.supplierCategories?.length ? projectSummary.supplierCategories.join(', ') : 'General materials'}</div>
+                <div><strong>Likely materials:</strong> {projectSummary.materials.length ? projectSummary.materials.join(', ') : 'General materials'}</div>
                 <div><strong>Crew note:</strong> {projectSummary.crewSuggestion}</div>
               </div>
             ) : (
