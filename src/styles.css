@@ -719,6 +719,10 @@ hr {
 /* RESPONSIVE */
 
 @media (max-width: 720px) {
+  .nav-header-actions {
+    gap: 6px;
+  }
+
   .container {
     padding: 22px 14px 34px;
   }
@@ -739,8 +743,8 @@ hr {
 
   .nav-logo-image,
   .nav-logo-fallback {
-    width: 82px;
-    height: 82px;
+    width: 74px;
+    height: 74px;
   }
 
   .nav-session-shortcuts,
@@ -755,14 +759,14 @@ hr {
   }
 
   .lang-toggle {
-    width: 120px;
-    min-width: 120px;
-  }
+  width: 104px;
+  min-width: 104px;
+}
 
-  .lang-toggle-btn {
-    padding: 10px 10px;
-    font-size: 13px;
-  }
+.lang-toggle-btn {
+  padding: 8px 8px;
+  font-size: 12px;
+}
 
   .nav-mobile-toggle {
     display: inline-flex;
