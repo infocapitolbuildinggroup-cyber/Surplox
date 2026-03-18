@@ -460,6 +460,79 @@ function uniqueList(values = []) {
   return Array.from(new Set((values || []).filter(Boolean)))
 }
 
+function extractScopeDetails(text = '', detectedScope = '') {
+  const raw = String(text || '')
+  const lower = raw.toLowerCase()
+  const lines = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  const keywordMatchers =
+    detectedScope === 'trash enclosure package'
+      ? ['trash', 'enclosure', 'gate', 'door', 'post', 'bollard', 'footing', 'cmu', 'masonry', 'pipe', 'gauge']
+      : ['detail', 'schedule', 'section', 'plan', 'elevation', 'dimension', 'footing', 'pipe', 'gauge']
+
+  const hasKeyword = (line = '') => {
+    const lowerLine = String(line || '').toLowerCase()
+    return keywordMatchers.some((keyword) => lowerLine.includes(keyword))
+  }
+
+  const hasMeasurement = (line = '') =>
+    /(\d+\s?'-\s?\d+\s?\d*\/\d*"?|\d+\s?'-\s?\d+"|\d+\s?\d*\/\d+"|\d+\"|\d+\s?ga\b|\d+\s?x\s?\d+|#\d+\b)/i.test(
+      line
+    )
+
+  const detailLines = uniqueList(
+    lines.filter((line) => hasKeyword(line) && hasMeasurement(line)).slice(0, 12)
+  )
+
+  const dimensions = uniqueList(
+    (raw.match(/\b\d+\s?'-\s?\d+(?:\s?\d+\/\d+)?\"?|\b\d+(?:\s?\d+\/\d+)?\"/g) || [])
+      .map((item) => item.replace(/\s+/g, ' ').trim())
+  ).slice(0, 16)
+
+  const steelGauge = uniqueList(
+    (raw.match(/\b\d+\s?ga\b/gi) || []).map((item) => item.trim())
+  )
+
+  const pipeSizes = uniqueList(
+    (raw.match(/\b\d+(?:\s?\d+\/\d+)?\"\s?(?:o\.?d\.?\s?)?(?:pipe|post)\b/gi) || [])
+      .map((item) => item.trim())
+  )
+
+  const cmuSizes = uniqueList(
+    (raw.match(/\b\d+\"\s?cmu\b/gi) || []).map((item) => item.trim())
+  )
+
+  const footingNotes = uniqueList(
+    lines.filter((line) => /footing|concrete|anchor|reinf|rebar/i.test(line) && hasMeasurement(line)).slice(0, 8)
+  )
+
+  const gateDoorNotes = uniqueList(
+    lines.filter((line) => /gate|door|latch|hinge|post/i.test(line) && (hasMeasurement(line) || /gauge|pipe/i.test(line))).slice(0, 8)
+  )
+
+  const verification = []
+  if (!dimensions.length) verification.push('No clear overall dimensions were confidently extracted from OCR text.')
+  if (!steelGauge.length) verification.push('Steel gauge was not confidently extracted. Verify from enlarged detail or schedule.')
+  if (!pipeSizes.length) verification.push('Pipe / post size was not confidently extracted. Verify gate post and bollard details.')
+  if (!cmuSizes.length && detectedScope === 'trash enclosure package') verification.push('Wall block / CMU size was not confidently extracted. Verify enclosure elevation / section.')
+  if (!footingNotes.length) verification.push('Footing detail text needs verification from detail callouts or related sheets.')
+
+  return {
+    dimensions,
+    steelGauge,
+    pipeSizes,
+    cmuSizes,
+    footingNotes,
+    gateDoorNotes,
+    detailLines,
+    verification: uniqueList(verification)
+  }
+}
+
+
 function estimateCrewRange(trade, squareFeet = 0, scopeText = '') {
   const lower = String(scopeText || '').toLowerCase()
   const largeJob = squareFeet >= 15000 || lower.includes('warehouse') || lower.includes('multifamily')
@@ -998,6 +1071,11 @@ export default function SupplierAiTools() {
     [projectNotes, extractedText]
   )
 
+  const projectDetailSummary = useMemo(
+    () => extractScopeDetails(`${projectNotes}\n${extractedText}`, projectSummary.detectedScope),
+    [projectNotes, extractedText, projectSummary.detectedScope]
+  )
+
   function setSupplierField(key, value) {
     setSupplierForm((prev) => ({ ...prev, [key]: value }))
   }
@@ -1382,7 +1460,11 @@ export default function SupplierAiTools() {
         scopeSignals: {
           trades: projectSummary.trades,
           materials: projectSummary.materials,
-          squareFeet: extractSquareFeet(scopeText)
+          squareFeet: extractSquareFeet(scopeText),
+          dimensions: projectDetailSummary.dimensions,
+          steelGauge: projectDetailSummary.steelGauge,
+          pipeSizes: projectDetailSummary.pipeSizes,
+          cmuSizes: projectDetailSummary.cmuSizes
         },
         crewPlan: crewGroups,
         materialsPlan,
@@ -1395,7 +1477,11 @@ export default function SupplierAiTools() {
           {
             trades: projectSummary.trades,
             materials: projectSummary.materials,
-            squareFeet: extractSquareFeet(scopeText)
+            squareFeet: extractSquareFeet(scopeText),
+            dimensions: projectDetailSummary.dimensions,
+            steelGauge: projectDetailSummary.steelGauge,
+            pipeSizes: projectDetailSummary.pipeSizes,
+            cmuSizes: projectDetailSummary.cmuSizes
           },
           deliveryPlan
         )
@@ -1970,6 +2056,18 @@ export default function SupplierAiTools() {
                       {(projectEngine.scopeSignals.materials || []).map((material) => (
                         <span key={`signal-material-${material}`} className="badge">{titleCase(material)}</span>
                       ))}
+                      {(projectEngine.scopeSignals.dimensions || []).slice(0, 6).map((dimension) => (
+                        <span key={`signal-dimension-${dimension}`} className="badge">{dimension}</span>
+                      ))}
+                      {(projectEngine.scopeSignals.steelGauge || []).slice(0, 3).map((item) => (
+                        <span key={`signal-gauge-${item}`} className="badge">{item}</span>
+                      ))}
+                      {(projectEngine.scopeSignals.pipeSizes || []).slice(0, 3).map((item) => (
+                        <span key={`signal-pipe-${item}`} className="badge">{item}</span>
+                      ))}
+                      {(projectEngine.scopeSignals.cmuSizes || []).slice(0, 3).map((item) => (
+                        <span key={`signal-cmu-${item}`} className="badge">{item}</span>
+                      ))}
                       {projectEngine.scopeSignals.squareFeet ? (
                         <span className="badge">{projectEngine.scopeSignals.squareFeet.toLocaleString()} SF</span>
                       ) : null}
@@ -2329,6 +2427,90 @@ export default function SupplierAiTools() {
                         <li key={`next-action-${item}`} style={{ marginTop: 4 }}>{item}</li>
                       ))}
                     </ul>
+                  </div>
+                ) : null}
+
+                {(projectDetailSummary.dimensions.length ||
+                  projectDetailSummary.steelGauge.length ||
+                  projectDetailSummary.pipeSizes.length ||
+                  projectDetailSummary.cmuSizes.length ||
+                  projectDetailSummary.footingNotes.length ||
+                  projectDetailSummary.gateDoorNotes.length ||
+                  projectDetailSummary.detailLines.length) ? (
+                  <div>
+                    <strong>Refined details extracted:</strong>
+
+                    {projectDetailSummary.dimensions.length ? (
+                      <div style={{ marginTop: 8 }}>
+                        <strong>Dimensions / measurements:</strong>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                          {projectDetailSummary.dimensions.slice(0, 12).map((item) => (
+                            <span key={`detail-dimension-${item}`} className="badge">{item}</span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {(projectDetailSummary.steelGauge.length ||
+                      projectDetailSummary.pipeSizes.length ||
+                      projectDetailSummary.cmuSizes.length) ? (
+                      <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
+                        <strong>Spec clues:</strong>
+                        {projectDetailSummary.steelGauge.length ? (
+                          <div><strong>Steel gauge:</strong> {projectDetailSummary.steelGauge.join(', ')}</div>
+                        ) : null}
+                        {projectDetailSummary.pipeSizes.length ? (
+                          <div><strong>Pipe / post sizes:</strong> {projectDetailSummary.pipeSizes.join(', ')}</div>
+                        ) : null}
+                        {projectDetailSummary.cmuSizes.length ? (
+                          <div><strong>CMU / wall sizes:</strong> {projectDetailSummary.cmuSizes.join(', ')}</div>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {projectDetailSummary.gateDoorNotes.length ? (
+                      <div style={{ marginTop: 10 }}>
+                        <strong>Gate / door detail lines:</strong>
+                        <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
+                          {projectDetailSummary.gateDoorNotes.map((item) => (
+                            <li key={`detail-gate-${item}`} style={{ marginTop: 4 }}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {projectDetailSummary.footingNotes.length ? (
+                      <div style={{ marginTop: 10 }}>
+                        <strong>Footing / concrete detail lines:</strong>
+                        <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
+                          {projectDetailSummary.footingNotes.map((item) => (
+                            <li key={`detail-footing-${item}`} style={{ marginTop: 4 }}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {projectDetailSummary.detailLines.length ? (
+                      <div style={{ marginTop: 10 }}>
+                        <strong>High-signal OCR lines:</strong>
+                        <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
+                          {projectDetailSummary.detailLines.map((item) => (
+                            <li key={`detail-line-${item}`} style={{ marginTop: 4 }}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    {projectDetailSummary.verification.length ? (
+                      <div style={{ marginTop: 10 }}>
+                        <strong>Needs verification:</strong>
+                        <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
+                          {projectDetailSummary.verification.map((item) => (
+                            <li key={`detail-verify-${item}`} style={{ marginTop: 4 }}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
 
