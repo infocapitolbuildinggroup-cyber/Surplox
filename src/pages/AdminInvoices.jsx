@@ -19,6 +19,8 @@ const COPY = {
     draft: 'Draft',
     sent: 'Sent',
     paid: 'Paid',
+    partial: 'Partial',
+    overdue: 'Overdue',
     lineItem: 'Line Item',
     amount: 'Amount',
     addItem: 'Add Line Item',
@@ -59,7 +61,14 @@ const COPY = {
     importedCosts: 'Project costs imported.',
     importCostsError: 'Unable to import project costs right now.',
     importProjectRequired: 'Select a project before importing costs.',
-    noProjectCostsFound: 'No completed labor or material costs found for that project.'
+    noProjectCostsFound: 'No completed labor or material costs found for that project.',
+    invoiceNumber: 'Invoice #',
+    dueDate: 'Due Date',
+    noDueDate: 'No due date',
+    filters: 'Filters',
+    all: 'All',
+    unpaid: 'Unpaid',
+    today: 'Today'
   },
   es: {
     badge: 'Facturas y Estimados',
@@ -77,6 +86,8 @@ const COPY = {
     draft: 'Borrador',
     sent: 'Enviado',
     paid: 'Pagado',
+    partial: 'Parcial',
+    overdue: 'Vencida',
     lineItem: 'Concepto',
     amount: 'Monto',
     addItem: 'Agregar Partida',
@@ -117,7 +128,14 @@ const COPY = {
     importedCosts: 'Costos del proyecto importados.',
     importCostsError: 'No se pudieron importar los costos del proyecto.',
     importProjectRequired: 'Selecciona un proyecto antes de importar costos.',
-    noProjectCostsFound: 'No se encontraron costos de materiales o mano de obra completada para ese proyecto.'
+    noProjectCostsFound: 'No se encontraron costos de materiales o mano de obra completada para ese proyecto.',
+    invoiceNumber: 'Factura #',
+    dueDate: 'Fecha de Vencimiento',
+    noDueDate: 'Sin vencimiento',
+    filters: 'Filtros',
+    all: 'Todas',
+    unpaid: 'No Pagadas',
+    today: 'Hoy'
   }
 }
 
@@ -136,6 +154,8 @@ function makeEmptyDoc() {
     items: [makeLineItem()],
     amountPaid: '',
     paymentDate: '',
+    dueDate: '',
+    invoiceNumber: '',
     createdAt: ''
   }
 }
@@ -160,6 +180,8 @@ function mapDbRowToDoc(row = {}) {
     items: Array.isArray(row.items) && row.items.length > 0 ? row.items : [makeLineItem()],
     amountPaid: row.amount_paid ?? '',
     paymentDate: row.payment_received_at || '',
+    dueDate: row.due_date || '',
+    invoiceNumber: row.invoice_number || '',
     createdAt: row.created_at || ''
   }
 }
@@ -173,12 +195,42 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;')
 }
 
+function startOfToday() {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function isOverdueDoc(doc) {
+  if (String(doc.status || '') === 'paid') return false
+  if (!doc.dueDate) return false
+  return new Date(doc.dueDate).getTime() < startOfToday().getTime()
+}
+
+function computedStatus(doc) {
+  const total = docTotal(doc)
+  const amountPaid = Number(doc.amountPaid || 0)
+  if (amountPaid >= total && total > 0) return 'paid'
+  if (isOverdueDoc(doc)) return 'overdue'
+  if (amountPaid > 0) return 'partial'
+  return doc.status || 'draft'
+}
+
+function statusLabel(status, copy) {
+  if (status === 'draft') return copy.draft
+  if (status === 'sent') return copy.sent
+  if (status === 'paid') return copy.paid
+  if (status === 'partial') return copy.partial
+  if (status === 'overdue') return copy.overdue
+  return status
+}
+
 function renderPdfHtml(doc, copy) {
   const total = docTotal(doc)
   const amountPaid = Number(doc.amountPaid || 0)
   const balanceDue = Math.max(total - amountPaid, 0)
   const title = doc.type === 'estimate' ? copy.estimate : copy.invoice
-  const statusLabel = doc.status === 'draft' ? copy.draft : doc.status === 'sent' ? copy.sent : copy.paid
+  const statusText = statusLabel(computedStatus(doc), copy)
 
   const rows = (doc.items || [])
     .map(
@@ -223,10 +275,14 @@ function renderPdfHtml(doc, copy) {
               ${doc.project ? `<div style="margin-top:6px;color:#555;">${escapeHtml(doc.project)}</div>` : ''}
             </div>
             <div class="meta">
-              <div style="font-size:14px;color:#666;">${escapeHtml(copy.status)}</div>
-              <div style="font-weight:700;">${escapeHtml(statusLabel)}</div>
+              <div style="font-size:14px;color:#666;">${escapeHtml(copy.invoiceNumber)}</div>
+              <div>${escapeHtml(doc.invoiceNumber || '—')}</div>
+              <div style="margin-top:10px;font-size:14px;color:#666;">${escapeHtml(copy.status)}</div>
+              <div style="font-weight:700;">${escapeHtml(statusText)}</div>
               <div style="margin-top:10px;font-size:14px;color:#666;">Created</div>
               <div>${escapeHtml(new Date(doc.createdAt || Date.now()).toLocaleString())}</div>
+              <div style="margin-top:10px;font-size:14px;color:#666;">${escapeHtml(copy.dueDate)}</div>
+              <div>${escapeHtml(doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : copy.noDueDate)}</div>
               <div style="margin-top:10px;font-size:14px;color:#666;">${escapeHtml(copy.paymentDate)}</div>
               <div>${escapeHtml(doc.paymentDate ? new Date(doc.paymentDate).toLocaleDateString() : copy.noPaymentDate)}</div>
             </div>
@@ -275,6 +331,7 @@ export default function AdminInvoices({ lang = 'en' }) {
   const [loading, setLoading] = useState(true)
   const [importingCosts, setImportingCosts] = useState(false)
   const [message, setMessage] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
 
   useEffect(() => {
     let active = true
@@ -287,7 +344,7 @@ export default function AdminInvoices({ lang = 'en' }) {
         const [invoiceRes, crmRes] = await Promise.all([
           supabase
             .from('admin_invoices')
-            .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, created_at')
+            .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at')
             .order('created_at', { ascending: false }),
           supabase
             .from('admin_crm_records')
@@ -359,6 +416,15 @@ export default function AdminInvoices({ lang = 'en' }) {
     return { totalDocs: documents.length, totalValue, paidValue, unpaidValue }
   }, [documents])
 
+  const filteredDocuments = useMemo(() => {
+    return documents.filter((doc) => {
+      const status = computedStatus(doc)
+      if (statusFilter === 'all') return true
+      if (statusFilter === 'unpaid') return status !== 'paid'
+      return status === statusFilter
+    })
+  }, [documents, statusFilter])
+
   function setField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
@@ -397,6 +463,25 @@ export default function AdminInvoices({ lang = 'en' }) {
 
       return next
     })
+  }
+
+  async function getNextInvoiceNumber() {
+    const { data, error } = await supabase
+      .from('admin_invoices')
+      .select('invoice_number')
+      .not('invoice_number', 'is', null)
+
+    if (error) throw error
+
+    let maxNumber = 0
+    ;(data || []).forEach((row) => {
+      const raw = String(row.invoice_number || '')
+      const match = raw.match(/(\d+)$/)
+      if (!match) return
+      maxNumber = Math.max(maxNumber, Number(match[1] || 0))
+    })
+
+    return `INV-${String(maxNumber + 1).padStart(4, '0')}`
   }
 
   async function handleImportProjectCosts() {
@@ -513,15 +598,24 @@ export default function AdminInvoices({ lang = 'en' }) {
     const total = cleanedItems.reduce((sum, item) => sum + Number(item.amount || 0), 0)
     const amountPaid = Math.min(Number(form.amountPaid || 0), total)
 
+    let smartStatus = 'draft'
+    if (amountPaid >= total && total > 0) smartStatus = 'paid'
+    else if (amountPaid > 0) smartStatus = 'sent'
+    else smartStatus = String(form.status || 'draft')
+
+    const invoiceNumber = form.invoiceNumber || (await getNextInvoiceNumber())
+
     const payload = {
       type: String(form.type || 'estimate'),
       client: String(form.client || '').trim(),
       project: String(form.project || '').trim() || null,
-      status: String(form.status || 'draft'),
+      status: smartStatus,
       notes: String(form.notes || '').trim() || null,
       items: cleanedItems.length > 0 ? cleanedItems : [makeLineItem()],
       amount_paid: amountPaid || 0,
-      payment_received_at: form.paymentDate || null
+      payment_received_at: form.paymentDate || null,
+      due_date: form.dueDate || null,
+      invoice_number: invoiceNumber
     }
 
     try {
@@ -530,7 +624,7 @@ export default function AdminInvoices({ lang = 'en' }) {
           .from('admin_invoices')
           .update(payload)
           .eq('id', form.id)
-          .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, created_at')
+          .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at')
           .single()
 
         if (error) throw error
@@ -541,7 +635,7 @@ export default function AdminInvoices({ lang = 'en' }) {
         const { data, error } = await supabase
           .from('admin_invoices')
           .insert(payload)
-          .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, created_at')
+          .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at')
           .single()
 
         if (error) throw error
@@ -598,7 +692,7 @@ export default function AdminInvoices({ lang = 'en' }) {
         .from('admin_invoices')
         .update(payload)
         .eq('id', doc.id)
-        .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, created_at')
+        .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at')
         .single()
 
       if (error) throw error
@@ -647,6 +741,21 @@ export default function AdminInvoices({ lang = 'en' }) {
                 <option value="sent">{copy.sent}</option>
                 <option value="paid">{copy.paid}</option>
               </select>
+            </div>
+
+            <div className="grid two">
+              <input
+                className="input"
+                value={form.invoiceNumber}
+                onChange={(e) => setField('invoiceNumber', e.target.value)}
+                placeholder={copy.invoiceNumber}
+              />
+              <input
+                className="input"
+                type="date"
+                value={form.dueDate}
+                onChange={(e) => setField('dueDate', e.target.value)}
+              />
             </div>
 
             <div>
@@ -727,6 +836,7 @@ export default function AdminInvoices({ lang = 'en' }) {
             <div className="card-soft" style={{ background: '#ffffff' }}>
               <div className="muted">{copy.subtotal}</div>
               <div style={{ fontSize: 28, fontWeight: 900, marginTop: 8 }}>{money(subtotal)}</div>
+              <div className="muted" style={{ marginTop: 8 }}>{copy.balanceDue}: {money(Math.max(subtotal - Number(form.amountPaid || 0), 0))}</div>
             </div>
             <button className="btn primary" type="submit" disabled={saving}>{saving ? copy.saving : copy.save}</button>
           </form>
@@ -741,28 +851,41 @@ export default function AdminInvoices({ lang = 'en' }) {
           </div>
 
           <div className="card rounded-xl" style={{ padding: 22 }}>
-            {documents.length === 0 ? (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+              <button type="button" className={statusFilter === 'all' ? 'btn primary small' : 'btn small'} onClick={() => setStatusFilter('all')}>{copy.all}</button>
+              <button type="button" className={statusFilter === 'paid' ? 'btn primary small' : 'btn small'} onClick={() => setStatusFilter('paid')}>{copy.paid}</button>
+              <button type="button" className={statusFilter === 'unpaid' ? 'btn primary small' : 'btn small'} onClick={() => setStatusFilter('unpaid')}>{copy.unpaid}</button>
+              <button type="button" className={statusFilter === 'overdue' ? 'btn primary small' : 'btn small'} onClick={() => setStatusFilter('overdue')}>{copy.overdue}</button>
+            </div>
+
+            {filteredDocuments.length === 0 ? (
               <div className="card-soft">
                 <div className="card-section-title">{copy.emptyTitle}</div>
                 <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.emptyBody}</p>
               </div>
             ) : (
               <div className="list">
-                {documents
+                {filteredDocuments
                   .slice()
                   .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
                   .map((doc) => {
                     const total = docTotal(doc)
                     const amountPaid = Number(doc.amountPaid || 0)
                     const balanceDue = Math.max(total - amountPaid, 0)
+                    const smartStatus = computedStatus(doc)
 
                     return (
                       <div key={doc.id} className="card-soft" style={{ background: '#ffffff' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-                          <div style={{ fontWeight: 900, fontSize: 18 }}>{doc.client}</div>
+                          <div>
+                            <div style={{ fontWeight: 900, fontSize: 18 }}>{doc.client}</div>
+                            {doc.invoiceNumber ? <div className="muted" style={{ marginTop: 4 }}>{copy.invoiceNumber}: {doc.invoiceNumber}</div> : null}
+                          </div>
                           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                             <span className="badge">{doc.type === 'estimate' ? copy.estimate : copy.invoice}</span>
-                            <span className="badge">{doc.status === 'draft' ? copy.draft : doc.status === 'sent' ? copy.sent : copy.paid}</span>
+                            <span className="badge" style={smartStatus === 'overdue' ? { background: '#ffd8d8', color: '#8a1111' } : {}}>
+                              {statusLabel(smartStatus, copy)}
+                            </span>
                           </div>
                         </div>
                         {doc.project ? <div className="muted" style={{ marginTop: 8 }}>{doc.project}</div> : null}
@@ -770,13 +893,14 @@ export default function AdminInvoices({ lang = 'en' }) {
                           <span className="badge">{copy.subtotal}: {money(total)}</span>
                           <span className="badge">{copy.amountPaid}: {money(amountPaid)}</span>
                           <span className="badge">{copy.balanceDue}: {money(balanceDue)}</span>
+                          <span className="badge">{copy.dueDate}: {doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : copy.noDueDate}</span>
                           <span className="badge">{copy.paymentDate}: {doc.paymentDate ? new Date(doc.paymentDate).toLocaleDateString() : copy.noPaymentDate}</span>
                         </div>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
                           <button type="button" className="btn small" onClick={() => handleEdit(doc)}>{copy.edit}</button>
                           <button type="button" className="btn small" onClick={() => handleDelete(doc.id)}>{copy.delete}</button>
                           <button type="button" className="btn small primary" onClick={() => generatePdf(doc)}>{copy.pdf}</button>
-                          {doc.status !== 'paid' ? (
+                          {smartStatus !== 'paid' ? (
                             <button type="button" className="btn small" onClick={() => handleMarkPaid(doc)}>{copy.markPaid}</button>
                           ) : null}
                         </div>
