@@ -1122,7 +1122,17 @@ export default function SupplierAiTools() {
       })
 
       const data = await response.json()
-      if (!response.ok) throw new Error(data?.error || 'OCR failed.')
+
+      if (!response.ok) {
+        const detailText =
+          typeof data?.details === 'string'
+            ? data.details
+            : typeof data?.error === 'string'
+              ? data.error
+              : 'OCR failed.'
+      
+        throw new Error(detailText)
+      }
 
       const text = String(data?.extractedText || '').trim()
 
@@ -1139,7 +1149,7 @@ export default function SupplierAiTools() {
       }
     } catch (error) {
       console.error(error)
-      setMessage(error.message || 'OCR failed.')
+      setMessage(`OCR failed: ${error.message || 'Unknown error'}`)
     } finally {
       setBusy(false)
     }
