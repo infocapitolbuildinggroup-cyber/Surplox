@@ -196,28 +196,54 @@ function scoreScope(text = '') {
   }
 
   const hasAny = (values = []) => values.some((value) => lower.includes(value))
-  const hasNone = (values = []) => values.every((value) => !lower.includes(value))
 
   const scopeSignals = {
     trashEnclosure:
       repeatedCount('trash enclosure') * 4 +
-      repeatedCount('trash enclosure plan') * 5 +
-      repeatedCount('trash enclosure elevation') * 5 +
-      repeatedCount('trash enclosure door') * 4 +
+      repeatedCount('trash enclosure plan') * 6 +
+      repeatedCount('trash enclosure elevation') * 6 +
+      repeatedCount('trash enclosure door') * 5 +
       repeatedCount('enclosure door') * 2,
     sitePlan:
-      repeatedCount('site plan') * 3 +
+      repeatedCount('site plan') * 4 +
       repeatedCount('lot') * 2 +
       repeatedCount('parking') * 2 +
       repeatedCount('bollard') * 2,
-    plumbing:
-      repeatedCount('plumbing') * 3 + repeatedCount('pipe') * 2 + repeatedCount('sanitary') * 2,
-    framing:
-      repeatedCount('framing') * 3 + repeatedCount('wood framing') * 3 + repeatedCount('stud') * 2,
-    electrical:
-      repeatedCount('electrical') * 3 + repeatedCount('lighting') * 2 + repeatedCount('power') * 2,
     signageStriping:
-      repeatedCount('sign') * 2 + repeatedCount('striping') * 2 + repeatedCount('parking detail') * 1
+      repeatedCount('sign detail') * 4 +
+      repeatedCount('sign') * 2 +
+      repeatedCount('striping') * 3 +
+      repeatedCount('parking detail') * 2
+  }
+
+  const detailSignals = {
+    plan: repeatedCount(' site plan') + repeatedCount(' plan'),
+    elevation: repeatedCount(' elevation'),
+    section: repeatedCount(' section'),
+    detail: repeatedCount(' detail'),
+    schedule: repeatedCount(' schedule') + repeatedCount('door'),
+    callout: repeatedCount(' typ.') + repeatedCount(' scale') + repeatedCount('ref.')
+  }
+
+  const strongDisciplineSignals = {
+    plumbing:
+      repeatedCount('plumbing plan') * 6 +
+      repeatedCount('plumbing schedule') * 6 +
+      repeatedCount('fixture schedule') * 5 +
+      repeatedCount('sanitary riser') * 6 +
+      repeatedCount('water line') * 4,
+    framing:
+      repeatedCount('framing plan') * 6 +
+      repeatedCount('wall section') * 3 +
+      repeatedCount('wood framing') * 5 +
+      repeatedCount('stud wall') * 4 +
+      repeatedCount('roof framing') * 6,
+    electrical:
+      repeatedCount('electrical plan') * 6 +
+      repeatedCount('power plan') * 6 +
+      repeatedCount('lighting plan') * 6 +
+      repeatedCount('panel schedule') * 6 +
+      repeatedCount('circuit') * 4
   }
 
   let summary = 'General construction project'
@@ -231,6 +257,14 @@ function scoreScope(text = '') {
   const components = []
   const fieldChecks = []
   const nextActions = []
+  const sheetDetails = []
+
+  if (detailSignals.plan > 0) sheetDetails.push('plan')
+  if (detailSignals.elevation > 0) sheetDetails.push('elevation')
+  if (detailSignals.section > 0) sheetDetails.push('section')
+  if (detailSignals.detail > 0) sheetDetails.push('detail')
+  if (detailSignals.schedule > 0) sheetDetails.push('schedule')
+  if (detailSignals.callout > 0) sheetDetails.push('callout references')
 
   if (scopeSignals.trashEnclosure >= 6) {
     detectedScope = 'trash enclosure package'
@@ -243,22 +277,27 @@ function scoreScope(text = '') {
 
     primaryTrades.push('concrete', 'masonry', 'metal gate install')
     secondaryTrades.push('site layout', 'general labor')
-    if (scopeSignals.signageStriping > 0) secondaryTrades.push('signage / striping')
+    if (scopeSignals.signageStriping >= 4) secondaryTrades.push('signage / striping')
 
-    if (hasNone(['plumbing', 'pipe', 'sanitary'])) ignoredTrades.push('plumbing')
-    if (hasNone(['framing', 'wood framing', 'stud'])) ignoredTrades.push('framing')
-    if (hasNone(['electrical', 'lighting', 'power'])) ignoredTrades.push('electrical')
+    if (strongDisciplineSignals.plumbing < 6) ignoredTrades.push('plumbing')
+    if (strongDisciplineSignals.framing < 6) ignoredTrades.push('framing')
+    if (strongDisciplineSignals.electrical < 6) ignoredTrades.push('electrical')
 
     materials.push('concrete', 'cmu block / masonry', 'steel posts', 'gate hardware', 'bollards / anchors')
     supplierCategories.push('concrete supplier', 'masonry yard', 'steel / gate fabricator', 'site hardware supplier')
 
     components.push(
-      'enclosure walls',
+      'trash enclosure walls',
       'gate / door assembly',
       'steel posts',
       'bollards',
       'concrete footing / slab tie-in'
     )
+
+    if (lower.includes('trash enclosure door')) components.push('door / gate schedule reference')
+    if (lower.includes('gate post')) components.push('gate post detail')
+    if (lower.includes('bollard detail') || lower.includes('bollard')) components.push('bollard detail reference')
+    if (lower.includes('parking detail')) components.push('related parking detail reference')
 
     fieldChecks.push(
       'Confirm dimensions from full plan set.',
@@ -354,6 +393,7 @@ function scoreScope(text = '') {
   const normalizedComponents = uniqueList(components)
   const normalizedFieldChecks = uniqueList(fieldChecks)
   const normalizedNextActions = uniqueList(nextActions)
+  const normalizedSheetDetails = uniqueList(sheetDetails)
 
   const tradeAliases = {
     'metal gate install': 'steel',
@@ -381,6 +421,7 @@ function scoreScope(text = '') {
     detectedScope,
     summary,
     why: uniqueList(why),
+    sheetDetails: normalizedSheetDetails,
     components: normalizedComponents,
     primaryTrades: normalizedPrimary,
     secondaryTrades: normalizedSecondary,
@@ -2236,6 +2277,17 @@ export default function SupplierAiTools() {
                     <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
                       {projectSummary.why.map((item) => (
                         <li key={`why-${item}`} style={{ marginTop: 4 }}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {projectSummary.sheetDetails?.length ? (
+                  <div>
+                    <strong>Sheet details recognized:</strong>
+                    <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
+                      {projectSummary.sheetDetails.map((item) => (
+                        <li key={`sheet-detail-${item}`} style={{ marginTop: 4 }}>{item}</li>
                       ))}
                     </ul>
                   </div>
