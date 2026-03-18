@@ -364,14 +364,7 @@ export default function Home({ lang = 'en' }) {
           </Link>
         </div>
 
-        <div className="grid two" style={{ marginTop: 18 }}>
-          <ProofTile value={copy.proof1} />
-          <ProofTile value={copy.proof2} />
-          <ProofTile value={copy.proof3} />
-          <ProofTile value={copy.proof4} />
-          <ProofTile value={copy.proof5} />
-          <ProofTile value={copy.proof6} />
-        </div>
+        
       </div>
 
       {session ? (
@@ -480,6 +473,17 @@ export default function Home({ lang = 'en' }) {
           <p className="muted" style={{ marginTop: 10, lineHeight: 1.7 }}>
             {copy.lane3Body}
           </p>
+        </div>
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 24 }}>
+        <div className="card-section-title">{copy.roadmapTitle}</div>
+
+        <div className="grid two" style={{ marginTop: 16 }}>
+          <ProofTile value={copy.roadmap1} />
+          <ProofTile value={copy.roadmap2} />
+          <ProofTile value={copy.roadmap3} />
+          <ProofTile value={copy.roadmap4} />
         </div>
       </div>
 
