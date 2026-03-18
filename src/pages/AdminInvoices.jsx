@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 const COPY = {
   en: {
     badge: 'Invoices & Estimates',
     title: 'Create rough estimates and invoices inside Surplox.',
     body:
-      'This first version is intentionally simple: build line items, total them instantly, store records in the database, connect them to CRM clients/projects, track payments, and export a printable PDF view.',
+      'Build invoices with branding, customer details, project-linked costs, and downloadable PDF output.',
     back: 'Back to Admin',
     formTitle: 'Create Estimate / Invoice',
     type: 'Document Type',
@@ -21,8 +23,10 @@ const COPY = {
     paid: 'Paid',
     partial: 'Partial',
     overdue: 'Overdue',
-    lineItem: 'Line Item',
-    amount: 'Amount',
+    lineItem: 'Description',
+    qty: 'Qty',
+    unitPrice: 'Unit Price',
+    amount: 'Total',
     addItem: 'Add Line Item',
     notes: 'Notes',
     save: 'Save Document',
@@ -36,6 +40,10 @@ const COPY = {
     emptyBody: 'Create your first estimate or invoice to start building this contractor workflow inside Surplox.',
     edit: 'Edit',
     delete: 'Delete',
+    duplicate: 'Duplicate',
+    copyShare: 'Copy',
+    email: 'Email',
+    sms: 'SMS',
     loading: 'Loading invoices…',
     loadError: 'Unable to load invoices right now.',
     saveError: 'Unable to save invoice right now.',
@@ -43,7 +51,7 @@ const COPY = {
     clientRequired: 'Client / Company is required.',
     saved: 'Invoice saved.',
     deleted: 'Invoice deleted.',
-    pdf: 'Generate PDF',
+    pdf: 'Download PDF',
     noCrmRecords: 'No CRM client records found yet. You can still type client and project manually.',
     crmClientHint: 'Choose an existing CRM client or type a new one.',
     crmProjectHint: 'Choose an existing project from CRM or type a new project name.',
@@ -68,13 +76,27 @@ const COPY = {
     filters: 'Filters',
     all: 'All',
     unpaid: 'Unpaid',
-    today: 'Today'
+    today: 'Today',
+    companyName: 'Company Name',
+    companyAddress: 'Company Address',
+    companyPhone: 'Company Phone',
+    companyEmail: 'Company Email',
+    logoUpload: 'Logo Upload',
+    invoiceFor: 'Invoice For',
+    payableTo: 'Payable To',
+    customerPhone: 'Customer Phone',
+    customerEmail: 'Customer Email',
+    invoiceDate: 'Invoice Date',
+    referenceNumber: 'Reference Number',
+    shareCopied: 'Invoice copied to clipboard.',
+    quickPay: 'Quick Pay',
+    downloadReady: 'PDF downloaded.'
   },
   es: {
     badge: 'Facturas y Estimados',
     title: 'Crea estimados y facturas dentro de Surplox.',
     body:
-      'Esta primera versión es intencionalmente simple: crea partidas, suma totales al instante, guarda registros en la base de datos, conéctalos a clientes/proyectos del CRM, da seguimiento a pagos y exporta una vista imprimible en PDF.',
+      'Crea facturas con branding, datos del cliente, costos del proyecto y PDF descargable.',
     back: 'Volver al Admin',
     formTitle: 'Crear Estimado / Factura',
     type: 'Tipo de Documento',
@@ -88,8 +110,10 @@ const COPY = {
     paid: 'Pagado',
     partial: 'Parcial',
     overdue: 'Vencida',
-    lineItem: 'Concepto',
-    amount: 'Monto',
+    lineItem: 'Descripción',
+    qty: 'Cant.',
+    unitPrice: 'Precio Unitario',
+    amount: 'Total',
     addItem: 'Agregar Partida',
     notes: 'Notas',
     save: 'Guardar Documento',
@@ -103,6 +127,10 @@ const COPY = {
     emptyBody: 'Crea tu primer estimado o factura para empezar a construir este flujo del contratista dentro de Surplox.',
     edit: 'Editar',
     delete: 'Eliminar',
+    duplicate: 'Duplicar',
+    copyShare: 'Copiar',
+    email: 'Email',
+    sms: 'SMS',
     loading: 'Cargando facturas…',
     loadError: 'No se pudieron cargar las facturas.',
     saveError: 'No se pudo guardar la factura.',
@@ -110,7 +138,7 @@ const COPY = {
     clientRequired: 'Cliente / Empresa es obligatorio.',
     saved: 'Factura guardada.',
     deleted: 'Factura eliminada.',
-    pdf: 'Generar PDF',
+    pdf: 'Descargar PDF',
     noCrmRecords: 'Todavía no hay registros CRM. Aún puedes escribir cliente y proyecto manualmente.',
     crmClientHint: 'Elige un cliente existente del CRM o escribe uno nuevo.',
     crmProjectHint: 'Elige un proyecto existente del CRM o escribe un proyecto nuevo.',
@@ -135,12 +163,45 @@ const COPY = {
     filters: 'Filtros',
     all: 'Todas',
     unpaid: 'No Pagadas',
-    today: 'Hoy'
+    today: 'Hoy',
+    companyName: 'Nombre de la Empresa',
+    companyAddress: 'Dirección de la Empresa',
+    companyPhone: 'Teléfono de la Empresa',
+    companyEmail: 'Email de la Empresa',
+    logoUpload: 'Subir Logo',
+    invoiceFor: 'Factura Para',
+    payableTo: 'Pagadero A',
+    customerPhone: 'Teléfono del Cliente',
+    customerEmail: 'Email del Cliente',
+    invoiceDate: 'Fecha de Factura',
+    referenceNumber: 'Número de Referencia',
+    shareCopied: 'Factura copiada al portapapeles.',
+    quickPay: 'Pago Rápido',
+    downloadReady: 'PDF descargado.'
   }
 }
 
-function makeLineItem(label = '', amount = '') {
-  return { id: crypto.randomUUID(), label, amount }
+function makeLineItem(label = '', qty = 1, unitPrice = '', amount = '') {
+  return { id: crypto.randomUUID(), label, qty, unitPrice, amount }
+}
+
+function normalizeItem(item = {}) {
+  const qty = Number(item.qty || 1)
+  const unitPrice =
+    item.unitPrice !== undefined && item.unitPrice !== null && item.unitPrice !== ''
+      ? Number(item.unitPrice || 0)
+      : item.amount !== undefined && item.amount !== null && item.amount !== ''
+        ? Number(item.amount || 0)
+        : 0
+  const amount = qty * unitPrice
+
+  return {
+    id: item.id || crypto.randomUUID(),
+    label: item.label || '',
+    qty,
+    unitPrice,
+    amount
+  }
 }
 
 function makeEmptyDoc() {
@@ -156,7 +217,18 @@ function makeEmptyDoc() {
     paymentDate: '',
     dueDate: '',
     invoiceNumber: '',
-    createdAt: ''
+    createdAt: '',
+    companyName: 'Capitol Building Group',
+    companyAddress: '',
+    companyPhone: '',
+    companyEmail: '',
+    logoUrl: '',
+    invoiceForName: '',
+    payableToName: 'Capitol Building Group',
+    customerPhone: '',
+    customerEmail: '',
+    invoiceDate: '',
+    referenceNumber: ''
   }
 }
 
@@ -166,7 +238,10 @@ function money(value) {
 }
 
 function docTotal(doc) {
-  return (doc.items || []).reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  return (doc.items || []).reduce((sum, item) => {
+    const normalized = normalizeItem(item)
+    return sum + Number(normalized.amount || 0)
+  }, 0)
 }
 
 function mapDbRowToDoc(row = {}) {
@@ -177,22 +252,24 @@ function mapDbRowToDoc(row = {}) {
     project: row.project || '',
     status: row.status || 'draft',
     notes: row.notes || '',
-    items: Array.isArray(row.items) && row.items.length > 0 ? row.items : [makeLineItem()],
+    items: Array.isArray(row.items) && row.items.length > 0 ? row.items.map(normalizeItem) : [makeLineItem()],
     amountPaid: row.amount_paid ?? '',
     paymentDate: row.payment_received_at || '',
     dueDate: row.due_date || '',
     invoiceNumber: row.invoice_number || '',
-    createdAt: row.created_at || ''
+    createdAt: row.created_at || '',
+    companyName: row.company_name || 'Capitol Building Group',
+    companyAddress: row.company_address || '',
+    companyPhone: row.company_phone || '',
+    companyEmail: row.company_email || '',
+    logoUrl: row.logo_url || '',
+    invoiceForName: row.invoice_for_name || '',
+    payableToName: row.payable_to_name || 'Capitol Building Group',
+    customerPhone: row.customer_phone || '',
+    customerEmail: row.customer_email || '',
+    invoiceDate: row.invoice_date || '',
+    referenceNumber: row.reference_number || ''
   }
-}
-
-function escapeHtml(value) {
-  return String(value || '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;')
 }
 
 function startOfToday() {
@@ -225,94 +302,6 @@ function statusLabel(status, copy) {
   return status
 }
 
-function renderPdfHtml(doc, copy) {
-  const total = docTotal(doc)
-  const amountPaid = Number(doc.amountPaid || 0)
-  const balanceDue = Math.max(total - amountPaid, 0)
-
-  const rows = (doc.items || [])
-    .map(
-      (item) => `
-        <tr>
-          <td>${escapeHtml(item.label || '')}</td>
-          <td style="text-align:center;">1</td>
-          <td style="text-align:right;">${money(item.amount || 0)}</td>
-          <td style="text-align:right;">${money(item.amount || 0)}</td>
-        </tr>
-      `
-    )
-    .join('')
-
-  return `
-  <html>
-    <head>
-      <style>
-        body { font-family: Arial; padding: 40px; color:#111; }
-        .header { display:flex; justify-content:space-between; align-items:flex-start; }
-        .logo { font-size:24px; font-weight:bold; }
-        .invoice-title { font-size:32px; color:#c0392b; font-weight:bold; }
-        .section { margin-top:30px; }
-        table { width:100%; border-collapse:collapse; margin-top:10px; }
-        th, td { border-bottom:1px solid #ddd; padding:10px; }
-        th { background:#f5f5f5; text-align:left; }
-        .totals { margin-top:20px; width:300px; float:right; }
-        .totals div { display:flex; justify-content:space-between; margin-top:6px; }
-        .notes { margin-top:40px; padding:15px; background:#fafafa; border-radius:10px; }
-      </style>
-    </head>
-    <body>
-
-      <div class="header">
-        <div>
-          <div class="logo">Capitol Building Group</div>
-          <div>surplox.com</div>
-        </div>
-        <div class="invoice-title">INVOICE</div>
-      </div>
-
-      <div class="section">
-        <strong>Invoice #:</strong> ${doc.invoiceNumber || '—'}<br/>
-        <strong>Client:</strong> ${escapeHtml(doc.client)}<br/>
-        <strong>Project:</strong> ${escapeHtml(doc.project || '')}<br/>
-        <strong>Due Date:</strong> ${doc.dueDate || 'N/A'}
-      </div>
-
-      <div class="section">
-        <table>
-          <thead>
-            <tr>
-              <th>Description</th>
-              <th style="text-align:center;">Qty</th>
-              <th style="text-align:right;">Unit Price</th>
-              <th style="text-align:right;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows}
-          </tbody>
-        </table>
-      </div>
-
-      <div class="totals">
-        <div><span>Subtotal</span><strong>${money(total)}</strong></div>
-        <div><span>Paid</span><strong>${money(amountPaid)}</strong></div>
-        <div><span>Balance</span><strong>${money(balanceDue)}</strong></div>
-      </div>
-
-      ${
-        doc.notes
-          ? `<div class="notes">
-              <strong>Notes</strong>
-              <div>${escapeHtml(doc.notes)}</div>
-            </div>`
-          : ''
-      }
-
-    </body>
-  </html>
-  `
-}
-
 export default function AdminInvoices({ lang = 'en' }) {
   const copy = COPY[lang] || COPY.en
   const [documents, setDocuments] = useState([])
@@ -335,7 +324,7 @@ export default function AdminInvoices({ lang = 'en' }) {
         const [invoiceRes, crmRes] = await Promise.all([
           supabase
             .from('admin_invoices')
-            .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at')
+            .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at, company_name, company_address, company_phone, company_email, logo_url, invoice_for_name, payable_to_name, customer_phone, customer_email, invoice_date, reference_number')
             .order('created_at', { ascending: false }),
           supabase
             .from('admin_crm_records')
@@ -359,7 +348,6 @@ export default function AdminInvoices({ lang = 'en' }) {
     }
 
     loadAll()
-
     return () => {
       active = false
     }
@@ -392,7 +380,7 @@ export default function AdminInvoices({ lang = 'en' }) {
   }, [crmRecords, form.client])
 
   const subtotal = useMemo(
-    () => form.items.reduce((sum, item) => sum + Number(item.amount || 0), 0),
+    () => form.items.reduce((sum, item) => sum + Number(normalizeItem(item).amount || 0), 0),
     [form.items]
   )
 
@@ -423,7 +411,17 @@ export default function AdminInvoices({ lang = 'en' }) {
   function updateItem(id, key, value) {
     setForm((prev) => ({
       ...prev,
-      items: prev.items.map((item) => (item.id === id ? { ...item, [key]: value } : item))
+      items: prev.items.map((item) => {
+        if (item.id !== id) return item
+        const next = { ...item, [key]: value }
+        const normalized = normalizeItem(next)
+        return {
+          ...next,
+          qty: normalized.qty,
+          unitPrice: normalized.unitPrice,
+          amount: normalized.amount
+        }
+      })
     }))
   }
 
@@ -451,9 +449,23 @@ export default function AdminInvoices({ lang = 'en' }) {
       if (!String(prev.project || '').trim() && matchingProject) {
         next.project = matchingProject
       }
+      if (!String(prev.invoiceForName || '').trim()) {
+        next.invoiceForName = value
+      }
 
       return next
     })
+  }
+
+  async function handleLogoUpload(event) {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setForm((prev) => ({ ...prev, logoUrl: String(reader.result || '') }))
+    }
+    reader.readAsDataURL(file)
   }
 
   async function getNextInvoiceNumber() {
@@ -537,8 +549,8 @@ export default function AdminInvoices({ lang = 'en' }) {
       }
 
       const importedItems = []
-      if (totalMaterials > 0) importedItems.push(makeLineItem('Materials Cost', totalMaterials))
-      if (totalLabor > 0) importedItems.push(makeLineItem('Labor Cost', totalLabor))
+      if (totalMaterials > 0) importedItems.push(makeLineItem('Materials Cost', 1, totalMaterials, totalMaterials))
+      if (totalLabor > 0) importedItems.push(makeLineItem('Labor Cost', 1, totalLabor, totalLabor))
 
       setForm((prev) => ({
         ...prev,
@@ -554,17 +566,146 @@ export default function AdminInvoices({ lang = 'en' }) {
   }
 
   function generatePdf(doc) {
-    const popup = window.open('', '_blank', 'width=960,height=720')
-    if (!popup) return
+    const pdf = new jsPDF('p', 'pt', 'a4')
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const left = 40
+    const right = pageWidth - 40
+    const total = docTotal(doc)
+    const amountPaid = Number(doc.amountPaid || 0)
+    const balanceDue = Math.max(total - amountPaid, 0)
+    const smartStatus = computedStatus(doc)
 
-    popup.document.open()
-    popup.document.write(renderPdfHtml(doc, copy))
-    popup.document.close()
-    popup.focus()
+    if (doc.logoUrl) {
+      try {
+        pdf.addImage(doc.logoUrl, 'PNG', left, 28, 120, 48)
+      } catch (e) {
+        try:
+            pass
+      }
+    }
 
-    setTimeout(() => {
-      popup.print()
-    }, 250)
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(16)
+    pdf.text(doc.companyName || 'Capitol Building Group', left, 95)
+
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(10)
+    const addressLines = [
+      doc.companyAddress || '',
+      doc.companyPhone || '',
+      doc.companyEmail || ''
+    ].filter(Boolean)
+    let addressY = 110
+    addressLines.forEach((line) => {
+      pdf.text(String(line), left, addressY)
+      addressY += 13
+    })
+
+    pdf.setFillColor(193, 57, 43)
+    pdf.rect(right - 180, 35, 180, 40, 'F')
+    pdf.setTextColor(255, 255, 255)
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(20)
+    pdf.text('INVOICE', right - 90, 61, { align: 'center' })
+    pdf.setTextColor(17, 17, 17)
+
+    pdf.setFontSize(10)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text(`${copy.invoiceNumber}:`, right - 180, 95)
+    pdf.setFont('helvetica', 'normal')
+    pdf.text(doc.invoiceNumber || '—', right - 95, 95)
+
+    pdf.setFont('helvetica', 'bold')
+    pdf.text(`${copy.referenceNumber}:`, right - 180, 110)
+    pdf.setFont('helvetica', 'normal')
+    pdf.text(doc.referenceNumber || '—', right - 95, 110)
+
+    pdf.setFont('helvetica', 'bold')
+    pdf.text(`${copy.invoiceDate}:`, right - 180, 125)
+    pdf.setFont('helvetica', 'normal')
+    pdf.text(doc.invoiceDate ? new Date(doc.invoiceDate).toLocaleDateString() : new Date().toLocaleDateString(), right - 95, 125)
+
+    pdf.setFont('helvetica', 'bold')
+    pdf.text(`${copy.dueDate}:`, right - 180, 140)
+    pdf.setFont('helvetica', 'normal')
+    pdf.text(doc.dueDate ? new Date(doc.dueDate).toLocaleDateString() : copy.noDueDate, right - 95, 140)
+
+    pdf.setFont('helvetica', 'bold')
+    pdf.text(`${copy.status}:`, right - 180, 155)
+    pdf.setFont('helvetica', 'normal')
+    pdf.text(statusLabel(smartStatus, copy), right - 95, 155)
+
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(11)
+    pdf.text(copy.invoiceFor, left, 190)
+    pdf.text(copy.payableTo, 310, 190)
+
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(10)
+    const invoiceForLines = [
+      doc.invoiceForName || doc.client || '',
+      doc.project || '',
+      doc.customerPhone || '',
+      doc.customerEmail || ''
+    ].filter(Boolean)
+    let y1 = 205
+    invoiceForLines.forEach((line) => {
+      pdf.text(String(line), left, y1)
+      y1 += 13
+    })
+
+    const payableLines = [
+      doc.payableToName || doc.companyName || '',
+      doc.companyAddress || '',
+      doc.companyPhone || '',
+      doc.companyEmail || ''
+    ].filter(Boolean)
+    let y2 = 205
+    payableLines.forEach((line) => {
+      pdf.text(String(line), 310, y2)
+      y2 += 13
+    })
+
+    const bodyRows = (doc.items || []).map((item) => {
+      const normalized = normalizeItem(item)
+      return [
+        normalized.label || '',
+        String(normalized.qty || 1),
+        money(normalized.unitPrice || 0),
+        money(normalized.amount || 0)
+      ]
+    })
+
+    autoTable(pdf, {
+      startY: 275,
+      head: [[copy.lineItem, copy.qty, copy.unitPrice, copy.amount]],
+      body: bodyRows,
+      theme: 'grid',
+      styles: { font: 'helvetica', fontSize: 10, cellPadding: 8 },
+      headStyles: { fillColor: [245, 245, 245], textColor: 17 },
+      margin: { left, right: 40 }
+    })
+
+    const finalY = pdf.lastAutoTable.finalY + 18
+
+    pdf.setFont('helvetica', 'normal')
+    pdf.text(copy.notes, left, finalY)
+    pdf.setFont('helvetica', 'normal')
+    const notesLines = pdf.splitTextToSize(doc.notes || '—', 250)
+    pdf.text(notesLines, left, finalY + 14)
+
+    const totalsX = right - 180
+    pdf.setFont('helvetica', 'normal')
+    pdf.text(copy.subtotal, totalsX, finalY)
+    pdf.text(money(total), right, finalY, { align: 'right' })
+    pdf.text(copy.amountPaid, totalsX, finalY + 16)
+    pdf.text(money(amountPaid), right, finalY + 16, { align: 'right' })
+    pdf.setFont('helvetica', 'bold')
+    pdf.text(copy.balanceDue, totalsX, finalY + 34)
+    pdf.text(money(balanceDue), right, finalY + 34, { align: 'right' })
+
+    pdf.save(`${doc.invoiceNumber || 'invoice'}.pdf`)
+    setMessage(copy.downloadReady)
   }
 
   async function handleSave(event) {
@@ -579,11 +720,7 @@ export default function AdminInvoices({ lang = 'en' }) {
     setMessage('')
 
     const cleanedItems = (form.items || [])
-      .map((item) => ({
-        id: item.id || crypto.randomUUID(),
-        label: String(item.label || '').trim(),
-        amount: String(item.amount || '').trim()
-      }))
+      .map((item) => normalizeItem(item))
       .filter((item) => item.label || item.amount)
 
     const total = cleanedItems.reduce((sum, item) => sum + Number(item.amount || 0), 0)
@@ -606,7 +743,18 @@ export default function AdminInvoices({ lang = 'en' }) {
       amount_paid: amountPaid || 0,
       payment_received_at: form.paymentDate || null,
       due_date: form.dueDate || null,
-      invoice_number: invoiceNumber
+      invoice_number: invoiceNumber,
+      company_name: String(form.companyName || '').trim() || null,
+      company_address: String(form.companyAddress || '').trim() || null,
+      company_phone: String(form.companyPhone || '').trim() || null,
+      company_email: String(form.companyEmail || '').trim() || null,
+      logo_url: String(form.logoUrl || '').trim() || null,
+      invoice_for_name: String(form.invoiceForName || '').trim() || null,
+      payable_to_name: String(form.payableToName || '').trim() || null,
+      customer_phone: String(form.customerPhone || '').trim() || null,
+      customer_email: String(form.customerEmail || '').trim() || null,
+      invoice_date: form.invoiceDate || null,
+      reference_number: String(form.referenceNumber || '').trim() || null
     }
 
     try {
@@ -615,22 +763,20 @@ export default function AdminInvoices({ lang = 'en' }) {
           .from('admin_invoices')
           .update(payload)
           .eq('id', form.id)
-          .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at')
+          .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at, company_name, company_address, company_phone, company_email, logo_url, invoice_for_name, payable_to_name, customer_phone, customer_email, invoice_date, reference_number')
           .single()
 
         if (error) throw error
-
         const mapped = mapDbRowToDoc(data)
         setDocuments((prev) => prev.map((doc) => (doc.id === mapped.id ? mapped : doc)))
       } else {
         const { data, error } = await supabase
           .from('admin_invoices')
           .insert(payload)
-          .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at')
+          .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at, company_name, company_address, company_phone, company_email, logo_url, invoice_for_name, payable_to_name, customer_phone, customer_email, invoice_date, reference_number')
           .single()
 
         if (error) throw error
-
         const mapped = mapDbRowToDoc(data)
         setDocuments((prev) => [mapped, ...prev])
       }
@@ -648,7 +794,7 @@ export default function AdminInvoices({ lang = 'en' }) {
   function handleEdit(doc) {
     setForm({
       ...doc,
-      items: Array.isArray(doc.items) && doc.items.length > 0 ? doc.items : [makeLineItem()]
+      items: Array.isArray(doc.items) && doc.items.length > 0 ? doc.items.map(normalizeItem) : [makeLineItem()]
     })
     setMessage('')
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -659,7 +805,6 @@ export default function AdminInvoices({ lang = 'en' }) {
       setMessage('')
       const { error } = await supabase.from('admin_invoices').delete().eq('id', id)
       if (error) throw error
-
       setDocuments((prev) => prev.filter((doc) => doc.id !== id))
       if (form.id === id) setForm(makeEmptyDoc())
       setMessage(copy.deleted)
@@ -683,11 +828,10 @@ export default function AdminInvoices({ lang = 'en' }) {
         .from('admin_invoices')
         .update(payload)
         .eq('id', doc.id)
-        .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at')
+        .select('id, type, client, project, status, notes, items, amount_paid, payment_received_at, due_date, invoice_number, created_at, company_name, company_address, company_phone, company_email, logo_url, invoice_for_name, payable_to_name, customer_phone, customer_email, invoice_date, reference_number')
         .single()
 
       if (error) throw error
-
       const mapped = mapDbRowToDoc(data)
       setDocuments((prev) => prev.map((item) => (item.id === mapped.id ? mapped : item)))
       setMessage(copy.paymentSaved)
@@ -696,7 +840,6 @@ export default function AdminInvoices({ lang = 'en' }) {
       setMessage(copy.paymentError)
     }
   }
-
 
   function duplicateInvoice(doc) {
     setForm({
@@ -712,25 +855,26 @@ export default function AdminInvoices({ lang = 'en' }) {
   function quickAddPayment(doc, amount) {
     const updated = Math.min(Number(doc.amountPaid || 0) + amount, docTotal(doc))
     setForm({ ...doc, amountPaid: updated })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function shareInvoice(doc) {
     const total = docTotal(doc)
-    const message = `Invoice ${doc.invoiceNumber || ''}\nClient: ${doc.client}\nProject: ${doc.project}\nTotal: ${money(total)}\nDue: ${doc.dueDate || 'N/A'}\n\n- Sent via Surplox`
-    navigator.clipboard.writeText(message)
-    alert('Invoice copied to clipboard')
+    const shareText = `Invoice ${doc.invoiceNumber || ''}\nClient: ${doc.client}\nProject: ${doc.project}\nTotal: ${money(total)}\nDue: ${doc.dueDate || 'N/A'}\n\n- Sent via Surplox`
+    navigator.clipboard.writeText(shareText)
+    setMessage(copy.shareCopied)
   }
 
   function emailInvoice(doc) {
     const total = docTotal(doc)
     const body = encodeURIComponent(`Invoice ${doc.invoiceNumber || ''}\nClient: ${doc.client}\nProject: ${doc.project}\nTotal: ${money(total)}\nDue: ${doc.dueDate || 'N/A'}`)
-    window.open(`mailto:?subject=Invoice ${doc.invoiceNumber || ''}&body=${body}`)
+    window.open(`mailto:${doc.customerEmail || ''}?subject=Invoice ${doc.invoiceNumber || ''}&body=${body}`)
   }
 
   function smsInvoice(doc) {
     const total = docTotal(doc)
     const body = encodeURIComponent(`Invoice ${doc.invoiceNumber || ''}\nTotal: ${money(total)}\nDue: ${doc.dueDate || 'N/A'}`)
-    window.open(`sms:?body=${body}`)
+    window.open(`sms:${doc.customerPhone || ''}?body=${body}`)
   }
 
   if (loading) {
@@ -771,18 +915,29 @@ export default function AdminInvoices({ lang = 'en' }) {
             </div>
 
             <div className="grid two">
-              <input
-                className="input"
-                value={form.invoiceNumber}
-                onChange={(e) => setField('invoiceNumber', e.target.value)}
-                placeholder={copy.invoiceNumber}
-              />
-              <input
-                className="input"
-                type="date"
-                value={form.dueDate}
-                onChange={(e) => setField('dueDate', e.target.value)}
-              />
+              <input className="input" value={form.invoiceNumber} onChange={(e) => setField('invoiceNumber', e.target.value)} placeholder={copy.invoiceNumber} />
+              <input className="input" type="date" value={form.invoiceDate} onChange={(e) => setField('invoiceDate', e.target.value)} />
+            </div>
+
+            <div className="grid two">
+              <input className="input" type="date" value={form.dueDate} onChange={(e) => setField('dueDate', e.target.value)} />
+              <input className="input" value={form.referenceNumber} onChange={(e) => setField('referenceNumber', e.target.value)} placeholder={copy.referenceNumber} />
+            </div>
+
+            <div className="grid two">
+              <input className="input" value={form.companyName} onChange={(e) => setField('companyName', e.target.value)} placeholder={copy.companyName} />
+              <input className="input" value={form.payableToName} onChange={(e) => setField('payableToName', e.target.value)} placeholder={copy.payableTo} />
+            </div>
+
+            <textarea className="input" value={form.companyAddress} onChange={(e) => setField('companyAddress', e.target.value)} placeholder={copy.companyAddress} />
+            <div className="grid two">
+              <input className="input" value={form.companyPhone} onChange={(e) => setField('companyPhone', e.target.value)} placeholder={copy.companyPhone} />
+              <input className="input" value={form.companyEmail} onChange={(e) => setField('companyEmail', e.target.value)} placeholder={copy.companyEmail} />
+            </div>
+
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.logoUpload}</div>
+              <input className="input" type="file" accept="image/*" onChange={handleLogoUpload} />
             </div>
 
             <div>
@@ -821,12 +976,23 @@ export default function AdminInvoices({ lang = 'en' }) {
               </div>
             </div>
 
+            <div className="grid two">
+              <input className="input" value={form.invoiceForName} onChange={(e) => setField('invoiceForName', e.target.value)} placeholder={copy.invoiceFor} />
+              <input className="input" value={form.customerPhone} onChange={(e) => setField('customerPhone', e.target.value)} placeholder={copy.customerPhone} />
+            </div>
+
+            <input className="input" value={form.customerEmail} onChange={(e) => setField('customerEmail', e.target.value)} placeholder={copy.customerEmail} />
+
             <div className="grid" style={{ gap: 10 }}>
               {form.items.map((item) => (
-                <div key={item.id} className="grid two" style={{ alignItems: 'center' }}>
+                <div key={item.id} className="grid" style={{ gap: 8 }}>
                   <input className="input" value={item.label} onChange={(e) => updateItem(item.id, 'label', e.target.value)} placeholder={copy.lineItem} />
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <input className="input" type="number" step="0.01" value={item.amount} onChange={(e) => updateItem(item.id, 'amount', e.target.value)} placeholder={copy.amount} />
+                  <div className="grid two" style={{ alignItems: 'center' }}>
+                    <input className="input" type="number" step="1" value={item.qty} onChange={(e) => updateItem(item.id, 'qty', e.target.value)} placeholder={copy.qty} />
+                    <input className="input" type="number" step="0.01" value={item.unitPrice} onChange={(e) => updateItem(item.id, 'unitPrice', e.target.value)} placeholder={copy.unitPrice} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <input className="input" value={money(normalizeItem(item).amount)} readOnly placeholder={copy.amount} />
                     <button type="button" className="btn" onClick={() => removeItem(item.id)}>×</button>
                   </div>
                 </div>
@@ -839,20 +1005,8 @@ export default function AdminInvoices({ lang = 'en' }) {
             <div className="card-soft" style={{ background: '#ffffff' }}>
               <div className="card-section-title" style={{ fontSize: 15 }}>{copy.paymentTracking}</div>
               <div className="grid two" style={{ marginTop: 12 }}>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  value={form.amountPaid}
-                  onChange={(e) => setField('amountPaid', e.target.value)}
-                  placeholder={copy.amountPaid}
-                />
-                <input
-                  className="input"
-                  type="date"
-                  value={form.paymentDate}
-                  onChange={(e) => setField('paymentDate', e.target.value)}
-                />
+                <input className="input" type="number" step="0.01" value={form.amountPaid} onChange={(e) => setField('amountPaid', e.target.value)} placeholder={copy.amountPaid} />
+                <input className="input" type="date" value={form.paymentDate} onChange={(e) => setField('paymentDate', e.target.value)} />
               </div>
             </div>
 
@@ -927,14 +1081,14 @@ export default function AdminInvoices({ lang = 'en' }) {
                           <button type="button" className="btn small" onClick={() => handleEdit(doc)}>{copy.edit}</button>
                           <button type="button" className="btn small" onClick={() => handleDelete(doc.id)}>{copy.delete}</button>
                           <button type="button" className="btn small primary" onClick={() => generatePdf(doc)}>{copy.pdf}</button>
-                          <button type="button" className="btn small" onClick={() => duplicateInvoice(doc)}>Duplicate</button>
-                          <button type="button" className="btn small" onClick={() => shareInvoice(doc)}>Copy</button>
-                          <button type="button" className="btn small" onClick={() => emailInvoice(doc)}>Email</button>
-                          <button type="button" className="btn small" onClick={() => smsInvoice(doc)}>SMS</button>
+                          <button type="button" className="btn small" onClick={() => duplicateInvoice(doc)}>{copy.duplicate}</button>
+                          <button type="button" className="btn small" onClick={() => shareInvoice(doc)}>{copy.copyShare}</button>
+                          <button type="button" className="btn small" onClick={() => emailInvoice(doc)}>{copy.email}</button>
+                          <button type="button" className="btn small" onClick={() => smsInvoice(doc)}>{copy.sms}</button>
                           <button type="button" className="btn small" onClick={() => quickAddPayment(doc,100)}>+100</button>
                           <button type="button" className="btn small" onClick={() => quickAddPayment(doc,500)}>+500</button>
                           <button type="button" className="btn small" onClick={() => quickAddPayment(doc,1000)}>+1000</button>
-{smartStatus !== 'paid' ? (
+                          {smartStatus !== 'paid' ? (
                             <button type="button" className="btn small" onClick={() => handleMarkPaid(doc)}>{copy.markPaid}</button>
                           ) : null}
                         </div>
