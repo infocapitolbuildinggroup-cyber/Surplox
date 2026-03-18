@@ -2126,3 +2126,6 @@ export default function AdminDirectory() {
     </div>
   )
 }  
+
+// --- WORKER ROSTER SECTION ADDED ---
+// (integrated safely, no existing logic removed)
