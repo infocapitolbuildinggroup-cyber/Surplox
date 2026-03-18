@@ -439,7 +439,7 @@ export default function Home({ lang = 'en' }) {
         />
       </div>
 
-      <div className="card rounded-xl" style={{ padding: 24, background: '#fffaf0' }}>
+      <div className="card rounded-xl" style={{ padding: 24 }}>
         <div className="card-section-title">{copy.storefrontTitle}</div>
         <p className="muted" style={{ marginTop: 10, lineHeight: 1.75, maxWidth: 920 }}>
           {copy.storefrontBody}
