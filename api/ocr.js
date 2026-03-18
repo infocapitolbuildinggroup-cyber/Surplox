@@ -14,7 +14,6 @@ export const config = {
   
   const MAX_FILE_SIZE = 10 * 1024 * 1024;
   
-  // simple in-memory rate limit
   const RATE_LIMIT = {};
   const LIMIT = 20;
   const WINDOW = 60 * 1000;
@@ -45,13 +44,22 @@ export const config = {
   
     for (const outputItem of data?.output || []) {
       for (const contentItem of outputItem?.content || []) {
-        if (typeof contentItem?.text === "string" && contentItem.text.trim()) {
+        if (contentItem?.type === "output_text" && typeof contentItem?.text === "string" && contentItem.text.trim()) {
           pieces.push(contentItem.text.trim());
         }
       }
     }
   
     return pieces.join("\n").trim();
+  }
+  
+  function normalizeBase64(input) {
+    const value = String(input || "").trim();
+  
+    if (!value) return "";
+  
+    const match = value.match(/^data:.*?;base64,(.*)$/);
+    return match ? match[1] : value;
   }
   
   export default async function handler(req, res) {
@@ -93,7 +101,8 @@ export const config = {
         });
       }
   
-      const buffer = Buffer.from(fileBase64, "base64");
+      const normalizedBase64 = normalizeBase64(fileBase64);
+      const buffer = Buffer.from(normalizedBase64, "base64");
   
       if (!buffer.length) {
         return res.status(400).json({
@@ -107,7 +116,7 @@ export const config = {
         });
       }
   
-      const imageDataUrl = `data:${mimeType};base64,${fileBase64}`;
+      const imageDataUrl = `data:${mimeType};base64,${normalizedBase64}`;
   
       const response = await fetch("https://api.openai.com/v1/responses", {
         method: "POST",
@@ -116,7 +125,7 @@ export const config = {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: process.env.OPENAI_OCR_MODEL || "gpt-4.1-mini",
+          model: "gpt-4.1-mini",
           input: [
             {
               role: "user",
@@ -164,7 +173,8 @@ export const config = {
       console.error("OCR processing failed:", error);
   
       return res.status(500).json({
-        error: "OCR processing failed"
+        error: "OCR processing failed",
+        details: String(error?.message || error)
       });
     }
   }
