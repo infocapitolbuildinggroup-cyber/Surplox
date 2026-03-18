@@ -196,6 +196,7 @@ function scoreScope(text = '') {
   }
 
   const hasAny = (values = []) => values.some((value) => lower.includes(value))
+  const hasNone = (values = []) => values.every((value) => !lower.includes(value))
 
   const scopeSignals = {
     trashEnclosure:
@@ -227,6 +228,9 @@ function scoreScope(text = '') {
   const ignoredTrades = []
   const materials = []
   const supplierCategories = []
+  const components = []
+  const fieldChecks = []
+  const nextActions = []
 
   if (scopeSignals.trashEnclosure >= 6) {
     detectedScope = 'trash enclosure package'
@@ -240,12 +244,36 @@ function scoreScope(text = '') {
     primaryTrades.push('concrete', 'masonry', 'metal gate install')
     secondaryTrades.push('site layout', 'general labor')
     if (scopeSignals.signageStriping > 0) secondaryTrades.push('signage / striping')
-    if (scopeSignals.plumbing > 0) ignoredTrades.push('plumbing')
-    if (scopeSignals.framing > 0) ignoredTrades.push('framing')
-    if (scopeSignals.electrical > 0) ignoredTrades.push('electrical')
+
+    if (hasNone(['plumbing', 'pipe', 'sanitary'])) ignoredTrades.push('plumbing')
+    if (hasNone(['framing', 'wood framing', 'stud'])) ignoredTrades.push('framing')
+    if (hasNone(['electrical', 'lighting', 'power'])) ignoredTrades.push('electrical')
 
     materials.push('concrete', 'cmu block / masonry', 'steel posts', 'gate hardware', 'bollards / anchors')
     supplierCategories.push('concrete supplier', 'masonry yard', 'steel / gate fabricator', 'site hardware supplier')
+
+    components.push(
+      'enclosure walls',
+      'gate / door assembly',
+      'steel posts',
+      'bollards',
+      'concrete footing / slab tie-in'
+    )
+
+    fieldChecks.push(
+      'Confirm dimensions from full plan set.',
+      'Confirm wall material type and height requirements.',
+      'Confirm gate / hardware specification and swing direction.',
+      'Confirm footing detail, reinforcement, and anchor requirements.',
+      'Confirm finish requirements and any site protection details.'
+    )
+
+    nextActions.push(
+      'Generate a material buyout list for the trash enclosure package.',
+      'Search suppliers for concrete, masonry, steel / gate fabrication, and site hardware.',
+      'Build a crew plan for concrete, masonry, and gate install.',
+      'Plan staged delivery for masonry, steel posts, and hardware.'
+    )
   } else if (hasAny(['warehouse', 'industrial'])) {
     detectedScope = 'warehouse / industrial building'
     summary = 'Warehouse / industrial project'
@@ -254,6 +282,8 @@ function scoreScope(text = '') {
     secondaryTrades.push('electrical', 'plumbing')
     materials.push('concrete', 'steel', 'lumber')
     supplierCategories.push('concrete supplier', 'steel supplier', 'lumber yard')
+    fieldChecks.push('Confirm which building package this sheet belongs to.', 'Confirm structural and MEP scopes from related sheets.')
+    nextActions.push('Start with supplier and crew sourcing for the core structural package.')
   } else if (hasAny(['office'])) {
     detectedScope = 'office / commercial interior'
     summary = 'Office / commercial interior project'
@@ -262,6 +292,8 @@ function scoreScope(text = '') {
     secondaryTrades.push('plumbing', 'hvac')
     materials.push('lumber', 'drywall', 'electrical')
     supplierCategories.push('lumber yard', 'drywall supplier', 'electrical supplier')
+    fieldChecks.push('Confirm room-by-room scope and finish schedule.')
+    nextActions.push('Start with interior materials and crew coordination.')
   } else if (hasAny(['multifamily', 'apartment'])) {
     detectedScope = 'multifamily project'
     summary = 'Multifamily project'
@@ -270,6 +302,8 @@ function scoreScope(text = '') {
     secondaryTrades.push('drywall', 'hvac')
     materials.push('concrete', 'lumber', 'plumbing', 'electrical')
     supplierCategories.push('concrete supplier', 'lumber yard', 'MEP supplier')
+    fieldChecks.push('Confirm building type, unit count, and phase sequence from related sheets.')
+    nextActions.push('Start with core trade and supplier planning for the active building phase.')
   } else {
     const broadTrades = []
     const tradeMap = [
@@ -307,7 +341,9 @@ function scoreScope(text = '') {
     primaryTrades.push(...normalizedTrades.slice(0, 3))
     secondaryTrades.push(...normalizedTrades.slice(3))
     supplierCategories.push(...Array.from(new Set(materials)).map((item) => `${titleCase(item)} supplier`))
-    why.push('No dominant sub-scope label was detected, so the analyzer used trade/material signals from the document text.')
+    why.push('No dominant sub-scope label was detected, so the analyzer used trade / material signals from the document text.')
+    fieldChecks.push('Confirm exact scope from related plan sheets and detail references.')
+    nextActions.push('Start with one supplier search and one crew plan based on the strongest detected trade.')
   }
 
   const normalizedPrimary = uniqueList(primaryTrades)
@@ -315,6 +351,9 @@ function scoreScope(text = '') {
   const normalizedIgnored = uniqueList(ignoredTrades)
   const normalizedMaterials = uniqueList(materials)
   const normalizedSupplierCategories = uniqueList(supplierCategories)
+  const normalizedComponents = uniqueList(components)
+  const normalizedFieldChecks = uniqueList(fieldChecks)
+  const normalizedNextActions = uniqueList(nextActions)
 
   const tradeAliases = {
     'metal gate install': 'steel',
@@ -342,12 +381,15 @@ function scoreScope(text = '') {
     detectedScope,
     summary,
     why: uniqueList(why),
+    components: normalizedComponents,
     primaryTrades: normalizedPrimary,
     secondaryTrades: normalizedSecondary,
     ignoredTrades: normalizedIgnored,
     trades,
     materials: normalizedMaterials,
     supplierCategories: normalizedSupplierCategories,
+    fieldChecks: normalizedFieldChecks,
+    nextActions: normalizedNextActions,
     crewSuggestion
   }
 }
@@ -2199,11 +2241,45 @@ export default function SupplierAiTools() {
                   </div>
                 ) : null}
 
+                {projectSummary.components?.length ? (
+                  <div>
+                    <strong>Components identified:</strong>
+                    <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
+                      {projectSummary.components.map((item) => (
+                        <li key={`component-${item}`} style={{ marginTop: 4 }}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
                 <div><strong>High confidence trades:</strong> {projectSummary.primaryTrades?.length ? projectSummary.primaryTrades.join(', ') : 'General construction'}</div>
                 <div><strong>Secondary trades:</strong> {projectSummary.secondaryTrades?.length ? projectSummary.secondaryTrades.join(', ') : 'None detected'}</div>
-                <div><strong>Ignore / context only:</strong> {projectSummary.ignoredTrades?.length ? projectSummary.ignoredTrades.join(', ') : 'None flagged'}</div>
+                <div><strong>Not evidenced on this sheet:</strong> {projectSummary.ignoredTrades?.length ? projectSummary.ignoredTrades.join(', ') : 'None flagged'}</div>
                 <div><strong>Supplier categories:</strong> {projectSummary.supplierCategories?.length ? projectSummary.supplierCategories.join(', ') : 'General materials'}</div>
                 <div><strong>Likely materials:</strong> {projectSummary.materials.length ? projectSummary.materials.join(', ') : 'General materials'}</div>
+
+                {projectSummary.fieldChecks?.length ? (
+                  <div>
+                    <strong>Field checks needed:</strong>
+                    <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
+                      {projectSummary.fieldChecks.map((item) => (
+                        <li key={`field-check-${item}`} style={{ marginTop: 4 }}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {projectSummary.nextActions?.length ? (
+                  <div>
+                    <strong>Next actions:</strong>
+                    <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
+                      {projectSummary.nextActions.map((item) => (
+                        <li key={`next-action-${item}`} style={{ marginTop: 4 }}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
                 <div><strong>Crew note:</strong> {projectSummary.crewSuggestion}</div>
               </div>
             ) : (
