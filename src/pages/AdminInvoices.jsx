@@ -706,6 +706,42 @@ export default function AdminInvoices({ lang = 'en' }) {
     }
   }
 
+
+  function duplicateInvoice(doc) {
+    setForm({
+      ...doc,
+      id: '',
+      invoiceNumber: '',
+      createdAt: '',
+      status: 'draft'
+    })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function quickAddPayment(doc, amount) {
+    const updated = Math.min(Number(doc.amountPaid || 0) + amount, docTotal(doc))
+    setForm({ ...doc, amountPaid: updated })
+  }
+
+  function shareInvoice(doc) {
+    const total = docTotal(doc)
+    const message = `Invoice ${doc.invoiceNumber || ''}\nClient: ${doc.client}\nProject: ${doc.project}\nTotal: ${money(total)}\nDue: ${doc.dueDate || 'N/A'}\n\n- Sent via Surplox`
+    navigator.clipboard.writeText(message)
+    alert('Invoice copied to clipboard')
+  }
+
+  function emailInvoice(doc) {
+    const total = docTotal(doc)
+    const body = encodeURIComponent(`Invoice ${doc.invoiceNumber || ''}\nClient: ${doc.client}\nProject: ${doc.project}\nTotal: ${money(total)}\nDue: ${doc.dueDate || 'N/A'}`)
+    window.open(`mailto:?subject=Invoice ${doc.invoiceNumber || ''}&body=${body}`)
+  }
+
+  function smsInvoice(doc) {
+    const total = docTotal(doc)
+    const body = encodeURIComponent(`Invoice ${doc.invoiceNumber || ''}\nTotal: ${money(total)}\nDue: ${doc.dueDate || 'N/A'}`)
+    window.open(`sms:?body=${body}`)
+  }
+
   if (loading) {
     return <div className="card">{copy.loading}</div>
   }
@@ -900,7 +936,14 @@ export default function AdminInvoices({ lang = 'en' }) {
                           <button type="button" className="btn small" onClick={() => handleEdit(doc)}>{copy.edit}</button>
                           <button type="button" className="btn small" onClick={() => handleDelete(doc.id)}>{copy.delete}</button>
                           <button type="button" className="btn small primary" onClick={() => generatePdf(doc)}>{copy.pdf}</button>
-                          {smartStatus !== 'paid' ? (
+                          <button type="button" className="btn small" onClick={() => duplicateInvoice(doc)}>Duplicate</button>
+                          <button type="button" className="btn small" onClick={() => shareInvoice(doc)}>Copy</button>
+                          <button type="button" className="btn small" onClick={() => emailInvoice(doc)}>Email</button>
+                          <button type="button" className="btn small" onClick={() => smsInvoice(doc)}>SMS</button>
+                          <button type="button" className="btn small" onClick={() => quickAddPayment(doc,100)}>+100</button>
+                          <button type="button" className="btn small" onClick={() => quickAddPayment(doc,500)}>+500</button>
+                          <button type="button" className="btn small" onClick={() => quickAddPayment(doc,1000)}>+1000</button>
+{smartStatus !== 'paid' ? (
                             <button type="button" className="btn small" onClick={() => handleMarkPaid(doc)}>{copy.markPaid}</button>
                           ) : null}
                         </div>
