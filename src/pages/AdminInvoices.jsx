@@ -579,8 +579,7 @@ export default function AdminInvoices({ lang = 'en' }) {
       try {
         pdf.addImage(doc.logoUrl, 'PNG', left, 28, 120, 48)
       } catch (e) {
-        try:
-            pass
+        console.error('Unable to add logo image to invoice PDF', e)
       }
     }
 
@@ -601,9 +600,9 @@ export default function AdminInvoices({ lang = 'en' }) {
       addressY += 13
     })
 
-    pdf.setFillColor(193, 57, 43)
+    pdf.setFillColor(230, 230, 230)
     pdf.rect(right - 180, 35, 180, 40, 'F')
-    pdf.setTextColor(255, 255, 255)
+    pdf.setTextColor(40, 40, 40)
     pdf.setFont('helvetica', 'bold')
     pdf.setFontSize(20)
     pdf.text('INVOICE', right - 90, 61, { align: 'center' })
