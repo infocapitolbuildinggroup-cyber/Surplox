@@ -364,7 +364,14 @@ export default function Home({ lang = 'en' }) {
           </Link>
         </div>
 
-        
+        <div className="grid two" style={{ marginTop: 18 }}>
+          <ProofTile value={copy.proof1} />
+          <ProofTile value={copy.proof2} />
+          <ProofTile value={copy.proof3} />
+          <ProofTile value={copy.proof4} />
+          <ProofTile value={copy.proof5} />
+          <ProofTile value={copy.proof6} />
+        </div>
       </div>
 
       {session ? (
@@ -396,90 +403,7 @@ export default function Home({ lang = 'en' }) {
             </Link>
           </div>
         </div>
-      ) : null}
-
-
-      <div className="card rounded-xl" style={{ padding: 24 }}>
-        <div className="card-section-title">{copy.missionTitle}</div>
-        <p className="muted" style={{ marginTop: 10, lineHeight: 1.75 }}>
-          {copy.missionBody}
-        </p>
-      </div>
-
-      <div className="grid two">
-        <PillarCard
-          badge={lang === 'es' ? 'Mano de obra' : 'Labor'}
-          title={copy.pillarLaborTitle}
-          body={copy.pillarLaborBody}
-        />
-        <PillarCard
-          badge={lang === 'es' ? 'Demanda' : 'Demand'}
-          title={copy.pillarDemandTitle}
-          body={copy.pillarDemandBody}
-        />
-        <PillarCard
-          badge={lang === 'es' ? 'Proveedor' : 'Supplier'}
-          title={copy.pillarSupplierTitle}
-          body={copy.pillarSupplierBody}
-        />
-        <PillarCard
-          badge={lang === 'es' ? 'Entrega' : 'Delivery'}
-          title={copy.pillarDeliveryTitle}
-          body={copy.pillarDeliveryBody}
-        />
-        <PillarCard
-          badge={lang === 'es' ? 'Cargo Van' : 'Cargo Van'}
-          title={copy.pillarCargoVanTitle}
-          body={copy.pillarCargoVanBody}
-        />
-        <PillarCard
-          badge={lang === 'es' ? 'Reparación' : 'Repair'}
-          title={copy.pillarRepairTitle}
-          body={copy.pillarRepairBody}
-        />
-      </div>
-
-      <div className="card rounded-xl" style={{ padding: 24, background: '#fffaf0' }}>
-        <div className="card-section-title">{copy.storefrontTitle}</div>
-        <p className="muted" style={{ marginTop: 10, lineHeight: 1.75, maxWidth: 920 }}>
-          {copy.storefrontBody}
-        </p>
-
-        <div className="grid two" style={{ marginTop: 16 }}>
-          <ProofTile value={copy.storefrontPoint1} />
-          <ProofTile value={copy.storefrontPoint2} />
-          <ProofTile value={copy.storefrontPoint3} />
-          <ProofTile value={copy.storefrontPoint4} />
-        </div>
-      </div>
-
-      <div className="grid three">
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.lane1Title}</div>
-          <p className="muted" style={{ marginTop: 10, lineHeight: 1.7 }}>
-            {copy.lane1Body}
-          </p>
-        </div>
-
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.lane2Title}</div>
-          <p className="muted" style={{ marginTop: 10, lineHeight: 1.7 }}>
-            {copy.lane2Body}
-          </p>
-        </div>
-
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.lane3Title}</div>
-          <p className="muted" style={{ marginTop: 10, lineHeight: 1.7 }}>
-            {copy.lane3Body}
-          </p>
-        </div>
-      </div>
-
-      <div className="card rounded-xl" style={{ padding: 24 }}>
-        <div className="card-section-title">{copy.roadmapTitle}</div>
-
-        <div className="grid two" style={{ marginTop: 16 }}>
+      ) : null}        <div className="grid two" style={{ marginTop: 16 }}>
           <ProofTile value={copy.roadmap1} />
           <ProofTile value={copy.roadmap2} />
           <ProofTile value={copy.roadmap3} />
