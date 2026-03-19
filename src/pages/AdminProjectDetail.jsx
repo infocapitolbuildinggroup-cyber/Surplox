@@ -587,7 +587,69 @@ export default function AdminProjectDetail() {
     })
   }, [permitForm.scopes, materials, permitForm.project_type])
 
-  const suggestedPermitTypes = useMemo(() => {
+  
+  const permitIntakePackage = useMemo(() => {
+    const pkg = {
+      project_name: project?.project || '',
+      client: project?.company || '',
+      city: permitForm.location_city || '',
+      county: permitForm.location_county || '',
+      state: permitForm.location_state || 'TX',
+      zip: permitForm.location_zip || '',
+      jurisdiction: permitForm.jurisdiction || '',
+      project_type: permitForm.project_type || '',
+      square_footage: permitForm.square_footage || '',
+      estimated_value: permitForm.estimated_value || '',
+      scopes: permitForm.scopes || [],
+      selected_permit_types: permitForm.permit_types || [],
+      ai_required_permits: permitRequirements.required_permits || [],
+      missing_inputs: permitRequirements.missing_inputs || [],
+      warnings: permitRequirements.warnings || [],
+      readiness_score: permitReadiness.score,
+      risk_level: riskLevel,
+      top_blockers: (permitReadiness.blockers || []).slice(0, 5),
+      intake_notes: permitForm.intake_notes || ''
+    }
+    return pkg
+  }, [
+    project,
+    permitForm,
+    permitRequirements,
+    permitReadiness,
+    riskLevel
+  ])
+
+  const permitIntakeText = useMemo(() => {
+    const p = permitIntakePackage
+    return [
+      `PROJECT: ${p.project_name}`,
+      `CLIENT: ${p.client}`,
+      `LOCATION: ${p.city}, ${p.county}, ${p.state} ${p.zip}`,
+      `JURISDICTION: ${p.jurisdiction || 'TBD'}`,
+      `TYPE: ${p.project_type || 'TBD'}`,
+      `SF: ${p.square_footage || 'TBD'}`,
+      `VALUE: ${p.estimated_value || 'TBD'}`,
+      `SCOPES: ${(p.scopes || []).join(', ') || 'TBD'}`,
+      `PERMITS (SELECTED): ${(p.selected_permit_types || []).join(', ') || 'None'}`,
+      `PERMITS (AI): ${(p.ai_required_permits || []).join(', ') || 'None'}`,
+      `READINESS: ${p.readiness_score}/100 (${p.risk_level})`,
+      `BLOCKERS: ${(p.top_blockers || []).join(' | ') || 'None'}`,
+      `MISSING: ${(p.missing_inputs || []).join(' | ') || 'None'}`,
+      `WARNINGS: ${(p.warnings || []).join(' | ') || 'None'}`,
+      `NOTES: ${p.intake_notes || ''}`
+    ].join('\n')
+  }, [permitIntakePackage])
+
+  function copyPermitIntake() {
+    try {
+      navigator.clipboard.writeText(permitIntakeText)
+      setMessage('Permit intake package copied to clipboard.')
+    } catch (e) {
+      setMessage('Unable to copy package.')
+    }
+  }
+
+const suggestedPermitTypes = useMemo(() => {
     return (permitRequirements.required_permits || []).filter(
       (type) => !(permitForm.permit_types || []).includes(type)
     )
@@ -1329,6 +1391,67 @@ export default function AdminProjectDetail() {
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">AI Permit Requirements</div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">Permit Intake Package</div>
+        <div className="muted" style={{ marginTop: 8 }}>
+          This is a structured, submission-ready draft generated from project + permit data.
+        </div>
+
+        <div className="list" style={{ marginTop: 14 }}>
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div style={{ fontWeight: 900 }}>{permitIntakePackage.project_name || 'Unnamed Project'}</div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              {permitIntakePackage.client || 'Unknown Client'}
+            </div>
+          </div>
+
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div className="muted">Location</div>
+            <div style={{ marginTop: 8 }}>
+              {permitIntakePackage.city || '—'}, {permitIntakePackage.county || '—'} {permitIntakePackage.zip || ''}
+            </div>
+          </div>
+
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div className="muted">Permit Summary</div>
+            <div style={{ marginTop: 8, lineHeight: 1.7 }}>
+              Required (AI): {(permitIntakePackage.ai_required_permits || []).join(', ') || 'None'}<br/>
+              Selected: {(permitIntakePackage.selected_permit_types || []).join(', ') || 'None'}
+            </div>
+          </div>
+
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div className="muted">Readiness + Risk</div>
+            <div style={{ marginTop: 8 }}>
+              {permitIntakePackage.readiness_score}/100 · {permitIntakePackage.risk_level}
+            </div>
+          </div>
+
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div className="muted">Missing + Warnings</div>
+            <div style={{ marginTop: 8, lineHeight: 1.7 }}>
+              Missing: {(permitIntakePackage.missing_inputs || []).join(' | ') || 'None'}<br/>
+              Warnings: {(permitIntakePackage.warnings || []).join(' | ') || 'None'}
+            </div>
+          </div>
+
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div className="muted">Formatted Intake</div>
+            <pre style={{ marginTop: 10, whiteSpace: 'pre-wrap' }}>
+{permitIntakeText}
+            </pre>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <button className="btn primary" onClick={copyPermitIntake}>
+            Copy Intake Package
+          </button>
+        </div>
+      </div>
+
+
         <div className="muted" style={{ marginTop: 8 }}>
           This layer turns saved project scope and material signals into suggested permit lanes, missing inputs, and review warnings.
         </div>
