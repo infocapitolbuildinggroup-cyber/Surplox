@@ -189,7 +189,20 @@ const COPY = {
     permitReadySummary: 'This package looks materially stronger for intake review.',
     permitNeedsWorkSummary: 'This package still has intake gaps that should be resolved before submission.',
     permitLowSummary: 'This package is not ready for permit intake yet and needs more project data.',
-    permitModeBody: 'Switch between build-first execution planning and permit-first intake review without losing the marketplace workflows.'
+    permitModeBody: 'Switch between build-first execution planning and permit-first intake review without losing the marketplace workflows.',
+    projectCreationTitle: 'Create Project From Analysis',
+    projectCreationBody: 'Turn this analyzer run into a live admin project record with permit metadata, scope notes, and next-step routing.',
+    createProjectHelp: 'This sends the analyzer output into Admin Projects so permit tracking, readiness scoring, and job execution can continue in one workflow.',
+    createProjectRecord: 'Create Project Record',
+    creatingProjectRecord: 'Creating project record…',
+    createProjectSuccess: 'Project record created successfully.',
+    createProjectError: 'Unable to create project record right now.',
+    openCreatedProject: 'Open Created Project',
+    permitRequirementsTitle: 'Permit Requirements',
+    permitRequiredPermits: 'Required permits',
+    permitMissingInputs: 'Missing inputs',
+    permitWarnings: 'Warnings',
+    permitNoRequirements: 'No permit requirements generated yet.'
   }
 }
 
@@ -283,8 +296,30 @@ function inferPermitTypesFromAnalysis(summary = {}, detailSummary = {}, fullText
   return uniqueList(permitTypes)
 }
 
+function getPermitRequirements({ projectSummary = {}, projectDetailSummary = {}, fullText = '' }) {
+  const lower = String(fullText || '').toLowerCase()
+  const required_permits = inferPermitTypesFromAnalysis(projectSummary, projectDetailSummary, fullText)
+  const missing_inputs = []
+  const warnings = []
+
+  if (!extractZipFromText(fullText)) missing_inputs.push('Project ZIP / jurisdiction seed is missing.')
+  if (!extractSquareFeet(fullText)) missing_inputs.push('Square footage is missing or not clearly extracted.')
+  if (!(projectSummary.primaryTrades || []).length) missing_inputs.push('High-confidence primary trades are missing.')
+  if (!(projectSummary.materials || []).length) warnings.push('Materials list is still light and may miss permit triggers.')
+  if (!projectDetailSummary.dimensions?.length) warnings.push('No clear dimensions extracted yet.')
+  if (projectDetailSummary.verification?.length) warnings.push(...projectDetailSummary.verification)
+  if (!required_permits.length) warnings.push('No permit lanes were confidently inferred yet.')
+
+  return {
+    required_permits: uniqueList(required_permits),
+    missing_inputs: uniqueList(missing_inputs).slice(0, 8),
+    warnings: uniqueList(warnings).slice(0, 8)
+  }
+}
+
 function buildProjectRecordFromAnalysis({ scopeText = '', projectSummary = {}, projectDetailSummary = {}, detectedZip = '', supplierForm = {}, projectEngine = null }) {
-  const permitTypes = inferPermitTypesFromAnalysis(projectSummary, projectDetailSummary, scopeText)
+  const permitRequirements = getPermitRequirements({ projectSummary, projectDetailSummary, fullText: scopeText })
+  const permitTypes = permitRequirements.required_permits
   const projectType = inferProjectTypeFromScope(projectSummary)
   const squareFeet = extractSquareFeet(scopeText)
   const primaryZip = detectedZip || extractZipFromText(scopeText) || supplierForm.zip || ''
@@ -312,9 +347,11 @@ function buildProjectRecordFromAnalysis({ scopeText = '', projectSummary = {}, p
     permit_status: 'not_started',
     jurisdiction: '',
     permit_types: permitTypes,
-    intake_notes: projectSummary.fieldChecks?.length
-      ? `Analyzer field checks: ${projectSummary.fieldChecks.join(' | ')}`
-      : ''
+    intake_notes: [
+      projectSummary.fieldChecks?.length ? `Analyzer field checks: ${projectSummary.fieldChecks.join(' | ')}` : '',
+      permitRequirements.missing_inputs.length ? `Missing inputs: ${permitRequirements.missing_inputs.join(' | ')}` : '',
+      permitRequirements.warnings.length ? `Warnings: ${permitRequirements.warnings.join(' | ')}` : ''
+    ].filter(Boolean).join(' || ')
   })
 
   return {
@@ -1382,6 +1419,8 @@ export default function SupplierAiTools() {
   const [extractedText, setExtractedText] = useState('')
   const [projectEngine, setProjectEngine] = useState(null)
   const [analyzerMode, setAnalyzerMode] = useState('build')
+  const [creatingProject, setCreatingProject] = useState(false)
+  const [createdProjectId, setCreatedProjectId] = useState('')
 
   const structuredSegments = useMemo(
     () => buildStructuredSegments(projectNotes, uploadedFiles),
@@ -1399,11 +1438,6 @@ export default function SupplierAiTools() {
   )
 
 
-  const structuredSegments = useMemo(
-    () => buildStructuredSegments(projectNotes, uploadedFiles),
-    [projectNotes, uploadedFiles]
-  )
-
   const analyzerEvidence = useMemo(
     () => buildAnalyzerEvidence(projectSummary, projectDetailSummary, structuredSegments),
     [projectSummary, projectDetailSummary, structuredSegments]
@@ -1412,6 +1446,11 @@ export default function SupplierAiTools() {
   const permitPrecheck = useMemo(
     () => buildPermitPrecheck(projectSummary, projectDetailSummary, `${projectNotes}\n${extractedText}`, structuredSegments),
     [projectSummary, projectDetailSummary, projectNotes, extractedText, structuredSegments]
+  )
+
+  const permitRequirements = useMemo(
+    () => getPermitRequirements({ projectSummary, projectDetailSummary, fullText: `${projectNotes}\n${extractedText}` }),
+    [projectSummary, projectDetailSummary, projectNotes, extractedText]
   )
 
 
@@ -1857,6 +1896,7 @@ export default function SupplierAiTools() {
         summary: projectSummary.summary,
         primaryZip: detectedZip,
         permitPrecheck,
+        permitRequirements,
         evidence: analyzerEvidence,
         structuredSegments,
         scopeSignals: {
@@ -2872,6 +2912,54 @@ export default function SupplierAiTools() {
                 )}
               </div>
             </div>
+          </div>
+
+          <div className="card-soft" style={{ marginTop: 16 }}>
+            <div className="card-section-title">{copy.permitRequirementsTitle}</div>
+            {(permitRequirements.required_permits.length || permitRequirements.missing_inputs.length || permitRequirements.warnings.length) ? (
+              <div className="grid three" style={{ gap: 14, marginTop: 12 }}>
+                <div className="card-soft" style={{ background: '#ffffff' }}>
+                  <div className="muted">{copy.permitRequiredPermits}</div>
+                  {permitRequirements.required_permits.length ? (
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                      {permitRequirements.required_permits.map((item) => (
+                        <span key={`required-permit-${item}`} className="badge">{item}</span>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: 10 }}>{copy.permitNoRequirements}</div>
+                  )}
+                </div>
+
+                <div className="card-soft" style={{ background: '#ffffff' }}>
+                  <div className="muted">{copy.permitMissingInputs}</div>
+                  {permitRequirements.missing_inputs.length ? (
+                    <ul style={{ margin: '10px 0 0 18px', padding: 0 }}>
+                      {permitRequirements.missing_inputs.map((item) => (
+                        <li key={`permit-input-${item}`} style={{ marginTop: 4 }}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div style={{ marginTop: 10 }}>{copy.permitNoFindings}</div>
+                  )}
+                </div>
+
+                <div className="card-soft" style={{ background: '#ffffff' }}>
+                  <div className="muted">{copy.permitWarnings}</div>
+                  {permitRequirements.warnings.length ? (
+                    <ul style={{ margin: '10px 0 0 18px', padding: 0 }}>
+                      {permitRequirements.warnings.map((item) => (
+                        <li key={`permit-warning-${item}`} style={{ marginTop: 4 }}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div style={{ marginTop: 10 }}>{copy.permitNoFindings}</div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.permitNoRequirements}</p>
+            )}
           </div>
 
           <div className="card-soft" style={{ marginTop: 16 }}>
