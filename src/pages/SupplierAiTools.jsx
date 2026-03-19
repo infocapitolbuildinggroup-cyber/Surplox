@@ -426,6 +426,30 @@ async function fetchSupplierCandidates() {
   )
 }
 
+
+
+function getMatchReasons(supplier, material, zip) {
+  const reasons = []
+  const mat = (material || '').toLowerCase()
+
+  if ((supplier.materials_categories || []).some(m => String(m).toLowerCase().includes(mat))) {
+    reasons.push("Matches material")
+  }
+
+  if (supplier.business_zip && zip && supplier.business_zip.slice(0,3) === zip.slice(0,3)) {
+    reasons.push("Near project ZIP")
+  }
+
+  if (supplier.delivery_radius && Number(supplier.delivery_radius) > 0) {
+    reasons.push("Offers delivery")
+  }
+
+  if (supplier.storefront) {
+    reasons.push("Verified storefront")
+  }
+
+  return reasons.slice(0,3)
+}
 function matchSuppliersToMaterial(materialItem, supplierPool = [], zip = '') {
   const label = materialItem?.label || titleCase(materialItem?.material || '')
   const ranked = supplierPool
