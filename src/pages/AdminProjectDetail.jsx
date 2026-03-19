@@ -228,6 +228,68 @@ function calculatePermitReadiness(permitMeta, project, materials) {
   }
 }
 
+
+function getPermitRequirements({ scopes = [], materials = [], projectType = '' }) {
+  const required_permits = []
+  const missing_inputs = []
+  const warnings = []
+
+  const normalizedScopes = Array.isArray(scopes)
+    ? scopes.map((item) => String(item || '').trim().toLowerCase()).filter(Boolean)
+    : []
+
+  const materialHaystack = (materials || [])
+    .map((row) => [row.item_name, row.notes, row.supplier_name].filter(Boolean).join(' '))
+    .join(' ')
+    .toLowerCase()
+
+  if (normalizedScopes.some((item) => item.includes('electrical')) || /electrical|lighting|panel|conduit|wire/.test(materialHaystack)) {
+    required_permits.push('Electrical')
+  }
+
+  if (normalizedScopes.some((item) => item.includes('plumbing')) || /plumbing|pipe|water line|sanitary|fixture/.test(materialHaystack)) {
+    required_permits.push('Plumbing')
+  }
+
+  if (
+    normalizedScopes.some((item) => item.includes('mechanical') || item.includes('hvac')) ||
+    /mechanical|hvac|duct|air handler/.test(materialHaystack)
+  ) {
+    required_permits.push('Mechanical')
+  }
+
+  if (
+    normalizedScopes.some((item) => item.includes('concrete') || item.includes('foundation') || item.includes('steel') || item.includes('masonry')) ||
+    /concrete|foundation|footing|rebar|steel|cmu|masonry/.test(materialHaystack)
+  ) {
+    required_permits.push('Structural')
+  }
+
+  if (
+    normalizedScopes.some((item) => item.includes('framing') || item.includes('building') || item.includes('drywall') || item.includes('roof')) ||
+    ['commercial', 'industrial', 'residential', 'tenant_improvement', 'remodel'].includes(String(projectType || '').trim())
+  ) {
+    required_permits.push('Building')
+  }
+
+  if (
+    normalizedScopes.some((item) => item.includes('sitework') || item.includes('site') || item.includes('civil')) ||
+    /site|grading|drainage|paving|asphalt|parking|bollard/.test(materialHaystack)
+  ) {
+    required_permits.push('Site / Civil')
+  }
+
+  if (!normalizedScopes.length) missing_inputs.push('Project scopes not defined yet.')
+  if (!String(projectType || '').trim()) missing_inputs.push('Project type is still missing.')
+  if (!(materials || []).length) warnings.push('No materials logged yet, so permit detection may still be incomplete.')
+
+  return {
+    required_permits: Array.from(new Set(required_permits)),
+    missing_inputs,
+    warnings
+  }
+}
+
 function permitStatusTone(status) {
   if (status === 'approved') return { background: '#dcf4e5', color: '#177245' }
   if (status === 'submitted' || status === 'under_review') return { background: '#d8ecff', color: '#0d3f73' }
@@ -515,6 +577,21 @@ export default function AdminProjectDetail() {
     assignedWorkers.length,
     projectMeta.project_next_action
   ])
+
+
+  const permitRequirements = useMemo(() => {
+    return getPermitRequirements({
+      scopes: permitForm.scopes || [],
+      materials,
+      projectType: permitForm.project_type
+    })
+  }, [permitForm.scopes, materials, permitForm.project_type])
+
+  const suggestedPermitTypes = useMemo(() => {
+    return (permitRequirements.required_permits || []).filter(
+      (type) => !(permitForm.permit_types || []).includes(type)
+    )
+  }, [permitRequirements, permitForm.permit_types])
 
   function updateInvoiceItem(id, key, value) {
     setInvoiceForm((prev) => ({
@@ -1245,6 +1322,74 @@ export default function AdminProjectDetail() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">AI Permit Requirements</div>
+        <div className="muted" style={{ marginTop: 8 }}>
+          This layer turns saved project scope and material signals into suggested permit lanes, missing inputs, and review warnings.
+        </div>
+
+        <div className="list" style={{ marginTop: 14 }}>
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div className="muted">Required permits (AI detected)</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+              {permitRequirements.required_permits.length === 0 ? (
+                <span className="badge">None detected yet</span>
+              ) : (
+                permitRequirements.required_permits.map((item) => (
+                  <span key={`required-permit-${item}`} className="badge">{item}</span>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div className="muted">Suggested permit additions</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+              {suggestedPermitTypes.length === 0 ? (
+                <span className="badge">All detected permits already accounted for</span>
+              ) : (
+                suggestedPermitTypes.map((item) => (
+                  <span
+                    key={`suggested-permit-${item}`}
+                    className="badge"
+                    style={{ background: '#d8ecff', color: '#0d3f73' }}
+                  >
+                    {item}
+                  </span>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div className="muted">Missing inputs</div>
+            {permitRequirements.missing_inputs.length === 0 ? (
+              <div style={{ marginTop: 8, fontWeight: 800 }}>No obvious missing permit inputs right now.</div>
+            ) : (
+              <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+                {permitRequirements.missing_inputs.map((item) => (
+                  <div key={`missing-input-${item}`} style={{ lineHeight: 1.6 }}>• {item}</div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div className="muted">Warnings</div>
+            {permitRequirements.warnings.length === 0 ? (
+              <div style={{ marginTop: 8, fontWeight: 800 }}>No additional warnings from the permit engine.</div>
+            ) : (
+              <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+                {permitRequirements.warnings.map((item) => (
+                  <div key={`permit-warning-${item}`} style={{ lineHeight: 1.6 }}>• {item}</div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
