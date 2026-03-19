@@ -96,6 +96,77 @@ const DEFAULT_MATERIALS = [
   'Safety Equipment'
 ]
 
+
+const MATERIAL_SYNONYMS = {
+  concrete: ['concrete', 'cement', 'footing', 'footings', 'foundation', 'slab', 'flatwork', 'rebar', 'ready mix', 'ready-mix'],
+  lumber: ['lumber', 'framing', 'stud', 'plywood', 'osb', 'wood'],
+  steel: ['steel', 'metal', 'beam', 'pipe', 'tube', 'rebar', 'fabrication'],
+  electrical: ['electrical', 'lighting', 'panel', 'conduit', 'wire', 'power'],
+  plumbing: ['plumbing', 'pipe', 'piping', 'fixture', 'sanitary', 'water line'],
+  drywall: ['drywall', 'sheetrock', 'gypsum', 'framing board'],
+  fasteners: ['fasteners', 'anchors', 'bolts', 'screws', 'nails'],
+  tools: ['tools', 'tooling', 'equipment tools'],
+  equipment_rental: ['equipment rental', 'rental', 'lift', 'skid steer', 'excavator'],
+  safety_equipment: ['safety equipment', 'ppe', 'hard hat', 'vest', 'gloves', 'protection']
+}
+
+const MATERIAL_CATEGORY_ALIASES = Object.fromEntries(
+  Object.entries(MATERIAL_SYNONYMS).flatMap(([category, values]) =>
+    [category, ...values].map((value) => [String(value).toLowerCase(), category])
+  )
+)
+
+function normalizeMaterialCategory(value) {
+  const normalized = String(value || '').trim().toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ')
+  return MATERIAL_CATEGORY_ALIASES[normalized] || normalized
+}
+
+function getExpandedMaterialTerms(value) {
+  const normalizedCategory = normalizeMaterialCategory(value)
+  const baseTerms = MATERIAL_SYNONYMS[normalizedCategory] || []
+  return Array.from(new Set([normalizedCategory, ...baseTerms].filter(Boolean)))
+}
+
+function getSupplierMaterialCategories(supplier) {
+  return normalizeMaterials(supplier.materials_categories).map((item) => normalizeMaterialCategory(item))
+}
+
+function buildSupplierMaterialHaystack(supplier) {
+  return [
+    supplier.business_name,
+    supplier.display_name,
+    supplier.business_zip,
+    supplier.bio,
+    supplier.phone,
+    supplier.website_url,
+    ...normalizeMaterials(supplier.materials_categories)
+  ]
+    .join(' ')
+    .toLowerCase()
+}
+
+function estimateZipClosenessScore(targetZip, supplierZip) {
+  const a = String(targetZip || '').replace(/\D/g, '').slice(0, 5)
+  const b = String(supplierZip || '').replace(/\D/g, '').slice(0, 5)
+
+  if (!a || !b) return 0
+  if (a === b) return 18
+  if (a.slice(0, 3) === b.slice(0, 3)) return 10
+  if (a.slice(0, 2) === b.slice(0, 2)) return 6
+  return 0
+}
+
+function supplierCompletenessScore(supplier) {
+  let score = 0
+  if (supplier.storefront) score += 4
+  if (supplier.bio) score += 3
+  if (supplier.phone) score += 2
+  if (supplier.website_url) score += 2
+  if (Number(supplier.delivery_radius || 0) > 0) score += 3
+  if (getSupplierMaterialCategories(supplier).length > 0) score += 4
+  return score
+}
+
 function normalizeMaterials(list) {
   if (!Array.isArray(list)) return []
   return list
@@ -106,7 +177,21 @@ function normalizeMaterials(list) {
 function normalizeMaterialLabel(value) {
   const v = String(value || '').trim()
   if (!v) return ''
-  return v.replace(/_/g, ' ').replace(/\s+/g, ' ').trim()
+  const normalized = v.replace(/_/g, ' ').replace(/\s+/g, ' ').trim()
+  const category = normalizeMaterialCategory(normalized)
+  const labelMap = {
+    concrete: 'Concrete',
+    lumber: 'Lumber',
+    steel: 'Steel',
+    electrical: 'Electrical',
+    plumbing: 'Plumbing',
+    drywall: 'Drywall',
+    fasteners: 'Fasteners',
+    tools: 'Tools',
+    equipment_rental: 'Equipment Rental',
+    safety_equipment: 'Safety Equipment'
+  }
+  return labelMap[category] || normalized
 }
 
 function normalizeText(value) {
@@ -116,17 +201,8 @@ function normalizeText(value) {
 function scoreSupplier(supplier, query, material, zipFilter, storefrontOnly) {
   let score = 0
 
-  const haystack = [
-    supplier.business_name,
-    supplier.display_name,
-    supplier.business_zip,
-    supplier.bio,
-    supplier.phone,
-    supplier.website_url,
-    ...supplier.materials_categories
-  ]
-    .join(' ')
-    .toLowerCase()
+  const haystack = buildSupplierMaterialHaystack(supplier)
+  const supplierCategories = getSupplierMaterialCategories(supplier)
 
   if (query.trim()) {
     const terms = query
@@ -136,32 +212,41 @@ function scoreSupplier(supplier, query, material, zipFilter, storefrontOnly) {
       .filter(Boolean)
 
     terms.forEach((term) => {
-      if (haystack.includes(term)) score += 5
-      if (supplier.materials_categories.some((item) => item.toLowerCase().includes(term))) score += 10
-      if (String(supplier.business_name || '').toLowerCase().includes(term)) score += 9
-      if (String(supplier.display_name || '').toLowerCase().includes(term)) score += 7
-      if (String(supplier.business_zip || '').toLowerCase() === term) score += 8
+      const normalizedTerm = normalizeMaterialCategory(term)
+      const expandedTerms = getExpandedMaterialTerms(normalizedTerm)
+
+      if (haystack.includes(term)) score += 4
+      if (supplierCategories.includes(normalizedTerm)) score += 18
+      if (expandedTerms.some((value) => haystack.includes(String(value).toLowerCase()))) score += 8
+      if (String(supplier.business_name || '').toLowerCase().includes(term)) score += 8
+      if (String(supplier.display_name || '').toLowerCase().includes(term)) score += 6
+      if (String(supplier.business_zip || '').trim() === term) score += 8
     })
   }
 
   if (material) {
-    if (supplier.materials_categories.some((item) => item.toLowerCase() === material.toLowerCase())) {
-      score += 20
+    const normalizedMaterial = normalizeMaterialCategory(material)
+    const expandedTerms = getExpandedMaterialTerms(normalizedMaterial)
+
+    if (supplierCategories.includes(normalizedMaterial)) {
+      score += 30
+    } else if (expandedTerms.some((value) => haystack.includes(String(value).toLowerCase()))) {
+      score += 18
     }
   }
 
-  if (zipFilter && String(supplier.business_zip || '').trim() === zipFilter.trim()) {
-    score += 10
+  score += estimateZipClosenessScore(zipFilter, supplier.business_zip)
+
+  if (storefrontOnly) {
+    score += supplier.storefront ? 6 : -12
   }
 
-  if (storefrontOnly && supplier.storefront) {
-    score += 6
-  }
+  score += supplierCompletenessScore(supplier)
+  score += Math.min(Number(supplier.delivery_radius || 0), 150) / 8
 
-  if (supplier.source === 'native') score += 4
-  score += Math.min(Number(supplier.delivery_radius || 0), 100) / 10
+  if (supplier.source === 'native') score += 5
 
-  return score
+  return Math.round(score)
 }
 
 function makeNativeSupplier(item) {
@@ -175,6 +260,7 @@ function makeNativeSupplier(item) {
     business_zip: normalizeText(item.business_zip),
     delivery_radius: Number(item.delivery_radius || 0) || 0,
     materials_categories: normalizeMaterials(item.materials_categories).map(normalizeMaterialLabel),
+    materials_category_keys: normalizeMaterials(item.materials_categories).map((value) => normalizeMaterialCategory(value)),
     storefront: Boolean(item.storefront),
     bio: normalizeText(item.bio),
     phone: '',
@@ -193,6 +279,7 @@ function makeImportedSupplier(item) {
     business_zip: normalizeText(item.business_zip),
     delivery_radius: Number(item.delivery_radius || 0) || 0,
     materials_categories: normalizeMaterials(item.materials_categories).map(normalizeMaterialLabel),
+    materials_category_keys: normalizeMaterials(item.materials_categories).map((value) => normalizeMaterialCategory(value)),
     storefront: Boolean(item.storefront),
     bio: normalizeText(item.bio),
     phone: normalizeText(item.phone),
@@ -343,9 +430,17 @@ export default function Materials({ lang = 'en' }) {
     }
 
     if (material) {
-      next = next.filter((supplier) =>
-        supplier.materials_categories.some((item) => item.toLowerCase() === material.toLowerCase())
-      )
+      const normalizedMaterial = normalizeMaterialCategory(material)
+      const expandedTerms = getExpandedMaterialTerms(normalizedMaterial)
+
+      next = next.filter((supplier) => {
+        const supplierCategories = getSupplierMaterialCategories(supplier)
+        const haystack = buildSupplierMaterialHaystack(supplier)
+        return (
+          supplierCategories.includes(normalizedMaterial) ||
+          expandedTerms.some((value) => haystack.includes(String(value).toLowerCase()))
+        )
+      })
     }
 
     if (storefrontOnly) {
@@ -405,6 +500,9 @@ export default function Materials({ lang = 'en' }) {
         <p className="muted" style={{ marginTop: 12, maxWidth: 860, fontSize: 17, lineHeight: 1.7 }}>
           {copy.body}
         </p>
+        <div className="card-soft" style={{ marginTop: 14, background: '#fffaf0' }}>
+          Matching now uses normalized material categories, softer ZIP proximity scoring, and supplier completeness. The structure is also ready for future external supplier enrichment.
+        </div>
       </div>
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
