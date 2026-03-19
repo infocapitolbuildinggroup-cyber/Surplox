@@ -392,6 +392,134 @@ const COPY = {
   }
 }
 
+const EMBEDDED_PERMIT_META_START = '[[SURPLOX_PROJECT_META_START]]'
+const EMBEDDED_PERMIT_META_END = '[[SURPLOX_PROJECT_META_END]]'
+
+function normalizePermitMetadata(value = {}) {
+  const permitTypes = Array.isArray(value.permit_types)
+    ? value.permit_types.map((item) => String(item || '').trim()).filter(Boolean)
+    : []
+
+  const normalizedScopes = Array.isArray(value.scopes)
+    ? value.scopes.map((item) => String(item || '').trim()).filter(Boolean)
+    : typeof value.scopes === 'string'
+      ? value.scopes
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : []
+
+  return {
+    location_city: String(value.location_city || '').trim(),
+    location_county: String(value.location_county || '').trim(),
+    location_state: String(value.location_state || 'TX').trim() || 'TX',
+    location_zip: String(value.location_zip || '').replace(/\D/g, '').slice(0, 5),
+    project_type: String(value.project_type || '').trim(),
+    square_footage: String(value.square_footage || '').trim(),
+    estimated_value: String(value.estimated_value || '').trim(),
+    scopes: normalizedScopes,
+    permit_required: value.permit_required !== false,
+    permit_status: String(value.permit_status || 'not_started').trim() || 'not_started',
+    jurisdiction: String(value.jurisdiction || '').trim(),
+    permit_types: permitTypes,
+    intake_notes: String(value.intake_notes || '').trim()
+  }
+}
+
+function getEmbeddedPermitMetadata(notes = '') {
+  const text = String(notes || '')
+  const start = text.indexOf(EMBEDDED_PERMIT_META_START)
+  const end = text.indexOf(EMBEDDED_PERMIT_META_END)
+
+  if (start === -1 || end === -1 || end <= start) return normalizePermitMetadata()
+
+  const jsonText = text.slice(start + EMBEDDED_PERMIT_META_START.length, end).trim()
+  if (!jsonText) return normalizePermitMetadata()
+
+  try {
+    return normalizePermitMetadata(JSON.parse(jsonText))
+  } catch (error) {
+    console.error('Unable to parse embedded permit metadata', error)
+    return normalizePermitMetadata()
+  }
+}
+
+function permitStatusLabel(value = '') {
+  if (value === 'approved') return 'Approved'
+  if (value === 'submitted') return 'Submitted'
+  if (value === 'under_review') return 'Under Review'
+  if (value === 'revisions_required') return 'Revisions Required'
+  if (value === 'in_progress') return 'In Progress'
+  return 'Not Started'
+}
+
+function permitStatusBadgeStyle(value = '') {
+  if (value === 'approved') return { background: '#dcf4e5', color: '#177245' }
+  if (value === 'submitted' || value === 'under_review') return { background: '#d8ecff', color: '#0d3f73' }
+  if (value === 'revisions_required') return { background: '#fff0b4', color: '#111111' }
+  if (value === 'in_progress') return { background: '#f1e7a8', color: '#111111' }
+  return { background: '#ecebe3', color: '#111111' }
+}
+
+function calculatePermitReadiness(permitMeta = {}, project = {}, materials = []) {
+  let score = 0
+  const blockers = []
+
+  if (String(project?.company || '').trim()) score += 8
+  else blockers.push('Client missing')
+
+  if (String(project?.project || '').trim()) score += 8
+  else blockers.push('Project name missing')
+
+  if (String(permitMeta.location_city || '').trim()) score += 10
+  else blockers.push('City missing')
+
+  if (String(permitMeta.location_county || '').trim()) score += 8
+  else blockers.push('County missing')
+
+  if (String(permitMeta.location_zip || '').trim()) score += 8
+  else blockers.push('ZIP missing')
+
+  if (String(permitMeta.jurisdiction || '').trim()) score += 12
+  else blockers.push('Jurisdiction missing')
+
+  if (String(permitMeta.project_type || '').trim()) score += 10
+  else blockers.push('Project type missing')
+
+  if ((permitMeta.scopes || []).length > 0) score += 10
+  else blockers.push('Scopes missing')
+
+  if ((permitMeta.permit_types || []).length > 0) score += 12
+  else blockers.push('Permit types missing')
+
+  if (String(permitMeta.square_footage || '').trim()) score += 7
+  else blockers.push('Square footage missing')
+
+  if (String(permitMeta.estimated_value || '').trim()) score += 7
+  else blockers.push('Estimated value missing')
+
+  if (!permitMeta.permit_required) score += 8
+  else if (permitMeta.permit_status !== 'not_started') score += 8
+  else blockers.push('Permit not started')
+
+  if ((materials || []).length > 0) score += 8
+  else blockers.push('No material costs logged')
+
+  return { score: Math.min(score, 100), blockers }
+}
+
+function riskLevelFromScore(score) {
+  if (score >= 80) return 'Low'
+  if (score >= 50) return 'Medium'
+  return 'High'
+}
+
+function riskBadgeStyle(level) {
+  if (level === 'Low') return { background: '#dcf4e5', color: '#177245' }
+  if (level === 'Medium') return { background: '#fff0b4', color: '#111111' }
+  return { background: '#111111', color: '#ffffff' }
+}
+
 function haversineMiles(lat1, lon1, lat2, lon2) {
   const toRad = (x) => (x * Math.PI) / 180
   const R = 3958.8
@@ -630,6 +758,10 @@ export default function AdminDirectory() {
   const [relationships, setRelationships] = useState([])
   const [zipMap, setZipMap] = useState(new Map())
   const [adminWorkers, setAdminWorkers] = useState([])
+  const [projects, setProjects] = useState([])
+  const [projectInvoices, setProjectInvoices] = useState([])
+  const [projectTimeEntries, setProjectTimeEntries] = useState([])
+  const [projectMaterials, setProjectMaterials] = useState([])
   const [savingWorkerRecord, setSavingWorkerRecord] = useState(false)
   const [savingWorkerEditId, setSavingWorkerEditId] = useState(null)
   const [deletingWorkerId, setDeletingWorkerId] = useState(null)
@@ -692,7 +824,11 @@ export default function AdminDirectory() {
           commentsRes,
           crewRes,
           relsRes,
-          adminWorkersRes
+          adminWorkersRes,
+          crmProjectsRes,
+          adminInvoicesRes,
+          adminTimeEntriesRes,
+          adminProjectMaterialsRes
         ] = await Promise.all([
           supabase.from('trades').select('id, name').order('name'),
           supabase
@@ -726,7 +862,14 @@ export default function AdminDirectory() {
           supabase
             .from('admin_workers')
             .select('*')
-            .order('created_at', { ascending: false })
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('admin_crm_records')
+            .select('id, company, project, notes, project_status, project_phase, project_next_action, is_active_job, job_started_at, created_at')
+            .order('created_at', { ascending: false }),
+          supabase.from('admin_invoices').select('*'),
+          supabase.from('admin_time_entries').select('*'),
+          supabase.from('admin_project_materials').select('*')
         ])
 
         if (tradesRes.error) throw tradesRes.error
@@ -737,6 +880,10 @@ export default function AdminDirectory() {
         if (crewRes.error) throw crewRes.error
         if (relsRes.error) throw relsRes.error
         if (adminWorkersRes.error) throw adminWorkersRes.error
+        if (crmProjectsRes.error) throw crmProjectsRes.error
+        if (adminInvoicesRes.error) throw adminInvoicesRes.error
+        if (adminTimeEntriesRes.error) throw adminTimeEntriesRes.error
+        if (adminProjectMaterialsRes.error) throw adminProjectMaterialsRes.error
 
         const prows = profilesRes.data || []
 
@@ -771,6 +918,10 @@ export default function AdminDirectory() {
         setRelationships(relsRes.data || [])
         setZipMap(builtZipMap)
         setAdminWorkers(adminWorkersRes.data || [])
+        setProjects(crmProjectsRes.data || [])
+        setProjectInvoices(adminInvoicesRes.data || [])
+        setProjectTimeEntries(adminTimeEntriesRes.data || [])
+        setProjectMaterials(adminProjectMaterialsRes.data || [])
       } catch (e) {
         console.error(e)
         if (!alive) return
@@ -1199,6 +1350,82 @@ export default function AdminDirectory() {
     }
   }, [profiles, posts, comments, crewMemberships, copy.unknownMember, copy.unknown])
 
+  const projectOps = useMemo(() => {
+    const rows = (projects || []).map((project) => {
+      const permitMeta = getEmbeddedPermitMetadata(project.notes || '')
+      const materialsForProject = (projectMaterials || []).filter((row) => row.project_record_id === project.id)
+      const invoicesForProject = (projectInvoices || []).filter((invoice) => invoice.project === project.project && invoice.client === project.company)
+      const timeForProject = (projectTimeEntries || []).filter((entry) => entry.jobsite === project.project)
+      const readiness = calculatePermitReadiness(permitMeta, project, materialsForProject)
+      const riskLevel = riskLevelFromScore(readiness.score)
+      return {
+        ...project,
+        permit_meta: permitMeta,
+        material_count: materialsForProject.length,
+        invoice_count: invoicesForProject.length,
+        time_entry_count: timeForProject.length,
+        readiness_score: readiness.score,
+        risk_level: riskLevel,
+        blockers: readiness.blockers
+      }
+    })
+
+    const permitRequiredRows = rows.filter((row) => row.permit_meta?.permit_required !== false)
+    const permitNotStarted = permitRequiredRows.filter((row) => row.permit_meta?.permit_status === 'not_started').length
+    const permitInProgress = permitRequiredRows.filter((row) => ['in_progress', 'submitted', 'under_review', 'revisions_required'].includes(row.permit_meta?.permit_status)).length
+    const permitApproved = permitRequiredRows.filter((row) => row.permit_meta?.permit_status === 'approved').length
+    const activeJobs = rows.filter((row) => row.is_active_job).length
+    const highRiskProjects = rows.filter((row) => row.risk_level === 'High').length
+
+    const alerts = []
+    rows.forEach((row) => {
+      if (row.permit_meta?.permit_required !== false && row.permit_meta?.permit_status === 'not_started') {
+        alerts.push({
+          id: `${row.id}-permit-not-started`,
+          title: row.project || 'Unnamed Project',
+          body: 'Permit is required but still marked not started.',
+          tone: 'warning'
+        })
+      }
+      if (!String(row.permit_meta?.jurisdiction || '').trim()) {
+        alerts.push({
+          id: `${row.id}-jurisdiction`,
+          title: row.project || 'Unnamed Project',
+          body: 'Jurisdiction has not been set for this project yet.',
+          tone: 'info'
+        })
+      }
+      if (row.risk_level === 'High') {
+        alerts.push({
+          id: `${row.id}-risk`,
+          title: row.project || 'Unnamed Project',
+          body: `High-risk permitting profile. Readiness ${row.readiness_score}/100.`,
+          tone: 'warning'
+        })
+      }
+    })
+
+    const topRiskProjects = rows
+      .slice()
+      .sort((a, b) => a.readiness_score - b.readiness_score)
+      .slice(0, 6)
+
+    return {
+      rows,
+      metrics: {
+        totalProjects: rows.length,
+        activeJobs,
+        permitRequired: permitRequiredRows.length,
+        permitNotStarted,
+        permitInProgress,
+        permitApproved,
+        highRiskProjects
+      },
+      alerts: alerts.slice(0, 8),
+      topRiskProjects
+    }
+  }, [projects, projectInvoices, projectTimeEntries, projectMaterials])
+
   function exportRowsToCsv(filename, rows) {
     if (!rows.length) return
 
@@ -1485,6 +1712,93 @@ export default function AdminDirectory() {
               Analyze projects, build crews, source materials, and plan logistics with AI tools.
             </div>
           </Link>
+        </div>
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">Project + Permit Operations</div>
+        <p className="muted" style={{ marginTop: 6 }}>
+          This layer connects Surplox admin oversight to live project, permit, and readiness signals so you can spot blockers before they slow down jobs.
+        </p>
+
+        <div className="grid three" style={{ marginTop: 14 }}>
+          <StatCard label="Total Projects" value={projectOps.metrics.totalProjects} />
+          <StatCard label="Active Jobsites" value={projectOps.metrics.activeJobs} />
+          <StatCard label="Permit Required" value={projectOps.metrics.permitRequired} />
+          <StatCard label="Permit Not Started" value={projectOps.metrics.permitNotStarted} />
+          <StatCard label="Permit In Progress" value={projectOps.metrics.permitInProgress} />
+          <StatCard label="Permit Approved" value={projectOps.metrics.permitApproved} />
+          <StatCard label="High-Risk Projects" value={projectOps.metrics.highRiskProjects} dark />
+        </div>
+
+        <div className="grid two" style={{ marginTop: 16, alignItems: 'start' }}>
+          <div>
+            <div className="card-section-title" style={{ fontSize: 16 }}>Permit / Project Alerts</div>
+            {projectOps.alerts.length === 0 ? (
+              <div className="card-soft" style={{ marginTop: 12, background: '#ffffff' }}>
+                No project or permit alerts right now.
+              </div>
+            ) : (
+              <div className="list" style={{ marginTop: 12 }}>
+                {projectOps.alerts.map((alert) => (
+                  <div key={alert.id} className="card-soft" style={{ background: '#ffffff' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <div style={{ fontWeight: 900 }}>{alert.title}</div>
+                      <span
+                        className="badge"
+                        style={alert.tone === 'warning' ? { background: '#fff0b4', color: '#111111' } : { background: '#d8ecff', color: '#0d3f73' }}
+                      >
+                        {alert.tone === 'warning' ? 'Action Needed' : 'Review'}
+                      </span>
+                    </div>
+                    <div className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>{alert.body}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="card-section-title" style={{ fontSize: 16 }}>Top Risk Projects</div>
+            {projectOps.topRiskProjects.length === 0 ? (
+              <div className="card-soft" style={{ marginTop: 12, background: '#ffffff' }}>
+                No projects loaded yet.
+              </div>
+            ) : (
+              <div className="list" style={{ marginTop: 12 }}>
+                {projectOps.topRiskProjects.map((project) => (
+                  <Link
+                    key={project.id}
+                    to={`/admin/projects/${project.id}`}
+                    className="card-soft"
+                    style={{ background: '#ffffff', textDecoration: 'none', display: 'block' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <div style={{ fontWeight: 900 }}>{project.project || 'Unnamed Project'}</div>
+                      <span className="badge" style={riskBadgeStyle(project.risk_level)}>
+                        Risk: {project.risk_level}
+                      </span>
+                    </div>
+                    <div className="muted" style={{ marginTop: 8 }}>
+                      {project.company || 'Unknown Client'}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                      <span className="badge">Readiness: {project.readiness_score}/100</span>
+                      <span className="badge" style={permitStatusBadgeStyle(project.permit_meta?.permit_status)}>
+                        Permit: {permitStatusLabel(project.permit_meta?.permit_status)}
+                      </span>
+                      {project.permit_meta?.jurisdiction ? <span className="badge">{project.permit_meta.jurisdiction}</span> : null}
+                    </div>
+                    {project.blockers.length > 0 ? (
+                      <div className="muted" style={{ marginTop: 10, lineHeight: 1.7 }}>
+                        Top blocker: {project.blockers[0]}
+                      </div>
+                    ) : null}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
