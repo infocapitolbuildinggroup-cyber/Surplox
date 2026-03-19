@@ -11,24 +11,229 @@ const PROJECT_STATUSES = [
   { value: 'archived', label: 'Archived' }
 ]
 
+const PERMIT_STATUS_OPTIONS = [
+  { value: 'not_started', label: 'Not Started' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'submitted', label: 'Submitted' },
+  { value: 'under_review', label: 'Under Review' },
+  { value: 'revisions_required', label: 'Revisions Required' },
+  { value: 'approved', label: 'Approved' }
+]
+
+const PROJECT_TYPE_OPTIONS = [
+  { value: '', label: 'Select project type' },
+  { value: 'commercial', label: 'Commercial' },
+  { value: 'residential', label: 'Residential' },
+  { value: 'industrial', label: 'Industrial' },
+  { value: 'civil_site', label: 'Civil / Site' },
+  { value: 'tenant_improvement', label: 'Tenant Improvement' },
+  { value: 'remodel', label: 'Remodel / Renovation' }
+]
+
+const PERMIT_TYPE_OPTIONS = [
+  'Building',
+  'Structural',
+  'Electrical',
+  'Mechanical',
+  'Plumbing',
+  'Fire',
+  'Site / Civil',
+  'Demolition',
+  'Utilities',
+  'Accessibility',
+  'Zoning / Planning'
+]
+
+const EMBEDDED_PERMIT_META_START = '[[SURPLOX_PROJECT_META_START]]'
+const EMBEDDED_PERMIT_META_END = '[[SURPLOX_PROJECT_META_END]]'
+
 function money(value) {
   const number = Number(value || 0)
   return `$${number.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+function safeNumber(value) {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : 0
+}
+
+function normalizePermitMetadata(value = {}) {
+  const permitTypes = Array.isArray(value.permit_types)
+    ? value.permit_types.map((item) => String(item || '').trim()).filter(Boolean)
+    : []
+
+  const normalizedScopes = Array.isArray(value.scopes)
+    ? value.scopes.map((item) => String(item || '').trim()).filter(Boolean)
+    : typeof value.scopes === 'string'
+      ? value.scopes
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : []
+
+  return {
+    location_city: String(value.location_city || '').trim(),
+    location_county: String(value.location_county || '').trim(),
+    location_state: String(value.location_state || 'TX').trim() || 'TX',
+    location_zip: String(value.location_zip || '').replace(/\D/g, '').slice(0, 5),
+    project_type: String(value.project_type || '').trim(),
+    square_footage: String(value.square_footage || '').trim(),
+    estimated_value: String(value.estimated_value || '').trim(),
+    scopes: normalizedScopes,
+    permit_required: value.permit_required !== false,
+    permit_status: String(value.permit_status || 'not_started').trim() || 'not_started',
+    jurisdiction: String(value.jurisdiction || '').trim(),
+    permit_types: permitTypes,
+    intake_notes: String(value.intake_notes || '').trim()
+  }
+}
+
+function getEmbeddedPermitMetadata(notes = '') {
+  const text = String(notes || '')
+  const start = text.indexOf(EMBEDDED_PERMIT_META_START)
+  const end = text.indexOf(EMBEDDED_PERMIT_META_END)
+
+  if (start === -1 || end === -1 || end <= start) return normalizePermitMetadata()
+
+  const jsonText = text
+    .slice(start + EMBEDDED_PERMIT_META_START.length, end)
+    .trim()
+
+  if (!jsonText) return normalizePermitMetadata()
+
+  try {
+    return normalizePermitMetadata(JSON.parse(jsonText))
+  } catch (error) {
+    console.error('Unable to parse embedded permit metadata', error)
+    return normalizePermitMetadata()
+  }
+}
+
+function stripEmbeddedPermitMetadata(notes = '') {
+  const text = String(notes || '')
+  const start = text.indexOf(EMBEDDED_PERMIT_META_START)
+  const end = text.indexOf(EMBEDDED_PERMIT_META_END)
+
+  if (start === -1 || end === -1 || end <= start) return text.trim()
+
+  return `${text.slice(0, start)}${text.slice(end + EMBEDDED_PERMIT_META_END.length)}`.trim()
+}
+
+function mergePermitMetadataIntoNotes(visibleNotes = '', permitMeta = {}) {
+  const cleanVisibleNotes = stripEmbeddedPermitMetadata(visibleNotes)
+  const metadataBlock = `${EMBEDDED_PERMIT_META_START}\n${JSON.stringify(normalizePermitMetadata(permitMeta), null, 2)}\n${EMBEDDED_PERMIT_META_END}`
+  return cleanVisibleNotes ? `${cleanVisibleNotes}\n\n${metadataBlock}` : metadataBlock
+}
+
 function normalizeProject(record) {
+  const embeddedPermitMeta = getEmbeddedPermitMetadata(record?.notes || '')
+
   return {
     ...record,
     project_status: record?.project_status || 'active',
     project_phase: record?.project_phase || '',
     project_next_action: record?.project_next_action || '',
     is_active_job: !!record?.is_active_job,
-    job_started_at: record?.job_started_at || ''
+    job_started_at: record?.job_started_at || '',
+    notes: stripEmbeddedPermitMetadata(record?.notes || ''),
+    permit_meta: embeddedPermitMeta
   }
 }
 
 function materialTotal(row) {
   return Number(row.quantity || 0) * Number(row.unit_cost || 0)
+}
+
+function inferPermitSignals(project, materials = []) {
+  const haystack = [
+    project?.project || '',
+    project?.notes || '',
+    project?.project_phase || '',
+    project?.project_next_action || '',
+    ...materials.map((row) => [row.item_name, row.supplier_name, row.notes].filter(Boolean).join(' '))
+  ]
+    .join(' ')
+    .toLowerCase()
+
+  const matches = []
+
+  const rules = [
+    { label: 'Building', terms: ['building', 'framing', 'drywall', 'roof', 'remodel', 'tenant'] },
+    { label: 'Structural', terms: ['steel', 'rebar', 'foundation', 'footing', 'structural', 'concrete'] },
+    { label: 'Electrical', terms: ['electrical', 'lighting', 'panel', 'conduit', 'wire'] },
+    { label: 'Mechanical', terms: ['mechanical', 'hvac', 'air handler', 'duct'] },
+    { label: 'Plumbing', terms: ['plumbing', 'pipe', 'water line', 'sanitary', 'fixture'] },
+    { label: 'Fire', terms: ['fire', 'sprinkler', 'alarm'] },
+    { label: 'Site / Civil', terms: ['site', 'grading', 'drainage', 'paving', 'asphalt', 'utility trench'] },
+    { label: 'Demolition', terms: ['demo', 'demolition'] },
+    { label: 'Accessibility', terms: ['ada', 'accessible', 'accessibility'] }
+  ]
+
+  rules.forEach((rule) => {
+    if (rule.terms.some((term) => haystack.includes(term))) {
+      matches.push(rule.label)
+    }
+  })
+
+  return Array.from(new Set(matches))
+}
+
+function calculatePermitReadiness(permitMeta, project, materials) {
+  let score = 0
+  const blockers = []
+
+  if (String(project?.company || '').trim()) score += 8
+  else blockers.push('Client / company is missing.')
+
+  if (String(project?.project || '').trim()) score += 8
+  else blockers.push('Project name is missing.')
+
+  if (String(permitMeta.location_city || '').trim()) score += 10
+  else blockers.push('Project city is missing.')
+
+  if (String(permitMeta.location_county || '').trim()) score += 8
+  else blockers.push('County is missing.')
+
+  if (String(permitMeta.location_zip || '').trim()) score += 8
+  else blockers.push('Project ZIP is missing.')
+
+  if (String(permitMeta.jurisdiction || '').trim()) score += 12
+  else blockers.push('Jurisdiction has not been set.')
+
+  if (String(permitMeta.project_type || '').trim()) score += 10
+  else blockers.push('Project type is not set.')
+
+  if (permitMeta.scopes.length > 0) score += 10
+  else blockers.push('Scope classification is still blank.')
+
+  if (permitMeta.permit_types.length > 0) score += 12
+  else blockers.push('Permit types have not been selected.')
+
+  if (String(permitMeta.square_footage || '').trim()) score += 7
+  else blockers.push('Square footage is missing.')
+
+  if (String(permitMeta.estimated_value || '').trim()) score += 7
+  else blockers.push('Estimated value is missing.')
+
+  if (!permitMeta.permit_required) score += 8
+  else if (permitMeta.permit_status !== 'not_started') score += 8
+  else blockers.push('Permit status is still set to not started.')
+
+  if (materials.length > 0) score += 8
+  else blockers.push('No project materials or cost items have been logged yet.')
+
+  return {
+    score: Math.min(score, 100),
+    blockers
+  }
+}
+
+function permitStatusTone(status) {
+  if (status === 'approved') return { background: '#dcf4e5', color: '#177245' }
+  if (status === 'submitted' || status === 'under_review') return { background: '#d8ecff', color: '#0d3f73' }
+  if (status === 'revisions_required') return { background: '#fff0b4', color: '#111111' }
+  if (status === 'in_progress') return { background: '#f1e7a8', color: '#111111' }
+  return { background: '#ecebe3', color: '#111111' }
 }
 
 export default function AdminProjectDetail() {
@@ -47,6 +252,7 @@ export default function AdminProjectDetail() {
   const [savingMaterial, setSavingMaterial] = useState(false)
   const [savingActiveJob, setSavingActiveJob] = useState(false)
   const [savingWorkerAssignment, setSavingWorkerAssignment] = useState(false)
+  const [savingPermitMeta, setSavingPermitMeta] = useState(false)
 
   const [invoiceForm, setInvoiceForm] = useState({
     type: 'invoice',
@@ -65,6 +271,9 @@ export default function AdminProjectDetail() {
     project_phase: '',
     project_next_action: ''
   })
+
+  const [permitForm, setPermitForm] = useState(normalizePermitMetadata())
+  const [scopeInput, setScopeInput] = useState('')
 
   const [materialForm, setMaterialForm] = useState({
     item_name: '',
@@ -136,6 +345,8 @@ export default function AdminProjectDetail() {
           project_phase: normalizedProject.project_phase || '',
           project_next_action: normalizedProject.project_next_action || ''
         })
+        setPermitForm(normalizedProject.permit_meta || normalizePermitMetadata())
+        setScopeInput((normalizedProject.permit_meta?.scopes || []).join(', '))
         setInvoices(projectInvoices)
         setTimeEntries(projectTime)
         setMaterials(materialsRes.data || [])
@@ -229,6 +440,16 @@ export default function AdminProjectDetail() {
 
     return Array.from(map.values()).sort((a, b) => b.cost - a.cost)
   }, [timeEntries, workerRates])
+
+  const permitSignals = useMemo(() => inferPermitSignals(project, materials), [project, materials])
+
+  const permitReadiness = useMemo(() => {
+    return calculatePermitReadiness(permitForm, project, materials)
+  }, [permitForm, project, materials])
+
+  const scopeSuggestions = useMemo(() => {
+    return Array.from(new Set([...(permitForm.scopes || []), ...permitSignals]))
+  }, [permitForm.scopes, permitSignals])
 
   function updateInvoiceItem(id, key, value) {
     setInvoiceForm((prev) => ({
@@ -369,8 +590,8 @@ export default function AdminProjectDetail() {
 
       if (error) throw error
 
-      const normalized = normalizeProject(data)
-      setProject(normalized)
+      const normalized = normalizeProject({ ...data, notes: project.notes || '' })
+      setProject((prev) => ({ ...prev, ...normalized, permit_meta: prev?.permit_meta || normalized.permit_meta }))
       setProjectMeta({
         project_status: normalized.project_status || 'active',
         project_phase: normalized.project_phase || '',
@@ -382,6 +603,46 @@ export default function AdminProjectDetail() {
       setMessage('Unable to update project status right now.')
     } finally {
       setSavingProjectMeta(false)
+    }
+  }
+
+  async function handleSavePermitMeta(event) {
+    event.preventDefault()
+    if (!project) return
+
+    const nextPermitMeta = normalizePermitMetadata({
+      ...permitForm,
+      scopes: scopeInput
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    })
+
+    setSavingPermitMeta(true)
+    setMessage('')
+
+    try {
+      const nextNotes = mergePermitMetadataIntoNotes(project.notes || '', nextPermitMeta)
+
+      const { data, error } = await supabase
+        .from('admin_crm_records')
+        .update({ notes: nextNotes })
+        .eq('id', project.id)
+        .select('*')
+        .single()
+
+      if (error) throw error
+
+      const normalized = normalizeProject(data)
+      setProject(normalized)
+      setPermitForm(normalized.permit_meta || nextPermitMeta)
+      setScopeInput((normalized.permit_meta?.scopes || []).join(', '))
+      setMessage('Permitting foundation saved to this project.')
+    } catch (error) {
+      console.error(error)
+      setMessage('Unable to save permitting data right now.')
+    } finally {
+      setSavingPermitMeta(false)
     }
   }
 
@@ -461,7 +722,7 @@ export default function AdminProjectDetail() {
 
       if (error) throw error
 
-      setProject((prev) => normalizeProject({ ...prev, ...data }))
+      setProject((prev) => normalizeProject({ ...prev, ...data, notes: mergePermitMetadataIntoNotes(prev?.notes || '', prev?.permit_meta || normalizePermitMetadata()) }))
       setMessage(nextValue ? 'Active jobsite mode started.' : 'Active jobsite mode ended.')
     } catch (error) {
       console.error(error)
@@ -546,6 +807,10 @@ export default function AdminProjectDetail() {
           <span className="badge">Revenue: {money(totalValue)}</span>
           <span className="badge">Paid In: {money(totalPaid)}</span>
           <span className="badge">Hours: {totalHours.toFixed(1)}</span>
+          <span className="badge" style={permitStatusTone(permitForm.permit_status)}>
+            Permit: {PERMIT_STATUS_OPTIONS.find((item) => item.value === permitForm.permit_status)?.label || 'Not Started'}
+          </span>
+          <span className="badge">Readiness: {permitReadiness.score}/100</span>
           <span className="badge">{project.is_active_job ? 'ACTIVE JOBSITE' : 'Inactive Jobsite'}</span>
           <span className="badge">Assigned Workers: {assignedWorkers.length}</span>
         </div>
@@ -693,6 +958,180 @@ export default function AdminProjectDetail() {
               {clockingIn ? 'Clocking In…' : 'Clock In Worker'}
             </button>
           </form>
+        </div>
+      </div>
+
+      <div className="grid two">
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">Permitting Status + Intake Foundation</div>
+          <div className="muted" style={{ marginTop: 8 }}>
+            This first layer starts the government permitting path without changing your existing database structure.
+          </div>
+
+          <form onSubmit={handleSavePermitMeta} className="grid" style={{ gap: 12, marginTop: 14 }}>
+            <div className="grid two">
+              <input
+                className="input"
+                value={permitForm.location_city}
+                onChange={(e) => setPermitForm((prev) => ({ ...prev, location_city: e.target.value }))}
+                placeholder="Project city"
+              />
+              <input
+                className="input"
+                value={permitForm.location_county}
+                onChange={(e) => setPermitForm((prev) => ({ ...prev, location_county: e.target.value }))}
+                placeholder="County"
+              />
+            </div>
+
+            <div className="grid two">
+              <input
+                className="input"
+                value={permitForm.location_zip}
+                onChange={(e) => setPermitForm((prev) => ({ ...prev, location_zip: e.target.value.replace(/\D/g, '').slice(0, 5) }))}
+                placeholder="Project ZIP"
+              />
+              <input
+                className="input"
+                value={permitForm.jurisdiction}
+                onChange={(e) => setPermitForm((prev) => ({ ...prev, jurisdiction: e.target.value }))}
+                placeholder="Jurisdiction / permit authority"
+              />
+            </div>
+
+            <div className="grid two">
+              <select
+                className="input"
+                value={permitForm.project_type}
+                onChange={(e) => setPermitForm((prev) => ({ ...prev, project_type: e.target.value }))}
+              >
+                {PROJECT_TYPE_OPTIONS.map((item) => (
+                  <option key={item.value || 'blank'} value={item.value}>{item.label}</option>
+                ))}
+              </select>
+
+              <select
+                className="input"
+                value={permitForm.permit_status}
+                onChange={(e) => setPermitForm((prev) => ({ ...prev, permit_status: e.target.value }))}
+              >
+                {PERMIT_STATUS_OPTIONS.map((item) => (
+                  <option key={item.value} value={item.value}>{item.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid two">
+              <input
+                className="input"
+                value={permitForm.square_footage}
+                onChange={(e) => setPermitForm((prev) => ({ ...prev, square_footage: e.target.value }))}
+                placeholder="Square footage"
+              />
+              <input
+                className="input"
+                value={permitForm.estimated_value}
+                onChange={(e) => setPermitForm((prev) => ({ ...prev, estimated_value: e.target.value }))}
+                placeholder="Estimated project value"
+              />
+            </div>
+
+            <textarea
+              className="input"
+              value={scopeInput}
+              onChange={(e) => setScopeInput(e.target.value)}
+              placeholder="Scopes (comma separated): concrete, electrical, plumbing, framing"
+            />
+
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">Permit types</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                {PERMIT_TYPE_OPTIONS.map((type) => {
+                  const selected = permitForm.permit_types.includes(type)
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      className="btn"
+                      onClick={() => {
+                        setPermitForm((prev) => ({
+                          ...prev,
+                          permit_types: selected
+                            ? prev.permit_types.filter((item) => item !== type)
+                            : [...prev.permit_types, type]
+                        }))
+                      }}
+                      style={selected ? { background: '#111111', color: '#ffffff' } : undefined}
+                    >
+                      {type}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <label style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <input
+                type="checkbox"
+                checked={permitForm.permit_required}
+                onChange={(e) => setPermitForm((prev) => ({ ...prev, permit_required: e.target.checked }))}
+              />
+              <span>Permit required</span>
+            </label>
+
+            <textarea
+              className="input"
+              value={permitForm.intake_notes}
+              onChange={(e) => setPermitForm((prev) => ({ ...prev, intake_notes: e.target.value }))}
+              placeholder="Permit intake notes, missing docs, reviewer comments, routing notes"
+            />
+
+            <button className="btn primary" type="submit" disabled={savingPermitMeta}>
+              {savingPermitMeta ? 'Saving…' : 'Save Permitting Foundation'}
+            </button>
+          </form>
+        </div>
+
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">Permit Readiness Snapshot</div>
+          <div className="list" style={{ marginTop: 14 }}>
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">Submission readiness</div>
+              <div style={{ marginTop: 8, fontSize: 32, fontWeight: 900 }}>{permitReadiness.score}/100</div>
+            </div>
+
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">Jurisdiction</div>
+              <div style={{ marginTop: 8, fontWeight: 800 }}>{permitForm.jurisdiction || 'Not set yet'}</div>
+            </div>
+
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">Detected permit signals</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                {permitSignals.length === 0 ? <span className="badge">No signals yet</span> : permitSignals.map((signal) => <span key={signal} className="badge">{signal}</span>)}
+              </div>
+            </div>
+
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">Scope suggestions</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                {scopeSuggestions.length === 0 ? <span className="badge">No scopes yet</span> : scopeSuggestions.map((signal) => <span key={signal} className="badge">{signal}</span>)}
+              </div>
+            </div>
+
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">Top blockers</div>
+              {permitReadiness.blockers.length === 0 ? (
+                <div style={{ marginTop: 8, fontWeight: 800 }}>No major intake blockers detected.</div>
+              ) : (
+                <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
+                  {permitReadiness.blockers.slice(0, 6).map((item) => (
+                    <div key={item} style={{ lineHeight: 1.6 }}>• {item}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
