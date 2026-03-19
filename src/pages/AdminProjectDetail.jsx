@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-import jsPDF from 'jspdf'
-import { autoTable } from 'jspdf-autotable'
 
 const PROJECT_STATUSES = [
   { value: 'lead', label: 'Lead' },
@@ -230,303 +228,6 @@ function calculatePermitReadiness(permitMeta, project, materials) {
   }
 }
 
-
-function getPermitRequirements({ scopes = [], materials = [], projectType = '' }) {
-  const required_permits = []
-  const missing_inputs = []
-  const warnings = []
-
-  const normalizedScopes = Array.isArray(scopes)
-    ? scopes.map((item) => String(item || '').trim().toLowerCase()).filter(Boolean)
-    : []
-
-  const materialHaystack = (materials || [])
-    .map((row) => [row.item_name, row.notes, row.supplier_name].filter(Boolean).join(' '))
-    .join(' ')
-    .toLowerCase()
-
-  if (normalizedScopes.some((item) => item.includes('electrical')) || /electrical|lighting|panel|conduit|wire/.test(materialHaystack)) {
-    required_permits.push('Electrical')
-  }
-
-  if (normalizedScopes.some((item) => item.includes('plumbing')) || /plumbing|pipe|water line|sanitary|fixture/.test(materialHaystack)) {
-    required_permits.push('Plumbing')
-  }
-
-  if (
-    normalizedScopes.some((item) => item.includes('mechanical') || item.includes('hvac')) ||
-    /mechanical|hvac|duct|air handler/.test(materialHaystack)
-  ) {
-    required_permits.push('Mechanical')
-  }
-
-  if (
-    normalizedScopes.some((item) => item.includes('concrete') || item.includes('foundation') || item.includes('steel') || item.includes('masonry')) ||
-    /concrete|foundation|footing|rebar|steel|cmu|masonry/.test(materialHaystack)
-  ) {
-    required_permits.push('Structural')
-  }
-
-  if (
-    normalizedScopes.some((item) => item.includes('framing') || item.includes('building') || item.includes('drywall') || item.includes('roof')) ||
-    ['commercial', 'industrial', 'residential', 'tenant_improvement', 'remodel'].includes(String(projectType || '').trim())
-  ) {
-    required_permits.push('Building')
-  }
-
-  if (
-    normalizedScopes.some((item) => item.includes('sitework') || item.includes('site') || item.includes('civil')) ||
-    /site|grading|drainage|paving|asphalt|parking|bollard/.test(materialHaystack)
-  ) {
-    required_permits.push('Site / Civil')
-  }
-
-  if (!normalizedScopes.length) missing_inputs.push('Project scopes not defined yet.')
-  if (!String(projectType || '').trim()) missing_inputs.push('Project type is still missing.')
-  if (!(materials || []).length) warnings.push('No materials logged yet, so permit detection may still be incomplete.')
-
-  return {
-    required_permits: Array.from(new Set(required_permits)),
-    missing_inputs,
-    warnings
-  }
-}
-
-
-function getJurisdictionRequirements(city = '', projectType = '') {
-  const normalizedCity = String(city || '').trim().toLowerCase()
-  const normalizedType = String(projectType || '').trim().toLowerCase()
-
-  const base = {
-    required_documents: ['Project Description', 'Scope Summary'],
-    required_fields: ['location_city', 'location_county', 'location_zip', 'project_type'],
-    review_lanes: ['Building'],
-    warnings: []
-  }
-
-  const cityRules = {
-    dallas: {
-      commercial: {
-        required_documents: ['Site Plan', 'Architectural Plans', 'Structural Drawings', 'MEP Plans'],
-        required_fields: ['square_footage', 'estimated_value', 'jurisdiction'],
-        review_lanes: ['Building', 'Structural', 'MEP', 'Planning']
-      },
-      tenant_improvement: {
-        required_documents: ['Floor Plan', 'Life Safety Notes', 'MEP Plans'],
-        required_fields: ['square_footage', 'estimated_value', 'jurisdiction'],
-        review_lanes: ['Building', 'MEP']
-      }
-    },
-    'fort worth': {
-      commercial: {
-        required_documents: ['Site Plan', 'Architectural Plans', 'Structural Drawings', 'MEP Plans'],
-        required_fields: ['square_footage', 'estimated_value', 'jurisdiction'],
-        review_lanes: ['Building', 'Structural', 'MEP']
-      },
-      civil_site: {
-        required_documents: ['Civil Plan Set', 'Drainage / Grading Sheets', 'Utility Information'],
-        required_fields: ['estimated_value', 'jurisdiction'],
-        review_lanes: ['Civil', 'Utilities']
-      }
-    }
-  }
-
-  const cityMatch = cityRules[normalizedCity] || {}
-  const typeMatch = cityMatch[normalizedType] || {}
-
-  return {
-    required_documents: Array.from(new Set([...(base.required_documents || []), ...(typeMatch.required_documents || [])])),
-    required_fields: Array.from(new Set([...(base.required_fields || []), ...(typeMatch.required_fields || [])])),
-    review_lanes: Array.from(new Set([...(base.review_lanes || []), ...(typeMatch.review_lanes || [])])),
-    warnings: [
-      ...(base.warnings || []),
-      ...(typeMatch.warnings || []),
-      !normalizedCity ? 'Jurisdiction city is not set, so city-specific checklist rules are limited.' : '',
-      !normalizedType ? 'Project type is not set, so the jurisdiction checklist may be incomplete.' : ''
-    ].filter(Boolean)
-  }
-}
-
-
-
-function buildDeliveryPlanFromProject({ materials = [], permitMeta = {}, supplierSignals = [] }) {
-  const heavyKeywords = ['concrete', 'rebar', 'steel', 'cmu', 'masonry', 'lumber', 'drywall']
-  const heavyMaterialRows = (materials || []).filter((row) => {
-    const haystack = [row.item_name, row.notes, row.supplier_name].filter(Boolean).join(' ').toLowerCase()
-    return heavyKeywords.some((term) => haystack.includes(term))
-  })
-
-  const needsHeavyHaul = heavyMaterialRows.length > 0
-  const primaryLane = needsHeavyHaul ? 'Material Delivery / Hot Shot' : 'Cargo Van / Local Delivery'
-
-  const notes = []
-  if (supplierSignals.length > 0) notes.push('Supplier pickup points are logged and can be routed into the delivery lane.')
-  else notes.push('Add supplier sources to strengthen pickup routing.')
-  if (needsHeavyHaul) notes.push('Heavy material signals detected, so trailer/payload matching matters.')
-  else notes.push('Current material signals look lighter and may fit smaller delivery setups.')
-
-  return {
-    primary_lane: primaryLane,
-    supplier_pickups: supplierSignals,
-    heavy_material_count: heavyMaterialRows.length,
-    notes
-  }
-}
-
-function buildProjectPackage({
-  project,
-  permitMeta,
-  permitRequirements,
-  permitReadiness,
-  jurisdictionRequirements,
-  jurisdictionMissingFields,
-  jurisdictionMissingDocuments,
-  materials,
-  assignedWorkers,
-  supplierSignals,
-  nextActions,
-  riskLevel,
-  profitability,
-  totalValue,
-  laborCost,
-  materialCost,
-  totalHours
-}) {
-  const materialRows = (materials || []).map((row) => ({
-    item_name: String(row.item_name || '').trim(),
-    supplier_name: String(row.supplier_name || '').trim(),
-    quantity: Number(row.quantity || 0),
-    unit_cost: Number(row.unit_cost || 0),
-    total_cost: Number((Number(row.quantity || 0) * Number(row.unit_cost || 0)).toFixed(2)),
-    notes: String(row.notes || '').trim()
-  }))
-
-  const deliveryPlan = buildDeliveryPlanFromProject({
-    materials,
-    permitMeta,
-    supplierSignals
-  })
-
-  return {
-    project_name: project?.project || '',
-    client: project?.company || '',
-    project_status: project?.project_status || '',
-    project_phase: project?.project_phase || '',
-    next_action: project?.project_next_action || '',
-    location: {
-      city: permitMeta.location_city || '',
-      county: permitMeta.location_county || '',
-      state: permitMeta.location_state || 'TX',
-      zip: permitMeta.location_zip || '',
-      jurisdiction: permitMeta.jurisdiction || ''
-    },
-    project_type: permitMeta.project_type || '',
-    square_footage: permitMeta.square_footage || '',
-    estimated_value: permitMeta.estimated_value || '',
-    scopes: permitMeta.scopes || [],
-    permit_summary: {
-      permit_required: permitMeta.permit_required !== false,
-      permit_status: permitMeta.permit_status || 'not_started',
-      selected_permit_types: permitMeta.permit_types || [],
-      ai_required_permits: permitRequirements.required_permits || [],
-      readiness_score: permitReadiness.score,
-      risk_level: riskLevel,
-      missing_inputs: permitRequirements.missing_inputs || [],
-      warnings: permitRequirements.warnings || [],
-      blockers: permitReadiness.blockers || []
-    },
-    jurisdiction_summary: {
-      review_lanes: jurisdictionRequirements.review_lanes || [],
-      required_fields: jurisdictionRequirements.required_fields || [],
-      required_documents: jurisdictionRequirements.required_documents || [],
-      missing_fields: jurisdictionMissingFields || [],
-      missing_documents: jurisdictionMissingDocuments || [],
-      warnings: jurisdictionRequirements.warnings || []
-    },
-    execution_summary: {
-      assigned_workers: (assignedWorkers || []).map((row) => ({
-        worker_name: row.worker_name || '',
-        role: row.role || ''
-      })),
-      materials: materialRows,
-      supplier_signals: supplierSignals || [],
-      delivery_plan: deliveryPlan,
-      next_actions: nextActions || []
-    },
-    commercial_summary: {
-      revenue: Number(totalValue || 0),
-      labor_cost: Number(laborCost || 0),
-      material_cost: Number(materialCost || 0),
-      estimated_gross_margin: Number(profitability || 0),
-      labor_hours: Number(totalHours || 0)
-    },
-    notes: {
-      visible_project_notes: String(project?.notes || '').trim(),
-      permit_intake_notes: String(permitMeta.intake_notes || '').trim()
-    }
-  }
-}
-
-function buildProjectPackageText(pkg) {
-  return [
-    `PROJECT PACKAGE`,
-    ``,
-    `PROJECT: ${pkg.project_name || 'Unnamed Project'}`,
-    `CLIENT: ${pkg.client || 'Unknown Client'}`,
-    `STATUS: ${pkg.project_status || '—'}`,
-    `PHASE: ${pkg.project_phase || '—'}`,
-    `NEXT ACTION: ${pkg.next_action || '—'}`,
-    ``,
-    `LOCATION`,
-    `City: ${pkg.location?.city || '—'}`,
-    `County: ${pkg.location?.county || '—'}`,
-    `State: ${pkg.location?.state || '—'}`,
-    `ZIP: ${pkg.location?.zip || '—'}`,
-    `Jurisdiction: ${pkg.location?.jurisdiction || '—'}`,
-    ``,
-    `PROJECT PROFILE`,
-    `Type: ${pkg.project_type || '—'}`,
-    `Square Footage: ${pkg.square_footage || '—'}`,
-    `Estimated Value: ${pkg.estimated_value || '—'}`,
-    `Scopes: ${(pkg.scopes || []).join(', ') || '—'}`,
-    ``,
-    `PERMIT SUMMARY`,
-    `Permit Required: ${pkg.permit_summary?.permit_required ? 'Yes' : 'No'}`,
-    `Permit Status: ${pkg.permit_summary?.permit_status || '—'}`,
-    `Selected Permits: ${(pkg.permit_summary?.selected_permit_types || []).join(', ') || '—'}`,
-    `AI Required Permits: ${(pkg.permit_summary?.ai_required_permits || []).join(', ') || '—'}`,
-    `Readiness Score: ${pkg.permit_summary?.readiness_score || 0}/100`,
-    `Risk Level: ${pkg.permit_summary?.risk_level || '—'}`,
-    `Missing Inputs: ${(pkg.permit_summary?.missing_inputs || []).join(' | ') || 'None'}`,
-    `Warnings: ${(pkg.permit_summary?.warnings || []).join(' | ') || 'None'}`,
-    `Blockers: ${(pkg.permit_summary?.blockers || []).join(' | ') || 'None'}`,
-    ``,
-    `JURISDICTION SUMMARY`,
-    `Review Lanes: ${(pkg.jurisdiction_summary?.review_lanes || []).join(', ') || '—'}`,
-    `Required Fields: ${(pkg.jurisdiction_summary?.required_fields || []).join(', ') || '—'}`,
-    `Required Documents: ${(pkg.jurisdiction_summary?.required_documents || []).join(', ') || '—'}`,
-    `Missing Fields: ${(pkg.jurisdiction_summary?.missing_fields || []).join(' | ') || 'None'}`,
-    `Missing Documents: ${(pkg.jurisdiction_summary?.missing_documents || []).join(' | ') || 'None'}`,
-    ``,
-    `EXECUTION SUMMARY`,
-    `Assigned Workers: ${(pkg.execution_summary?.assigned_workers || []).map((row) => row.worker_name).join(', ') || 'None'}`,
-    `Suppliers: ${(pkg.execution_summary?.supplier_signals || []).join(', ') || 'None'}`,
-    `Delivery Lane: ${pkg.execution_summary?.delivery_plan?.primary_lane || '—'}`,
-    `Delivery Notes: ${(pkg.execution_summary?.delivery_plan?.notes || []).join(' | ') || 'None'}`,
-    `Next Actions: ${(pkg.execution_summary?.next_actions || []).join(' | ') || 'None'}`,
-    ``,
-    `COMMERCIAL SUMMARY`,
-    `Revenue: $${Number(pkg.commercial_summary?.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-    `Labor Cost: $${Number(pkg.commercial_summary?.labor_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-    `Material Cost: $${Number(pkg.commercial_summary?.material_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-    `Estimated Gross Margin: $${Number(pkg.commercial_summary?.estimated_gross_margin || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-    `Labor Hours: ${Number(pkg.commercial_summary?.labor_hours || 0).toFixed(1)}`,
-    ``,
-    `NOTES`,
-    `${pkg.notes?.permit_intake_notes || pkg.notes?.visible_project_notes || 'No notes yet.'}`
-  ].join('\n')
-}
-
 function permitStatusTone(status) {
   if (status === 'approved') return { background: '#dcf4e5', color: '#177245' }
   if (status === 'submitted' || status === 'under_review') return { background: '#d8ecff', color: '#0d3f73' }
@@ -535,21 +236,6 @@ function permitStatusTone(status) {
   return { background: '#ecebe3', color: '#111111' }
 }
 
-
-import { useEffect, useState } from 'react'
-
-// RFQ STATE
-const [rfqs, setRfqs] = useState([])
-
-async function fetchRFQs(projectId) {
-  if (!projectId) return
-  const { data, error } = await supabase
-    .from('rfqs')
-    .select('*')
-    .eq('project_id', projectId)
-    .order('created_at', { ascending: false })
-  if (!error) setRfqs(data || [])
-}
 export default function AdminProjectDetail() {
   const { id } = useParams()
   const [project, setProject] = useState(null)
@@ -567,6 +253,8 @@ export default function AdminProjectDetail() {
   const [savingActiveJob, setSavingActiveJob] = useState(false)
   const [savingWorkerAssignment, setSavingWorkerAssignment] = useState(false)
   const [savingPermitMeta, setSavingPermitMeta] = useState(false)
+  const [rfqs, setRfqs] = useState([])
+  const [savingRfqId, setSavingRfqId] = useState('')
 
   const [invoiceForm, setInvoiceForm] = useState({
     type: 'invoice',
@@ -630,12 +318,13 @@ export default function AdminProjectDetail() {
 
         const normalizedProject = normalizeProject(crm)
 
-        const [invRes, timeRes, materialsRes, workersRes, adminWorkersRes] = await Promise.all([
+        const [invRes, timeRes, materialsRes, workersRes, adminWorkersRes, rfqsRes] = await Promise.all([
           supabase.from('admin_invoices').select('*'),
           supabase.from('admin_time_entries').select('*'),
           supabase.from('admin_project_materials').select('*').eq('project_record_id', id).order('created_at', { ascending: false }),
           supabase.from('admin_project_workers').select('*').eq('project_record_id', id).order('created_at', { ascending: false }),
-          supabase.from('admin_workers').select('name, hourly_rate')
+          supabase.from('admin_workers').select('name, hourly_rate'),
+          supabase.from('rfqs').select('*').eq('project_id', id).order('created_at', { ascending: false })
         ])
 
         if (invRes.error) throw invRes.error
@@ -643,6 +332,7 @@ export default function AdminProjectDetail() {
         if (materialsRes.error) throw materialsRes.error
         if (workersRes.error) throw workersRes.error
         if (adminWorkersRes.error) throw adminWorkersRes.error
+        if (rfqsRes.error) throw rfqsRes.error
         if (!active) return
 
         const projectInvoices = (invRes.data || []).filter(
@@ -665,6 +355,7 @@ export default function AdminProjectDetail() {
         setTimeEntries(projectTime)
         setMaterials(materialsRes.data || [])
         setAssignedWorkers(workersRes.data || [])
+        setRfqs(rfqsRes.data || [])
         const rateMap = {}
         ;(adminWorkersRes.data || []).forEach((row) => {
           rateMap[String(row.name || '').trim()] = Number(row.hourly_rate || 0)
@@ -681,13 +372,7 @@ export default function AdminProjectDetail() {
 
     load()
 
-    
-useEffect(() => {
-  if (project?.id) fetchRFQs(project.id)
-}, [project?.id])
-
-return (
-) => {
+    return () => {
       active = false
     }
   }, [id])
@@ -788,6 +473,40 @@ return (
     )
   }, [materials])
 
+  const rfqMetrics = useMemo(() => {
+    const pending = rfqs.filter((row) => row.status === 'pending').length
+    const responded = rfqs.filter((row) => ['quoted', 'responded'].includes(String(row.status || '').toLowerCase())).length
+    const selected = rfqs.filter((row) => row.status === 'selected').length
+    return {
+      total: rfqs.length,
+      pending,
+      responded,
+      selected
+    }
+  }, [rfqs])
+
+  const quoteComparisonRows = useMemo(() => {
+    return rfqs
+      .filter((row) => String(row.status || '').toLowerCase() !== 'cancelled')
+      .slice()
+      .sort((a, b) => {
+        const aSelected = a.status === 'selected' ? 1 : 0
+        const bSelected = b.status === 'selected' ? 1 : 0
+        if (aSelected !== bSelected) return bSelected - aSelected
+        const aPrice = Number(a.price || 0)
+        const bPrice = Number(b.price || 0)
+        if (aPrice && bPrice && aPrice !== bPrice) return aPrice - bPrice
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+      })
+  }, [rfqs])
+
+  const recommendedQuote = useMemo(() => {
+    const eligible = quoteComparisonRows.filter((row) => Number(row.price || 0) > 0)
+    if (!eligible.length) return null
+    return eligible[0]
+  }, [quoteComparisonRows])
+
+
   const nextActions = useMemo(() => {
     const actions = []
 
@@ -835,313 +554,6 @@ return (
     assignedWorkers.length,
     projectMeta.project_next_action
   ])
-
-
-  const permitRequirements = useMemo(() => {
-    return getPermitRequirements({
-      scopes: permitForm.scopes || [],
-      materials,
-      projectType: permitForm.project_type
-    })
-  }, [permitForm.scopes, materials, permitForm.project_type])
-
-  
-  const permitIntakePackage = useMemo(() => {
-    const pkg = {
-      project_name: project?.project || '',
-      client: project?.company || '',
-      city: permitForm.location_city || '',
-      county: permitForm.location_county || '',
-      state: permitForm.location_state || 'TX',
-      zip: permitForm.location_zip || '',
-      jurisdiction: permitForm.jurisdiction || '',
-      project_type: permitForm.project_type || '',
-      square_footage: permitForm.square_footage || '',
-      estimated_value: permitForm.estimated_value || '',
-      scopes: permitForm.scopes || [],
-      selected_permit_types: permitForm.permit_types || [],
-      ai_required_permits: permitRequirements.required_permits || [],
-      missing_inputs: permitRequirements.missing_inputs || [],
-      warnings: permitRequirements.warnings || [],
-      readiness_score: permitReadiness.score,
-      risk_level: riskLevel,
-      top_blockers: (permitReadiness.blockers || []).slice(0, 5),
-      intake_notes: permitForm.intake_notes || ''
-    }
-    return pkg
-  }, [
-    project,
-    permitForm,
-    permitRequirements,
-    permitReadiness,
-    riskLevel
-  ])
-
-  const permitIntakeText = useMemo(() => {
-    const p = permitIntakePackage
-    return [
-      `PROJECT: ${p.project_name}`,
-      `CLIENT: ${p.client}`,
-      `LOCATION: ${p.city}, ${p.county}, ${p.state} ${p.zip}`,
-      `JURISDICTION: ${p.jurisdiction || 'TBD'}`,
-      `TYPE: ${p.project_type || 'TBD'}`,
-      `SF: ${p.square_footage || 'TBD'}`,
-      `VALUE: ${p.estimated_value || 'TBD'}`,
-      `SCOPES: ${(p.scopes || []).join(', ') || 'TBD'}`,
-      `PERMITS (SELECTED): ${(p.selected_permit_types || []).join(', ') || 'None'}`,
-      `PERMITS (AI): ${(p.ai_required_permits || []).join(', ') || 'None'}`,
-      `READINESS: ${p.readiness_score}/100 (${p.risk_level})`,
-      `BLOCKERS: ${(p.top_blockers || []).join(' | ') || 'None'}`,
-      `MISSING: ${(p.missing_inputs || []).join(' | ') || 'None'}`,
-      `WARNINGS: ${(p.warnings || []).join(' | ') || 'None'}`,
-      `NOTES: ${p.intake_notes || ''}`
-    ].join('\n')
-  }, [permitIntakePackage])
-
-
-  const jurisdictionRequirements = useMemo(() => {
-    return getJurisdictionRequirements(permitForm.location_city, permitForm.project_type)
-  }, [permitForm.location_city, permitForm.project_type])
-
-  const jurisdictionMissingFields = useMemo(() => {
-    return (jurisdictionRequirements.required_fields || []).filter((field) => {
-      const value = permitForm?.[field]
-      if (Array.isArray(value)) return value.length === 0
-      return !String(value || '').trim()
-    })
-  }, [jurisdictionRequirements, permitForm])
-
-  const jurisdictionMissingDocuments = useMemo(() => {
-    const notesHaystack = [
-      project?.notes || '',
-      permitForm.intake_notes || '',
-      ...materials.map((row) => [row.item_name, row.notes].filter(Boolean).join(' '))
-    ].join(' ').toLowerCase()
-
-    return (jurisdictionRequirements.required_documents || []).filter((doc) => {
-      const normalized = String(doc || '').toLowerCase()
-      if (normalized.includes('site plan')) return !/site plan/.test(notesHaystack)
-      if (normalized.includes('architectural')) return !/architect|floor plan|elevation|section/.test(notesHaystack)
-      if (normalized.includes('structural')) return !/structural|foundation|footing|rebar|steel/.test(notesHaystack)
-      if (normalized.includes('mep')) return !/electrical|mechanical|plumbing|hvac/.test(notesHaystack)
-      if (normalized.includes('civil')) return !/civil|grading|drainage|utility|paving/.test(notesHaystack)
-      if (normalized.includes('project description')) return !String(project?.notes || '').trim()
-      if (normalized.includes('scope summary')) return !(permitForm.scopes || []).length
-      return false
-    })
-  }, [jurisdictionRequirements, project, permitForm, materials])
-
-  const jurisdictionReady = useMemo(() => {
-    return jurisdictionMissingFields.length === 0 && jurisdictionMissingDocuments.length === 0
-  }, [jurisdictionMissingFields, jurisdictionMissingDocuments])
-
-
-  function copyPermitIntake() {
-    try {
-      navigator.clipboard.writeText(permitIntakeText)
-      setMessage('Permit intake package copied to clipboard.')
-    } catch (e) {
-      setMessage('Unable to copy package.')
-    }
-  }
-
-const suggestedPermitTypes = useMemo(() => {
-    return (permitRequirements.required_permits || []).filter(
-      (type) => !(permitForm.permit_types || []).includes(type)
-    )
-  }, [permitRequirements, permitForm.permit_types])
-
-
-  const projectPackage = useMemo(() => {
-    return buildProjectPackage({
-      project,
-      permitMeta: permitForm,
-      permitRequirements,
-      permitReadiness,
-      jurisdictionRequirements,
-      jurisdictionMissingFields,
-      jurisdictionMissingDocuments,
-      materials,
-      assignedWorkers,
-      supplierSignals,
-      nextActions,
-      riskLevel,
-      profitability,
-      totalValue,
-      laborCost,
-      materialCost,
-      totalHours
-    })
-  }, [
-    project,
-    permitForm,
-    permitRequirements,
-    permitReadiness,
-    jurisdictionRequirements,
-    jurisdictionMissingFields,
-    jurisdictionMissingDocuments,
-    materials,
-    assignedWorkers,
-    supplierSignals,
-    nextActions,
-    riskLevel,
-    profitability,
-    totalValue,
-    laborCost,
-    materialCost,
-    totalHours
-  ])
-
-  const projectPackageText = useMemo(() => {
-    return buildProjectPackageText(projectPackage)
-  }, [projectPackage])
-
-  function copyProjectPackage() {
-    try {
-      navigator.clipboard.writeText(projectPackageText)
-      setMessage('Project package copied to clipboard.')
-    } catch (error) {
-      console.error(error)
-      setMessage('Unable to copy project package right now.')
-    }
-  }
-
-  function downloadProjectPackagePdf() {
-    try {
-      const pdf = new jsPDF('p', 'pt', 'a4')
-      const left = 40
-      const pageWidth = pdf.internal.pageSize.getWidth()
-
-      pdf.setFont('helvetica', 'bold')
-      pdf.setFontSize(18)
-      pdf.text('Surplox Project Package', left, 44)
-
-      pdf.setFont('helvetica', 'normal')
-      pdf.setFontSize(11)
-      pdf.text(`Project: ${projectPackage.project_name || 'Unnamed Project'}`, left, 68)
-      pdf.text(`Client: ${projectPackage.client || 'Unknown Client'}`, left, 84)
-      pdf.text(`Location: ${projectPackage.location.city || '—'}, ${projectPackage.location.county || '—'} ${projectPackage.location.zip || ''}`, left, 100)
-      pdf.text(`Generated: ${new Date().toLocaleString()}`, left, 116)
-
-      autoTable(pdf, {
-        startY: 136,
-        theme: 'grid',
-        head: [['Project Profile', 'Value']],
-        body: [
-          ['Status', projectPackage.project_status || '—'],
-          ['Phase', projectPackage.project_phase || '—'],
-          ['Next Action', projectPackage.next_action || '—'],
-          ['Project Type', projectPackage.project_type || '—'],
-          ['Square Footage', projectPackage.square_footage || '—'],
-          ['Estimated Value', projectPackage.estimated_value || '—'],
-          ['Scopes', (projectPackage.scopes || []).join(', ') || '—']
-        ],
-        margin: { left: 40, right: 40 },
-        styles: { fontSize: 10, cellPadding: 6 }
-      })
-
-      autoTable(pdf, {
-        startY: pdf.lastAutoTable.finalY + 16,
-        theme: 'grid',
-        head: [['Permit Summary', 'Value']],
-        body: [
-          ['Permit Required', projectPackage.permit_summary.permit_required ? 'Yes' : 'No'],
-          ['Permit Status', projectPackage.permit_summary.permit_status || '—'],
-          ['Selected Permits', (projectPackage.permit_summary.selected_permit_types || []).join(', ') || '—'],
-          ['AI Required Permits', (projectPackage.permit_summary.ai_required_permits || []).join(', ') || '—'],
-          ['Readiness', `${projectPackage.permit_summary.readiness_score || 0}/100`],
-          ['Risk', projectPackage.permit_summary.risk_level || '—'],
-          ['Missing Inputs', (projectPackage.permit_summary.missing_inputs || []).join(' | ') || 'None'],
-          ['Warnings', (projectPackage.permit_summary.warnings || []).join(' | ') || 'None'],
-          ['Blockers', (projectPackage.permit_summary.blockers || []).join(' | ') || 'None']
-        ],
-        margin: { left: 40, right: 40 },
-        styles: { fontSize: 10, cellPadding: 6 }
-      })
-
-      autoTable(pdf, {
-        startY: pdf.lastAutoTable.finalY + 16,
-        theme: 'grid',
-        head: [['Jurisdiction Readiness', 'Value']],
-        body: [
-          ['Jurisdiction', projectPackage.location.jurisdiction || '—'],
-          ['Review Lanes', (projectPackage.jurisdiction_summary.review_lanes || []).join(', ') || '—'],
-          ['Required Fields', (projectPackage.jurisdiction_summary.required_fields || []).join(', ') || '—'],
-          ['Missing Fields', (projectPackage.jurisdiction_summary.missing_fields || []).join(' | ') || 'None'],
-          ['Required Documents', (projectPackage.jurisdiction_summary.required_documents || []).join(', ') || '—'],
-          ['Missing Documents', (projectPackage.jurisdiction_summary.missing_documents || []).join(' | ') || 'None']
-        ],
-        margin: { left: 40, right: 40 },
-        styles: { fontSize: 10, cellPadding: 6 }
-      })
-
-      autoTable(pdf, {
-        startY: pdf.lastAutoTable.finalY + 16,
-        theme: 'grid',
-        head: [['Execution Summary', 'Value']],
-        body: [
-          ['Assigned Workers', (projectPackage.execution_summary.assigned_workers || []).map((row) => row.worker_name).join(', ') || 'None'],
-          ['Suppliers', (projectPackage.execution_summary.supplier_signals || []).join(', ') || 'None'],
-          ['Delivery Lane', projectPackage.execution_summary.delivery_plan.primary_lane || '—'],
-          ['Delivery Notes', (projectPackage.execution_summary.delivery_plan.notes || []).join(' | ') || 'None'],
-          ['Next Actions', (projectPackage.execution_summary.next_actions || []).join(' | ') || 'None']
-        ],
-        margin: { left: 40, right: 40 },
-        styles: { fontSize: 10, cellPadding: 6 }
-      })
-
-      const materialBody = (projectPackage.execution_summary.materials || []).map((row) => [
-        row.item_name || '—',
-        row.supplier_name || '—',
-        String(row.quantity || 0),
-        money(row.unit_cost || 0),
-        money(row.total_cost || 0)
-      ])
-
-      autoTable(pdf, {
-        startY: pdf.lastAutoTable.finalY + 16,
-        theme: 'grid',
-        head: [['Materials', 'Supplier', 'Qty', 'Unit Cost', 'Total']],
-        body: materialBody.length ? materialBody : [['No materials logged yet.', '', '', '', '']],
-        margin: { left: 40, right: 40 },
-        styles: { fontSize: 10, cellPadding: 6 }
-      })
-
-      autoTable(pdf, {
-        startY: pdf.lastAutoTable.finalY + 16,
-        theme: 'grid',
-        head: [['Commercial Summary', 'Value']],
-        body: [
-          ['Revenue', money(projectPackage.commercial_summary.revenue || 0)],
-          ['Labor Cost', money(projectPackage.commercial_summary.labor_cost || 0)],
-          ['Material Cost', money(projectPackage.commercial_summary.material_cost || 0)],
-          ['Estimated Gross Margin', money(projectPackage.commercial_summary.estimated_gross_margin || 0)],
-          ['Labor Hours', Number(projectPackage.commercial_summary.labor_hours || 0).toFixed(1)]
-        ],
-        margin: { left: 40, right: 40 },
-        styles: { fontSize: 10, cellPadding: 6 }
-      })
-
-      const finalY = pdf.lastAutoTable.finalY + 18
-      const wrappedNotes = pdf.splitTextToSize(
-        projectPackage.notes.permit_intake_notes || projectPackage.notes.visible_project_notes || 'No notes yet.',
-        pageWidth - 80
-      )
-      pdf.setFont('helvetica', 'bold')
-      pdf.setFontSize(12)
-      pdf.text('Notes', 40, finalY)
-      pdf.setFont('helvetica', 'normal')
-      pdf.setFontSize(10)
-      pdf.text(wrappedNotes, 40, finalY + 16)
-
-      const filename = `${String(projectPackage.project_name || 'surplox-project-package').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'surplox-project-package'}.pdf`
-      pdf.save(filename)
-      setMessage('Project package PDF downloaded.')
-    } catch (error) {
-      console.error(error)
-      setMessage('Unable to generate project package PDF right now.')
-    }
-  }
 
   function updateInvoiceItem(id, key, value) {
     setInvoiceForm((prev) => ({
@@ -1462,16 +874,82 @@ const suggestedPermitTypes = useMemo(() => {
     }
   }
 
-  async function handleRemoveWorker(id) {
+  async function handleUpdateRfq(id, fields = {}) {
     try {
+      setSavingRfqId(id)
       setMessage('')
-      const { error } = await supabase.from('admin_project_workers').delete().eq('id', id)
+      const payload = { ...fields }
+      if (Object.prototype.hasOwnProperty.call(payload, 'price')) {
+        payload.price = payload.price === '' ? null : safeNumber(payload.price)
+      }
+      if (Object.prototype.hasOwnProperty.call(payload, 'lead_time')) {
+        payload.lead_time = String(payload.lead_time || '').trim() || null
+      }
+      if (Object.prototype.hasOwnProperty.call(payload, 'notes')) {
+        payload.notes = String(payload.notes || '').trim() || null
+      }
+      if (Object.prototype.hasOwnProperty.call(payload, 'status')) {
+        payload.status = String(payload.status || '').trim() || 'pending'
+      }
+
+      const { data, error } = await supabase
+        .from('rfqs')
+        .update(payload)
+        .eq('id', id)
+        .select('*')
+        .single()
+
       if (error) throw error
-      setAssignedWorkers((prev) => prev.filter((worker) => worker.id !== id))
-      setMessage('Worker removed from this project.')
+
+      setRfqs((prev) => prev.map((row) => (row.id === id ? data : row)))
+      setMessage('RFQ updated.')
     } catch (error) {
       console.error(error)
-      setMessage('Unable to remove worker right now.')
+      setMessage('Unable to update RFQ right now.')
+    } finally {
+      setSavingRfqId('')
+    }
+  }
+
+  async function handleSelectRfq(id) {
+    try {
+      setSavingRfqId(id)
+      setMessage('')
+
+      const selectedRow = rfqs.find((row) => row.id === id)
+      if (!selectedRow) return
+
+      const otherIds = rfqs.filter((row) => row.id !== id && row.status === 'selected').map((row) => row.id)
+      if (otherIds.length) {
+        const { error: resetError } = await supabase
+          .from('rfqs')
+          .update({ status: 'quoted' })
+          .in('id', otherIds)
+        if (resetError) throw resetError
+      }
+
+      const { data, error } = await supabase
+        .from('rfqs')
+        .update({ status: 'selected' })
+        .eq('id', id)
+        .select('*')
+        .single()
+
+      if (error) throw error
+
+      setRfqs((prev) =>
+        prev.map((row) => {
+          if (row.id === id) return data
+          if (row.status === 'selected') return { ...row, status: 'quoted' }
+          return row
+        })
+      )
+      setMessage(`Selected ${selectedRow.supplier_name || 'supplier'} for this project.`)
+    } catch (error) {
+      console.error(error)
+      setMessage('Unable to select supplier right now.')
+    } finally {
+      setSavingRfqId('')
     }
   }
 
@@ -1876,263 +1354,6 @@ const suggestedPermitTypes = useMemo(() => {
         </div>
       </div>
 
-
-      <div className="card rounded-xl" style={{ padding: 22 }}>
-        <div className="card-section-title">Permit Intake Package</div>
-        <div className="muted" style={{ marginTop: 8 }}>
-          This is a structured, submission-ready draft generated from project + permit data.
-        </div>
-
-        <div className="list" style={{ marginTop: 14 }}>
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div style={{ fontWeight: 900 }}>{permitIntakePackage.project_name || 'Unnamed Project'}</div>
-            <div className="muted" style={{ marginTop: 6 }}>
-              {permitIntakePackage.client || 'Unknown Client'}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Location</div>
-            <div style={{ marginTop: 8 }}>
-              {permitIntakePackage.city || '—'}, {permitIntakePackage.county || '—'} {permitIntakePackage.zip || ''}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Permit Summary</div>
-            <div style={{ marginTop: 8, lineHeight: 1.7 }}>
-              Required (AI): {(permitIntakePackage.ai_required_permits || []).join(', ') || 'None'}<br />
-              Selected: {(permitIntakePackage.selected_permit_types || []).join(', ') || 'None'}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Readiness + Risk</div>
-            <div style={{ marginTop: 8 }}>
-              {permitIntakePackage.readiness_score}/100 · {permitIntakePackage.risk_level}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Missing + Warnings</div>
-            <div style={{ marginTop: 8, lineHeight: 1.7 }}>
-              Missing: {(permitIntakePackage.missing_inputs || []).join(' | ') || 'None'}<br />
-              Warnings: {(permitIntakePackage.warnings || []).join(' | ') || 'None'}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Formatted Intake</div>
-            <pre style={{ marginTop: 10, whiteSpace: 'pre-wrap' }}>
-{permitIntakeText}
-            </pre>
-          </div>
-        </div>
-
-        <div style={{ marginTop: 14 }}>
-          <button className="btn primary" onClick={copyPermitIntake}>
-            Copy Intake Package
-          </button>
-        </div>
-      </div>
-
-      <div className="card rounded-xl" style={{ padding: 22 }}>
-        <div className="card-section-title">AI Permit Requirements</div>
-        <div className="muted" style={{ marginTop: 8 }}>
-          This layer turns saved project scope and material signals into suggested permit lanes, missing inputs, and review warnings.
-        </div>
-
-        <div className="list" style={{ marginTop: 14 }}>
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Required permits (AI detected)</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-              {permitRequirements.required_permits.length === 0 ? (
-                <span className="badge">None detected yet</span>
-              ) : (
-                permitRequirements.required_permits.map((item) => (
-                  <span key={`required-permit-${item}`} className="badge">{item}</span>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Suggested permit additions</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-              {suggestedPermitTypes.length === 0 ? (
-                <span className="badge">All detected permits already accounted for</span>
-              ) : (
-                suggestedPermitTypes.map((item) => (
-                  <span
-                    key={`suggested-permit-${item}`}
-                    className="badge"
-                    style={{ background: '#d8ecff', color: '#0d3f73' }}
-                  >
-                    {item}
-                  </span>
-                ))
-              )}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Missing inputs</div>
-            {permitRequirements.missing_inputs.length === 0 ? (
-              <div style={{ marginTop: 8, fontWeight: 800 }}>No obvious missing permit inputs right now.</div>
-            ) : (
-              <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
-                {permitRequirements.missing_inputs.map((item) => (
-                  <div key={`missing-input-${item}`} style={{ lineHeight: 1.6 }}>• {item}</div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Warnings</div>
-            {permitRequirements.warnings.length === 0 ? (
-              <div style={{ marginTop: 8, fontWeight: 800 }}>No additional warnings from the permit engine.</div>
-            ) : (
-              <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
-                {permitRequirements.warnings.map((item) => (
-                  <div key={`permit-warning-${item}`} style={{ lineHeight: 1.6 }}>• {item}</div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="card rounded-xl" style={{ padding: 22 }}>
-        <div className="card-section-title">Jurisdiction Requirements Engine</div>
-        <div className="muted" style={{ marginTop: 8 }}>
-          This layer applies early city + project-type rules so you can see required documents, required fields, review lanes, and what is still missing before submission.
-        </div>
-
-        <div className="list" style={{ marginTop: 14 }}>
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Submission status</div>
-            <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <span className="badge" style={jurisdictionReady ? { background: '#dcf4e5', color: '#177245' } : { background: '#fff0b4', color: '#111111' }}>
-                {jurisdictionReady ? 'Ready for jurisdiction checklist review' : 'More jurisdiction inputs needed'}
-              </span>
-              <span className="badge">{permitForm.location_city || 'City not set'}</span>
-              <span className="badge">{permitForm.project_type || 'Project type not set'}</span>
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Required review lanes</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-              {(jurisdictionRequirements.review_lanes || []).map((lane) => (
-                <span key={`lane-${lane}`} className="badge">{lane}</span>
-              ))}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Required fields</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-              {(jurisdictionRequirements.required_fields || []).map((field) => (
-                <span
-                  key={`field-${field}`}
-                  className="badge"
-                  style={jurisdictionMissingFields.includes(field) ? { background: '#ffe1dc', color: '#8a2d1f' } : { background: '#dcf4e5', color: '#177245' }}
-                >
-                  {field}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Required documents</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-              {(jurisdictionRequirements.required_documents || []).map((doc) => (
-                <span
-                  key={`doc-${doc}`}
-                  className="badge"
-                  style={jurisdictionMissingDocuments.includes(doc) ? { background: '#ffe1dc', color: '#8a2d1f' } : { background: '#dcf4e5', color: '#177245' }}
-                >
-                  {doc}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Engine warnings</div>
-            {jurisdictionRequirements.warnings.length === 0 ? (
-              <div style={{ marginTop: 8, fontWeight: 800 }}>No additional jurisdiction warnings.</div>
-            ) : (
-              <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
-                {jurisdictionRequirements.warnings.map((item) => (
-                  <div key={`jurisdiction-warning-${item}`} style={{ lineHeight: 1.6 }}>• {item}</div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-
-      <div className="card rounded-xl" style={{ padding: 22 }}>
-        <div className="card-section-title">Project Package Generator</div>
-        <div className="muted" style={{ marginTop: 8 }}>
-          This converts project, permit, supplier, delivery, labor, and cost data into a client-ready execution package you can copy or export.
-        </div>
-
-        <div className="list" style={{ marginTop: 14 }}>
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Project + location</div>
-            <div style={{ marginTop: 8, lineHeight: 1.7 }}>
-              <strong>{projectPackage.project_name || 'Unnamed Project'}</strong><br />
-              {projectPackage.client || 'Unknown Client'}<br />
-              {projectPackage.location.city || '—'}, {projectPackage.location.county || '—'} {projectPackage.location.zip || ''}<br />
-              {projectPackage.location.jurisdiction || 'Jurisdiction not set'}
-            </div>
-          </div>
-
-          <div className="grid two">
-            <div className="card-soft" style={{ background: '#ffffff' }}>
-              <div className="muted">Execution package summary</div>
-              <div style={{ marginTop: 8, lineHeight: 1.7 }}>
-                Suppliers: {(projectPackage.execution_summary.supplier_signals || []).length}<br />
-                Materials: {(projectPackage.execution_summary.materials || []).length}<br />
-                Assigned workers: {(projectPackage.execution_summary.assigned_workers || []).length}<br />
-                Delivery lane: {projectPackage.execution_summary.delivery_plan.primary_lane || '—'}
-              </div>
-            </div>
-
-            <div className="card-soft" style={{ background: '#ffffff' }}>
-              <div className="muted">Commercial snapshot</div>
-              <div style={{ marginTop: 8, lineHeight: 1.7 }}>
-                Revenue: {money(projectPackage.commercial_summary.revenue || 0)}<br />
-                Labor cost: {money(projectPackage.commercial_summary.labor_cost || 0)}<br />
-                Material cost: {money(projectPackage.commercial_summary.material_cost || 0)}<br />
-                Margin: {money(projectPackage.commercial_summary.estimated_gross_margin || 0)}
-              </div>
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Formatted project package</div>
-            <pre style={{ marginTop: 10, whiteSpace: 'pre-wrap' }}>
-{projectPackageText}
-            </pre>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
-          <button className="btn primary" type="button" onClick={copyProjectPackage}>
-            Copy Project Package
-          </button>
-          <button className="btn" type="button" onClick={downloadProjectPackagePdf}>
-            Download Project Package PDF
-          </button>
-        </div>
-      </div>
-
       <div className="grid two">
         <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">Worker Assignment</div>
@@ -2236,6 +1457,142 @@ const suggestedPermitTypes = useMemo(() => {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">Project RFQs & Quote Comparison</div>
+        <div className="muted" style={{ marginTop: 8 }}>
+          Track supplier quote responses, compare pricing and lead times, and lock in the winning supplier for execution.
+        </div>
+
+        <div className="grid three" style={{ marginTop: 14 }}>
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div className="muted">Total RFQs</div>
+            <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{rfqMetrics.total}</div>
+          </div>
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div className="muted">Pending</div>
+            <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{rfqMetrics.pending}</div>
+          </div>
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div className="muted">Quotes Received</div>
+            <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{rfqMetrics.responded}</div>
+          </div>
+        </div>
+
+        {recommendedQuote ? (
+          <div className="card-soft" style={{ marginTop: 14, background: '#fffaf0' }}>
+            <div className="muted">Best current quote</div>
+            <div style={{ marginTop: 8, fontWeight: 900 }}>
+              {recommendedQuote.supplier_name || 'Unknown Supplier'}
+            </div>
+            <div className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>
+              {recommendedQuote.material || 'Material not set'} · {money(recommendedQuote.price || 0)} · Lead time: {recommendedQuote.lead_time || 'Not set'}
+            </div>
+          </div>
+        ) : null}
+
+        {quoteComparisonRows.length === 0 ? (
+          <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
+            No RFQs tied to this project yet. Generate RFQs from the analyzer to start supplier quote comparison.
+          </div>
+        ) : (
+          <div className="list" style={{ marginTop: 14 }}>
+            {quoteComparisonRows.map((row) => (
+              <div key={row.id} className="card-soft" style={{ background: '#ffffff' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontWeight: 900 }}>{row.supplier_name || 'Unknown Supplier'}</div>
+                    <div className="muted" style={{ marginTop: 8 }}>
+                      {row.material || 'Material not set'}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                      <span
+                        className="badge"
+                        style={
+                          row.status === 'selected'
+                            ? { background: '#dcf4e5', color: '#177245' }
+                            : row.status === 'pending'
+                              ? { background: '#fff0b4', color: '#111111' }
+                              : { background: '#d8ecff', color: '#0d3f73' }
+                        }
+                      >
+                        {row.status || 'pending'}
+                      </span>
+                      {row.price ? <span className="badge">{money(row.price)}</span> : <span className="badge">No quote price yet</span>}
+                      <span className="badge">Lead time: {row.lead_time || '—'}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() => handleUpdateRfq(row.id, { status: row.status === 'pending' ? 'quoted' : 'pending' })}
+                      disabled={savingRfqId === row.id}
+                    >
+                      {savingRfqId === row.id ? 'Saving…' : row.status === 'pending' ? 'Mark Quoted' : 'Mark Pending'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn primary"
+                      onClick={() => handleSelectRfq(row.id)}
+                      disabled={savingRfqId === row.id || row.status === 'selected'}
+                    >
+                      {row.status === 'selected' ? 'Selected Supplier' : savingRfqId === row.id ? 'Selecting…' : 'Select Supplier'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid three" style={{ marginTop: 14 }}>
+                  <div>
+                    <div className="muted" style={{ marginBottom: 6 }}>Quote Price</div>
+                    <input
+                      className="input"
+                      type="number"
+                      step="0.01"
+                      value={row.price ?? ''}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setRfqs((prev) => prev.map((item) => (item.id === row.id ? { ...item, price: value } : item)))
+                      }}
+                      onBlur={(e) => handleUpdateRfq(row.id, { price: e.target.value, status: row.status === 'pending' && e.target.value ? 'quoted' : row.status })}
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="muted" style={{ marginBottom: 6 }}>Lead Time</div>
+                    <input
+                      className="input"
+                      value={row.lead_time ?? ''}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setRfqs((prev) => prev.map((item) => (item.id === row.id ? { ...item, lead_time: value } : item)))
+                      }}
+                      onBlur={(e) => handleUpdateRfq(row.id, { lead_time: e.target.value })}
+                      placeholder="3 days, 1 week, etc."
+                    />
+                  </div>
+
+                  <div>
+                    <div className="muted" style={{ marginBottom: 6 }}>Notes</div>
+                    <input
+                      className="input"
+                      value={row.notes ?? ''}
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setRfqs((prev) => prev.map((item) => (item.id === row.id ? { ...item, notes: value } : item)))
+                      }}
+                      onBlur={(e) => handleUpdateRfq(row.id, { notes: e.target.value })}
+                      placeholder="Pricing notes, alternates, delivery notes"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid two">
