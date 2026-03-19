@@ -1,8 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-import jsPDF from 'jspdf'
-import { autoTable } from 'jspdf-autotable'
 
 const API_IMPORT_ENDPOINT =
   (typeof import.meta !== 'undefined' &&
@@ -173,25 +171,7 @@ const COPY = {
     fileReady: 'File ready',
     fileExtracted: 'Text extracted',
     fileOcrReady: 'OCR ready',
-    fileOcrDone: 'OCR complete',
-    analyzerBuildMode: 'Build Project Mode',
-    analyzerPermitMode: 'Permit Pre-Check Mode',
-    permitPrecheckTitle: 'Permit Pre-Check',
-    permitReadinessScore: 'Permit readiness score',
-    permitDisciplinesDetected: 'Disciplines detected',
-    permitMissingDisciplines: 'Missing / weak discipline coverage',
-    permitMissingItems: 'Missing items',
-    permitUnclearItems: 'Unclear items',
-    permitConflictingItems: 'Conflicting items',
-    permitEvidenceTitle: 'Evidence highlights',
-    permitSegmentTitle: 'Structured extraction',
-    permitNoFindings: 'No major permit findings yet.',
-    permitNoEvidence: 'No evidence snippets yet.',
-    permitNoSegments: 'No structured segments yet.',
-    permitReadySummary: 'This package looks materially stronger for intake review.',
-    permitNeedsWorkSummary: 'This package still has intake gaps that should be resolved before submission.',
-    permitLowSummary: 'This package is not ready for permit intake yet and needs more project data.',
-    permitModeBody: 'Switch between build-first execution planning and permit-first intake review without losing the marketplace workflows.'
+    fileOcrDone: 'OCR complete'
   }
 }
 
@@ -553,180 +533,6 @@ function extractScopeDetails(text = '', detectedScope = '') {
 }
 
 
-function normalizeSourceText(value = '') {
-  return String(value || '').replace(/\s+/g, ' ').trim()
-}
-
-function inferDisciplineFromText(value = '') {
-  const lower = String(value || '').toLowerCase()
-  if (/electrical|lighting|panel|circuit|power/.test(lower)) return 'electrical'
-  if (/plumbing|sanitary|fixture|water line|pipe/.test(lower)) return 'plumbing'
-  if (/mechanical|hvac|duct|air handler/.test(lower)) return 'mechanical'
-  if (/structural|steel|rebar|footing|foundation|cmu|masonry/.test(lower)) return 'structural'
-  if (/site|grading|paving|bollard|parking|drainage|civil/.test(lower)) return 'civil'
-  if (/plan|elevation|section|door|finish|interior|architect/.test(lower)) return 'architectural'
-  if (/fire|sprinkler|alarm/.test(lower)) return 'fire'
-  return 'general'
-}
-
-function inferSegmentType(value = '') {
-  const lower = String(value || '').toLowerCase()
-  if (/schedule/.test(lower)) return 'schedule'
-  if (/detail/.test(lower)) return 'detail'
-  if (/section/.test(lower)) return 'section'
-  if (/elevation/.test(lower)) return 'elevation'
-  if (/plan/.test(lower)) return 'plan'
-  if (/note|general/.test(lower)) return 'note'
-  return 'text'
-}
-
-function buildStructuredSegments(projectNotes = '', uploadedFiles = []) {
-  const segments = []
-
-  const pushSegment = ({ sourceFile, snippet, confidence = 0.7, sourceType = 'text' }) => {
-    const normalized = normalizeSourceText(snippet)
-    if (!normalized) return
-    segments.push({
-      id: `${sourceFile || 'source'}-${segments.length}`,
-      sourceFile: sourceFile || 'Project Notes',
-      sourceType,
-      snippet: normalized,
-      discipline: inferDisciplineFromText(normalized),
-      segmentType: inferSegmentType(normalized),
-      confidence
-    })
-  }
-
-  String(projectNotes || '')
-    .split(/(?<=[.!?])\s+|\n+/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, 12)
-    .forEach((snippet) => pushSegment({ sourceFile: 'Project Notes', snippet, confidence: 0.9, sourceType: 'notes' }))
-
-  uploadedFiles.forEach((file) => {
-    const lines = String(file?.extractedText || '')
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean)
-
-    lines
-      .filter((line) => /plan|detail|section|schedule|elevation|door|gate|footing|electrical|plumbing|hvac|steel|cmu|dimension|sf|square feet/i.test(line))
-      .slice(0, 14)
-      .forEach((line) => {
-        pushSegment({
-          sourceFile: file?.name || 'Uploaded File',
-          snippet: line,
-          confidence: file?.ocrDone ? 0.78 : 0.64,
-          sourceType: file?.ocrDone ? 'ocr' : 'file'
-        })
-      })
-  })
-
-  return segments.slice(0, 40)
-}
-
-function buildAnalyzerEvidence(projectSummary = {}, projectDetailSummary = {}, structuredSegments = []) {
-  const evidence = []
-  const used = new Set()
-
-  const addEvidence = (label, value, matcher, fallbackConfidence = 0.72) => {
-    if (!value) return
-    const match = structuredSegments.find((segment) => matcher(segment))
-    const key = `${label}-${value}`
-    if (used.has(key)) return
-    used.add(key)
-    evidence.push({
-      label,
-      value,
-      confidence: match?.confidence || fallbackConfidence,
-      sourceFile: match?.sourceFile || 'Analyzer inference',
-      sourceSnippet: match?.snippet || `Derived from analyzer signals for ${value}`
-    })
-  }
-
-  ;(projectSummary.primaryTrades || []).slice(0, 6).forEach((trade) =>
-    addEvidence('Trade', titleCase(trade), (segment) => segment.snippet.toLowerCase().includes(String(trade).toLowerCase()))
-  )
-  ;(projectSummary.materials || []).slice(0, 6).forEach((material) =>
-    addEvidence('Material', titleCase(material), (segment) => segment.snippet.toLowerCase().includes(String(material).toLowerCase()), 0.68)
-  )
-  ;(projectDetailSummary.dimensions || []).slice(0, 6).forEach((dimension) =>
-    addEvidence('Dimension', dimension, (segment) => segment.snippet.includes(String(dimension)), 0.84)
-  )
-  ;(projectDetailSummary.steelGauge || []).slice(0, 4).forEach((item) =>
-    addEvidence('Steel gauge', item, (segment) => segment.snippet.toLowerCase().includes(String(item).toLowerCase()), 0.88)
-  )
-  ;(projectDetailSummary.pipeSizes || []).slice(0, 4).forEach((item) =>
-    addEvidence('Pipe / post size', item, (segment) => segment.snippet.toLowerCase().includes(String(item).toLowerCase()), 0.86)
-  )
-
-  return evidence.slice(0, 14)
-}
-
-function buildPermitPrecheck(projectSummary = {}, projectDetailSummary = {}, fullText = '', structuredSegments = []) {
-  const lower = String(fullText || '').toLowerCase()
-  const disciplinesDetected = uniqueList(
-    structuredSegments.map((segment) => segment.discipline).filter((value) => value && value !== 'general')
-  )
-
-  const expectedDisciplines = []
-  if (/(warehouse|industrial|steel|framing|office|tenant|interior|remodel|apartment|multifamily)/.test(lower)) expectedDisciplines.push('architectural')
-  if (/(concrete|steel|footing|foundation|cmu|masonry|rebar|structural)/.test(lower)) expectedDisciplines.push('structural')
-  if (/(electrical|lighting|panel|power|conduit)/.test(lower)) expectedDisciplines.push('electrical')
-  if (/(plumbing|sanitary|water line|fixture|pipe)/.test(lower)) expectedDisciplines.push('plumbing')
-  if (/(mechanical|hvac|duct|air handler)/.test(lower)) expectedDisciplines.push('mechanical')
-  if (/(site|grading|paving|drainage|parking|civil|bollard)/.test(lower)) expectedDisciplines.push('civil')
-  if (/(fire|sprinkler|alarm)/.test(lower)) expectedDisciplines.push('fire')
-
-  const missingDisciplines = uniqueList(expectedDisciplines).filter((item) => !disciplinesDetected.includes(item))
-  const missing = []
-  const unclear = []
-  const conflicting = []
-  if (!structuredSegments.some((segment) => segment.segmentType === 'plan')) missing.push('No clear plan sheet language detected.')
-  if (!structuredSegments.some((segment) => segment.segmentType === 'detail')) missing.push('No strong detail callouts detected.')
-  if (!structuredSegments.some((segment) => segment.segmentType === 'schedule')) unclear.push('No schedule language detected yet. Verify doors, panels, fixtures, or finish schedules.')
-  if (!projectDetailSummary.dimensions?.length) missing.push('No clear dimensions extracted yet.')
-  if (!extractZipFromText(fullText)) unclear.push('No ZIP or location signal detected from the uploaded scope.')
-  if (!projectSummary.primaryTrades?.length) unclear.push('No dominant trade package identified with high confidence.')
-  if (projectDetailSummary.verification?.length) unclear.push(...projectDetailSummary.verification)
-  if (missingDisciplines.length) missing.push(`Weak coverage for: ${missingDisciplines.map(titleCase).join(', ')}.`)
-  if (projectSummary.ignoredTrades?.length && projectSummary.primaryTrades?.length) conflicting.push(`Some trades were implied but not evidenced on this sheet: ${projectSummary.ignoredTrades.map(titleCase).join(', ')}.`)
-
-  let readinessScore = 32
-  readinessScore += Math.min(structuredSegments.length * 2, 18)
-  readinessScore += Math.min((projectSummary.primaryTrades?.length || 0) * 6, 18)
-  readinessScore += Math.min((projectDetailSummary.dimensions?.length || 0) * 3, 12)
-  readinessScore += Math.min((disciplinesDetected.length || 0) * 5, 20)
-  readinessScore -= missing.length * 6
-  readinessScore -= unclear.length * 3
-  readinessScore -= conflicting.length * 5
-  readinessScore = Math.max(0, Math.min(100, readinessScore))
-
-  return {
-    readinessScore,
-    disciplinesDetected,
-    missingDisciplines,
-    findings: {
-      missing: uniqueList(missing).slice(0, 8),
-      unclear: uniqueList(unclear).slice(0, 8),
-      conflicting: uniqueList(conflicting).slice(0, 6)
-    }
-  }
-}
-
-function permitReadinessTone(score = 0) {
-  if (score >= 80) return { background: '#dcf4e5', color: '#177245' }
-  if (score >= 60) return { background: '#d8ecff', color: '#0d3f73' }
-  if (score >= 40) return { background: '#fff0b4', color: '#111111' }
-  return { background: '#ffe1dc', color: '#8a2d1f' }
-}
-
-function disciplineLabel(value = '') {
-  return titleCase(String(value || '').replace(/_/g, ' '))
-}
-
-
 function estimateCrewRange(trade, squareFeet = 0, scopeText = '') {
   const lower = String(scopeText || '').toLowerCase()
   const largeJob = squareFeet >= 15000 || lower.includes('warehouse') || lower.includes('multifamily')
@@ -763,38 +569,16 @@ function buildMaterialsPlan(projectSummary, fullText = '') {
   const lower = String(fullText || '').toLowerCase()
   const base = projectSummary?.materials?.length ? [...projectSummary.materials] : []
 
-  const materialRules = [
-    ['concrete', /concrete|footing|foundation|slab|grout/],
-    ['steel', /steel|rebar|metal stud|structural steel|anchor bolt/],
-    ['lumber', /lumber|wood framing|plywood|blocking|joist|stud wall/],
-    ['drywall', /drywall|sheetrock|gypsum|gwb/],
-    ['electrical', /electrical|lighting|panel|conduit|wire|power/],
-    ['plumbing', /plumbing|pipe|piping|fixture|sanitary|water line/],
-    ['fasteners', /fasteners|screws|anchors|clips|nails|bolts/],
-    ['tools', /tools|equipment|lift|scaffold/],
-    ['equipment_rental', /lift|forklift|telehandler|scissor lift|boom lift|equipment rental/],
-    ['safety_equipment', /safety|ppe|harness|barrier|fence/],
-    ['masonry', /cmu|block|masonry|brick/],
-    ['roofing', /roof|roofing|flashing|membrane|shingle/],
-    ['sitework', /site|grading|drainage|paving|asphalt|bollard|parking/]
-  ]
+  if (lower.includes('rebar')) base.push('steel')
+  if (lower.includes('anchors') || lower.includes('bolts') || lower.includes('screws')) base.push('fasteners')
+  if (lower.includes('equipment') || lower.includes('lift')) base.push('equipment_rental')
+  if (lower.includes('safety') || lower.includes('ppe')) base.push('safety_equipment')
 
-  materialRules.forEach(([label, pattern]) => {
-    if (pattern.test(lower)) base.push(label)
-  })
-
-  const weighted = uniqueList(base).map((material) => {
-    let priority = 'Low'
-    if (['concrete', 'steel', 'lumber', 'drywall', 'electrical', 'plumbing', 'masonry'].includes(material)) priority = 'High'
-    else if (['fasteners', 'roofing', 'sitework', 'equipment_rental'].includes(material)) priority = 'Medium'
-    return {
-      material,
-      label: titleCase(material),
-      priority
-    }
-  })
-
-  return weighted
+  return uniqueList(base).map((material, index) => ({
+    material,
+    label: titleCase(material),
+    priority: index < 2 ? 'High' : index < 4 ? 'Medium' : 'Low'
+  }))
 }
 
 function buildDeliveryPlan(materialsPlan = [], projectSummary = {}, fullText = '') {
@@ -835,155 +619,6 @@ function deliveryLaneLabel(value = '') {
   if (value === 'cargo_van_delivery') return 'Cargo Van / Local Delivery'
   if (value === 'material_delivery') return 'Material Delivery / Hot Shot'
   return titleCase(value)
-}
-
-function buildAnalyzerProjectPackage({
-  scopeText = '',
-  projectSummary = {},
-  projectDetailSummary = {},
-  permitPrecheck = {},
-  permitRequirements = {},
-  structuredSegments = [],
-  analyzerEvidence = [],
-  projectEngine = null,
-  supplierForm = {},
-  crewForm = {},
-  deliveryForm = {}
-}) {
-  const materialsPlan = projectEngine?.materialsPlan?.length
-    ? projectEngine.materialsPlan
-    : buildMaterialsPlan(projectSummary, scopeText)
-
-  const supplierGroups = projectEngine?.supplierGroups || []
-  const crewPlan = projectEngine?.crewPlan || buildCrewPlan(projectSummary, scopeText)
-  const deliveryPlan = projectEngine?.deliveryPlan || buildDeliveryPlan(materialsPlan, projectSummary, scopeText)
-  const primaryZip =
-    projectEngine?.primaryZip ||
-    extractZipFromText(scopeText) ||
-    supplierForm.zip ||
-    crewForm.zip ||
-    deliveryForm.jobsiteZip ||
-    deliveryForm.pickupZip ||
-    ''
-
-  return {
-    summary: projectSummary.summary || 'General construction project',
-    detectedScope: projectSummary.detectedScope || 'general construction',
-    primaryZip,
-    projectType: inferProjectTypeFromScope(projectSummary),
-    squareFeet: extractSquareFeet(scopeText),
-    primaryTrades: projectSummary.primaryTrades || [],
-    secondaryTrades: projectSummary.secondaryTrades || [],
-    materialsPlan,
-    supplierGroups,
-    crewPlan,
-    deliveryPlan,
-    permitPrecheck,
-    permitRequirements,
-    evidence: analyzerEvidence || [],
-    structuredSegments: structuredSegments || [],
-    nextActions: projectSummary.nextActions || [],
-    fieldChecks: projectSummary.fieldChecks || [],
-    rawTextPreview: String(scopeText || '').slice(0, 3000)
-  }
-}
-
-function buildAnalyzerProjectPackageText(pkg = {}) {
-  return [
-    'SURPLOX PROJECT PACKAGE',
-    '',
-    `Scope: ${pkg.detectedScope || 'general construction'}`,
-    `Summary: ${pkg.summary || '—'}`,
-    `Primary ZIP: ${pkg.primaryZip || '—'}`,
-    `Project Type: ${pkg.projectType || '—'}`,
-    `Square Feet: ${pkg.squareFeet ? Number(pkg.squareFeet).toLocaleString() : '—'}`,
-    `Primary Trades: ${(pkg.primaryTrades || []).map(titleCase).join(', ') || '—'}`,
-    `Secondary Trades: ${(pkg.secondaryTrades || []).map(titleCase).join(', ') || '—'}`,
-    '',
-    `Materials: ${(pkg.materialsPlan || []).map((item) => `${item.label} (${item.priority})`).join(', ') || '—'}`,
-    `Suppliers Suggested: ${(pkg.supplierGroups || []).reduce((sum, group) => sum + ((group.suppliers || []).length), 0) || 0}`,
-    `Crew Matches: ${(pkg.crewPlan || []).reduce((sum, item) => sum + ((item.matches || []).length), 0) || 0}`,
-    `Delivery Lane: ${deliveryLaneLabel(pkg.deliveryPlan?.suggestedLane || '') || '—'}`,
-    `Delivery Notes: ${pkg.deliveryPlan?.notes || '—'}`,
-    '',
-    `Permit Readiness: ${pkg.permitPrecheck?.readinessScore || 0}/100`,
-    `Required Permits: ${(pkg.permitRequirements?.required_permits || []).join(', ') || '—'}`,
-    `Missing Inputs: ${(pkg.permitRequirements?.missing_inputs || []).join(' | ') || 'None'}`,
-    `Warnings: ${(pkg.permitRequirements?.warnings || []).join(' | ') || 'None'}`,
-    '',
-    `Next Actions: ${(pkg.nextActions || []).join(' | ') || 'None'}`,
-    `Field Checks: ${(pkg.fieldChecks || []).join(' | ') || 'None'}`
-  ].join('\n')
-}
-
-function downloadAnalyzerProjectPackagePdf(pkg = {}) {
-  const pdf = new jsPDF('p', 'pt', 'a4')
-  pdf.setFont('helvetica', 'bold')
-  pdf.setFontSize(18)
-  pdf.text('Surplox Project Package', 40, 44)
-
-  pdf.setFont('helvetica', 'normal')
-  pdf.setFontSize(11)
-  pdf.text(`Scope: ${pkg.detectedScope || 'general construction'}`, 40, 68)
-  pdf.text(`Primary ZIP: ${pkg.primaryZip || '—'}`, 40, 84)
-  pdf.text(`Project Type: ${pkg.projectType || '—'}`, 40, 100)
-
-  autoTable(pdf, {
-    startY: 120,
-    theme: 'grid',
-    head: [['Project Summary', 'Value']],
-    body: [
-      ['Summary', pkg.summary || '—'],
-      ['Primary Trades', (pkg.primaryTrades || []).map(titleCase).join(', ') || '—'],
-      ['Secondary Trades', (pkg.secondaryTrades || []).map(titleCase).join(', ') || '—'],
-      ['Square Feet', pkg.squareFeet ? Number(pkg.squareFeet).toLocaleString() : '—'],
-      ['Permit Readiness', `${pkg.permitPrecheck?.readinessScore || 0}/100`],
-      ['Required Permits', (pkg.permitRequirements?.required_permits || []).join(', ') || '—']
-    ],
-    margin: { left: 40, right: 40 },
-    styles: { fontSize: 10, cellPadding: 6 }
-  })
-
-  autoTable(pdf, {
-    startY: pdf.lastAutoTable.finalY + 16,
-    theme: 'grid',
-    head: [['Materials', 'Priority']],
-    body: (pkg.materialsPlan || []).length
-      ? (pkg.materialsPlan || []).map((item) => [item.label, item.priority || '—'])
-      : [['No materials extracted yet.', '—']],
-    margin: { left: 40, right: 40 },
-    styles: { fontSize: 10, cellPadding: 6 }
-  })
-
-  autoTable(pdf, {
-    startY: pdf.lastAutoTable.finalY + 16,
-    theme: 'grid',
-    head: [['Supplier Signals', 'Count']],
-    body: (pkg.supplierGroups || []).length
-      ? (pkg.supplierGroups || []).map((group) => [group.label || 'Supplier group', String((group.suppliers || []).length)])
-      : [['No suppliers suggested yet.', '0']],
-    margin: { left: 40, right: 40 },
-    styles: { fontSize: 10, cellPadding: 6 }
-  })
-
-  autoTable(pdf, {
-    startY: pdf.lastAutoTable.finalY + 16,
-    theme: 'grid',
-    head: [['Execution + Permits', 'Value']],
-    body: [
-      ['Delivery Lane', deliveryLaneLabel(pkg.deliveryPlan?.suggestedLane || '') || '—'],
-      ['Delivery Notes', pkg.deliveryPlan?.notes || '—'],
-      ['Missing Inputs', (pkg.permitRequirements?.missing_inputs || []).join(' | ') || 'None'],
-      ['Warnings', (pkg.permitRequirements?.warnings || []).join(' | ') || 'None'],
-      ['Next Actions', (pkg.nextActions || []).join(' | ') || 'None'],
-      ['Field Checks', (pkg.fieldChecks || []).join(' | ') || 'None']
-    ],
-    margin: { left: 40, right: 40 },
-    styles: { fontSize: 10, cellPadding: 6 }
-  })
-
-  const filename = `${String(pkg.detectedScope || 'surplox-project-package').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'surplox-project-package'}.pdf`
-  pdf.save(filename)
 }
 
 async function runSupplierEngine(materialsPlan = [], zip = '', supplierForm = {}) {
@@ -1430,12 +1065,6 @@ export default function SupplierAiTools() {
   const [uploadedFiles, setUploadedFiles] = useState([])
   const [extractedText, setExtractedText] = useState('')
   const [projectEngine, setProjectEngine] = useState(null)
-  const [analyzerMode, setAnalyzerMode] = useState('build')
-
-  const structuredSegments = useMemo(
-    () => buildStructuredSegments(projectNotes, uploadedFiles),
-    [projectNotes, uploadedFiles]
-  )
 
   const projectSummary = useMemo(
     () => scoreScope(`${projectNotes}\n${extractedText}`),
@@ -1445,6 +1074,58 @@ export default function SupplierAiTools() {
   const projectDetailSummary = useMemo(
     () => extractScopeDetails(`${projectNotes}\n${extractedText}`, projectSummary.detectedScope),
     [projectNotes, extractedText, projectSummary.detectedScope]
+  )
+
+
+  const analyzerEvidence = useMemo(
+    () => buildAnalyzerEvidence(projectSummary, projectDetailSummary, structuredSegments),
+    [projectSummary, projectDetailSummary, structuredSegments]
+  )
+
+  const permitPrecheck = useMemo(
+    () => buildPermitPrecheck(projectSummary, projectDetailSummary, `${projectNotes}\n${extractedText}`, structuredSegments),
+    [projectSummary, projectDetailSummary, projectNotes, extractedText, structuredSegments]
+  )
+
+  const permitRequirements = useMemo(
+    () => getPermitRequirements({ projectSummary, projectDetailSummary, fullText: `${projectNotes}\n${extractedText}` }),
+    [projectSummary, projectDetailSummary, projectNotes, extractedText]
+  )
+
+  const analyzerProjectPackage = useMemo(
+    () =>
+      buildAnalyzerProjectPackage({
+        scopeText: [projectNotes, extractedText].filter(Boolean).join('\n\n'),
+        projectSummary,
+        projectDetailSummary,
+        permitPrecheck,
+        permitRequirements,
+        structuredSegments,
+        analyzerEvidence,
+        projectEngine,
+        supplierForm,
+        crewForm,
+        deliveryForm
+      }),
+    [
+      projectNotes,
+      extractedText,
+      projectSummary,
+      projectDetailSummary,
+      permitPrecheck,
+      permitRequirements,
+      structuredSegments,
+      analyzerEvidence,
+      projectEngine,
+      supplierForm,
+      crewForm,
+      deliveryForm
+    ]
+  )
+
+  const analyzerProjectPackageText = useMemo(
+    () => buildAnalyzerProjectPackageText(analyzerProjectPackage),
+    [analyzerProjectPackage]
   )
 
   function setSupplierField(key, value) {
@@ -1621,27 +1302,6 @@ export default function SupplierAiTools() {
         extractedText ||
         `Need delivery support. Suggested match: ${driver?.display_name || 'driver'} with ${String(driver?.vehicle_type || '').replace(/_/g, ' ')}${driver?.trailer_type ? ` and ${String(driver.trailer_type).replace(/_/g, ' ')}` : ''}.`
     })
-  }
-
-
-  function copyAnalyzerProjectPackage() {
-    try {
-      navigator.clipboard.writeText(analyzerProjectPackageText)
-      setMessage('Project package copied to clipboard.')
-    } catch (error) {
-      console.error(error)
-      setMessage('Unable to copy project package right now.')
-    }
-  }
-
-  function downloadAnalyzerProjectPackage() {
-    try {
-      downloadAnalyzerProjectPackagePdf(analyzerProjectPackage)
-      setMessage('Project package PDF downloaded.')
-    } catch (error) {
-      console.error(error)
-      setMessage('Unable to generate project package PDF right now.')
-    }
   }
 
   async function handleImportSuppliers(event) {
@@ -1849,9 +1509,6 @@ export default function SupplierAiTools() {
       const nextEngine = {
         summary: projectSummary.summary,
         primaryZip: detectedZip,
-        permitPrecheck,
-        evidence: analyzerEvidence,
-        structuredSegments,
         scopeSignals: {
           trades: projectSummary.trades,
           materials: projectSummary.materials,
@@ -2383,104 +2040,6 @@ export default function SupplierAiTools() {
             <Chip onClick={useAnalyzerForDelivery}>{copy.deliveryTab}</Chip>
           </div>
 
-          <div className="card-soft" style={{ marginTop: 16, background: analyzerMode === 'permit' ? '#fff4da' : '#eef5ff' }}>
-            <div className="card-section-title">Analyzer Mode</div>
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-              {copy.permitModeBody}
-            </p>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
-              <Chip active={analyzerMode === 'build'} onClick={() => setAnalyzerMode('build')}>{copy.analyzerBuildMode}</Chip>
-              <Chip active={analyzerMode === 'permit'} onClick={() => setAnalyzerMode('permit')}>{copy.analyzerPermitMode}</Chip>
-            </div>
-          </div>
-
-
-          <div className="card-soft" style={{ marginTop: 16, background: '#eef7f1' }}>
-            <div className="card-section-title">Generated Project Package</div>
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-              This turns the analyzer into a sellable output: scope, materials, supplier signals, delivery lane, permits, and next actions in one package.
-            </p>
-
-            <div className="grid two" style={{ gap: 14, marginTop: 12 }}>
-              <div className="card-soft" style={{ background: '#ffffff' }}>
-                <div className="muted">Scope + project profile</div>
-                <div style={{ marginTop: 8, lineHeight: 1.7 }}>
-                  <strong>{analyzerProjectPackage.detectedScope || 'general construction'}</strong><br />
-                  {analyzerProjectPackage.summary || 'No summary yet.'}<br />
-                  ZIP: {analyzerProjectPackage.primaryZip || '—'}<br />
-                  Type: {analyzerProjectPackage.projectType || '—'}<br />
-                  SF: {analyzerProjectPackage.squareFeet ? Number(analyzerProjectPackage.squareFeet).toLocaleString() : '—'}
-                </div>
-              </div>
-
-              <div className="card-soft" style={{ background: '#ffffff' }}>
-                <div className="muted">Package snapshot</div>
-                <div style={{ marginTop: 8, lineHeight: 1.7 }}>
-                  Materials: {(analyzerProjectPackage.materialsPlan || []).length}<br />
-                  Suppliers: {(analyzerProjectPackage.supplierGroups || []).reduce((sum, group) => sum + ((group.suppliers || []).length), 0) || 0}<br />
-                  Crew matches: {(analyzerProjectPackage.crewPlan || []).reduce((sum, item) => sum + ((item.matches || []).length), 0) || 0}<br />
-                  Delivery lane: {deliveryLaneLabel(analyzerProjectPackage.deliveryPlan?.suggestedLane || '') || '—'}<br />
-                  Permit readiness: {analyzerProjectPackage.permitPrecheck?.readinessScore || 0}/100
-                </div>
-              </div>
-            </div>
-
-            <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
-              <div className="muted">Extracted materials</div>
-              {(analyzerProjectPackage.materialsPlan || []).length ? (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                  {analyzerProjectPackage.materialsPlan.map((item) => (
-                    <span key={`pkg-material-${item.material}`} className="badge">
-                      {item.label} · {item.priority}
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ marginTop: 10 }}>No materials extracted yet.</div>
-              )}
-            </div>
-
-            <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
-              <div className="muted">Supplier suggestions</div>
-              {(analyzerProjectPackage.supplierGroups || []).some((group) => (group.suppliers || []).length) ? (
-                <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
-                  {analyzerProjectPackage.supplierGroups.map((group) => (
-                    <div key={`pkg-supplier-${group.material}`} className="card-soft" style={{ background: '#f8f7ef' }}>
-                      <div style={{ fontWeight: 800 }}>{group.label}</div>
-                      {(group.suppliers || []).length ? (
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-                          {group.suppliers.slice(0, 4).map((supplier) => (
-                            <span key={`${group.material}-${supplier.external_id || supplier.id || supplier.business_name}`} className="badge">
-                              {supplier.business_name || supplier.display_name}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <div style={{ marginTop: 8 }}>No supplier suggestions yet for this category.</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ marginTop: 10 }}>Run Project Engine after adding notes or OCR text to generate supplier suggestions.</div>
-              )}
-            </div>
-
-            <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
-              <div className="muted">Formatted package</div>
-              <pre style={{ whiteSpace: 'pre-wrap', marginTop: 10, fontFamily: 'inherit' }}>{analyzerProjectPackageText}</pre>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
-              <button className="btn primary" type="button" onClick={copyAnalyzerProjectPackage}>
-                Copy Project Package
-              </button>
-              <button className="btn" type="button" onClick={downloadAnalyzerProjectPackage}>
-                Download Project Package PDF
-              </button>
-            </div>
-          </div>
-
           <div className="card-soft" style={{ marginTop: 16, background: '#fffaf0' }}>
             <div className="card-section-title">{copy.engineLaunchpadTitle}</div>
             <p className="card-section-subtitle" style={{ marginTop: 8 }}>
@@ -2853,119 +2412,6 @@ export default function SupplierAiTools() {
                 {copy.engineBuildRepairPost}
               </button>
             </div>
-          </div>
-
-          <div className="card-soft" style={{ marginTop: 16, background: analyzerMode === 'permit' ? '#fffaf0' : '#ffffff' }}>
-            <div className="card-section-title">{copy.permitPrecheckTitle}</div>
-            <div className="grid two" style={{ gap: 14, marginTop: 12 }}>
-              <div className="card-soft" style={{ background: '#ffffff' }}>
-                <div className="muted">{copy.permitReadinessScore}</div>
-                <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <div style={{ fontSize: 32, fontWeight: 900 }}>{permitPrecheck.readinessScore}/100</div>
-                  <span className="badge" style={permitReadinessTone(permitPrecheck.readinessScore)}>
-                    {permitPrecheck.readinessScore >= 80 ? copy.permitReadySummary : permitPrecheck.readinessScore >= 50 ? copy.permitNeedsWorkSummary : copy.permitLowSummary}
-                  </span>
-                </div>
-              </div>
-
-              <div className="card-soft" style={{ background: '#ffffff' }}>
-                <div className="muted">{copy.permitDisciplinesDetected}</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                  {permitPrecheck.disciplinesDetected.length ? permitPrecheck.disciplinesDetected.map((item) => (
-                    <span key={`discipline-${item}`} className="badge">{disciplineLabel(item)}</span>
-                  )) : <span className="badge">No strong discipline coverage yet</span>}
-                </div>
-                <div className="muted" style={{ marginTop: 12 }}>{copy.permitMissingDisciplines}</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-                  {permitPrecheck.missingDisciplines.length ? permitPrecheck.missingDisciplines.map((item) => (
-                    <span key={`missing-discipline-${item}`} className="badge" style={{ background: '#ffe1dc', color: '#8a2d1f' }}>{disciplineLabel(item)}</span>
-                  )) : <span className="badge">No obvious missing discipline lanes</span>}
-                </div>
-              </div>
-            </div>
-
-            <div className="grid three" style={{ gap: 14, marginTop: 14 }}>
-              <div className="card-soft" style={{ background: '#ffffff' }}>
-                <div className="muted">{copy.permitMissingItems}</div>
-                {permitPrecheck.findings.missing.length ? (
-                  <ul style={{ margin: '10px 0 0 18px', padding: 0 }}>
-                    {permitPrecheck.findings.missing.map((item) => (
-                      <li key={`permit-missing-${item}`} style={{ marginTop: 4 }}>{item}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div style={{ marginTop: 10 }}>{copy.permitNoFindings}</div>
-                )}
-              </div>
-
-              <div className="card-soft" style={{ background: '#ffffff' }}>
-                <div className="muted">{copy.permitUnclearItems}</div>
-                {permitPrecheck.findings.unclear.length ? (
-                  <ul style={{ margin: '10px 0 0 18px', padding: 0 }}>
-                    {permitPrecheck.findings.unclear.map((item) => (
-                      <li key={`permit-unclear-${item}`} style={{ marginTop: 4 }}>{item}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div style={{ marginTop: 10 }}>{copy.permitNoFindings}</div>
-                )}
-              </div>
-
-              <div className="card-soft" style={{ background: '#ffffff' }}>
-                <div className="muted">{copy.permitConflictingItems}</div>
-                {permitPrecheck.findings.conflicting.length ? (
-                  <ul style={{ margin: '10px 0 0 18px', padding: 0 }}>
-                    {permitPrecheck.findings.conflicting.map((item) => (
-                      <li key={`permit-conflicting-${item}`} style={{ marginTop: 4 }}>{item}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div style={{ marginTop: 10 }}>{copy.permitNoFindings}</div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ marginTop: 16 }}>
-            <div className="card-section-title">{copy.permitEvidenceTitle}</div>
-            {analyzerEvidence.length ? (
-              <div className="grid" style={{ gap: 12, marginTop: 12 }}>
-                {analyzerEvidence.map((item, index) => (
-                  <div key={`evidence-${item.label}-${item.value}-${index}`} className="card-soft" style={{ background: '#ffffff' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                      <div style={{ fontWeight: 800 }}>{item.label}: {item.value}</div>
-                      <span className="badge">Confidence {Math.round((item.confidence || 0) * 100)}%</span>
-                    </div>
-                    <div className="muted" style={{ marginTop: 8 }}>{item.sourceFile}</div>
-                    <div style={{ marginTop: 8, lineHeight: 1.7 }}>{item.sourceSnippet}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.permitNoEvidence}</p>
-            )}
-          </div>
-
-          <div className="card-soft" style={{ marginTop: 16 }}>
-            <div className="card-section-title">{copy.permitSegmentTitle}</div>
-            {structuredSegments.length ? (
-              <div className="grid" style={{ gap: 12, marginTop: 12 }}>
-                {structuredSegments.slice(0, 14).map((segment) => (
-                  <div key={segment.id} className="card-soft" style={{ background: '#ffffff' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                      <div style={{ fontWeight: 800 }}>{segment.sourceFile}</div>
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <span className="badge">{disciplineLabel(segment.discipline)}</span>
-                        <span className="badge">{titleCase(segment.segmentType)}</span>
-                      </div>
-                    </div>
-                    <div style={{ marginTop: 8, lineHeight: 1.7 }}>{segment.snippet}</div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.permitNoSegments}</p>
-            )}
           </div>
 
           <div className="card-soft" style={{ marginTop: 16 }}>
