@@ -235,6 +235,216 @@ const TRAILER_OPTIONS = [
 const SUPPORT_OPTIONS = ['material_delivery', 'cargo_van_delivery']
 
 
+const MATERIAL_SYNONYMS = {
+  concrete: ['concrete', 'cement', 'footing', 'footings', 'foundation', 'slab', 'flatwork', 'rebar', 'ready mix', 'ready-mix'],
+  lumber: ['lumber', 'framing', 'stud', 'plywood', 'osb', 'wood'],
+  steel: ['steel', 'metal', 'beam', 'pipe', 'tube', 'rebar', 'fabrication', 'gate', 'bollard'],
+  electrical: ['electrical', 'lighting', 'panel', 'conduit', 'wire', 'power'],
+  plumbing: ['plumbing', 'pipe', 'piping', 'fixture', 'sanitary', 'water line'],
+  drywall: ['drywall', 'sheetrock', 'gypsum'],
+  fasteners: ['fasteners', 'anchors', 'bolts', 'screws', 'nails', 'hardware'],
+  tools: ['tools', 'tooling'],
+  equipment_rental: ['equipment rental', 'rental', 'lift', 'skid steer', 'excavator'],
+  safety_equipment: ['safety equipment', 'ppe', 'hard hat', 'vest', 'gloves', 'protection'],
+  masonry: ['masonry', 'cmu', 'block', 'brick'],
+  site_hardware: ['site hardware', 'bollard', 'fence', 'gate hardware']
+}
+
+const MATERIAL_CATEGORY_ALIASES = Object.fromEntries(
+  Object.entries(MATERIAL_SYNONYMS).flatMap(([category, values]) =>
+    [category, ...values].map((value) => [String(value).toLowerCase(), category])
+  )
+)
+
+function normalizeMaterialCategory(value = '') {
+  const normalized = String(value || '').trim().toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ')
+  return MATERIAL_CATEGORY_ALIASES[normalized] || normalized
+}
+
+function getExpandedMaterialTerms(value = '') {
+  const category = normalizeMaterialCategory(value)
+  const baseTerms = MATERIAL_SYNONYMS[category] || []
+  return Array.from(new Set([category, ...baseTerms].filter(Boolean)))
+}
+
+function normalizeSupplierMaterials(list = []) {
+  if (!Array.isArray(list)) return []
+  return Array.from(
+    new Set(
+      list
+        .map((item) => normalizeMaterialCategory(item))
+        .filter(Boolean)
+    )
+  )
+}
+
+function buildSupplierHaystack(supplier = {}) {
+  return [
+    supplier.business_name,
+    supplier.display_name,
+    supplier.business_zip,
+    supplier.business_address,
+    supplier.bio,
+    supplier.phone,
+    supplier.website_url,
+    ...(supplier.materials_categories || [])
+  ]
+    .join(' ')
+    .toLowerCase()
+}
+
+function estimateZipClosenessScore(targetZip = '', supplierZip = '') {
+  const a = String(targetZip || '').replace(/\D/g, '').slice(0, 5)
+  const b = String(supplierZip || '').replace(/\D/g, '').slice(0, 5)
+
+  if (!a || !b) return 0
+  if (a === b) return 18
+  if (a.slice(0, 3) === b.slice(0, 3)) return 10
+  if (a.slice(0, 2) === b.slice(0, 2)) return 6
+  return 0
+}
+
+function supplierCompletenessScore(supplier = {}) {
+  let score = 0
+  if (supplier.storefront) score += 4
+  if (supplier.bio) score += 3
+  if (supplier.phone) score += 2
+  if (supplier.website_url) score += 2
+  if (Number(supplier.delivery_radius || 0) > 0) score += 3
+  if ((supplier.materials_categories || []).length > 0) score += 4
+  return score
+}
+
+function makeNativeSupplierCandidate(item = {}) {
+  return {
+    id: item.user_id,
+    source: 'native',
+    external_id: null,
+    user_id: item.user_id || null,
+    display_name: String(item.display_name || '').trim(),
+    business_name: String(item.business_name || item.display_name || '').trim(),
+    business_address: String(item.business_address || '').trim(),
+    business_zip: String(item.business_zip || '').trim(),
+    delivery_radius: Number(item.delivery_radius || 0) || 0,
+    materials_categories: normalizeSupplierMaterials(item.materials_categories),
+    storefront: Boolean(item.storefront),
+    bio: String(item.bio || '').trim(),
+    phone: '',
+    website_url: ''
+  }
+}
+
+function makeImportedSupplierCandidate(item = {}) {
+  return {
+    id: item.id || item.external_id,
+    source: 'imported',
+    external_id: item.external_id || String(item.id || ''),
+    user_id: null,
+    display_name: String(item.display_name || item.business_name || '').trim(),
+    business_name: String(item.business_name || item.display_name || '').trim(),
+    business_address: String(item.business_address || '').trim(),
+    business_zip: String(item.business_zip || '').trim(),
+    delivery_radius: Number(item.delivery_radius || 0) || 0,
+    materials_categories: normalizeSupplierMaterials(item.materials_categories),
+    storefront: Boolean(item.storefront),
+    bio: String(item.bio || '').trim(),
+    phone: String(item.phone || '').trim(),
+    website_url: String(item.website_url || '').trim()
+  }
+}
+
+function scoreSupplierCandidate(supplier = {}, material = '', zip = '') {
+  const normalizedMaterial = normalizeMaterialCategory(material)
+  const expandedTerms = getExpandedMaterialTerms(normalizedMaterial)
+  const supplierCategories = normalizeSupplierMaterials(supplier.materials_categories)
+  const haystack = buildSupplierHaystack(supplier)
+
+  let score = 0
+
+  if (supplierCategories.includes(normalizedMaterial)) {
+    score += 30
+  } else if (expandedTerms.some((term) => haystack.includes(String(term).toLowerCase()))) {
+    score += 18
+  }
+
+  score += estimateZipClosenessScore(zip, supplier.business_zip)
+  score += supplierCompletenessScore(supplier)
+  score += Math.min(Number(supplier.delivery_radius || 0), 150) / 8
+
+  if (supplier.source === 'native') score += 5
+  return Math.round(score)
+}
+
+async function fetchSupplierCandidates() {
+  const [nativeResponse, importedResponse] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select(`
+        user_id,
+        display_name,
+        business_name,
+        business_address,
+        business_zip,
+        delivery_radius,
+        materials_categories,
+        storefront,
+        bio,
+        role
+      `)
+      .eq('role', 'supplier'),
+    supabase
+      .from('external_suppliers')
+      .select(`
+        id,
+        external_id,
+        display_name,
+        business_name,
+        business_address,
+        business_zip,
+        delivery_radius,
+        materials_categories,
+        storefront,
+        bio,
+        phone,
+        website_url
+      `)
+  ])
+
+  if (nativeResponse.error) throw nativeResponse.error
+  if (importedResponse.error && importedResponse.error.code !== 'PGRST116') throw importedResponse.error
+
+  const nativeSuppliers = (nativeResponse.data || []).map(makeNativeSupplierCandidate)
+  const importedSuppliers = (importedResponse.data || []).map(makeImportedSupplierCandidate)
+
+  return Array.from(
+    new Map(
+      [...nativeSuppliers, ...importedSuppliers].map((item) => {
+        const key = `${String(item.business_name || '').trim().toLowerCase()}::${String(item.business_zip || '').trim()}`
+        return [key, item]
+      })
+    ).values()
+  )
+}
+
+function matchSuppliersToMaterial(materialItem, supplierPool = [], zip = '') {
+  const label = materialItem?.label || titleCase(materialItem?.material || '')
+  const ranked = supplierPool
+    .map((supplier) => ({
+      ...supplier,
+      match_score: scoreSupplierCandidate(supplier, label, zip)
+    }))
+    .filter((supplier) => supplier.match_score > 0)
+    .sort((a, b) => b.match_score - a.match_score)
+    .slice(0, 4)
+
+  return {
+    material: materialItem?.material || normalizeMaterialCategory(label),
+    label,
+    suppliers: ranked
+  }
+}
+
+
 const EMBEDDED_PERMIT_META_START = '[[SURPLOX_PROJECT_META_START]]'
 const EMBEDDED_PERMIT_META_END = '[[SURPLOX_PROJECT_META_END]]'
 
@@ -940,13 +1150,15 @@ function buildMaterialsPlan(projectSummary, fullText = '') {
   const base = projectSummary?.materials?.length ? [...projectSummary.materials] : []
 
   if (lower.includes('rebar')) base.push('steel')
+  if (/(cmu|block|brick|masonry)/.test(lower)) base.push('masonry')
+  if (/(gate hardware|hinge|latch|bollard)/.test(lower)) base.push('site_hardware')
   if (lower.includes('anchors') || lower.includes('bolts') || lower.includes('screws')) base.push('fasteners')
   if (lower.includes('equipment') || lower.includes('lift')) base.push('equipment_rental')
   if (lower.includes('safety') || lower.includes('ppe')) base.push('safety_equipment')
 
   return uniqueList(base).map((material, index) => ({
-    material,
-    label: titleCase(material),
+    material: normalizeMaterialCategory(material),
+    label: titleCase(normalizeMaterialCategory(material)),
     priority: index < 2 ? 'High' : index < 4 ? 'Medium' : 'Low'
   }))
 }
@@ -1088,8 +1300,11 @@ function buildAnalyzerProjectPackageText(pkg = {}) {
 
 async function runSupplierEngine(materialsPlan = [], zip = '', supplierForm = {}) {
   const supplierGroups = []
+  let localSupplierPool = null
 
-  for (const item of materialsPlan.slice(0, 3)) {
+  for (const item of materialsPlan.slice(0, 4)) {
+    let groupSuppliers = []
+
     try {
       const response = await fetch(API_SUPPLIER_SEARCH_ENDPOINT, {
         method: 'POST',
@@ -1103,16 +1318,29 @@ async function runSupplierEngine(materialsPlan = [], zip = '', supplierForm = {}
       })
 
       const data = await response.json()
-      if (!response.ok) continue
-
-      supplierGroups.push({
-        material: item.material,
-        label: item.label,
-        suppliers: Array.isArray(data?.suppliers) ? data.suppliers.slice(0, 4) : []
-      })
+      if (response.ok && Array.isArray(data?.suppliers)) {
+        groupSuppliers = data.suppliers.slice(0, 4)
+      }
     } catch (error) {
       console.error(error)
     }
+
+    if (!groupSuppliers.length) {
+      try {
+        if (!localSupplierPool) {
+          localSupplierPool = await fetchSupplierCandidates()
+        }
+        groupSuppliers = matchSuppliersToMaterial(item, localSupplierPool, zip || supplierForm.zip).suppliers
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    supplierGroups.push({
+      material: item.material,
+      label: item.label,
+      suppliers: Array.isArray(groupSuppliers) ? groupSuppliers.slice(0, 4) : []
+    })
   }
 
   return supplierGroups
@@ -2772,6 +3000,7 @@ export default function SupplierAiTools() {
                     <div><strong>{copy.engineDeliveryMatches}:</strong> {projectEngine.deliveryPlan?.matches?.length || 0}</div>
                     <div><strong>{copy.engineRecommendedNext}:</strong> {projectEngine.recommendedNext}</div>
                     <div><strong>Project record:</strong> Use the project creation card below to push this analysis into Admin Projects.</div>
+                    <div><strong>Supplier matching:</strong> Supplier search now falls back to internal Surplox supplier matching when the external endpoint returns light results.</div>
                   </div>
                 </div>
 
