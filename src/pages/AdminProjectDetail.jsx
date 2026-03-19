@@ -535,21 +535,6 @@ function permitStatusTone(status) {
   return { background: '#ecebe3', color: '#111111' }
 }
 
-
-import { useEffect, useState } from 'react'
-
-// RFQ STATE
-const [rfqs, setRfqs] = useState([])
-
-async function fetchRFQs(projectId) {
-  if (!projectId) return
-  const { data, error } = await supabase
-    .from('rfqs')
-    .select('*')
-    .eq('project_id', projectId)
-    .order('created_at', { ascending: false })
-  if (!error) setRfqs(data || [])
-}
 export default function AdminProjectDetail() {
   const { id } = useParams()
   const [project, setProject] = useState(null)
