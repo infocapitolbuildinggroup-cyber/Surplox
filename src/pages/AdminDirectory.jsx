@@ -888,7 +888,7 @@ export default function AdminDirectory() {
             .order('created_at', { ascending: false }),
           supabase
             .from('admin_crm_records')
-            .select('id, company, project, notes, project_status, project_phase, project_next_action, is_active_job, job_started_at, created_at')
+            .select('*')
             .order('created_at', { ascending: false }),
           supabase.from('admin_invoices').select('*'),
           supabase.from('admin_time_entries').select('*'),
