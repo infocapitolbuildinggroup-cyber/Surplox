@@ -451,6 +451,71 @@ export default function AdminProjectDetail() {
     return Array.from(new Set([...(permitForm.scopes || []), ...permitSignals]))
   }, [permitForm.scopes, permitSignals])
 
+
+  const riskLevel = useMemo(() => {
+    if (permitReadiness.score >= 80) return 'Low'
+    if (permitReadiness.score >= 50) return 'Medium'
+    return 'High'
+  }, [permitReadiness.score])
+
+  const supplierSignals = useMemo(() => {
+    return Array.from(
+      new Set(
+        materials
+          .map((row) => String(row.supplier_name || '').trim())
+          .filter(Boolean)
+      )
+    )
+  }, [materials])
+
+  const nextActions = useMemo(() => {
+    const actions = []
+
+    if (permitForm.permit_required && permitForm.permit_status === 'not_started') {
+      actions.push('Start permit application and intake routing.')
+    }
+
+    if (!String(permitForm.jurisdiction || '').trim()) {
+      actions.push('Set the jurisdiction / permit authority for this project.')
+    }
+
+    if (!String(permitForm.location_city || '').trim()) {
+      actions.push('Add the project city so permitting can be routed correctly.')
+    }
+
+    if (!String(permitForm.location_county || '').trim()) {
+      actions.push('Add the project county for jurisdiction and review mapping.')
+    }
+
+    if ((permitReadiness.blockers || []).length > 0) {
+      actions.push('Resolve the top permit readiness blockers before submission.')
+    }
+
+    if (materials.length === 0) {
+      actions.push('Add material costs so scope and permit signals become stronger.')
+    }
+
+    if (assignedWorkers.length === 0) {
+      actions.push('Assign workers or crew coverage to this project.')
+    }
+
+    if (!String(projectMeta.project_next_action || '').trim()) {
+      actions.push('Record the next operational action for the team.')
+    }
+
+    return Array.from(new Set(actions)).slice(0, 6)
+  }, [
+    permitForm.permit_required,
+    permitForm.permit_status,
+    permitForm.jurisdiction,
+    permitForm.location_city,
+    permitForm.location_county,
+    permitReadiness.blockers,
+    materials.length,
+    assignedWorkers.length,
+    projectMeta.project_next_action
+  ])
+
   function updateInvoiceItem(id, key, value) {
     setInvoiceForm((prev) => ({
       ...prev,
@@ -811,6 +876,7 @@ export default function AdminProjectDetail() {
             Permit: {PERMIT_STATUS_OPTIONS.find((item) => item.value === permitForm.permit_status)?.label || 'Not Started'}
           </span>
           <span className="badge">Readiness: {permitReadiness.score}/100</span>
+          <span className="badge">Risk: {riskLevel}</span>
           <span className="badge">{project.is_active_job ? 'ACTIVE JOBSITE' : 'Inactive Jobsite'}</span>
           <span className="badge">Assigned Workers: {assignedWorkers.length}</span>
         </div>
@@ -837,6 +903,27 @@ export default function AdminProjectDetail() {
             <span className="badge" style={{ marginLeft: 8 }}>Crew On Site: {activeCrew.length}</span>
           </div>
         ) : null}
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">Recommended Next Actions</div>
+        <div className="muted" style={{ marginTop: 8 }}>
+          These actions are generated from permit status, intake blockers, staffing, and material coverage.
+        </div>
+
+        {nextActions.length === 0 ? (
+          <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
+            No immediate actions. This project looks relatively stable right now.
+          </div>
+        ) : (
+          <div className="list" style={{ marginTop: 14 }}>
+            {nextActions.map((action, index) => (
+              <div key={`${action}-${index}`} className="card-soft" style={{ background: '#ffffff' }}>
+                <div style={{ fontWeight: 800, lineHeight: 1.7 }}>• {action}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid three">
@@ -1103,6 +1190,33 @@ export default function AdminProjectDetail() {
             <div className="card-soft" style={{ background: '#ffffff' }}>
               <div className="muted">Jurisdiction</div>
               <div style={{ marginTop: 8, fontWeight: 800 }}>{permitForm.jurisdiction || 'Not set yet'}</div>
+            </div>
+
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">Project risk level</div>
+              <div style={{ marginTop: 8, fontWeight: 800 }}>{riskLevel}</div>
+            </div>
+
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">Suppliers used</div>
+              {supplierSignals.length === 0 ? (
+                <div style={{ marginTop: 8, fontWeight: 800 }}>No suppliers logged yet.</div>
+              ) : (
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  {supplierSignals.map((supplier) => (
+                    <span key={supplier} className="badge">{supplier}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">Delivery planning signal</div>
+              <div style={{ marginTop: 8, lineHeight: 1.7 }}>
+                {supplierSignals.length > 0
+                  ? 'Supplier records are present, so this project is ready to connect supply pickups into the delivery lane.'
+                  : 'Log at least one supplier or material source to start delivery planning from supplier to jobsite.'}
+              </div>
             </div>
 
             <div className="card-soft" style={{ background: '#ffffff' }}>
