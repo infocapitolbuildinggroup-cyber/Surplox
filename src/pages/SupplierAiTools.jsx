@@ -204,6 +204,130 @@ const TRAILER_OPTIONS = [
 ]
 const SUPPORT_OPTIONS = ['material_delivery', 'cargo_van_delivery']
 
+
+const EMBEDDED_PERMIT_META_START = '[[SURPLOX_PROJECT_META_START]]'
+const EMBEDDED_PERMIT_META_END = '[[SURPLOX_PROJECT_META_END]]'
+
+function normalizePermitMetadata(value = {}) {
+  const permitTypes = Array.isArray(value.permit_types)
+    ? value.permit_types.map((item) => String(item || '').trim()).filter(Boolean)
+    : []
+
+  const scopes = Array.isArray(value.scopes)
+    ? value.scopes.map((item) => String(item || '').trim()).filter(Boolean)
+    : []
+
+  return {
+    location_city: String(value.location_city || '').trim(),
+    location_county: String(value.location_county || '').trim(),
+    location_state: String(value.location_state || 'TX').trim() || 'TX',
+    location_zip: String(value.location_zip || '').replace(/\D/g, '').slice(0, 5),
+    project_type: String(value.project_type || '').trim(),
+    square_footage: String(value.square_footage || '').trim(),
+    estimated_value: String(value.estimated_value || '').trim(),
+    scopes,
+    permit_required: value.permit_required !== false,
+    permit_status: String(value.permit_status || 'not_started').trim() || 'not_started',
+    jurisdiction: String(value.jurisdiction || '').trim(),
+    permit_types: permitTypes,
+    intake_notes: String(value.intake_notes || '').trim()
+  }
+}
+
+function mergePermitMetadataIntoNotes(visibleNotes = '', permitMeta = {}) {
+  const cleanVisibleNotes = String(visibleNotes || '').trim()
+  const metadataBlock = `${EMBEDDED_PERMIT_META_START}\n${JSON.stringify(normalizePermitMetadata(permitMeta), null, 2)}\n${EMBEDDED_PERMIT_META_END}`
+  return cleanVisibleNotes ? `${cleanVisibleNotes}\n\n${metadataBlock}` : metadataBlock
+}
+
+function inferProjectTypeFromScope(summary = {}) {
+  const scope = String(summary?.detectedScope || summary?.summary || '').toLowerCase()
+  if (scope.includes('warehouse') || scope.includes('industrial')) return 'industrial'
+  if (scope.includes('office')) return 'commercial'
+  if (scope.includes('multifamily') || scope.includes('apartment')) return 'residential'
+  if (scope.includes('site')) return 'civil_site'
+  if (scope.includes('interior') || scope.includes('tenant')) return 'tenant_improvement'
+  if (scope.includes('remodel') || scope.includes('renovation')) return 'remodel'
+  return 'commercial'
+}
+
+function inferPermitTypesFromAnalysis(summary = {}, detailSummary = {}, fullText = '') {
+  const lower = String(fullText || '').toLowerCase()
+  const permitTypes = []
+
+  if ((summary.trades || []).some((item) => ['concrete', 'steel', 'framing', 'drywall', 'roofing', 'sitework'].includes(item)) || /building|framing|roof|tenant|office|warehouse|apartment|multifamily/.test(lower)) {
+    permitTypes.push('Building')
+  }
+  if ((summary.trades || []).some((item) => ['concrete', 'steel', 'masonry'].includes(item)) || detailSummary.footingNotes?.length || detailSummary.cmuSizes?.length || /structural|footing|foundation|rebar|cmu|masonry/.test(lower)) {
+    permitTypes.push('Structural')
+  }
+  if ((summary.trades || []).includes('electrical') || /electrical|lighting|panel|power|conduit/.test(lower)) {
+    permitTypes.push('Electrical')
+  }
+  if ((summary.trades || []).includes('plumbing') || /plumbing|sanitary|water line|fixture|pipe/.test(lower)) {
+    permitTypes.push('Plumbing')
+  }
+  if ((summary.trades || []).includes('hvac') || /mechanical|hvac|duct|air handler/.test(lower)) {
+    permitTypes.push('Mechanical')
+  }
+  if (/fire|sprinkler|alarm/.test(lower)) {
+    permitTypes.push('Fire')
+  }
+  if (/site|grading|drainage|paving|parking|civil|bollard/.test(lower) || (summary.trades || []).includes('sitework')) {
+    permitTypes.push('Site / Civil')
+  }
+  if (/ada|accessible|accessibility/.test(lower)) {
+    permitTypes.push('Accessibility')
+  }
+
+  return uniqueList(permitTypes)
+}
+
+function buildProjectRecordFromAnalysis({ scopeText = '', projectSummary = {}, projectDetailSummary = {}, detectedZip = '', supplierForm = {}, projectEngine = null }) {
+  const permitTypes = inferPermitTypesFromAnalysis(projectSummary, projectDetailSummary, scopeText)
+  const projectType = inferProjectTypeFromScope(projectSummary)
+  const squareFeet = extractSquareFeet(scopeText)
+  const primaryZip = detectedZip || extractZipFromText(scopeText) || supplierForm.zip || ''
+  const primaryScopeLabel = titleCase(projectSummary.detectedScope || projectSummary.summary || 'Project')
+  const projectName = `${primaryScopeLabel}${primaryZip ? ` - ${primaryZip}` : ''}`.slice(0, 120)
+
+  const visibleNotes = [
+    `Analyzer summary: ${projectSummary.summary || 'General construction project'}`,
+    projectSummary.why?.length ? `Why: ${projectSummary.why.join(' | ')}` : '',
+    projectSummary.primaryTrades?.length ? `Primary trades: ${projectSummary.primaryTrades.map(titleCase).join(', ')}` : '',
+    projectSummary.materials?.length ? `Likely materials: ${projectSummary.materials.map(titleCase).join(', ')}` : '',
+    projectDetailSummary.dimensions?.length ? `Dimensions: ${projectDetailSummary.dimensions.slice(0, 10).join(', ')}` : '',
+    projectSummary.nextActions?.length ? `Analyzer next actions: ${projectSummary.nextActions.join(' | ')}` : '',
+    projectEngine?.recommendedNext ? `Recommended next move: ${projectEngine.recommendedNext}` : '',
+    scopeText ? `Source scope text:\n${scopeText.slice(0, 5000)}` : ''
+  ].filter(Boolean).join('\n\n')
+
+  const permitMeta = normalizePermitMetadata({
+    location_zip: primaryZip,
+    location_state: supplierForm.state || 'TX',
+    project_type: projectType,
+    square_footage: squareFeet ? String(squareFeet) : '',
+    scopes: uniqueList([...(projectSummary.trades || []), ...(projectSummary.primaryTrades || []), ...(projectSummary.secondaryTrades || [])]).map(titleCase),
+    permit_required: true,
+    permit_status: 'not_started',
+    jurisdiction: '',
+    permit_types: permitTypes,
+    intake_notes: projectSummary.fieldChecks?.length
+      ? `Analyzer field checks: ${projectSummary.fieldChecks.join(' | ')}`
+      : ''
+  })
+
+  return {
+    project: projectName,
+    company: '',
+    notes: mergePermitMetadataIntoNotes(visibleNotes, permitMeta),
+    project_status: 'lead',
+    project_phase: 'permit intake',
+    project_next_action: projectEngine?.recommendedNext || 'Review analyzer-created project record and continue permit intake.',
+    is_active_job: false
+  }
+}
+
 function scoreScope(text = '') {
   const raw = String(text || '')
   const lower = raw.toLowerCase()
@@ -1274,6 +1398,23 @@ export default function SupplierAiTools() {
     [projectNotes, extractedText, projectSummary.detectedScope]
   )
 
+
+  const structuredSegments = useMemo(
+    () => buildStructuredSegments(projectNotes, uploadedFiles),
+    [projectNotes, uploadedFiles]
+  )
+
+  const analyzerEvidence = useMemo(
+    () => buildAnalyzerEvidence(projectSummary, projectDetailSummary, structuredSegments),
+    [projectSummary, projectDetailSummary, structuredSegments]
+  )
+
+  const permitPrecheck = useMemo(
+    () => buildPermitPrecheck(projectSummary, projectDetailSummary, `${projectNotes}\n${extractedText}`, structuredSegments),
+    [projectSummary, projectDetailSummary, projectNotes, extractedText, structuredSegments]
+  )
+
+
   function setSupplierField(key, value) {
     setSupplierForm((prev) => ({ ...prev, [key]: value }))
   }
@@ -1454,6 +1595,7 @@ export default function SupplierAiTools() {
     event.preventDefault()
     setBusy(true)
     setMessage('')
+    setCreatedProjectId('')
 
     try {
       const response = await fetch(API_IMPORT_ENDPOINT, {
@@ -1619,6 +1761,65 @@ export default function SupplierAiTools() {
       setMessage(`OCR failed: ${error.message || 'Unknown error'}`)
     } finally {
       setBusy(false)
+    }
+  }
+
+
+
+  async function handleCreateProjectFromAnalysis() {
+    const scopeText = [projectNotes, extractedText].filter(Boolean).join('\n\n').trim()
+    if (!scopeText) {
+      setMessage(copy.engineEmpty)
+      return
+    }
+
+    setCreatingProject(true)
+    setMessage('')
+
+    try {
+      const detectedZip =
+        extractZipFromText(scopeText) ||
+        supplierForm.zip ||
+        crewForm.zip ||
+        deliveryForm.jobsiteZip ||
+        deliveryForm.pickupZip
+
+      const fallbackEngine = projectEngine || {
+        recommendedNext: recommendedNextMove(
+          {
+            trades: projectSummary.trades,
+            materials: projectSummary.materials,
+            squareFeet: extractSquareFeet(scopeText)
+          },
+          buildDeliveryPlan(buildMaterialsPlan(projectSummary, scopeText), projectSummary, scopeText)
+        )
+      }
+
+      const payload = buildProjectRecordFromAnalysis({
+        scopeText,
+        projectSummary,
+        projectDetailSummary,
+        detectedZip,
+        supplierForm,
+        projectEngine: fallbackEngine
+      })
+
+      const { data, error } = await supabase
+        .from('admin_crm_records')
+        .insert(payload)
+        .select('*')
+        .single()
+
+      if (error) throw error
+
+      setCreatedProjectId(data?.id || '')
+      setMessage(copy.createProjectSuccess)
+      navigate(`/admin/projects/${data.id}`)
+    } catch (error) {
+      console.error(error)
+      setMessage(error.message || copy.createProjectError)
+    } finally {
+      setCreatingProject(false)
     }
   }
 
@@ -2200,6 +2401,33 @@ export default function SupplierAiTools() {
             </div>
           </div>
 
+          <div className="card-soft" style={{ marginTop: 16, background: '#eef7f1' }}>
+            <div className="card-section-title">{copy.projectCreationTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {copy.projectCreationBody}
+            </p>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {copy.createProjectHelp}
+            </p>
+
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+              <button
+                className="btn primary"
+                type="button"
+                onClick={handleCreateProjectFromAnalysis}
+                disabled={creatingProject || busy}
+              >
+                {creatingProject ? copy.creatingProjectRecord : copy.createProjectRecord}
+              </button>
+
+              {createdProjectId ? (
+                <Link className="btn" to={`/admin/projects/${createdProjectId}`}>
+                  {copy.openCreatedProject}
+                </Link>
+              ) : null}
+            </div>
+          </div>
+
           <div className="card-soft" style={{ marginTop: 16, background: '#fffaf0' }}>
             <div className="card-section-title">{copy.engineLaunchpadTitle}</div>
             <p className="card-section-subtitle" style={{ marginTop: 8 }}>
@@ -2255,6 +2483,7 @@ export default function SupplierAiTools() {
                     <div><strong>{copy.engineSupplierMatches}:</strong> {projectEngine.supplierGroups?.reduce((sum, item) => sum + ((item.suppliers || []).length), 0) || 0}</div>
                     <div><strong>{copy.engineDeliveryMatches}:</strong> {projectEngine.deliveryPlan?.matches?.length || 0}</div>
                     <div><strong>{copy.engineRecommendedNext}:</strong> {projectEngine.recommendedNext}</div>
+                    <div><strong>Project record:</strong> Use the project creation card below to push this analysis into Admin Projects.</div>
                   </div>
                 </div>
 
