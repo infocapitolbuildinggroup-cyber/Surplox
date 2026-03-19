@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import jsPDF from 'jspdf'
+import { autoTable } from 'jspdf-autotable'
 
 const PROJECT_STATUSES = [
   { value: 'lead', label: 'Lead' },
@@ -345,6 +347,185 @@ function getJurisdictionRequirements(city = '', projectType = '') {
   }
 }
 
+
+
+function buildDeliveryPlanFromProject({ materials = [], permitMeta = {}, supplierSignals = [] }) {
+  const heavyKeywords = ['concrete', 'rebar', 'steel', 'cmu', 'masonry', 'lumber', 'drywall']
+  const heavyMaterialRows = (materials || []).filter((row) => {
+    const haystack = [row.item_name, row.notes, row.supplier_name].filter(Boolean).join(' ').toLowerCase()
+    return heavyKeywords.some((term) => haystack.includes(term))
+  })
+
+  const needsHeavyHaul = heavyMaterialRows.length > 0
+  const primaryLane = needsHeavyHaul ? 'Material Delivery / Hot Shot' : 'Cargo Van / Local Delivery'
+
+  const notes = []
+  if (supplierSignals.length > 0) notes.push('Supplier pickup points are logged and can be routed into the delivery lane.')
+  else notes.push('Add supplier sources to strengthen pickup routing.')
+  if (needsHeavyHaul) notes.push('Heavy material signals detected, so trailer/payload matching matters.')
+  else notes.push('Current material signals look lighter and may fit smaller delivery setups.')
+
+  return {
+    primary_lane: primaryLane,
+    supplier_pickups: supplierSignals,
+    heavy_material_count: heavyMaterialRows.length,
+    notes
+  }
+}
+
+function buildProjectPackage({
+  project,
+  permitMeta,
+  permitRequirements,
+  permitReadiness,
+  jurisdictionRequirements,
+  jurisdictionMissingFields,
+  jurisdictionMissingDocuments,
+  materials,
+  assignedWorkers,
+  supplierSignals,
+  nextActions,
+  riskLevel,
+  profitability,
+  totalValue,
+  laborCost,
+  materialCost,
+  totalHours
+}) {
+  const materialRows = (materials || []).map((row) => ({
+    item_name: String(row.item_name || '').trim(),
+    supplier_name: String(row.supplier_name || '').trim(),
+    quantity: Number(row.quantity || 0),
+    unit_cost: Number(row.unit_cost || 0),
+    total_cost: Number((Number(row.quantity || 0) * Number(row.unit_cost || 0)).toFixed(2)),
+    notes: String(row.notes || '').trim()
+  }))
+
+  const deliveryPlan = buildDeliveryPlanFromProject({
+    materials,
+    permitMeta,
+    supplierSignals
+  })
+
+  return {
+    project_name: project?.project || '',
+    client: project?.company || '',
+    project_status: project?.project_status || '',
+    project_phase: project?.project_phase || '',
+    next_action: project?.project_next_action || '',
+    location: {
+      city: permitMeta.location_city || '',
+      county: permitMeta.location_county || '',
+      state: permitMeta.location_state || 'TX',
+      zip: permitMeta.location_zip || '',
+      jurisdiction: permitMeta.jurisdiction || ''
+    },
+    project_type: permitMeta.project_type || '',
+    square_footage: permitMeta.square_footage || '',
+    estimated_value: permitMeta.estimated_value || '',
+    scopes: permitMeta.scopes || [],
+    permit_summary: {
+      permit_required: permitMeta.permit_required !== false,
+      permit_status: permitMeta.permit_status || 'not_started',
+      selected_permit_types: permitMeta.permit_types || [],
+      ai_required_permits: permitRequirements.required_permits || [],
+      readiness_score: permitReadiness.score,
+      risk_level: riskLevel,
+      missing_inputs: permitRequirements.missing_inputs || [],
+      warnings: permitRequirements.warnings || [],
+      blockers: permitReadiness.blockers || []
+    },
+    jurisdiction_summary: {
+      review_lanes: jurisdictionRequirements.review_lanes || [],
+      required_fields: jurisdictionRequirements.required_fields || [],
+      required_documents: jurisdictionRequirements.required_documents || [],
+      missing_fields: jurisdictionMissingFields || [],
+      missing_documents: jurisdictionMissingDocuments || [],
+      warnings: jurisdictionRequirements.warnings || []
+    },
+    execution_summary: {
+      assigned_workers: (assignedWorkers || []).map((row) => ({
+        worker_name: row.worker_name || '',
+        role: row.role || ''
+      })),
+      materials: materialRows,
+      supplier_signals: supplierSignals || [],
+      delivery_plan: deliveryPlan,
+      next_actions: nextActions || []
+    },
+    commercial_summary: {
+      revenue: Number(totalValue || 0),
+      labor_cost: Number(laborCost || 0),
+      material_cost: Number(materialCost || 0),
+      estimated_gross_margin: Number(profitability || 0),
+      labor_hours: Number(totalHours || 0)
+    },
+    notes: {
+      visible_project_notes: String(project?.notes || '').trim(),
+      permit_intake_notes: String(permitMeta.intake_notes || '').trim()
+    }
+  }
+}
+
+function buildProjectPackageText(pkg) {
+  return [
+    `PROJECT PACKAGE`,
+    ``,
+    `PROJECT: ${pkg.project_name || 'Unnamed Project'}`,
+    `CLIENT: ${pkg.client || 'Unknown Client'}`,
+    `STATUS: ${pkg.project_status || '—'}`,
+    `PHASE: ${pkg.project_phase || '—'}`,
+    `NEXT ACTION: ${pkg.next_action || '—'}`,
+    ``,
+    `LOCATION`,
+    `City: ${pkg.location?.city || '—'}`,
+    `County: ${pkg.location?.county || '—'}`,
+    `State: ${pkg.location?.state || '—'}`,
+    `ZIP: ${pkg.location?.zip || '—'}`,
+    `Jurisdiction: ${pkg.location?.jurisdiction || '—'}`,
+    ``,
+    `PROJECT PROFILE`,
+    `Type: ${pkg.project_type || '—'}`,
+    `Square Footage: ${pkg.square_footage || '—'}`,
+    `Estimated Value: ${pkg.estimated_value || '—'}`,
+    `Scopes: ${(pkg.scopes || []).join(', ') || '—'}`,
+    ``,
+    `PERMIT SUMMARY`,
+    `Permit Required: ${pkg.permit_summary?.permit_required ? 'Yes' : 'No'}`,
+    `Permit Status: ${pkg.permit_summary?.permit_status || '—'}`,
+    `Selected Permits: ${(pkg.permit_summary?.selected_permit_types || []).join(', ') || '—'}`,
+    `AI Required Permits: ${(pkg.permit_summary?.ai_required_permits || []).join(', ') || '—'}`,
+    `Readiness Score: ${pkg.permit_summary?.readiness_score || 0}/100`,
+    `Risk Level: ${pkg.permit_summary?.risk_level || '—'}`,
+    `Missing Inputs: ${(pkg.permit_summary?.missing_inputs || []).join(' | ') || 'None'}`,
+    `Warnings: ${(pkg.permit_summary?.warnings || []).join(' | ') || 'None'}`,
+    `Blockers: ${(pkg.permit_summary?.blockers || []).join(' | ') || 'None'}`,
+    ``,
+    `JURISDICTION SUMMARY`,
+    `Review Lanes: ${(pkg.jurisdiction_summary?.review_lanes || []).join(', ') || '—'}`,
+    `Required Fields: ${(pkg.jurisdiction_summary?.required_fields || []).join(', ') || '—'}`,
+    `Required Documents: ${(pkg.jurisdiction_summary?.required_documents || []).join(', ') || '—'}`,
+    `Missing Fields: ${(pkg.jurisdiction_summary?.missing_fields || []).join(' | ') || 'None'}`,
+    `Missing Documents: ${(pkg.jurisdiction_summary?.missing_documents || []).join(' | ') || 'None'}`,
+    ``,
+    `EXECUTION SUMMARY`,
+    `Assigned Workers: ${(pkg.execution_summary?.assigned_workers || []).map((row) => row.worker_name).join(', ') || 'None'}`,
+    `Suppliers: ${(pkg.execution_summary?.supplier_signals || []).join(', ') || 'None'}`,
+    `Delivery Lane: ${pkg.execution_summary?.delivery_plan?.primary_lane || '—'}`,
+    `Delivery Notes: ${(pkg.execution_summary?.delivery_plan?.notes || []).join(' | ') || 'None'}`,
+    `Next Actions: ${(pkg.execution_summary?.next_actions || []).join(' | ') || 'None'}`,
+    ``,
+    `COMMERCIAL SUMMARY`,
+    `Revenue: $${Number(pkg.commercial_summary?.revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    `Labor Cost: $${Number(pkg.commercial_summary?.labor_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    `Material Cost: $${Number(pkg.commercial_summary?.material_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    `Estimated Gross Margin: $${Number(pkg.commercial_summary?.estimated_gross_margin || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    `Labor Hours: ${Number(pkg.commercial_summary?.labor_hours || 0).toFixed(1)}`,
+    ``,
+    `NOTES`,
+    `${pkg.notes?.permit_intake_notes || pkg.notes?.visible_project_notes || 'No notes yet.'}`
+  ].join('\n')
+}
 
 function permitStatusTone(status) {
   if (status === 'approved') return { background: '#dcf4e5', color: '#177245' }
@@ -748,6 +929,198 @@ const suggestedPermitTypes = useMemo(() => {
       (type) => !(permitForm.permit_types || []).includes(type)
     )
   }, [permitRequirements, permitForm.permit_types])
+
+
+  const projectPackage = useMemo(() => {
+    return buildProjectPackage({
+      project,
+      permitMeta: permitForm,
+      permitRequirements,
+      permitReadiness,
+      jurisdictionRequirements,
+      jurisdictionMissingFields,
+      jurisdictionMissingDocuments,
+      materials,
+      assignedWorkers,
+      supplierSignals,
+      nextActions,
+      riskLevel,
+      profitability,
+      totalValue,
+      laborCost,
+      materialCost,
+      totalHours
+    })
+  }, [
+    project,
+    permitForm,
+    permitRequirements,
+    permitReadiness,
+    jurisdictionRequirements,
+    jurisdictionMissingFields,
+    jurisdictionMissingDocuments,
+    materials,
+    assignedWorkers,
+    supplierSignals,
+    nextActions,
+    riskLevel,
+    profitability,
+    totalValue,
+    laborCost,
+    materialCost,
+    totalHours
+  ])
+
+  const projectPackageText = useMemo(() => {
+    return buildProjectPackageText(projectPackage)
+  }, [projectPackage])
+
+  function copyProjectPackage() {
+    try {
+      navigator.clipboard.writeText(projectPackageText)
+      setMessage('Project package copied to clipboard.')
+    } catch (error) {
+      console.error(error)
+      setMessage('Unable to copy project package right now.')
+    }
+  }
+
+  function downloadProjectPackagePdf() {
+    try {
+      const pdf = new jsPDF('p', 'pt', 'a4')
+      const left = 40
+      const pageWidth = pdf.internal.pageSize.getWidth()
+
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(18)
+      pdf.text('Surplox Project Package', left, 44)
+
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(11)
+      pdf.text(`Project: ${projectPackage.project_name || 'Unnamed Project'}`, left, 68)
+      pdf.text(`Client: ${projectPackage.client || 'Unknown Client'}`, left, 84)
+      pdf.text(`Location: ${projectPackage.location.city || '—'}, ${projectPackage.location.county || '—'} ${projectPackage.location.zip || ''}`, left, 100)
+      pdf.text(`Generated: ${new Date().toLocaleString()}`, left, 116)
+
+      autoTable(pdf, {
+        startY: 136,
+        theme: 'grid',
+        head: [['Project Profile', 'Value']],
+        body: [
+          ['Status', projectPackage.project_status || '—'],
+          ['Phase', projectPackage.project_phase || '—'],
+          ['Next Action', projectPackage.next_action || '—'],
+          ['Project Type', projectPackage.project_type || '—'],
+          ['Square Footage', projectPackage.square_footage || '—'],
+          ['Estimated Value', projectPackage.estimated_value || '—'],
+          ['Scopes', (projectPackage.scopes || []).join(', ') || '—']
+        ],
+        margin: { left: 40, right: 40 },
+        styles: { fontSize: 10, cellPadding: 6 }
+      })
+
+      autoTable(pdf, {
+        startY: pdf.lastAutoTable.finalY + 16,
+        theme: 'grid',
+        head: [['Permit Summary', 'Value']],
+        body: [
+          ['Permit Required', projectPackage.permit_summary.permit_required ? 'Yes' : 'No'],
+          ['Permit Status', projectPackage.permit_summary.permit_status || '—'],
+          ['Selected Permits', (projectPackage.permit_summary.selected_permit_types || []).join(', ') || '—'],
+          ['AI Required Permits', (projectPackage.permit_summary.ai_required_permits || []).join(', ') || '—'],
+          ['Readiness', `${projectPackage.permit_summary.readiness_score || 0}/100`],
+          ['Risk', projectPackage.permit_summary.risk_level || '—'],
+          ['Missing Inputs', (projectPackage.permit_summary.missing_inputs || []).join(' | ') || 'None'],
+          ['Warnings', (projectPackage.permit_summary.warnings || []).join(' | ') || 'None'],
+          ['Blockers', (projectPackage.permit_summary.blockers || []).join(' | ') || 'None']
+        ],
+        margin: { left: 40, right: 40 },
+        styles: { fontSize: 10, cellPadding: 6 }
+      })
+
+      autoTable(pdf, {
+        startY: pdf.lastAutoTable.finalY + 16,
+        theme: 'grid',
+        head: [['Jurisdiction Readiness', 'Value']],
+        body: [
+          ['Jurisdiction', projectPackage.location.jurisdiction || '—'],
+          ['Review Lanes', (projectPackage.jurisdiction_summary.review_lanes || []).join(', ') || '—'],
+          ['Required Fields', (projectPackage.jurisdiction_summary.required_fields || []).join(', ') || '—'],
+          ['Missing Fields', (projectPackage.jurisdiction_summary.missing_fields || []).join(' | ') || 'None'],
+          ['Required Documents', (projectPackage.jurisdiction_summary.required_documents || []).join(', ') || '—'],
+          ['Missing Documents', (projectPackage.jurisdiction_summary.missing_documents || []).join(' | ') || 'None']
+        ],
+        margin: { left: 40, right: 40 },
+        styles: { fontSize: 10, cellPadding: 6 }
+      })
+
+      autoTable(pdf, {
+        startY: pdf.lastAutoTable.finalY + 16,
+        theme: 'grid',
+        head: [['Execution Summary', 'Value']],
+        body: [
+          ['Assigned Workers', (projectPackage.execution_summary.assigned_workers || []).map((row) => row.worker_name).join(', ') || 'None'],
+          ['Suppliers', (projectPackage.execution_summary.supplier_signals || []).join(', ') || 'None'],
+          ['Delivery Lane', projectPackage.execution_summary.delivery_plan.primary_lane || '—'],
+          ['Delivery Notes', (projectPackage.execution_summary.delivery_plan.notes || []).join(' | ') || 'None'],
+          ['Next Actions', (projectPackage.execution_summary.next_actions || []).join(' | ') || 'None']
+        ],
+        margin: { left: 40, right: 40 },
+        styles: { fontSize: 10, cellPadding: 6 }
+      })
+
+      const materialBody = (projectPackage.execution_summary.materials || []).map((row) => [
+        row.item_name || '—',
+        row.supplier_name || '—',
+        String(row.quantity || 0),
+        money(row.unit_cost || 0),
+        money(row.total_cost || 0)
+      ])
+
+      autoTable(pdf, {
+        startY: pdf.lastAutoTable.finalY + 16,
+        theme: 'grid',
+        head: [['Materials', 'Supplier', 'Qty', 'Unit Cost', 'Total']],
+        body: materialBody.length ? materialBody : [['No materials logged yet.', '', '', '', '']],
+        margin: { left: 40, right: 40 },
+        styles: { fontSize: 10, cellPadding: 6 }
+      })
+
+      autoTable(pdf, {
+        startY: pdf.lastAutoTable.finalY + 16,
+        theme: 'grid',
+        head: [['Commercial Summary', 'Value']],
+        body: [
+          ['Revenue', money(projectPackage.commercial_summary.revenue || 0)],
+          ['Labor Cost', money(projectPackage.commercial_summary.labor_cost || 0)],
+          ['Material Cost', money(projectPackage.commercial_summary.material_cost || 0)],
+          ['Estimated Gross Margin', money(projectPackage.commercial_summary.estimated_gross_margin || 0)],
+          ['Labor Hours', Number(projectPackage.commercial_summary.labor_hours || 0).toFixed(1)]
+        ],
+        margin: { left: 40, right: 40 },
+        styles: { fontSize: 10, cellPadding: 6 }
+      })
+
+      const finalY = pdf.lastAutoTable.finalY + 18
+      const wrappedNotes = pdf.splitTextToSize(
+        projectPackage.notes.permit_intake_notes || projectPackage.notes.visible_project_notes || 'No notes yet.',
+        pageWidth - 80
+      )
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(12)
+      pdf.text('Notes', 40, finalY)
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(10)
+      pdf.text(wrappedNotes, 40, finalY + 16)
+
+      const filename = `${String(projectPackage.project_name || 'surplox-project-package').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'surplox-project-package'}.pdf`
+      pdf.save(filename)
+      setMessage('Project package PDF downloaded.')
+    } catch (error) {
+      console.error(error)
+      setMessage('Unable to generate project package PDF right now.')
+    }
+  }
 
   function updateInvoiceItem(id, key, value) {
     setInvoiceForm((prev) => ({
@@ -1678,6 +2051,64 @@ const suggestedPermitTypes = useMemo(() => {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">Project Package Generator</div>
+        <div className="muted" style={{ marginTop: 8 }}>
+          This converts project, permit, supplier, delivery, labor, and cost data into a client-ready execution package you can copy or export.
+        </div>
+
+        <div className="list" style={{ marginTop: 14 }}>
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div className="muted">Project + location</div>
+            <div style={{ marginTop: 8, lineHeight: 1.7 }}>
+              <strong>{projectPackage.project_name || 'Unnamed Project'}</strong><br />
+              {projectPackage.client || 'Unknown Client'}<br />
+              {projectPackage.location.city || '—'}, {projectPackage.location.county || '—'} {projectPackage.location.zip || ''}<br />
+              {projectPackage.location.jurisdiction || 'Jurisdiction not set'}
+            </div>
+          </div>
+
+          <div className="grid two">
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">Execution package summary</div>
+              <div style={{ marginTop: 8, lineHeight: 1.7 }}>
+                Suppliers: {(projectPackage.execution_summary.supplier_signals || []).length}<br />
+                Materials: {(projectPackage.execution_summary.materials || []).length}<br />
+                Assigned workers: {(projectPackage.execution_summary.assigned_workers || []).length}<br />
+                Delivery lane: {projectPackage.execution_summary.delivery_plan.primary_lane || '—'}
+              </div>
+            </div>
+
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">Commercial snapshot</div>
+              <div style={{ marginTop: 8, lineHeight: 1.7 }}>
+                Revenue: {money(projectPackage.commercial_summary.revenue || 0)}<br />
+                Labor cost: {money(projectPackage.commercial_summary.labor_cost || 0)}<br />
+                Material cost: {money(projectPackage.commercial_summary.material_cost || 0)}<br />
+                Margin: {money(projectPackage.commercial_summary.estimated_gross_margin || 0)}
+              </div>
+            </div>
+          </div>
+
+          <div className="card-soft" style={{ background: '#ffffff' }}>
+            <div className="muted">Formatted project package</div>
+            <pre style={{ marginTop: 10, whiteSpace: 'pre-wrap' }}>
+{projectPackageText}
+            </pre>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
+          <button className="btn primary" type="button" onClick={copyProjectPackage}>
+            Copy Project Package
+          </button>
+          <button className="btn" type="button" onClick={downloadProjectPackagePdf}>
+            Download Project Package PDF
+          </button>
         </div>
       </div>
 
