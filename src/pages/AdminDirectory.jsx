@@ -744,20 +744,6 @@ function InsightList({ title, items, copy, formatter }) {
 }
 
 
-  async function loadRfqMap() {
-    const { data, error } = await supabase.from('rfqs').select('project_id, status')
-    if (!error && data) {
-      const map = {}
-      data.forEach(r => {
-        if (!map[r.project_id]) map[r.project_id] = { total:0, pending:0, quoted:0, selected:0 }
-        map[r.project_id].total++
-        if (r.status === 'pending') map[r.project_id].pending++
-        if (r.status === 'quoted') map[r.project_id].quoted++
-        if (r.status === 'selected') map[r.project_id].selected++
-      })
-      setRfqMap(map)
-    }
-  }
 
 export default function AdminDirectory() {
   const [loading, setLoading] = useState(true)
@@ -809,6 +795,26 @@ export default function AdminDirectory() {
   })
 
   const copy = COPY[lang] || COPY.en
+
+  async function loadRfqMap() {
+    const { data, error } = await supabase.from('rfqs').select('project_id, status')
+    if (error) {
+      console.error(error)
+      return
+    }
+
+    const map = {}
+    ;(data || []).forEach((row) => {
+      const key = row.project_id
+      if (!key) return
+      if (!map[key]) map[key] = { total: 0, pending: 0, quoted: 0, selected: 0 }
+      map[key].total += 1
+      if (row.status === 'pending') map[key].pending += 1
+      if (row.status === 'quoted') map[key].quoted += 1
+      if (row.status === 'selected') map[key].selected += 1
+    })
+    setRfqMap(map)
+  }
 
   useEffect(() => {
     let alive = true
@@ -939,6 +945,7 @@ export default function AdminDirectory() {
         setProjectInvoices(adminInvoicesRes.data || [])
         setProjectTimeEntries(adminTimeEntriesRes.data || [])
         setProjectMaterials(adminProjectMaterialsRes.data || [])
+        await loadRfqMap()
       } catch (e) {
         console.error(e)
         if (!alive) return
@@ -1369,45 +1376,6 @@ export default function AdminDirectory() {
 
   const projectOps = useMemo(() => {
     const rows = (projects || []).map((project) => {
-  const projectAnalyzerSignals = useMemo(() => {
-    const totalProjects = projectOps.rows.length
-    const readyForPrecheck = projectOps.rows.filter(
-      (row) => row.permit_meta?.permit_required !== false
-    ).length
-    const missingJurisdiction = projectOps.rows.filter(
-      (row) => !String(row.permit_meta?.jurisdiction || '').trim()
-    ).length
-    const missingPermitTypes = projectOps.rows.filter(
-      (row) => row.permit_meta?.permit_required !== false && !(row.permit_meta?.permit_types || []).length
-    ).length
-    const missingScopes = projectOps.rows.filter(
-      (row) => !(row.permit_meta?.scopes || []).length
-    ).length
-    const readyToRoute = projectOps.rows.filter(
-      (row) => row.readiness_score >= 80 && String(row.permit_meta?.jurisdiction || '').trim()
-    ).length
-
-    return {
-      totalProjects,
-      readyForPrecheck,
-      missingJurisdiction,
-      missingPermitTypes,
-      missingScopes,
-      readyToRoute
-    }
-  }, [projectOps])
-
-  const permitQueue = useMemo(() => {
-    return projectOps.rows
-      .filter((row) => row.permit_meta?.permit_required !== false)
-      .slice()
-      .sort((a, b) => {
-        if (a.readiness_score !== b.readiness_score) return a.readiness_score - b.readiness_score
-        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
-      })
-      .slice(0, 8)
-  }, [projectOps])
-
 
       const permitMeta = getEmbeddedPermitMetadata(project.notes || '')
       const materialsForProject = (projectMaterials || []).filter((row) => row.project_record_id === project.id)
@@ -1482,6 +1450,45 @@ export default function AdminDirectory() {
       topRiskProjects
     }
   }, [projects, projectInvoices, projectTimeEntries, projectMaterials])
+
+  const projectAnalyzerSignals = useMemo(() => {
+    const totalProjects = projectOps.rows.length
+    const readyForPrecheck = projectOps.rows.filter(
+      (row) => row.permit_meta?.permit_required !== false
+    ).length
+    const missingJurisdiction = projectOps.rows.filter(
+      (row) => !String(row.permit_meta?.jurisdiction || '').trim()
+    ).length
+    const missingPermitTypes = projectOps.rows.filter(
+      (row) => row.permit_meta?.permit_required !== false && !(row.permit_meta?.permit_types || []).length
+    ).length
+    const missingScopes = projectOps.rows.filter(
+      (row) => !(row.permit_meta?.scopes || []).length
+    ).length
+    const readyToRoute = projectOps.rows.filter(
+      (row) => row.readiness_score >= 80 && String(row.permit_meta?.jurisdiction || '').trim()
+    ).length
+
+    return {
+      totalProjects,
+      readyForPrecheck,
+      missingJurisdiction,
+      missingPermitTypes,
+      missingScopes,
+      readyToRoute
+    }
+  }, [projectOps])
+
+  const permitQueue = useMemo(() => {
+    return projectOps.rows
+      .filter((row) => row.permit_meta?.permit_required !== false)
+      .slice()
+      .sort((a, b) => {
+        if (a.readiness_score !== b.readiness_score) return a.readiness_score - b.readiness_score
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+      })
+      .slice(0, 8)
+  }, [projectOps])
 
   function exportRowsToCsv(filename, rows) {
     if (!rows.length) return
