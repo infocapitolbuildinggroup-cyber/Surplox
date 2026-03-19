@@ -1405,7 +1405,30 @@ async function runDeliveryEngine(deliveryPlan = {}, pickupZip = '', jobsiteZip =
 }
 
 function Chip({ children, active = false, onClick, type = 'button' }) {
-  return (
+  
+
+// ================= RFQ SYSTEM =================
+async function createRFQ({ projectId, material, supplier }) {
+  try {
+    const { error } = await supabase.from('rfqs').insert([{
+      project_id: projectId || null,
+      material,
+      supplier_id: supplier.id || null,
+      supplier_name: supplier.business_name || supplier.display_name,
+      status: 'pending',
+      price: null,
+      lead_time: null,
+      notes: '',
+      created_at: new Date().toISOString()
+    }])
+    if (error) throw error
+    alert('RFQ sent successfully')
+  } catch (err) {
+    console.error(err)
+    alert('Failed to send RFQ')
+  }
+}
+return (
     <button
       type={type}
       className={active ? 'btn primary small' : 'btn small'}
@@ -1426,7 +1449,7 @@ function SupplierCard({ supplier, copy, onOpenSearch, onOpenStorefront }) {
         <div>
           <div className="h2" style={{ fontSize: 22 }}>
             {supplier.business_name || supplier.display_name || 'Supplier'}
-          </div>
+          <button style={{marginTop:6,fontSize:12}} onClick={()=>createRFQ({material: supplier.label, supplier: sup})}>Send RFQ</button></div>
           <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {supplier.business_zip ? <span className="badge">{supplier.business_zip}</span> : null}
             {supplier.google_rating ? (
