@@ -290,6 +290,61 @@ function getPermitRequirements({ scopes = [], materials = [], projectType = '' }
   }
 }
 
+
+function getJurisdictionRequirements(city = '', projectType = '') {
+  const normalizedCity = String(city || '').trim().toLowerCase()
+  const normalizedType = String(projectType || '').trim().toLowerCase()
+
+  const base = {
+    required_documents: ['Project Description', 'Scope Summary'],
+    required_fields: ['project_type', 'location_city', 'location_county', 'location_zip'],
+    review_lanes: ['Building'],
+    warnings: []
+  }
+
+  const cityRules = {
+    dallas: {
+      commercial: {
+        required_documents: ['Site Plan', 'Architectural Plans', 'Structural Drawings', 'MEP Plans'],
+        required_fields: ['square_footage', 'estimated_value', 'jurisdiction'],
+        review_lanes: ['Building', 'Structural', 'MEP', 'Planning']
+      },
+      tenant_improvement: {
+        required_documents: ['Floor Plan', 'Life Safety Notes', 'MEP Sheets'],
+        required_fields: ['square_footage', 'estimated_value', 'jurisdiction'],
+        review_lanes: ['Building', 'MEP']
+      }
+    },
+    'fort worth': {
+      commercial: {
+        required_documents: ['Site Plan', 'Architectural Plans', 'Structural Drawings', 'MEP Plans'],
+        required_fields: ['square_footage', 'estimated_value', 'jurisdiction'],
+        review_lanes: ['Building', 'Structural', 'MEP']
+      },
+      civil_site: {
+        required_documents: ['Civil Plan Set', 'Drainage / Grading Sheets', 'Utility Information'],
+        required_fields: ['estimated_value', 'jurisdiction'],
+        review_lanes: ['Civil', 'Utilities']
+      }
+    }
+  }
+
+  const cityMatch = cityRules[normalizedCity] || {}
+  const typeMatch = cityMatch[normalizedType] || cityMatch.commercial || {}
+
+  return {
+    required_documents: Array.from(new Set([...(base.required_documents || []), ...(typeMatch.required_documents || [])])),
+    required_fields: Array.from(new Set([...(base.required_fields || []), ...(typeMatch.required_fields || [])])),
+    review_lanes: Array.from(new Set([...(base.review_lanes || []), ...(typeMatch.review_lanes || [])])),
+    warnings: [
+      ...(base.warnings || []),
+      ...(typeMatch.warnings || []),
+      !normalizedCity ? 'Jurisdiction city is not set, so city-specific permit rules cannot be fully applied yet.' : '',
+      !normalizedType ? 'Project type is not set, so the jurisdiction checklist may still be incomplete.' : ''
+    ].filter(Boolean)
+  }
+}
+
 function permitStatusTone(status) {
   if (status === 'approved') return { background: '#dcf4e5', color: '#177245' }
   if (status === 'submitted' || status === 'under_review') return { background: '#d8ecff', color: '#0d3f73' }
@@ -587,73 +642,48 @@ export default function AdminProjectDetail() {
     })
   }, [permitForm.scopes, materials, permitForm.project_type])
 
-  
-  const permitIntakePackage = useMemo(() => {
-    const pkg = {
-      project_name: project?.project || '',
-      client: project?.company || '',
-      city: permitForm.location_city || '',
-      county: permitForm.location_county || '',
-      state: permitForm.location_state || 'TX',
-      zip: permitForm.location_zip || '',
-      jurisdiction: permitForm.jurisdiction || '',
-      project_type: permitForm.project_type || '',
-      square_footage: permitForm.square_footage || '',
-      estimated_value: permitForm.estimated_value || '',
-      scopes: permitForm.scopes || [],
-      selected_permit_types: permitForm.permit_types || [],
-      ai_required_permits: permitRequirements.required_permits || [],
-      missing_inputs: permitRequirements.missing_inputs || [],
-      warnings: permitRequirements.warnings || [],
-      readiness_score: permitReadiness.score,
-      risk_level: riskLevel,
-      top_blockers: (permitReadiness.blockers || []).slice(0, 5),
-      intake_notes: permitForm.intake_notes || ''
-    }
-    return pkg
-  }, [
-    project,
-    permitForm,
-    permitRequirements,
-    permitReadiness,
-    riskLevel
-  ])
-
-  const permitIntakeText = useMemo(() => {
-    const p = permitIntakePackage
-    return [
-      `PROJECT: ${p.project_name}`,
-      `CLIENT: ${p.client}`,
-      `LOCATION: ${p.city}, ${p.county}, ${p.state} ${p.zip}`,
-      `JURISDICTION: ${p.jurisdiction || 'TBD'}`,
-      `TYPE: ${p.project_type || 'TBD'}`,
-      `SF: ${p.square_footage || 'TBD'}`,
-      `VALUE: ${p.estimated_value || 'TBD'}`,
-      `SCOPES: ${(p.scopes || []).join(', ') || 'TBD'}`,
-      `PERMITS (SELECTED): ${(p.selected_permit_types || []).join(', ') || 'None'}`,
-      `PERMITS (AI): ${(p.ai_required_permits || []).join(', ') || 'None'}`,
-      `READINESS: ${p.readiness_score}/100 (${p.risk_level})`,
-      `BLOCKERS: ${(p.top_blockers || []).join(' | ') || 'None'}`,
-      `MISSING: ${(p.missing_inputs || []).join(' | ') || 'None'}`,
-      `WARNINGS: ${(p.warnings || []).join(' | ') || 'None'}`,
-      `NOTES: ${p.intake_notes || ''}`
-    ].join('\n')
-  }, [permitIntakePackage])
-
-  function copyPermitIntake() {
-    try {
-      navigator.clipboard.writeText(permitIntakeText)
-      setMessage('Permit intake package copied to clipboard.')
-    } catch (e) {
-      setMessage('Unable to copy package.')
-    }
-  }
-
-const suggestedPermitTypes = useMemo(() => {
+  const suggestedPermitTypes = useMemo(() => {
     return (permitRequirements.required_permits || []).filter(
       (type) => !(permitForm.permit_types || []).includes(type)
     )
   }, [permitRequirements, permitForm.permit_types])
+
+
+  const jurisdictionRequirements = useMemo(() => {
+    return getJurisdictionRequirements(permitForm.location_city, permitForm.project_type)
+  }, [permitForm.location_city, permitForm.project_type])
+
+  const jurisdictionMissingFields = useMemo(() => {
+    return (jurisdictionRequirements.required_fields || []).filter((field) => {
+      const value = permitForm?.[field]
+      if (Array.isArray(value)) return value.length === 0
+      return !String(value || '').trim()
+    })
+  }, [jurisdictionRequirements, permitForm])
+
+  const jurisdictionMissingDocuments = useMemo(() => {
+    const notesHaystack = [
+      project?.notes || '',
+      permitForm.intake_notes || '',
+      ...materials.map((row) => [row.item_name, row.notes].filter(Boolean).join(' '))
+    ].join(' ').toLowerCase()
+
+    return (jurisdictionRequirements.required_documents || []).filter((doc) => {
+      const normalized = String(doc || '').toLowerCase()
+      if (normalized.includes('site plan')) return !/site plan/.test(notesHaystack)
+      if (normalized.includes('architectural')) return !/architect|floor plan|elevation|section/.test(notesHaystack)
+      if (normalized.includes('structural')) return !/structural|foundation|footing|rebar|steel/.test(notesHaystack)
+      if (normalized.includes('mep')) return !/electrical|mechanical|plumbing|hvac/.test(notesHaystack)
+      if (normalized.includes('civil')) return !/civil|grading|drainage|utility|paving/.test(notesHaystack)
+      if (normalized.includes('project description')) return !String(project?.notes || '').trim()
+      if (normalized.includes('scope summary')) return !(permitForm.scopes || []).length
+      return false
+    })
+  }, [jurisdictionRequirements, project, permitForm, materials])
+
+  const jurisdictionReady = useMemo(() => {
+    return jurisdictionMissingFields.length === 0 && jurisdictionMissingDocuments.length === 0
+  }, [jurisdictionMissingFields, jurisdictionMissingDocuments])
 
   function updateInvoiceItem(id, key, value) {
     setInvoiceForm((prev) => ({
@@ -1391,67 +1421,6 @@ const suggestedPermitTypes = useMemo(() => {
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">AI Permit Requirements</div>
-
-      <div className="card rounded-xl" style={{ padding: 22 }}>
-        <div className="card-section-title">Permit Intake Package</div>
-        <div className="muted" style={{ marginTop: 8 }}>
-          This is a structured, submission-ready draft generated from project + permit data.
-        </div>
-
-        <div className="list" style={{ marginTop: 14 }}>
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div style={{ fontWeight: 900 }}>{permitIntakePackage.project_name || 'Unnamed Project'}</div>
-            <div className="muted" style={{ marginTop: 6 }}>
-              {permitIntakePackage.client || 'Unknown Client'}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Location</div>
-            <div style={{ marginTop: 8 }}>
-              {permitIntakePackage.city || '—'}, {permitIntakePackage.county || '—'} {permitIntakePackage.zip || ''}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Permit Summary</div>
-            <div style={{ marginTop: 8, lineHeight: 1.7 }}>
-              Required (AI): {(permitIntakePackage.ai_required_permits || []).join(', ') || 'None'}<br/>
-              Selected: {(permitIntakePackage.selected_permit_types || []).join(', ') || 'None'}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Readiness + Risk</div>
-            <div style={{ marginTop: 8 }}>
-              {permitIntakePackage.readiness_score}/100 · {permitIntakePackage.risk_level}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Missing + Warnings</div>
-            <div style={{ marginTop: 8, lineHeight: 1.7 }}>
-              Missing: {(permitIntakePackage.missing_inputs || []).join(' | ') || 'None'}<br/>
-              Warnings: {(permitIntakePackage.warnings || []).join(' | ') || 'None'}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="muted">Formatted Intake</div>
-            <pre style={{ marginTop: 10, whiteSpace: 'pre-wrap' }}>
-{permitIntakeText}
-            </pre>
-          </div>
-        </div>
-
-        <div style={{ marginTop: 14 }}>
-          <button className="btn primary" onClick={copyPermitIntake}>
-            Copy Intake Package
-          </button>
-        </div>
-      </div>
-
-
         <div className="muted" style={{ marginTop: 8 }}>
           This layer turns saved project scope and material signals into suggested permit lanes, missing inputs, and review warnings.
         </div>
