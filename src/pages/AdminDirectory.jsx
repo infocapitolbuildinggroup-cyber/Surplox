@@ -1352,6 +1352,46 @@ export default function AdminDirectory() {
 
   const projectOps = useMemo(() => {
     const rows = (projects || []).map((project) => {
+  const projectAnalyzerSignals = useMemo(() => {
+    const totalProjects = projectOps.rows.length
+    const readyForPrecheck = projectOps.rows.filter(
+      (row) => row.permit_meta?.permit_required !== false
+    ).length
+    const missingJurisdiction = projectOps.rows.filter(
+      (row) => !String(row.permit_meta?.jurisdiction || '').trim()
+    ).length
+    const missingPermitTypes = projectOps.rows.filter(
+      (row) => row.permit_meta?.permit_required !== false && !(row.permit_meta?.permit_types || []).length
+    ).length
+    const missingScopes = projectOps.rows.filter(
+      (row) => !(row.permit_meta?.scopes || []).length
+    ).length
+    const readyToRoute = projectOps.rows.filter(
+      (row) => row.readiness_score >= 80 && String(row.permit_meta?.jurisdiction || '').trim()
+    ).length
+
+    return {
+      totalProjects,
+      readyForPrecheck,
+      missingJurisdiction,
+      missingPermitTypes,
+      missingScopes,
+      readyToRoute
+    }
+  }, [projectOps])
+
+  const permitQueue = useMemo(() => {
+    return projectOps.rows
+      .filter((row) => row.permit_meta?.permit_required !== false)
+      .slice()
+      .sort((a, b) => {
+        if (a.readiness_score !== b.readiness_score) return a.readiness_score - b.readiness_score
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+      })
+      .slice(0, 8)
+  }, [projectOps])
+
+
       const permitMeta = getEmbeddedPermitMetadata(project.notes || '')
       const materialsForProject = (projectMaterials || []).filter((row) => row.project_record_id === project.id)
       const invoicesForProject = (projectInvoices || []).filter((invoice) => invoice.project === project.project && invoice.client === project.company)
@@ -1799,6 +1839,84 @@ export default function AdminDirectory() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">Permit Intake Command Queue</div>
+        <p className="muted" style={{ marginTop: 6 }}>
+          This view turns your admin screen into a real permitting command layer by showing which projects are closest to routing, which ones are blocked, and what data is still missing.
+        </p>
+
+        <div className="grid three" style={{ marginTop: 14 }}>
+          <StatCard label="Projects In Permit Flow" value={projectAnalyzerSignals.readyForPrecheck} />
+          <StatCard label="Missing Jurisdiction" value={projectAnalyzerSignals.missingJurisdiction} />
+          <StatCard label="Missing Permit Types" value={projectAnalyzerSignals.missingPermitTypes} />
+          <StatCard label="Missing Scope Tags" value={projectAnalyzerSignals.missingScopes} />
+          <StatCard label="Ready To Route" value={projectAnalyzerSignals.readyToRoute} dark />
+        </div>
+
+        <div className="list" style={{ marginTop: 16 }}>
+          {permitQueue.length === 0 ? (
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              No permit queue items yet.
+            </div>
+          ) : (
+            permitQueue.map((project) => (
+              <Link
+                key={`permit-queue-${project.id}`}
+                to={`/admin/projects/${project.id}`}
+                className="card-soft"
+                style={{ background: '#ffffff', textDecoration: 'none', display: 'block' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontWeight: 900 }}>{project.project || 'Unnamed Project'}</div>
+                    <div className="muted" style={{ marginTop: 6 }}>
+                      {project.company || 'Unknown Client'}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <span className="badge" style={riskBadgeStyle(project.risk_level)}>
+                      Risk: {project.risk_level}
+                    </span>
+                    <span className="badge" style={permitStatusBadgeStyle(project.permit_meta?.permit_status)}>
+                      Permit: {permitStatusLabel(project.permit_meta?.permit_status)}
+                    </span>
+                    <span className="badge">Readiness: {project.readiness_score}/100</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                  {project.permit_meta?.jurisdiction ? (
+                    <span className="badge">{project.permit_meta.jurisdiction}</span>
+                  ) : (
+                    <span className="badge">Jurisdiction missing</span>
+                  )}
+                  {(project.permit_meta?.permit_types || []).length ? (
+                    project.permit_meta.permit_types.slice(0, 3).map((item) => (
+                      <span key={`${project.id}-permit-type-${item}`} className="badge">{item}</span>
+                    ))
+                  ) : (
+                    <span className="badge">Permit types missing</span>
+                  )}
+                  {(project.permit_meta?.scopes || []).length ? (
+                    project.permit_meta.scopes.slice(0, 3).map((item) => (
+                      <span key={`${project.id}-scope-${item}`} className="badge">{item}</span>
+                    ))
+                  ) : (
+                    <span className="badge">Scopes missing</span>
+                  )}
+                </div>
+
+                <div className="muted" style={{ marginTop: 10, lineHeight: 1.7 }}>
+                  {project.blockers.length ? `Top blocker: ${project.blockers[0]}` : 'Permit profile looks strong enough for next-step routing.'}
+                </div>
+              </Link>
+            ))
+          )}
         </div>
       </div>
 
