@@ -743,6 +743,22 @@ function InsightList({ title, items, copy, formatter }) {
   )
 }
 
+
+  async function loadRfqMap() {
+    const { data, error } = await supabase.from('rfqs').select('project_id, status')
+    if (!error && data) {
+      const map = {}
+      data.forEach(r => {
+        if (!map[r.project_id]) map[r.project_id] = { total:0, pending:0, quoted:0, selected:0 }
+        map[r.project_id].total++
+        if (r.status === 'pending') map[r.project_id].pending++
+        if (r.status === 'quoted') map[r.project_id].quoted++
+        if (r.status === 'selected') map[r.project_id].selected++
+      })
+      setRfqMap(map)
+    }
+  }
+
 export default function AdminDirectory() {
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
@@ -759,6 +775,7 @@ export default function AdminDirectory() {
   const [zipMap, setZipMap] = useState(new Map())
   const [adminWorkers, setAdminWorkers] = useState([])
   const [projects, setProjects] = useState([])
+  const [rfqMap, setRfqMap] = useState({})
   const [projectInvoices, setProjectInvoices] = useState([])
   const [projectTimeEntries, setProjectTimeEntries] = useState([])
   const [projectMaterials, setProjectMaterials] = useState([])
