@@ -2026,7 +2026,7 @@ export default function SupplierAiTools() {
   const navigate = useNavigate()
   const copy = COPY.en
 
-  const [tab, setTab] = useState('supplier')
+  const [tab, setTab] = useState('analyzer')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [importedSuppliers, setImportedSuppliers] = useState([])
