@@ -324,9 +324,9 @@ const COPY = {
     categories: 'Categories',
     rating: 'Rating',
     fileReady: 'File ready',
-    fileExtracted: 'File ready',
-    fileOcrReady: 'File ready',
-    fileOcrDone: 'File ready',
+    fileExtracted: 'Text extracted',
+    fileOcrReady: 'OCR ready',
+    fileOcrDone: 'OCR complete',
     analyzerBuildMode: 'Build Project Mode',
     analyzerPermitMode: 'Permit Pre-Check Mode',
     permitPrecheckTitle: 'Permit Pre-Check',
@@ -3602,10 +3602,18 @@ export default function SupplierAiTools() {
                 <div key={file.id} className="card-soft">
                   <div style={{ fontWeight: 800 }}>{file.name}</div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-                    <span className="badge">{copy.fileReady}</span>
+                    <span className="badge">
+                      {file.ocrDone
+                        ? copy.fileOcrDone
+                        : file.ocrReady
+                          ? copy.fileOcrReady
+                          : file.extractedText
+                            ? copy.fileExtracted
+                            : copy.fileReady}
+                    </span>
                   </div>
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
-                    {file.ocrReady ? (
+                    {(file.ocrReady || (file.mimeType === 'application/pdf' || /\.pdf$/i.test(file.name) || String(file.mimeType || '').startsWith('image/'))) ? (
                       <button
                         className="btn small"
                         type="button"
