@@ -18,6 +18,7 @@ import Materials from './pages/Materials'
 import Delivery from './pages/Delivery'
 import MechanicRepair from './pages/MechanicRepair'
 import SupplierAiTools from './pages/SupplierAiTools'
+import FlipEngine from './pages/FlipEngine'
 import AdminCRM from './pages/AdminCRM'
 import AdminInvoices from './pages/AdminInvoices'
 import AdminTimeClock from './pages/AdminTimeClock'
@@ -668,7 +669,10 @@ function AppShell({ lang, setLang }) {
       { to: '/materials', label: lang === 'es' ? 'Materiales' : 'Materials' },
       { to: '/delivery', label: lang === 'es' ? 'Delivery' : 'Delivery' },
       { to: quickLinks.repair, label: lang === 'es' ? 'Mecánica / Reparación' : 'Mechanic / Repair' },
-      ...(isAdmin ? [{ to: '/ai-tools', label: lang === 'es' ? 'Surplox AI Tools' : 'Surplox AI Tools' }] : []),
+      ...(isAdmin ? [
+        { to: '/ai-tools', label: lang === 'es' ? 'Surplox AI Tools' : 'Surplox AI Tools' },
+        { to: '/flip-engine', label: lang === 'es' ? 'Flip Engine' : 'Flip Engine' }
+      ] : []),
       { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
       { to: '/messages', label: lang === 'es' ? 'Mensajes' : 'Messages' },
       { to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' }
@@ -927,6 +931,16 @@ function AppShell({ lang, setLang }) {
               element={
                 session ? (
                   isAdmin ? <SupplierAiTools lang={lang} /> : <Navigate to="/feed" replace />
+                ) : (
+                  <Navigate to="/auth?mode=signin" replace />
+                )
+              }
+            />
+            <Route
+              path="/flip-engine"
+              element={
+                session ? (
+                  isAdmin ? <FlipEngine lang={lang} /> : <Navigate to="/feed" replace />
                 ) : (
                   <Navigate to="/auth?mode=signin" replace />
                 )
