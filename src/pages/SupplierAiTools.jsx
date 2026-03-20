@@ -117,6 +117,22 @@ const COPY = {
     scopeFocusCrew: 'Crew / trade focus',
     scopeFocusRisks: 'Pricing / field checks',
     scopeFocusNoMatch: 'No strong targeted scope match yet. Add clearer scope wording like welding, framing, demo, concrete, drywall, or plumbing.',
+    blueprintIntelTitle: 'Blueprint Intelligence',
+    blueprintIntelBody:
+      'Detect likely sheet titles, scope-relevant plan areas, and likely exclusions from uploaded blueprint text without interrupting the rest of the analyzer workflow.',
+    blueprintSheetsTitle: 'Likely Relevant Sheets',
+    blueprintSheetsBody:
+      'These sheets look most relevant to your selected scope based on sheet labels, nearby detail text, and discipline signals.',
+    blueprintSheetsEmpty:
+      'No strong scope-to-sheet matches yet. Upload more plan text or tighten your scope target.',
+    blueprintDetectedSheets: 'Detected sheets',
+    blueprintNoSheets: 'No sheet titles detected yet from the uploaded blueprint text.',
+    blueprintMatchScore: 'Sheet match score',
+    blueprintDiscipline: 'Discipline',
+    blueprintNearbySignals: 'Nearby scope signals',
+    blueprintExclusionsTitle: 'Likely Exclusions / Verify Boundaries',
+    blueprintExclusionsEmpty:
+      'No likely exclusions generated yet. Add a scope target to isolate what should stay out of your bid.',
     uploadLabel: 'Blueprint / document upload',
     uploadHelp:
       'Upload PDF, image, txt, csv, json, or md files. Text-based files extract immediately. OCR can be run on scans and images.',
@@ -779,6 +795,150 @@ function buildTargetedScopeAnalysis({
     risks,
     targetedSummary
   }
+}
+
+
+
+function detectSheetsFromText(text = '') {
+  const lines = String(text || '')
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  const results = []
+  const seen = new Set()
+
+  lines.forEach((line, index) => {
+    const normalized = normalizeSourceText(line)
+    if (!normalized) return
+
+    const matchers = [
+      normalized.match(/\b([A-Z]{1,3}\d{1,2}\.\d{2})\b\s*[\-–:]?\s*(.+)/),
+      normalized.match(/\b(SHEET\s+[A-Z]{1,3}\d{1,2}\.\d{2})\b\s*[\-–:]?\s*(.+)/i),
+      normalized.match(/\b([A-Z]-?\d{1,2}\.\d{2})\b\s*[\-–:]?\s*(.+)/)
+    ].filter(Boolean)
+
+    if (!matchers.length) return
+    const match = matchers[0]
+    const rawNumber = String(match[1] || '').replace(/^sheet\s+/i, '').trim()
+    const rawTitle = String(match[2] || '').trim()
+
+    if (!rawNumber || !rawTitle) return
+    const key = `${rawNumber}::${rawTitle}`.toLowerCase()
+    if (seen.has(key)) return
+    seen.add(key)
+
+    results.push({
+      id: `sheet-${results.length}`,
+      sheetNumber: rawNumber,
+      sheetTitle: rawTitle,
+      lineIndex: index,
+      discipline: inferDisciplineFromText(`${rawNumber} ${rawTitle}`)
+    })
+  })
+
+  return results.slice(0, 40)
+}
+
+function buildBlueprintScopeMatches({
+  scopeTarget = '',
+  extractedText = '',
+  detectedSheets = [],
+  projectSummary = {},
+  structuredSegments = []
+}) {
+  const requestedScope = normalizeScopeTarget(scopeTarget)
+  if (!requestedScope || !detectedSheets.length) return []
+
+  const lines = String(extractedText || '').split(/\r?\n/)
+  const keywordMap = buildScopeKeywordMap()
+  const normalizedTarget = inferScopeTradeFromTarget(requestedScope)
+  const targetKeywords = Array.from(
+    new Set([
+      requestedScope,
+      normalizedTarget,
+      ...(keywordMap[normalizedTarget] || []),
+      ...requestedScope.split(/\s+/)
+    ].filter(Boolean))
+  )
+
+  return detectedSheets
+    .map((sheet, index) => {
+      const nextLineIndex =
+        index < detectedSheets.length - 1 ? detectedSheets[index + 1].lineIndex : Math.min(lines.length, sheet.lineIndex + 40)
+      const nearbyLines = lines
+        .slice(sheet.lineIndex, Math.max(sheet.lineIndex + 1, nextLineIndex))
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .slice(0, 40)
+
+      const nearbyText = nearbyLines.join(' ').toLowerCase()
+      let score = 0
+
+      targetKeywords.forEach((term) => {
+        const normalized = String(term || '').toLowerCase()
+        if (!normalized) return
+        if (nearbyText.includes(normalized)) score += normalized === requestedScope ? 30 : 12
+        if (String(sheet.sheetTitle || '').toLowerCase().includes(normalized)) score += 18
+      })
+
+      if ((projectSummary.primaryTrades || []).includes(normalizedTarget)) score += 10
+      if ((projectSummary.secondaryTrades || []).includes(normalizedTarget)) score += 6
+      if (sheet.discipline === inferDisciplineFromText(normalizedTarget)) score += 8
+
+      const nearbySignals = uniqueList(
+        nearbyLines.filter((line) =>
+          targetKeywords.some((term) => String(line).toLowerCase().includes(String(term).toLowerCase()))
+        )
+      ).slice(0, 4)
+
+      return {
+        ...sheet,
+        score,
+        nearbySignals,
+        excerpt: nearbyLines.slice(0, 8).join(' '),
+      }
+    })
+    .filter((sheet) => sheet.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8)
+}
+
+function buildLikelyExclusions({
+  scopeTarget = '',
+  projectSummary = {},
+  targetedScopeAnalysis = {}
+}) {
+  const normalizedTarget = inferScopeTradeFromTarget(scopeTarget)
+  if (!normalizedTarget) return []
+
+  const tradeExclusionMap = {
+    welding: ['Do not carry concrete, CMU, roofing, or finish trades unless specifically called out.', 'Verify whether shop fabrication, galvanizing, and touch-up paint are excluded or delegated.'],
+    steel: ['Do not carry concrete footings, masonry, or adjacent finish scopes unless specifically called out.', 'Verify who owns embeds, anchors, and final coating requirements.'],
+    framing: ['Do not carry drywall finish, paint, MEP rough-in, or casework unless specifically called out.', 'Verify backing vs. finish carpentry boundaries.'],
+    demo: ['Do not carry rebuild, patch-back, utility reroutes, or hazardous disposal unless specifically called out.', 'Verify who owns haul-off, dump fees, and temporary protection.'],
+    concrete: ['Do not carry reinforcing fabrication, masonry, steel install, or site striping unless specifically called out.', 'Verify excavation, subgrade prep, and sawcut / dowel boundaries.'],
+    masonry: ['Do not carry structural concrete, steel fabrication, or gate hardware unless specifically called out.', 'Verify grout, reinforcing, and finish block texture responsibilities.'],
+    drywall: ['Do not carry framing, insulation, paint, or specialty ceilings unless specifically called out.', 'Verify finish level and patch scope boundaries.'],
+    electrical: ['Do not carry low-voltage, fire alarm, controls, or utility company work unless specifically called out.', 'Verify who owns trenching, core drilling, and temporary power.'],
+    plumbing: ['Do not carry civil utility tie-ins, concrete patch-back, or mechanical controls unless specifically called out.', 'Verify permits, shutdowns, and fixture owner-furnished items.'],
+    hvac: ['Do not carry controls, electrical feeders, roof patching, or structural supports unless specifically called out.', 'Verify startup, TAB, and curb / penetration responsibilities.'],
+    roofing: ['Do not carry decking repair, structural steel, sheet metal trim beyond listed details, or MEP curb work unless specifically called out.', 'Verify warranty, tear-off, and patch boundary assumptions.'],
+    sitework: ['Do not carry vertical building scopes, building MEP, or landscape unless specifically called out.', 'Verify survey, export, haul-off, and traffic control boundaries.'],
+    paint: ['Do not carry substrate repair, drywall finish, or specialty coatings unless specifically called out.', 'Verify prep level and who owns masking / protection.'],
+    carpentry: ['Do not carry framing, drywall finish, flooring, or final hardware unless specifically called out.', 'Verify millwork supply vs install boundaries.']
+  }
+
+  const exclusions = [
+    ...(tradeExclusionMap[normalizedTarget] || []),
+    ...((projectSummary.secondaryTrades || [])
+      .filter((item) => item && item !== normalizedTarget)
+      .slice(0, 4)
+      .map((item) => `Verify whether ${titleCase(item)} is excluded from your ${titleCase(normalizedTarget)} bid scope.`)),
+    ...((targetedScopeAnalysis.risks || []).slice(0, 2).map((item) => `Boundary check: ${item}`))
+  ]
+
+  return uniqueList(exclusions).slice(0, 8)
 }
 
 
@@ -2125,6 +2285,33 @@ export default function SupplierAiTools() {
   const permitRequirements = useMemo(
     () => getPermitRequirements({ projectSummary: effectiveProjectSummary, projectDetailSummary, fullText: `${projectNotes}\n${extractedText}` }),
     [effectiveProjectSummary, projectDetailSummary, projectNotes, extractedText]
+  )
+
+  const detectedSheets = useMemo(
+    () => detectSheetsFromText(extractedText),
+    [extractedText]
+  )
+
+  const blueprintScopeMatches = useMemo(
+    () =>
+      buildBlueprintScopeMatches({
+        scopeTarget,
+        extractedText,
+        detectedSheets,
+        projectSummary: effectiveProjectSummary,
+        structuredSegments
+      }),
+    [scopeTarget, extractedText, detectedSheets, effectiveProjectSummary, structuredSegments]
+  )
+
+  const likelyExclusions = useMemo(
+    () =>
+      buildLikelyExclusions({
+        scopeTarget,
+        projectSummary: effectiveProjectSummary,
+        targetedScopeAnalysis
+      }),
+    [scopeTarget, effectiveProjectSummary, targetedScopeAnalysis]
   )
 
 
@@ -3878,6 +4065,86 @@ export default function SupplierAiTools() {
             ) : (
               <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.permitNoSegments}</p>
             )}
+          </div>
+
+          <div className="card-soft" style={{ marginTop: 16, background: '#f3f8ff' }}>
+            <div className="card-section-title">{copy.blueprintIntelTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {copy.blueprintIntelBody}
+            </p>
+
+            <div className="grid two" style={{ gap: 14, marginTop: 12 }}>
+              <div className="card-soft" style={{ background: '#ffffff' }}>
+                <div className="muted">{copy.blueprintDetectedSheets}</div>
+                {detectedSheets.length ? (
+                  <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
+                    {detectedSheets.slice(0, 10).map((sheet) => (
+                      <div key={sheet.id} className="card-soft" style={{ background: '#f8f7ef' }}>
+                        <div style={{ fontWeight: 800 }}>
+                          {sheet.sheetNumber} · {sheet.sheetTitle}
+                        </div>
+                        <div className="muted" style={{ marginTop: 6 }}>
+                          {copy.blueprintDiscipline}: {disciplineLabel(sheet.discipline)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.blueprintNoSheets}</p>
+                )}
+              </div>
+
+              <div className="card-soft" style={{ background: '#ffffff' }}>
+                <div className="muted">{copy.blueprintSheetsTitle}</div>
+                <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+                  {copy.blueprintSheetsBody}
+                </p>
+                {blueprintScopeMatches.length ? (
+                  <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
+                    {blueprintScopeMatches.map((sheet) => (
+                      <div key={`blueprint-match-${sheet.id}`} className="card-soft" style={{ background: '#f8f7ef' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                          <div style={{ fontWeight: 800 }}>
+                            {sheet.sheetNumber} · {sheet.sheetTitle}
+                          </div>
+                          <span className="badge">
+                            {copy.blueprintMatchScore}: {sheet.score}
+                          </span>
+                        </div>
+                        <div className="muted" style={{ marginTop: 6 }}>
+                          {copy.blueprintDiscipline}: {disciplineLabel(sheet.discipline)}
+                        </div>
+                        {sheet.nearbySignals?.length ? (
+                          <div style={{ marginTop: 10 }}>
+                            <div className="muted">{copy.blueprintNearbySignals}</div>
+                            <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
+                              {sheet.nearbySignals.map((item) => (
+                                <li key={`sheet-signal-${sheet.id}-${item}`} style={{ marginTop: 4 }}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.blueprintSheetsEmpty}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
+              <div className="muted">{copy.blueprintExclusionsTitle}</div>
+              {likelyExclusions.length ? (
+                <ul style={{ margin: '10px 0 0 18px', padding: 0 }}>
+                  {likelyExclusions.map((item) => (
+                    <li key={`likely-exclusion-${item}`} style={{ marginTop: 4 }}>{item}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.blueprintExclusionsEmpty}</p>
+              )}
+            </div>
           </div>
 
           <div className="card-soft" style={{ marginTop: 16, background: '#eef7ff' }}>
