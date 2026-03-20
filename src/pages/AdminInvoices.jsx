@@ -722,7 +722,7 @@ export default function AdminInvoices({ lang = 'en' }) {
     const bodyRows = (doc.items || []).map((item) => {
       const normalized = normalizeItem(item)
       return [
-        normalized.label || '',
+        String(normalized.label || '').trim(),
         String(normalized.qty || 1),
         money(normalized.unitPrice || 0),
         money(normalized.amount || 0)
@@ -734,8 +734,28 @@ export default function AdminInvoices({ lang = 'en' }) {
       head: [[copy.lineItem, copy.qty, copy.unitPrice, copy.amount]],
       body: bodyRows,
       theme: 'grid',
-      styles: { font: 'helvetica', fontSize: 10, cellPadding: 8 },
-      headStyles: { fillColor: [245, 245, 245], textColor: 17 },
+      styles: {
+        font: 'helvetica',
+        fontSize: 10,
+        cellPadding: 6,
+        overflow: 'linebreak',
+        valign: 'middle'
+      },
+      headStyles: {
+        fillColor: [245, 245, 245],
+        textColor: 17,
+        halign: 'center',
+        valign: 'middle'
+      },
+      bodyStyles: {
+        valign: 'middle'
+      },
+      columnStyles: {
+        0: { cellWidth: 260, halign: 'left' },
+        1: { cellWidth: 45, halign: 'center' },
+        2: { cellWidth: 90, halign: 'right' },
+        3: { cellWidth: 90, halign: 'right' }
+      },
       margin: { left, right: 40 }
     })
 
