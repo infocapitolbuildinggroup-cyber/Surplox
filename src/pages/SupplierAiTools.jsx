@@ -10,8 +10,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url
 ).toString()
 const OCR_MAX_DIRECT_FILE_SIZE = 4 * 1024 * 1024
-const OCR_REQUEST_TIMEOUT_MS = 45 * 1000
-const OCR_FILE_TIMEOUT_MS = 8 * 60 * 1000
+const OCR_REQUEST_TIMEOUT_MS = 120 * 1000
+const OCR_FILE_TIMEOUT_MS = 20 * 60 * 1000
 const PDF_PAGE_RENDER_ATTEMPTS = [
   { scale: 1.35, quality: 0.76 },
   { scale: 1.1, quality: 0.62 },
