@@ -10,6 +10,8 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url
 ).toString()
 const OCR_MAX_DIRECT_FILE_SIZE = 4 * 1024 * 1024
+const OCR_REQUEST_TIMEOUT_MS = 90 * 1000
+const OCR_TOTAL_FILE_TIMEOUT_MS = 8 * 60 * 1000
 const PDF_PAGE_RENDER_ATTEMPTS = [
   { scale: 1.35, quality: 0.76 },
   { scale: 1.1, quality: 0.62 },
@@ -17,16 +19,38 @@ const PDF_PAGE_RENDER_ATTEMPTS = [
   { scale: 0.75, quality: 0.42 }
 ]
 
+function createTimeoutError(label, timeoutMs) {
+  return new Error(`${label} timed out after ${Math.ceil(timeoutMs / 1000)} seconds.`)
+}
+
+async function withTimeout(promise, timeoutMs, label) {
+  let timeoutId
+
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(createTimeoutError(label, timeoutMs)), timeoutMs)
+  })
+
+  try {
+    return await Promise.race([promise, timeoutPromise])
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
 async function ocrSingleFile(file, mimeType = '') {
   const fileBase64 = await fileToBase64(file)
-  const response = await fetch(API_OCR_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      fileBase64,
-      mimeType: mimeType || file.type || 'application/octet-stream'
-    })
-  })
+  const response = await withTimeout(
+    fetch(API_OCR_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileBase64,
+        mimeType: mimeType || file.type || 'application/octet-stream'
+      })
+    }),
+    OCR_REQUEST_TIMEOUT_MS,
+    `OCR request for ${file?.name || 'file'}`
+  )
 
   const data = await parseJsonOrTextResponse(response)
   if (!response.ok) {
@@ -76,13 +100,21 @@ async function renderSinglePdfPageToSizedImage(page, pageNum, baseName = 'docume
   throw new Error(`PDF page ${pageNum} is still too large for OCR after compression.`)
 }
 
-async function renderPdfPagesToImages(file) {
+async function renderPdfPagesToImages(file, onProgress) {
   const arrayBuffer = await file.arrayBuffer()
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
   const renderedPages = []
   const baseName = file.name.replace(/\.pdf$/i, '') || 'document'
 
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+    onProgress?.({
+      phase: 'rendering',
+      page: pageNum,
+      totalPages: pdf.numPages,
+      fileName: file.name,
+      detail: `Rendering page ${pageNum} of ${pdf.numPages}`
+    })
+
     const page = await pdf.getPage(pageNum)
     const sizedFile = await renderSinglePdfPageToSizedImage(page, pageNum, baseName)
     renderedPages.push(sizedFile)
@@ -91,32 +123,66 @@ async function renderPdfPagesToImages(file) {
   return renderedPages
 }
 
-async function handleLargeFileProcessing(file, mimeType = '') {
-  const type = String(mimeType || file?.type || '').toLowerCase()
-  const lowerName = String(file?.name || '').toLowerCase()
-  const isPdf = type === 'application/pdf' || /\.pdf$/i.test(lowerName)
+async function handleLargeFileProcessing(file, mimeType = '', options = {}) {
+  const { onProgress, timeoutMs = OCR_TOTAL_FILE_TIMEOUT_MS } = options
 
-  if (!isPdf) {
-    return await ocrSingleFile(file, type || file.type || 'application/octet-stream')
-  }
+  return await withTimeout(
+    (async () => {
+      const type = String(mimeType || file?.type || '').toLowerCase()
+      const lowerName = String(file?.name || '').toLowerCase()
+      const isPdf = type === 'application/pdf' || /\.pdf$/i.test(lowerName)
 
-  const pageFiles = await renderPdfPagesToImages(file)
-  const pageResults = []
+      if (!isPdf) {
+        onProgress?.({
+          phase: 'ocr',
+          page: 1,
+          totalPages: 1,
+          fileName: file.name,
+          detail: 'Running OCR on uploaded file'
+        })
+        return await ocrSingleFile(file, type || file.type || 'application/octet-stream')
+      }
 
-  for (let index = 0; index < pageFiles.length; index += 1) {
-    const pageFile = pageFiles[index]
+      const pageFiles = await renderPdfPagesToImages(file, onProgress)
+      const pageResults = []
 
-    if (pageFile.size > OCR_MAX_DIRECT_FILE_SIZE) {
-      throw new Error(`PDF page ${index + 1} is still too large for OCR after compression.`)
-    }
+      for (let index = 0; index < pageFiles.length; index += 1) {
+        const pageFile = pageFiles[index]
 
-    const pageText = await ocrSingleFile(pageFile, pageFile.type)
-    if (pageText) {
-      pageResults.push(`[PAGE ${index + 1}]\n${pageText}`)
-    }
-  }
+        if (pageFile.size > OCR_MAX_DIRECT_FILE_SIZE) {
+          throw new Error(`PDF page ${index + 1} is still too large for OCR after compression.`)
+        }
 
-  return pageResults.join('\n\n').trim()
+        onProgress?.({
+          phase: 'ocr',
+          page: index + 1,
+          totalPages: pageFiles.length,
+          fileName: file.name,
+          detail: `OCR page ${index + 1} of ${pageFiles.length}`
+        })
+
+        const pageText = await ocrSingleFile(pageFile, pageFile.type)
+        if (pageText) {
+          pageResults.push(`[PAGE ${index + 1}]
+${pageText}`)
+        }
+      }
+
+      onProgress?.({
+        phase: 'complete',
+        page: pageFiles.length,
+        totalPages: pageFiles.length,
+        fileName: file.name,
+        detail: `Completed ${pageFiles.length} pages`
+      })
+
+      return pageResults.join('
+
+').trim()
+    })(),
+    timeoutMs,
+    `Project Analyzer for ${file?.name || 'file'}`
+  )
 }
 
 const API_IMPORT_ENDPOINT =
@@ -2424,6 +2490,13 @@ export default function SupplierAiTools() {
   const [analyzerMode, setAnalyzerMode] = useState('build')
   const [creatingProject, setCreatingProject] = useState(false)
   const [createdProjectId, setCreatedProjectId] = useState('')
+  const [analyzerProgress, setAnalyzerProgress] = useState({
+    fileName: '',
+    phase: '',
+    page: 0,
+    totalPages: 0,
+    detail: ''
+  })
 
   const structuredSegments = useMemo(
     () => buildStructuredSegments(projectNotes, uploadedFiles),
@@ -2676,6 +2749,7 @@ export default function SupplierAiTools() {
     setProjectEngine(null)
     setCreatedProjectId('')
     setHasAnalyzerRun(false)
+    setAnalyzerProgress({ fileName: '', phase: '', page: 0, totalPages: 0, detail: '' })
   }
 
   function clearUploadedFiles() {
@@ -2684,6 +2758,7 @@ export default function SupplierAiTools() {
     setProjectEngine(null)
     setCreatedProjectId('')
     setHasAnalyzerRun(false)
+    setAnalyzerProgress({ fileName: '', phase: '', page: 0, totalPages: 0, detail: '' })
   }
 
   function pushWithParams(path, values = {}) {
@@ -2982,6 +3057,7 @@ export default function SupplierAiTools() {
       setProjectEngine(null)
       setCreatedProjectId('')
       setHasAnalyzerRun(false)
+      setAnalyzerProgress({ fileName: '', phase: '', page: 0, totalPages: 0, detail: '' })
       event.target.value = ''
     } finally {
       setBusy(false)
@@ -2997,8 +3073,20 @@ export default function SupplierAiTools() {
       const target = uploadedFiles.find((item) => item.id === fileId)
       if (!target) throw new Error('File not found.')
 
+      setAnalyzerProgress({
+        fileName: target.name,
+        phase: 'starting',
+        page: 0,
+        totalPages: 0,
+        detail: 'Preparing file for Project Analyzer'
+      })
       setMessage(`Analyzer: processing ${target.name}…`)
-      const text = await handleLargeFileProcessing(target.file, target.mimeType)
+      const text = await handleLargeFileProcessing(target.file, target.mimeType, {
+        onProgress: (progress) => {
+          setAnalyzerProgress(progress)
+          setMessage(`Analyzer: ${progress.fileName} — ${progress.detail}`)
+        }
+      })
       const nextFiles = uploadedFiles.map((item) =>
         item.id === fileId
           ? { ...item, extractedText: text, ocrDone: Boolean(text) }
@@ -3008,9 +3096,21 @@ export default function SupplierAiTools() {
       setUploadedFiles(nextFiles)
       setExtractedText(buildCombinedExtractedText(nextFiles))
       setHasAnalyzerRun(true)
+      setAnalyzerProgress({
+        fileName: target.name,
+        phase: 'complete',
+        page: 0,
+        totalPages: 0,
+        detail: 'Project Analyzer scan complete.'
+      })
       setMessage('Project Analyzer scan complete.')
     } catch (error) {
       console.error(error)
+      setAnalyzerProgress((prev) => ({
+        ...prev,
+        phase: 'error',
+        detail: error.message || 'Unknown error'
+      }))
       setMessage(`OCR failed: ${error.message || 'Unknown error'}`)
     } finally {
       setAnalyzerBusy(false)
@@ -3031,18 +3131,48 @@ export default function SupplierAiTools() {
 
     try {
       let nextFiles = [...uploadedFiles]
+      let processedCount = 0
+      const filesNeedingOcr = nextFiles.filter((file) => Boolean(file.ocrReady && !String(file.extractedText || '').trim()))
 
-      for (const file of nextFiles) {
-        const needsOcr = Boolean(file.ocrReady && !String(file.extractedText || '').trim())
-        if (!needsOcr) continue
+      if (!filesNeedingOcr.length) {
+        setAnalyzerProgress({
+          fileName: '',
+          phase: 'complete',
+          page: 0,
+          totalPages: 0,
+          detail: 'No OCR needed. Analyzer is using the current extracted text and notes.'
+        })
+      }
 
+      for (const file of filesNeedingOcr) {
+        setAnalyzerProgress({
+          fileName: file.name,
+          phase: 'starting',
+          page: 0,
+          totalPages: 0,
+          detail: `Preparing file ${processedCount + 1} of ${filesNeedingOcr.length}`
+        })
         setMessage(`Analyzer: processing ${file.name}…`)
-        const text = await handleLargeFileProcessing(file.file, file.mimeType)
+
+        const text = await handleLargeFileProcessing(file.file, file.mimeType, {
+          onProgress: (progress) => {
+            setAnalyzerProgress({
+              ...progress,
+              fileIndex: processedCount + 1,
+              fileTotal: filesNeedingOcr.length
+            })
+            setMessage(
+              `Analyzer: file ${processedCount + 1} of ${filesNeedingOcr.length} — ${progress.fileName} — ${progress.detail}`
+            )
+          }
+        })
+
         nextFiles = nextFiles.map((item) =>
           item.id === file.id
             ? { ...item, extractedText: text, ocrDone: Boolean(text) }
             : item
         )
+        processedCount += 1
       }
 
       setUploadedFiles(nextFiles)
@@ -3050,9 +3180,19 @@ export default function SupplierAiTools() {
       setProjectEngine(null)
       setCreatedProjectId('')
       setHasAnalyzerRun(true)
+      setAnalyzerProgress((prev) => ({
+        ...prev,
+        phase: 'complete',
+        detail: `Project Analyzer scan complete.${filesNeedingOcr.length ? ` Processed ${filesNeedingOcr.length} file${filesNeedingOcr.length === 1 ? '' : 's'}.` : ''}`
+      }))
       setMessage('Project Analyzer scan complete.')
     } catch (error) {
       console.error(error)
+      setAnalyzerProgress((prev) => ({
+        ...prev,
+        phase: 'error',
+        detail: error.message || 'Unknown error'
+      }))
       setMessage(`OCR failed: ${error.message || 'Unknown error'}`)
     } finally {
       setAnalyzerBusy(false)
@@ -3672,7 +3812,7 @@ export default function SupplierAiTools() {
                         onClick={() => runOcrForFile(file.id)}
                         disabled={busy}
                       >
-                        {analyzerBusy ? copy.runningOcr : copy.runOcr}
+                        {analyzerBusy && analyzerProgress.fileName === file.name ? copy.runningOcr : copy.runOcr}
                       </button>
                     ) : null}
                     <button
@@ -3734,12 +3874,33 @@ export default function SupplierAiTools() {
             <Chip onClick={useAnalyzerForDelivery}>{copy.deliveryTab}</Chip>
           </div>
 
-          {hasAnalyzerRun ? (
-            <div className="card-soft" style={{ marginTop: 12, background: '#eef7f1' }}>
-              <div style={{ fontWeight: 800 }}>Project Analyzer ready</div>
-              <div className="card-section-subtitle" style={{ marginTop: 6 }}>
-                OCR and file extraction completed. Review the analyzer output below or run the Project Engine for the full handoff.
+          {(analyzerProgress.detail || hasAnalyzerRun) ? (
+            <div className="card-soft" style={{ marginTop: 12, background: analyzerProgress.phase === 'error' ? '#fff1ee' : '#eef7f1' }}>
+              <div style={{ fontWeight: 800 }}>
+                {analyzerProgress.phase === 'error'
+                  ? 'Project Analyzer issue'
+                  : analyzerBusy
+                    ? 'Project Analyzer progress'
+                    : 'Project Analyzer ready'}
               </div>
+              {analyzerProgress.fileName ? (
+                <div className="card-section-subtitle" style={{ marginTop: 6 }}>
+                  <strong>File:</strong> {analyzerProgress.fileName}
+                </div>
+              ) : null}
+              <div className="card-section-subtitle" style={{ marginTop: 6 }}>
+                {analyzerProgress.detail || 'OCR and file extraction completed. Review the analyzer output below or run the Project Engine for the full handoff.'}
+              </div>
+              {analyzerProgress.totalPages ? (
+                <div className="card-section-subtitle" style={{ marginTop: 6 }}>
+                  {analyzerProgress.phase === 'rendering' ? 'Rendering' : analyzerProgress.phase === 'ocr' ? 'OCR' : 'Progress'} page {analyzerProgress.page} of {analyzerProgress.totalPages}
+                </div>
+              ) : null}
+              {analyzerBusy ? (
+                <div className="card-section-subtitle" style={{ marginTop: 6 }}>
+                  Large plan sets can take several minutes. The analyzer will stop automatically if a file stalls too long.
+                </div>
+              ) : null}
             </div>
           ) : null}
 
