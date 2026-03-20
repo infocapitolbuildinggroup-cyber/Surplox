@@ -791,11 +791,11 @@ function buildProjectRecordFromAnalysis({ scopeText = '', projectSummary = {}, p
 
   const visibleNotes = [
     `Analyzer summary: ${projectSummary.summary || 'General construction project'}`,
-    effectiveProjectSummary.why?.length ? `Why: ${projectSummary.why.join(' | ')}` : '',
+    projectSummary.why?.length ? `Why: ${projectSummary.why.join(' | ')}` : '',
     projectSummary.primaryTrades?.length ? `Primary trades: ${projectSummary.primaryTrades.map(titleCase).join(', ')}` : '',
     projectSummary.materials?.length ? `Likely materials: ${projectSummary.materials.map(titleCase).join(', ')}` : '',
     projectDetailSummary.dimensions?.length ? `Dimensions: ${projectDetailSummary.dimensions.slice(0, 10).join(', ')}` : '',
-    effectiveProjectSummary.nextActions?.length ? `Analyzer next actions: ${projectSummary.nextActions.join(' | ')}` : '',
+    projectSummary.nextActions?.length ? `Analyzer next actions: ${projectSummary.nextActions.join(' | ')}` : '',
     projectEngine?.recommendedNext ? `Recommended next move: ${projectEngine.recommendedNext}` : '',
     scopeText ? `Source scope text:\n${scopeText.slice(0, 5000)}` : ''
   ].filter(Boolean).join('\n\n')
@@ -811,7 +811,7 @@ function buildProjectRecordFromAnalysis({ scopeText = '', projectSummary = {}, p
     jurisdiction: '',
     permit_types: permitTypes,
     intake_notes: [
-      effectiveProjectSummary.fieldChecks?.length ? `Analyzer field checks: ${projectSummary.fieldChecks.join(' | ')}` : '',
+      projectSummary.fieldChecks?.length ? `Analyzer field checks: ${projectSummary.fieldChecks.join(' | ')}` : '',
       permitRequirements.missing_inputs.length ? `Missing inputs: ${permitRequirements.missing_inputs.join(' | ')}` : '',
       permitRequirements.warnings.length ? `Warnings: ${permitRequirements.warnings.join(' | ')}` : ''
     ].filter(Boolean).join(' || ')
@@ -1495,7 +1495,6 @@ function buildAnalyzerProjectPackage({
     evidence: analyzerEvidence || [],
     structured_segments: structuredSegments || [],
     requested_scope: scopeTarget || '',
-    requested_scope: scopeTarget || '',
     recommended_next: engine.recommendedNext || recommendedNextMove({
       trades: projectSummary.trades,
       materials: projectSummary.materials,
@@ -1620,9 +1619,6 @@ async function runDeliveryEngine(deliveryPlan = {}, pickupZip = '', jobsiteZip =
   return Array.isArray(data) ? data.slice(0, 6) : []
 }
 
-function Chip({ children, active = false, onClick, type = 'button' }) {
-  
-
 // ================= RFQ SYSTEM =================
 async function createRFQ({ projectId, material, supplier }) {
   try {
@@ -1644,7 +1640,9 @@ async function createRFQ({ projectId, material, supplier }) {
     alert('Failed to send RFQ')
   }
 }
-return (
+
+function Chip({ children, active = false, onClick, type = 'button' }) {
+  return (
     <button
       type={type}
       className={active ? 'btn primary small' : 'btn small'}
@@ -1690,7 +1688,7 @@ function SupplierCard({ supplier, copy, onOpenSearch, onOpenStorefront }) {
           <button
             className="btn small"
             type="button"
-            onClick={() => createRFQ({ material: supplier.engine_material || supplier.label || '', supplier })}
+            onClick={() => createRFQ({ material: supplier.engine_material || supplier.label || (Array.isArray(supplier.materials_categories) ? supplier.materials_categories[0] : '') || '', supplier })}
           >
             Send RFQ
           </button>
@@ -2048,6 +2046,22 @@ export default function SupplierAiTools() {
     [projectNotes, extractedText, projectSummary.detectedScope]
   )
 
+  const targetedScopeAnalysis = useMemo(
+    () =>
+      buildTargetedScopeAnalysis({
+        scopeTarget,
+        fullText: `${projectNotes}\n${extractedText}`,
+        structuredSegments,
+        projectSummary,
+        projectDetailSummary
+      }),
+    [scopeTarget, projectNotes, extractedText, structuredSegments, projectSummary, projectDetailSummary]
+  )
+
+  const effectiveProjectSummary = useMemo(
+    () => targetedScopeAnalysis.targetedSummary || projectSummary,
+    [targetedScopeAnalysis, projectSummary]
+  )
 
   const analyzerEvidence = useMemo(
     () => buildAnalyzerEvidence(effectiveProjectSummary, projectDetailSummary, structuredSegments),
@@ -2085,7 +2099,7 @@ export default function SupplierAiTools() {
     [
       projectNotes,
       extractedText,
-      projectSummary,
+      effectiveProjectSummary,
       projectDetailSummary,
       permitPrecheck,
       permitRequirements,
@@ -2094,7 +2108,8 @@ export default function SupplierAiTools() {
       projectEngine,
       supplierForm,
       crewForm,
-      deliveryForm
+      deliveryForm,
+      scopeTarget
     ]
   )
 
@@ -2579,7 +2594,7 @@ export default function SupplierAiTools() {
             materials: effectiveProjectSummary.materials,
             squareFeet: extractSquareFeet(scopeText)
           },
-          buildDeliveryPlan(buildMaterialsPlan(projectSummary, scopeText), projectSummary, scopeText)
+          buildDeliveryPlan(buildMaterialsPlan(effectiveProjectSummary, scopeText), effectiveProjectSummary, scopeText)
         )
       }
 
