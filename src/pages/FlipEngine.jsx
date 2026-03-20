@@ -64,6 +64,19 @@ const COPY = {
     liveBridgeStatus: 'Bridge Status',
     liveBridgeReady: 'Ready for backend connection',
     liveBridgeNote: 'Imported or endpoint-fed rows can now flow into ranking without replacing the current mock engine.',
+    phase6Title: 'Phase 6 Live Integration',
+    phase6Body: 'This phase adds the first true live-fetch layer. Configured adapter endpoints can now be called from the page, returned rows are normalized into the existing ingestion queue, and fetched records can be scored without changing the rest of the workflow.',
+    fetchLiveRows: 'Fetch Live Rows',
+    fetchingLiveRows: 'Fetching Live Rows…',
+    clearLiveRows: 'Clear Live Rows',
+    liveFetchSuccess: 'Live rows fetched successfully.',
+    liveFetchError: 'Unable to fetch live rows right now.',
+    liveFetchEmpty: 'No live rows returned from the configured endpoint.',
+    liveFetchStatus: 'Live Fetch Status',
+    liveFetchedAt: 'Last Live Fetch',
+    liveSourceRows: 'Live Source Rows',
+    liveSourceRowsEmpty: 'No live rows fetched yet.',
+    endpointRequired: 'Add at least one endpoint URL before fetching live rows.',
     county: 'County',
     city: 'City / ZIP',
     distressType: 'Distress Type',
@@ -259,6 +272,19 @@ const COPY = {
     liveBridgeStatus: 'Estado del Puente',
     liveBridgeReady: 'Listo para conexión backend',
     liveBridgeNote: 'Las filas importadas o alimentadas por endpoint ahora pueden fluir al ranking sin reemplazar el motor mock actual.',
+    phase6Title: 'Integración en Vivo Fase 6',
+    phase6Body: 'Esta fase agrega la primera capa real de fetch en vivo. Los endpoints configurados ahora pueden llamarse desde la página, las filas devueltas se normalizan dentro de la cola existente y los registros obtenidos pueden calificarse sin cambiar el resto del flujo.',
+    fetchLiveRows: 'Traer Filas en Vivo',
+    fetchingLiveRows: 'Trayendo Filas en Vivo…',
+    clearLiveRows: 'Limpiar Filas en Vivo',
+    liveFetchSuccess: 'Filas en vivo obtenidas correctamente.',
+    liveFetchError: 'No se pudieron obtener filas en vivo por ahora.',
+    liveFetchEmpty: 'El endpoint configurado no devolvió filas en vivo.',
+    liveFetchStatus: 'Estado de Fetch en Vivo',
+    liveFetchedAt: 'Último Fetch en Vivo',
+    liveSourceRows: 'Filas de Fuente en Vivo',
+    liveSourceRowsEmpty: 'Todavía no hay filas en vivo obtenidas.',
+    endpointRequired: 'Agrega al menos una URL de endpoint antes de traer filas en vivo.',
     county: 'Condado',
     city: 'Ciudad / ZIP',
     distressType: 'Tipo de Distress',
@@ -404,7 +430,9 @@ const STORAGE_KEYS = {
   stagedRows: 'surplox_flip_engine_staged_rows_v1',
   endpointConfigs: 'surplox_flip_engine_endpoint_configs_v1',
   importInput: 'surplox_flip_engine_import_input_v1',
-  importedRows: 'surplox_flip_engine_imported_rows_v1'
+  importedRows: 'surplox_flip_engine_imported_rows_v1',
+  liveRows: 'surplox_flip_engine_live_rows_v1',
+  liveFetchMeta: 'surplox_flip_engine_live_fetch_meta_v1'
 }
 
 const COUNTY_OPTIONS = ['Dallas County', 'Tarrant County', 'Denton County', 'Collin County', 'Ellis County', 'Johnson County']
@@ -910,6 +938,40 @@ function generatePropertyFromImportedRow(seedIndex, filters, copy, row) {
   }
 }
 
+function buildLiveFetchPayload(filters = {}, endpoint = {}) {
+  return {
+    county: endpoint.county || filters.county || '',
+    city: filters.city || '',
+    distressType: filters.distressType || 'all',
+    propertyType: filters.propertyType || 'all',
+    occupancy: filters.occupancy || 'any',
+    dealCount: Number(filters.dealCount || 10),
+    targetMargin: Number(filters.targetMargin || 15),
+    targetProfit: Number(filters.targetProfit || 45000),
+    maxRehab: Number(filters.maxRehab || 140000)
+  }
+}
+
+function normalizeEndpointResponse(json, endpoint = {}) {
+  const rawRows = Array.isArray(json)
+    ? json
+    : Array.isArray(json?.rows)
+      ? json.rows
+      : Array.isArray(json?.data)
+        ? json.data
+        : []
+
+  return rawRows.map((row, index) =>
+    normalizeImportedRow(
+      {
+        ...row,
+        source: row?.source || endpoint.label || `${endpoint.county || 'County'} Live Endpoint`
+      },
+      index
+    )
+  )
+}
+
 
 function scoreTone(score) {
   if (score >= 85) return { background: '#dcf4e5', color: '#177245' }
@@ -962,7 +1024,8 @@ export default function FlipEngine({ lang = 'en' }) {
     { id: 'endpoint-2', county: 'Tarrant County', label: 'Tarrant Adapter', method: 'GET', url: '' }
   ]))
   const [importInput, setImportInput] = useState(() => readStoredJson(STORAGE_KEYS.importInput, ''))
-  const [importedRows, setImportedRows] = useState(() => readStoredJson(STORAGE_KEYS.importedRows, []))
+  const [liveRows, setLiveRows] = useState(() => readStoredJson(STORAGE_KEYS.liveRows, []))
+  const [liveFetchMeta, setLiveFetchMeta] = useState(() => readStoredJson(STORAGE_KEYS.liveFetchMeta, { message: '', fetchedAt: '' }))
   const [importMessage, setImportMessage] = useState('')
   const [filters, setFilters] = useState(() => ({ ...defaultFilters, ...readStoredJson(STORAGE_KEYS.filters, {}) }))
   const [results, setResults] = useState(() => readStoredJson(STORAGE_KEYS.results, []))
@@ -1015,6 +1078,14 @@ export default function FlipEngine({ lang = 'en' }) {
     window.localStorage.setItem(STORAGE_KEYS.importedRows, JSON.stringify(importedRows))
   }, [importedRows])
 
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.liveRows, JSON.stringify(liveRows))
+  }, [liveRows])
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.liveFetchMeta, JSON.stringify(liveFetchMeta))
+  }, [liveFetchMeta])
+
   function sortDeals(items = [], sortBy = 'score') {
     const rows = [...items]
     if (sortBy === 'profit') return rows.sort((a, b) => b.netProfit - a.netProfit || b.score - a.score)
@@ -1049,6 +1120,17 @@ export default function FlipEngine({ lang = 'en' }) {
       return
     }
 
+    if (sourceMode === 'live' && liveRows.length) {
+      const generated = sortDeals(
+        liveRows.slice(0, count).map((row, index) => generatePropertyFromImportedRow(index + 1, filters, copy, row)),
+        filters.sortBy
+      )
+      setResults(generated)
+      setExpandedId(generated[0]?.id || '')
+      setTimeout(() => setBusy(false), 250)
+      return
+    }
+
     const sourceRows = buildAdapterRows(filters).slice(0, count)
     setStagedRows(sourceRows)
 
@@ -1070,6 +1152,72 @@ export default function FlipEngine({ lang = 'en' }) {
 
   function updateEndpoint(id, key, value) {
     setEndpointConfigs((prev) => prev.map((item) => (item.id === id ? { ...item, [key]: value } : item)))
+  }
+
+  async function handleFetchLiveRows() {
+    const activeEndpoint =
+      endpointConfigs.find((item) => String(item.url || '').trim()) ||
+      null
+
+    if (!activeEndpoint) {
+      setLiveFetchMeta({ message: copy.endpointRequired, fetchedAt: '' })
+      return
+    }
+
+    setBusy(true)
+    setLiveFetchMeta({ message: '', fetchedAt: liveFetchMeta.fetchedAt || '' })
+
+    try {
+      const payload = buildLiveFetchPayload(filters, activeEndpoint)
+      const method = String(activeEndpoint.method || 'GET').toUpperCase()
+      let response
+
+      if (method === 'POST') {
+        response = await fetch(activeEndpoint.url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+      } else {
+        const url = new URL(activeEndpoint.url, window.location.origin)
+        Object.entries(payload).forEach(([key, value]) => {
+          if (value !== '' && value !== null && value !== undefined) {
+            url.searchParams.set(key, String(value))
+          }
+        })
+        response = await fetch(url.toString(), { method: 'GET' })
+      }
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+
+      const json = await response.json()
+      const normalized = normalizeEndpointResponse(json, activeEndpoint)
+
+      if (!normalized.length) {
+        setLiveRows([])
+        setLiveFetchMeta({ message: copy.liveFetchEmpty, fetchedAt: new Date().toLocaleString() })
+        setBusy(false)
+        return
+      }
+
+      setLiveRows(normalized)
+      setStagedRows(normalized)
+      setImportedRows(normalized)
+      setSourceMode('live')
+      setLiveFetchMeta({ message: copy.liveFetchSuccess, fetchedAt: new Date().toLocaleString() })
+    } catch (error) {
+      console.error(error)
+      setLiveFetchMeta({ message: `${copy.liveFetchError}${error?.message ? ` (${error.message})` : ''}`, fetchedAt: liveFetchMeta.fetchedAt || '' })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function handleClearLiveRows() {
+    setLiveRows([])
+    setLiveFetchMeta({ message: '', fetchedAt: '' })
   }
 
   function handleImportRows() {
@@ -1246,6 +1394,49 @@ export default function FlipEngine({ lang = 'en' }) {
           <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
             <div className="muted" style={{ lineHeight: 1.7 }}>{copy.liveBridgeNote}</div>
           </div>
+        </div>
+      </div>
+
+      <div className="grid two" style={{ alignItems: 'start' }}>
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.phase6Title}</div>
+          <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
+            <div className="muted" style={{ lineHeight: 1.7 }}>{copy.phase6Body}</div>
+          </div>
+          <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button className="btn primary" type="button" onClick={handleFetchLiveRows} disabled={busy}>
+              {busy ? copy.fetchingLiveRows : copy.fetchLiveRows}
+            </button>
+            <button className="btn" type="button" onClick={handleClearLiveRows}>
+              {copy.clearLiveRows}
+            </button>
+          </div>
+          <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
+            <div className="muted"><strong>{copy.liveFetchStatus}:</strong> {liveFetchMeta.message || copy.liveBridgeReady}</div>
+            <div className="muted" style={{ marginTop: 6 }}>
+              <strong>{copy.liveFetchedAt}:</strong> {liveFetchMeta.fetchedAt || '—'}
+            </div>
+          </div>
+        </div>
+
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.liveSourceRows}</div>
+          {!liveRows.length ? (
+            <div className="card-soft" style={{ marginTop: 14 }}>{copy.liveSourceRowsEmpty}</div>
+          ) : (
+            <div className="list" style={{ marginTop: 14 }}>
+              {liveRows.map((row) => (
+                <div key={`live-${row.id}`} className="card-soft" style={{ background: '#ffffff' }}>
+                  <div style={{ display: 'grid', gap: 6 }}>
+                    <div><strong>{copy.normalizedAddress}:</strong> {row.normalizedAddress}</div>
+                    <div><strong>{copy.recordType}:</strong> {titleCase(row.recordType)}</div>
+                    <div><strong>{copy.source}:</strong> {row.source}</div>
+                    <div><strong>{copy.sourceModeLabel}:</strong> {copy.sourceModeLive}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
