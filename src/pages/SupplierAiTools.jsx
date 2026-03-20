@@ -46,6 +46,7 @@ async function renderPdfPagesToImages(file) {
     const viewport = page.getViewport({ scale: PDF_PAGE_RENDER_SCALE })
     const canvas = document.createElement('canvas')
     const context = canvas.getContext('2d', { alpha: false })
+
     if (!context) throw new Error('Unable to create PDF rendering context.')
 
     canvas.width = Math.ceil(viewport.width)
@@ -88,7 +89,9 @@ async function handleLargeFileProcessing(file, mimeType = '') {
       return await ocrSingleFile(file, 'application/pdf')
     } catch (error) {
       const message = String(error?.message || '')
-      if (!/too large|payload too large|request entity too large/i.test(message)) throw error
+      if (!/too large|payload too large|request entity too large/i.test(message)) {
+        throw error
+      }
     }
   }
 
@@ -98,7 +101,9 @@ async function handleLargeFileProcessing(file, mimeType = '') {
   for (let index = 0; index < pageFiles.length; index += 1) {
     const pageFile = pageFiles[index]
     const pageText = await ocrSingleFile(pageFile, pageFile.type)
-    if (pageText) pageResults.push(`[PAGE ${index + 1}]\n${pageText}`)
+    if (pageText) {
+      pageResults.push(`[PAGE ${index + 1}]\n${pageText}`)
+    }
   }
 
   return pageResults.join('\n\n').trim()
@@ -2863,7 +2868,7 @@ export default function SupplierAiTools() {
         body: JSON.stringify(supplierForm)
       })
 
-      const data = await response.json()
+      const data = await parseJsonOrTextResponse(response)
       if (!response.ok) throw new Error(data?.error || copy.importError)
 
       setSupplierSuggestions(Array.isArray(data.suppliers) ? data.suppliers : [])
@@ -2980,7 +2985,7 @@ export default function SupplierAiTools() {
         body: JSON.stringify({ fileBase64, mimeType: target.mimeType })
       })
 
-      const data = await response.json()
+      const data = await parseJsonOrTextResponse(response)
 
       if (!response.ok) {
         const detailText =
@@ -2988,7 +2993,7 @@ export default function SupplierAiTools() {
             ? data.details
             : typeof data?.error === 'string'
               ? data.error
-              : 'OCR failed.'
+              : 'OCR request failed (server error)'
       
         throw new Error(detailText)
       }
