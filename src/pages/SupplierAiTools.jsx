@@ -102,6 +102,21 @@ const COPY = {
     notesLabel: 'Project scope notes',
     notesPlaceholder:
       'Example: 18,000 SF tilt wall warehouse in 76140. Needs concrete, steel, framing, drywall, electrical, plumbing, site materials, and staged deliveries.',
+    scopeTargetLabel: 'Your specific scope',
+    scopeTargetPlaceholder: 'Example: welding only, framing only, demo only, steel install, finish carpentry...',
+    scopeTargetHelp:
+      'Tell the analyzer exactly what portion of the bid package you are performing so it can isolate your scope inside the full set.',
+    scopeTargetTitle: 'Scope Targeting',
+    scopeTargetBody:
+      'Use scope targeting when the uploaded bid package includes many trades but you only need to price or execute one portion of the work.',
+    scopeFocusTitle: 'Targeted Scope Breakdown',
+    scopeFocusSummary: 'Targeted scope summary',
+    scopeFocusWork: 'Likely work you are responsible for',
+    scopeFocusEvidence: 'Where that scope appears in the package',
+    scopeFocusMaterials: 'Likely materials / buyout focus',
+    scopeFocusCrew: 'Crew / trade focus',
+    scopeFocusRisks: 'Pricing / field checks',
+    scopeFocusNoMatch: 'No strong targeted scope match yet. Add clearer scope wording like welding, framing, demo, concrete, drywall, or plumbing.',
     uploadLabel: 'Blueprint / document upload',
     uploadHelp:
       'Upload PDF, image, txt, csv, json, or md files. Text-based files extract immediately. OCR can be run on scans and images.',
@@ -568,6 +583,203 @@ function getPermitRequirements({ projectSummary = {}, projectDetailSummary = {},
   }
 }
 
+
+function normalizeScopeTarget(value = '') {
+  return String(value || '').trim().toLowerCase()
+}
+
+function buildScopeKeywordMap() {
+  return {
+    welding: ['welding', 'welder', 'weld', 'metal fabric', 'metal fabrication', 'steel weld', 'plate', 'angle iron'],
+    steel: ['steel', 'metal', 'beam', 'column', 'tube steel', 'gate post', 'bollard', 'fabrication'],
+    framing: ['framing', 'frame', 'stud', 'wood framing', 'metal stud', 'track', 'joist', 'blocking'],
+    demo: ['demo', 'demolition', 'remove', 'removal', 'sawcut', 'cut and remove', 'tear out', 'existing to be removed'],
+    concrete: ['concrete', 'footing', 'slab', 'flatwork', 'foundation', 'dowels', 'rebar', 'form and pour'],
+    masonry: ['masonry', 'cmu', 'block', 'brick', 'bond beam', 'grout'],
+    drywall: ['drywall', 'sheetrock', 'gypsum', 'tape and bed'],
+    electrical: ['electrical', 'lighting', 'panel', 'conduit', 'wire', 'power'],
+    plumbing: ['plumbing', 'sanitary', 'water line', 'fixture', 'pipe', 'piping'],
+    hvac: ['hvac', 'mechanical', 'duct', 'air handler', 'rtu'],
+    roofing: ['roof', 'roofing', 'flashing', 'membrane'],
+    sitework: ['site', 'grading', 'drainage', 'paving', 'asphalt', 'striping', 'bollard'],
+    paint: ['paint', 'painting', 'coating', 'finish paint'],
+    carpentry: ['carpentry', 'finish carpentry', 'casework', 'millwork', 'trim']
+  }
+}
+
+function inferScopeTradeFromTarget(scopeTarget = '') {
+  const target = normalizeScopeTarget(scopeTarget)
+  if (!target) return ''
+  const keywordMap = buildScopeKeywordMap()
+
+  for (const [trade, terms] of Object.entries(keywordMap)) {
+    if (target === trade || terms.some((term) => target.includes(term))) return trade
+  }
+  return target.split(/\s+/)[0] || ''
+}
+
+function buildTargetedScopeAnalysis({
+  scopeTarget = '',
+  fullText = '',
+  structuredSegments = [],
+  projectSummary = {},
+  projectDetailSummary = {}
+}) {
+  const requestedScope = String(scopeTarget || '').trim()
+  const normalizedTarget = inferScopeTradeFromTarget(requestedScope)
+  if (!requestedScope) {
+    return {
+      requestedScope: '',
+      normalizedTarget: '',
+      matchScore: 0,
+      summary: '',
+      workTypes: [],
+      materials: [],
+      crewFocus: [],
+      evidence: [],
+      risks: [],
+      targetedSummary: null
+    }
+  }
+
+  const keywordMap = buildScopeKeywordMap()
+  const targetKeywords = Array.from(new Set([
+    normalizedTarget,
+    ...(keywordMap[normalizedTarget] || []),
+    requestedScope.toLowerCase()
+  ].filter(Boolean)))
+
+  const relevantSegments = structuredSegments
+    .filter((segment) => {
+      const haystack = `${segment.snippet} ${segment.discipline} ${segment.segmentType}`.toLowerCase()
+      return targetKeywords.some((term) => haystack.includes(String(term).toLowerCase()))
+    })
+    .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
+    .slice(0, 10)
+
+  const lower = String(fullText || '').toLowerCase()
+  let matchScore = 0
+  if (relevantSegments.length) matchScore += Math.min(relevantSegments.length * 12, 60)
+  if ((projectSummary.trades || []).includes(normalizedTarget)) matchScore += 20
+  if ((projectSummary.primaryTrades || []).includes(normalizedTarget)) matchScore += 15
+  if ((projectSummary.secondaryTrades || []).includes(normalizedTarget)) matchScore += 10
+  if (targetKeywords.some((term) => lower.includes(term))) matchScore += 15
+  matchScore = Math.max(0, Math.min(100, matchScore))
+
+  const workTypeMap = {
+    welding: ['field welds', 'steel connections', 'fabrication / fit-up', 'install and weld steel components'],
+    steel: ['steel install', 'post / plate install', 'metal fabrication', 'anchor / hardware alignment'],
+    framing: ['layout and frame walls', 'install studs / track', 'blocking and backing', 'framing coordination'],
+    demo: ['sawcut / remove existing work', 'selective demolition', 'haul-off coordination', 'protect adjacent finishes'],
+    concrete: ['excavation and layout', 'formwork / reinforcement', 'pour and finish concrete', 'dowels / footing tie-in'],
+    masonry: ['lay CMU / block', 'grout / reinforce walls', 'bond beam work', 'layout and alignment'],
+    drywall: ['hang board', 'tape / bed / finish', 'patch and repair', 'coordinate framing backing'],
+    electrical: ['rough-in conduit / wire', 'device / fixture install', 'panel / power tie-in', 'electrical coordination'],
+    plumbing: ['rough-in piping', 'fixture connections', 'water / sanitary tie-ins', 'plumbing coordination'],
+    hvac: ['duct install', 'equipment set', 'mechanical rough-in', 'startup coordination'],
+    roofing: ['tear-off / prep', 'membrane / flashing install', 'penetration detailing'],
+    sitework: ['layout and excavation', 'drainage / paving scope', 'site protection / traffic control'],
+    paint: ['surface prep', 'prime / paint finish', 'touch-up and punchlist'],
+    carpentry: ['install trim / millwork', 'finish details', 'blocking / backing / hardware prep']
+  }
+
+  const materialMap = {
+    welding: ['steel', 'site_hardware', 'fasteners'],
+    steel: ['steel', 'site_hardware', 'fasteners'],
+    framing: ['lumber', 'fasteners', 'tools'],
+    demo: ['equipment_rental', 'safety_equipment', 'tools'],
+    concrete: ['concrete', 'steel', 'fasteners'],
+    masonry: ['masonry', 'concrete', 'steel'],
+    drywall: ['drywall', 'fasteners', 'tools'],
+    electrical: ['electrical', 'fasteners'],
+    plumbing: ['plumbing', 'fasteners'],
+    hvac: ['tools', 'fasteners'],
+    roofing: ['fasteners', 'safety_equipment'],
+    sitework: ['equipment_rental', 'safety_equipment', 'site_hardware'],
+    paint: ['tools', 'safety_equipment'],
+    carpentry: ['lumber', 'fasteners', 'tools']
+  }
+
+  const riskMap = {
+    welding: ['Confirm all weld symbols, steel sizes, and finish / coating requirements.', 'Verify field measurements before fabrication.', 'Confirm whether galvanizing, touch-up, or primer is required.'],
+    steel: ['Verify base plates, anchor locations, and hardware counts.', 'Confirm embed / anchor conditions and tolerances.'],
+    framing: ['Verify wall heights, stud gauges, and backing locations.', 'Confirm openings, headers, and coordination with MEP trades.'],
+    demo: ['Confirm demo limits and what remains in place.', 'Verify haul-off, disposal, and slab / utility protection requirements.'],
+    concrete: ['Confirm footing sizes, reinforcement, and dowel requirements.', 'Verify excavation conditions and subgrade assumptions.'],
+    masonry: ['Confirm CMU type, texture / finish, and reinforcement schedule.', 'Verify wall heights, grout, and bond beam requirements.'],
+    drywall: ['Confirm board type, finish level, and moisture / fire ratings.', 'Verify framing readiness before board install.'],
+    electrical: ['Confirm panel schedules, homeruns, and fixture counts.', 'Verify permitting, shutdowns, and power availability.'],
+    plumbing: ['Confirm fixture schedule, piping material, and tie-in points.', 'Verify shutoff coordination and inspection sequence.'],
+    hvac: ['Confirm equipment tags, curb / hanger details, and controls scope.', 'Verify startup / balance responsibilities.'],
+    roofing: ['Verify warranty requirements, flashing details, and penetration scope.'],
+    sitework: ['Verify grading / drainage slopes and tie-in elevations.', 'Confirm traffic control and site access assumptions.'],
+    paint: ['Verify substrate condition and prep requirements.', 'Confirm final color / finish schedule.'],
+    carpentry: ['Verify finish details, dimensions, and hardware coordination.']
+  }
+
+  const evidence = relevantSegments.map((segment) => ({
+    sourceFile: segment.sourceFile,
+    snippet: segment.snippet,
+    confidence: segment.confidence,
+    discipline: segment.discipline
+  }))
+
+  const workTypes = (workTypeMap[normalizedTarget] || [`${titleCase(requestedScope)} execution`, 'layout and field verification']).slice(0, 4)
+  const materials = uniqueList([
+    ...(materialMap[normalizedTarget] || []),
+    ...((projectSummary.materials || []).filter((item) => targetKeywords.some((term) => String(item).toLowerCase().includes(term))))
+  ]).slice(0, 5)
+
+  const crewFocus = uniqueList([
+    normalizedTarget,
+    ...((projectSummary.primaryTrades || []).filter((item) => item === normalizedTarget)),
+    ...((projectSummary.secondaryTrades || []).filter((item) => item === normalizedTarget))
+  ]).filter(Boolean)
+
+  const risks = uniqueList([
+    ...(riskMap[normalizedTarget] || ['Confirm exact scope limits, exclusions, and sheet references before bidding.']),
+    ...(projectDetailSummary.verification || []).slice(0, 2)
+  ]).slice(0, 5)
+
+  const targetedSummary = {
+    ...projectSummary,
+    detectedScope: `${projectSummary.detectedScope || 'project'} · ${titleCase(requestedScope)} scope`,
+    summary: relevantSegments.length
+      ? `${titleCase(requestedScope)} scope isolated from the broader bid package.`
+      : `${titleCase(requestedScope)} scope requested, but stronger plan evidence is still needed.`,
+    why: uniqueList([
+      `Scope target set to ${titleCase(requestedScope)}.`,
+      ...(relevantSegments.length
+        ? [`Found ${relevantSegments.length} plan / OCR segments tied to this scope.`]
+        : ['No strong direct scope hits were found yet in the uploaded package.']),
+      ...((projectSummary.why || []).slice(0, 2))
+    ]),
+    primaryTrades: crewFocus.length ? crewFocus : projectSummary.primaryTrades || [],
+    secondaryTrades: (projectSummary.secondaryTrades || []).filter((item) => item !== normalizedTarget),
+    materials: materials.length ? materials : projectSummary.materials || [],
+    nextActions: uniqueList([
+      `Price only the ${titleCase(requestedScope)} portion of the package.`,
+      'Pull matching detail lines, dimensions, and schedule references into your bid notes.',
+      'Verify exclusions so you do not carry adjacent trades by mistake.',
+      ...((projectSummary.nextActions || []).slice(0, 2))
+    ])
+  }
+
+  return {
+    requestedScope,
+    normalizedTarget,
+    matchScore,
+    summary: targetedSummary.summary,
+    workTypes,
+    materials,
+    crewFocus,
+    evidence,
+    risks,
+    targetedSummary
+  }
+}
+
+
 function buildProjectRecordFromAnalysis({ scopeText = '', projectSummary = {}, projectDetailSummary = {}, detectedZip = '', supplierForm = {}, projectEngine = null }) {
   const permitRequirements = getPermitRequirements({ projectSummary, projectDetailSummary, fullText: scopeText })
   const permitTypes = permitRequirements.required_permits
@@ -579,11 +791,11 @@ function buildProjectRecordFromAnalysis({ scopeText = '', projectSummary = {}, p
 
   const visibleNotes = [
     `Analyzer summary: ${projectSummary.summary || 'General construction project'}`,
-    projectSummary.why?.length ? `Why: ${projectSummary.why.join(' | ')}` : '',
+    effectiveProjectSummary.why?.length ? `Why: ${projectSummary.why.join(' | ')}` : '',
     projectSummary.primaryTrades?.length ? `Primary trades: ${projectSummary.primaryTrades.map(titleCase).join(', ')}` : '',
     projectSummary.materials?.length ? `Likely materials: ${projectSummary.materials.map(titleCase).join(', ')}` : '',
     projectDetailSummary.dimensions?.length ? `Dimensions: ${projectDetailSummary.dimensions.slice(0, 10).join(', ')}` : '',
-    projectSummary.nextActions?.length ? `Analyzer next actions: ${projectSummary.nextActions.join(' | ')}` : '',
+    effectiveProjectSummary.nextActions?.length ? `Analyzer next actions: ${projectSummary.nextActions.join(' | ')}` : '',
     projectEngine?.recommendedNext ? `Recommended next move: ${projectEngine.recommendedNext}` : '',
     scopeText ? `Source scope text:\n${scopeText.slice(0, 5000)}` : ''
   ].filter(Boolean).join('\n\n')
@@ -599,7 +811,7 @@ function buildProjectRecordFromAnalysis({ scopeText = '', projectSummary = {}, p
     jurisdiction: '',
     permit_types: permitTypes,
     intake_notes: [
-      projectSummary.fieldChecks?.length ? `Analyzer field checks: ${projectSummary.fieldChecks.join(' | ')}` : '',
+      effectiveProjectSummary.fieldChecks?.length ? `Analyzer field checks: ${projectSummary.fieldChecks.join(' | ')}` : '',
       permitRequirements.missing_inputs.length ? `Missing inputs: ${permitRequirements.missing_inputs.join(' | ')}` : '',
       permitRequirements.warnings.length ? `Warnings: ${permitRequirements.warnings.join(' | ')}` : ''
     ].filter(Boolean).join(' || ')
@@ -1238,7 +1450,8 @@ function buildAnalyzerProjectPackage({
   projectEngine = null,
   supplierForm = {},
   crewForm = {},
-  deliveryForm = {}
+  deliveryForm = {},
+  scopeTarget = ''
 }) {
   const engine = projectEngine || {}
   const materialsPlan = engine.materialsPlan || buildMaterialsPlan(projectSummary, scopeText)
@@ -1281,6 +1494,8 @@ function buildAnalyzerProjectPackage({
     permit_warnings: permitRequirements.warnings || [],
     evidence: analyzerEvidence || [],
     structured_segments: structuredSegments || [],
+    requested_scope: scopeTarget || '',
+    requested_scope: scopeTarget || '',
     recommended_next: engine.recommendedNext || recommendedNextMove({
       trades: projectSummary.trades,
       materials: projectSummary.materials,
@@ -1298,6 +1513,7 @@ function buildAnalyzerProjectPackageText(pkg = {}) {
     `SCOPE: ${pkg.detected_scope || '—'}`,
     `ZIP: ${pkg.primary_zip || '—'}`,
     `PROJECT TYPE: ${pkg.project_type || '—'}`,
+    `REQUESTED SCOPE: ${pkg.requested_scope || '—'}`,
     `SQUARE FOOTAGE: ${pkg.square_footage ? Number(pkg.square_footage).toLocaleString() : '—'}`,
     `TRADES: ${(pkg.trades || []).map(titleCase).join(', ') || '—'}`,
     `MATERIALS: ${(pkg.materials || []).map((item) => item.label || titleCase(item.material || '')).join(', ') || '—'}`,
@@ -1449,7 +1665,7 @@ function SupplierCard({ supplier, copy, onOpenSearch, onOpenStorefront }) {
         <div>
           <div className="h2" style={{ fontSize: 22 }}>
             {supplier.business_name || supplier.display_name || 'Supplier'}
-          <button style={{marginTop:6,fontSize:12}} onClick={()=>createRFQ({material: supplier.label, supplier: sup})}>Send RFQ</button></div>
+          </div>
           <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {supplier.business_zip ? <span className="badge">{supplier.business_zip}</span> : null}
             {supplier.google_rating ? (
@@ -1470,6 +1686,13 @@ function SupplierCard({ supplier, copy, onOpenSearch, onOpenStorefront }) {
           </button>
           <button className="btn small" type="button" onClick={() => onOpenStorefront?.(supplier)}>
             {copy.openStorefront}
+          </button>
+          <button
+            className="btn small"
+            type="button"
+            onClick={() => createRFQ({ material: supplier.engine_material || supplier.label || '', supplier })}
+          >
+            Send RFQ
           </button>
         </div>
       </div>
@@ -1802,6 +2025,7 @@ export default function SupplierAiTools() {
   })
 
   const [projectNotes, setProjectNotes] = useState('')
+  const [scopeTarget, setScopeTarget] = useState('')
   const [uploadedFiles, setUploadedFiles] = useState([])
   const [extractedText, setExtractedText] = useState('')
   const [projectEngine, setProjectEngine] = useState(null)
@@ -1826,18 +2050,18 @@ export default function SupplierAiTools() {
 
 
   const analyzerEvidence = useMemo(
-    () => buildAnalyzerEvidence(projectSummary, projectDetailSummary, structuredSegments),
-    [projectSummary, projectDetailSummary, structuredSegments]
+    () => buildAnalyzerEvidence(effectiveProjectSummary, projectDetailSummary, structuredSegments),
+    [effectiveProjectSummary, projectDetailSummary, structuredSegments]
   )
 
   const permitPrecheck = useMemo(
-    () => buildPermitPrecheck(projectSummary, projectDetailSummary, `${projectNotes}\n${extractedText}`, structuredSegments),
-    [projectSummary, projectDetailSummary, projectNotes, extractedText, structuredSegments]
+    () => buildPermitPrecheck(effectiveProjectSummary, projectDetailSummary, `${projectNotes}\n${extractedText}`, structuredSegments),
+    [effectiveProjectSummary, projectDetailSummary, projectNotes, extractedText, structuredSegments]
   )
 
   const permitRequirements = useMemo(
-    () => getPermitRequirements({ projectSummary, projectDetailSummary, fullText: `${projectNotes}\n${extractedText}` }),
-    [projectSummary, projectDetailSummary, projectNotes, extractedText]
+    () => getPermitRequirements({ projectSummary: effectiveProjectSummary, projectDetailSummary, fullText: `${projectNotes}\n${extractedText}` }),
+    [effectiveProjectSummary, projectDetailSummary, projectNotes, extractedText]
   )
 
 
@@ -1846,7 +2070,7 @@ export default function SupplierAiTools() {
     () =>
       buildAnalyzerProjectPackage({
         scopeText: [projectNotes, extractedText].filter(Boolean).join('\n\n'),
-        projectSummary,
+        projectSummary: effectiveProjectSummary,
         projectDetailSummary,
         permitPrecheck,
         permitRequirements,
@@ -1855,7 +2079,8 @@ export default function SupplierAiTools() {
         projectEngine,
         supplierForm,
         crewForm,
-        deliveryForm
+        deliveryForm,
+        scopeTarget
       }),
     [
       projectNotes,
@@ -1909,6 +2134,7 @@ export default function SupplierAiTools() {
           ['Detected scope', pkg.detected_scope || '—'],
           ['Primary ZIP', pkg.primary_zip || '—'],
           ['Project type', pkg.project_type || '—'],
+          ['Requested scope', pkg.requested_scope || '—'],
           ['Square footage', pkg.square_footage ? Number(pkg.square_footage).toLocaleString() : '—'],
           ['Trades', (pkg.trades || []).map(titleCase).join(', ') || '—'],
           ['Recommended next', pkg.recommended_next || '—']
@@ -2349,8 +2575,8 @@ export default function SupplierAiTools() {
       const fallbackEngine = projectEngine || {
         recommendedNext: recommendedNextMove(
           {
-            trades: projectSummary.trades,
-            materials: projectSummary.materials,
+            trades: effectiveProjectSummary.trades,
+            materials: effectiveProjectSummary.materials,
             squareFeet: extractSquareFeet(scopeText)
           },
           buildDeliveryPlan(buildMaterialsPlan(projectSummary, scopeText), projectSummary, scopeText)
@@ -2359,7 +2585,7 @@ export default function SupplierAiTools() {
 
       const payload = buildProjectRecordFromAnalysis({
         scopeText,
-        projectSummary,
+        projectSummary: effectiveProjectSummary,
         projectDetailSummary,
         detectedZip,
         supplierForm,
@@ -2403,9 +2629,9 @@ export default function SupplierAiTools() {
         deliveryForm.jobsiteZip ||
         deliveryForm.pickupZip
 
-      const materialsPlan = buildMaterialsPlan(projectSummary, scopeText)
-      const crewPlan = buildCrewPlan(projectSummary, scopeText)
-      const deliveryPlan = buildDeliveryPlan(materialsPlan, projectSummary, scopeText)
+      const materialsPlan = buildMaterialsPlan(effectiveProjectSummary, scopeText)
+      const crewPlan = buildCrewPlan(effectiveProjectSummary, scopeText)
+      const deliveryPlan = buildDeliveryPlan(materialsPlan, effectiveProjectSummary, scopeText)
 
       const supplierGroups = await runSupplierEngine(materialsPlan, detectedZip, supplierForm)
       const crewGroups = await runCrewEngine(crewPlan, detectedZip)
@@ -2416,15 +2642,15 @@ export default function SupplierAiTools() {
       )
 
       const nextEngine = {
-        summary: projectSummary.summary,
+        summary: effectiveProjectSummary.summary,
         primaryZip: detectedZip,
         permitPrecheck,
         permitRequirements,
         evidence: analyzerEvidence,
         structuredSegments,
         scopeSignals: {
-          trades: projectSummary.trades,
-          materials: projectSummary.materials,
+          trades: effectiveProjectSummary.trades,
+          materials: effectiveProjectSummary.materials,
           squareFeet: extractSquareFeet(scopeText),
           dimensions: projectDetailSummary.dimensions,
           steelGauge: projectDetailSummary.steelGauge,
@@ -2440,8 +2666,8 @@ export default function SupplierAiTools() {
         },
         recommendedNext: recommendedNextMove(
           {
-            trades: projectSummary.trades,
-            materials: projectSummary.materials,
+            trades: effectiveProjectSummary.trades,
+            materials: effectiveProjectSummary.materials,
             squareFeet: extractSquareFeet(scopeText),
             dimensions: projectDetailSummary.dimensions,
             steelGauge: projectDetailSummary.steelGauge,
@@ -2499,7 +2725,7 @@ export default function SupplierAiTools() {
   }
 
   function useAnalyzerForSupplier() {
-    const firstMaterial = projectSummary.materials[0] || ''
+    const firstMaterial = effectiveProjectSummary.materials[0] || ''
     setSupplierForm((prev) => ({
       ...prev,
       material: firstMaterial || prev.material,
@@ -2509,7 +2735,7 @@ export default function SupplierAiTools() {
   }
 
   function useAnalyzerForCrew() {
-    const firstTrade = projectSummary.trades[0] || ''
+    const firstTrade = effectiveProjectSummary.trades[0] || ''
     setCrewForm((prev) => ({
       ...prev,
       trade: firstTrade || prev.trade,
@@ -2935,6 +3161,26 @@ export default function SupplierAiTools() {
             </div>
           ) : null}
 
+          <div className="card-soft" style={{ marginTop: 16, background: '#f7f4ff' }}>
+            <div className="card-section-title">{copy.scopeTargetTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {copy.scopeTargetBody}
+            </p>
+
+            <div style={{ marginTop: 12 }}>
+              <div className="muted" style={{ marginBottom: 8 }}>{copy.scopeTargetLabel}</div>
+              <input
+                className="input"
+                value={scopeTarget}
+                onChange={(e) => setScopeTarget(e.target.value)}
+                placeholder={copy.scopeTargetPlaceholder}
+              />
+              <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+                {copy.scopeTargetHelp}
+              </p>
+            </div>
+          </div>
+
           <div style={{ marginTop: 16 }}>
             <div className="muted" style={{ marginBottom: 8 }}>{copy.notesLabel}</div>
             <textarea
@@ -3290,7 +3536,7 @@ export default function SupplierAiTools() {
                 type="button"
                 onClick={() =>
                   openSupplierSearch({
-                    material: projectSummary.materials[0] || supplierForm.material,
+                    material: effectiveProjectSummary.materials[0] || supplierForm.material,
                     zip: supplierForm.zip || crewForm.zip || deliveryForm.jobsiteZip
                   })
                 }
@@ -3303,7 +3549,7 @@ export default function SupplierAiTools() {
                 type="button"
                 onClick={() =>
                   openCrewPost({
-                    trade: projectSummary.trades[0] || crewForm.trade,
+                    trade: effectiveProjectSummary.trades[0] || crewForm.trade,
                     zip: crewForm.zip || supplierForm.zip || deliveryForm.jobsiteZip,
                     body: extractedText || projectNotes
                   })
@@ -3528,68 +3774,155 @@ export default function SupplierAiTools() {
             )}
           </div>
 
+          <div className="card-soft" style={{ marginTop: 16, background: '#eef7ff' }}>
+            <div className="card-section-title">{copy.scopeFocusTitle}</div>
+            {scopeTarget.trim() ? (
+              <div style={{ display: 'grid', gap: 14, marginTop: 12 }}>
+                <div className="grid two" style={{ gap: 14 }}>
+                  <div className="card-soft" style={{ background: '#ffffff' }}>
+                    <div className="muted">{copy.scopeFocusSummary}</div>
+                    <div style={{ marginTop: 8, lineHeight: 1.7 }}>
+                      <strong>{titleCase(scopeTarget)}</strong><br />
+                      {targetedScopeAnalysis.summary || copy.scopeFocusNoMatch}<br />
+                      Match score: {targetedScopeAnalysis.matchScore}/100
+                    </div>
+                  </div>
+
+                  <div className="card-soft" style={{ background: '#ffffff' }}>
+                    <div className="muted">{copy.scopeFocusCrew}</div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                      {(targetedScopeAnalysis.crewFocus || []).length ? targetedScopeAnalysis.crewFocus.map((item) => (
+                        <span key={`target-crew-${item}`} className="badge">{titleCase(item)}</span>
+                      )) : <span className="badge">No strong crew focus yet</span>}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card-soft" style={{ background: '#ffffff' }}>
+                  <div className="muted">{copy.scopeFocusWork}</div>
+                  {(targetedScopeAnalysis.workTypes || []).length ? (
+                    <ul style={{ margin: '10px 0 0 18px', padding: 0 }}>
+                      {targetedScopeAnalysis.workTypes.map((item) => (
+                        <li key={`target-work-${item}`} style={{ marginTop: 4 }}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div style={{ marginTop: 10 }}>{copy.scopeFocusNoMatch}</div>
+                  )}
+                </div>
+
+                <div className="grid two" style={{ gap: 14 }}>
+                  <div className="card-soft" style={{ background: '#ffffff' }}>
+                    <div className="muted">{copy.scopeFocusMaterials}</div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                      {(targetedScopeAnalysis.materials || []).length ? targetedScopeAnalysis.materials.map((item) => (
+                        <span key={`target-material-${item}`} className="badge">{titleCase(item)}</span>
+                      )) : <span className="badge">No direct materials isolated yet</span>}
+                    </div>
+                  </div>
+
+                  <div className="card-soft" style={{ background: '#ffffff' }}>
+                    <div className="muted">{copy.scopeFocusRisks}</div>
+                    {(targetedScopeAnalysis.risks || []).length ? (
+                      <ul style={{ margin: '10px 0 0 18px', padding: 0 }}>
+                        {targetedScopeAnalysis.risks.map((item) => (
+                          <li key={`target-risk-${item}`} style={{ marginTop: 4 }}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div style={{ marginTop: 10 }}>No major targeted risk notes yet.</div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="card-soft" style={{ background: '#ffffff' }}>
+                  <div className="muted">{copy.scopeFocusEvidence}</div>
+                  {(targetedScopeAnalysis.evidence || []).length ? (
+                    <div className="grid" style={{ gap: 10, marginTop: 10 }}>
+                      {targetedScopeAnalysis.evidence.map((item, index) => (
+                        <div key={`target-evidence-${index}`} className="card-soft" style={{ background: '#f8f7ef' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                            <div style={{ fontWeight: 800 }}>{item.sourceFile}</div>
+                            <span className="badge">{Math.round((item.confidence || 0) * 100)}%</span>
+                          </div>
+                          <div style={{ marginTop: 8, lineHeight: 1.7 }}>{item.snippet}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ marginTop: 10 }}>{copy.scopeFocusNoMatch}</div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+                Add a specific scope above if you only need your trade isolated inside the larger bid package.
+              </p>
+            )}
+          </div>
+
           <div className="card-soft" style={{ marginTop: 16 }}>
             <div className="card-section-title">{copy.summaryLabel}</div>
             {(projectNotes.trim() || extractedText.trim()) ? (
               <div style={{ marginTop: 10, display: 'grid', gap: 12 }}>
-                <div><strong>Scope:</strong> {projectSummary.detectedScope || projectSummary.summary}</div>
-                <div><strong>Project summary:</strong> {projectSummary.summary}</div>
+                <div><strong>Scope:</strong> {effectiveProjectSummary.detectedScope || effectiveProjectSummary.summary}</div>
+                <div><strong>Project summary:</strong> {effectiveProjectSummary.summary}</div>
 
-                {projectSummary.why?.length ? (
+                {effectiveProjectSummary.why?.length ? (
                   <div>
                     <strong>Why:</strong>
                     <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-                      {projectSummary.why.map((item) => (
+                      {effectiveProjectSummary.why.map((item) => (
                         <li key={`why-${item}`} style={{ marginTop: 4 }}>{item}</li>
                       ))}
                     </ul>
                   </div>
                 ) : null}
 
-                {projectSummary.sheetDetails?.length ? (
+                {effectiveProjectSummary.sheetDetails?.length ? (
                   <div>
                     <strong>Sheet details recognized:</strong>
                     <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-                      {projectSummary.sheetDetails.map((item) => (
+                      {effectiveProjectSummary.sheetDetails.map((item) => (
                         <li key={`sheet-detail-${item}`} style={{ marginTop: 4 }}>{item}</li>
                       ))}
                     </ul>
                   </div>
                 ) : null}
 
-                {projectSummary.components?.length ? (
+                {effectiveProjectSummary.components?.length ? (
                   <div>
                     <strong>Components identified:</strong>
                     <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-                      {projectSummary.components.map((item) => (
+                      {effectiveProjectSummary.components.map((item) => (
                         <li key={`component-${item}`} style={{ marginTop: 4 }}>{item}</li>
                       ))}
                     </ul>
                   </div>
                 ) : null}
 
-                <div><strong>High confidence trades:</strong> {projectSummary.primaryTrades?.length ? projectSummary.primaryTrades.join(', ') : 'General construction'}</div>
-                <div><strong>Secondary trades:</strong> {projectSummary.secondaryTrades?.length ? projectSummary.secondaryTrades.join(', ') : 'None detected'}</div>
-                <div><strong>Not evidenced on this sheet:</strong> {projectSummary.ignoredTrades?.length ? projectSummary.ignoredTrades.join(', ') : 'None flagged'}</div>
-                <div><strong>Supplier categories:</strong> {projectSummary.supplierCategories?.length ? projectSummary.supplierCategories.join(', ') : 'General materials'}</div>
-                <div><strong>Likely materials:</strong> {projectSummary.materials.length ? projectSummary.materials.join(', ') : 'General materials'}</div>
+                <div><strong>High confidence trades:</strong> {effectiveProjectSummary.primaryTrades?.length ? effectiveProjectSummary.primaryTrades.join(', ') : 'General construction'}</div>
+                <div><strong>Secondary trades:</strong> {effectiveProjectSummary.secondaryTrades?.length ? effectiveProjectSummary.secondaryTrades.join(', ') : 'None detected'}</div>
+                <div><strong>Not evidenced on this sheet:</strong> {effectiveProjectSummary.ignoredTrades?.length ? effectiveProjectSummary.ignoredTrades.join(', ') : 'None flagged'}</div>
+                <div><strong>Supplier categories:</strong> {effectiveProjectSummary.supplierCategories?.length ? effectiveProjectSummary.supplierCategories.join(', ') : 'General materials'}</div>
+                <div><strong>Likely materials:</strong> {effectiveProjectSummary.materials.length ? effectiveProjectSummary.materials.join(', ') : 'General materials'}</div>
 
-                {projectSummary.fieldChecks?.length ? (
+                {effectiveProjectSummary.fieldChecks?.length ? (
                   <div>
                     <strong>Field checks needed:</strong>
                     <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-                      {projectSummary.fieldChecks.map((item) => (
+                      {effectiveProjectSummary.fieldChecks.map((item) => (
                         <li key={`field-check-${item}`} style={{ marginTop: 4 }}>{item}</li>
                       ))}
                     </ul>
                   </div>
                 ) : null}
 
-                {projectSummary.nextActions?.length ? (
+                {effectiveProjectSummary.nextActions?.length ? (
                   <div>
                     <strong>Next actions:</strong>
                     <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-                      {projectSummary.nextActions.map((item) => (
+                      {effectiveProjectSummary.nextActions.map((item) => (
                         <li key={`next-action-${item}`} style={{ marginTop: 4 }}>{item}</li>
                       ))}
                     </ul>
@@ -3680,7 +4013,7 @@ export default function SupplierAiTools() {
                   </div>
                 ) : null}
 
-                <div><strong>Crew note:</strong> {projectSummary.crewSuggestion}</div>
+                <div><strong>Crew note:</strong> {effectiveProjectSummary.crewSuggestion}</div>
               </div>
             ) : (
               <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.noSummary}</p>
