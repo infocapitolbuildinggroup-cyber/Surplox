@@ -1,3 +1,38 @@
+
+// --- LARGE FILE HANDLING (AUTO SPLIT SIMULATION) ---
+async function handleLargeFileProcessing(file, runOcrForFile) {
+  const MAX_SIZE = 4 * 1024 * 1024
+
+  if (file.size <= MAX_SIZE) {
+    return await runOcrForFile(file)
+  }
+
+  console.warn('Large file detected, splitting...')
+
+  // NOTE: lightweight fallback (no pdfjs yet)
+  // Splits file blob into chunks by size
+  const chunkSize = MAX_SIZE
+  let offset = 0
+  let results = []
+
+  while (offset < file.size) {
+    const chunk = file.slice(offset, offset + chunkSize)
+    const chunkFile = new File([chunk], file.name, { type: file.type })
+
+    try {
+      const res = await runOcrForFile(chunkFile)
+      if (res) results.push(res)
+    } catch (e) {
+      console.error('Chunk OCR failed', e)
+    }
+
+    offset += chunkSize
+  }
+
+  return results.join('\n\n')
+}
+
+
 import React, { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
