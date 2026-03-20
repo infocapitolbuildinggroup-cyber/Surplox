@@ -2383,6 +2383,8 @@ export default function SupplierAiTools() {
 
   const [tab, setTab] = useState('analyzer')
   const [busy, setBusy] = useState(false)
+  const [analyzerBusy, setAnalyzerBusy] = useState(false)
+  const [engineBusy, setEngineBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [importedSuppliers, setImportedSuppliers] = useState([])
   const [supplierSuggestions, setSupplierSuggestions] = useState([])
@@ -2851,6 +2853,7 @@ export default function SupplierAiTools() {
   async function handleImportSuppliers(event) {
     event.preventDefault()
     setBusy(true)
+    setAnalyzerBusy(true)
     setMessage('')
     setCreatedProjectId('')
 
@@ -2877,6 +2880,7 @@ export default function SupplierAiTools() {
   async function handleSupplierSuggestions(event) {
     event.preventDefault()
     setBusy(true)
+    setEngineBusy(true)
     setMessage('')
 
     try {
@@ -2949,18 +2953,17 @@ export default function SupplierAiTools() {
         let ocrReady = false
         let ocrDone = false
 
-        try {
-          extractedTextForFile = await extractUploadedFileText(file, mimeType)
-        } catch (error) {
-          console.error(error)
-        }
-
         if (mimeType.startsWith('text/') || /\.(txt|md|json|csv)$/i.test(lower)) {
+          try {
+            extractedTextForFile = await extractUploadedFileText(file, mimeType)
+          } catch (error) {
+            console.error(error)
+          }
           ocrReady = false
           ocrDone = Boolean(extractedTextForFile)
         } else if (mimeType === 'application/pdf' || /\.pdf$/i.test(lower) || mimeType.startsWith('image/')) {
           ocrReady = true
-          ocrDone = Boolean(extractedTextForFile)
+          ocrDone = false
         }
 
         next.push({
@@ -2987,6 +2990,7 @@ export default function SupplierAiTools() {
 
   async function runOcrForFile(fileId) {
     setBusy(true)
+    setAnalyzerBusy(true)
     setMessage('')
 
     try {
@@ -3009,6 +3013,7 @@ export default function SupplierAiTools() {
       console.error(error)
       setMessage(`OCR failed: ${error.message || 'Unknown error'}`)
     } finally {
+      setAnalyzerBusy(false)
       setBusy(false)
     }
   }
@@ -3021,6 +3026,7 @@ export default function SupplierAiTools() {
     }
 
     setBusy(true)
+    setAnalyzerBusy(true)
     setMessage('')
 
     try {
@@ -3049,6 +3055,7 @@ export default function SupplierAiTools() {
       console.error(error)
       setMessage(`OCR failed: ${error.message || 'Unknown error'}`)
     } finally {
+      setAnalyzerBusy(false)
       setBusy(false)
     }
   }
@@ -3120,6 +3127,7 @@ export default function SupplierAiTools() {
     }
 
     setBusy(true)
+    setEngineBusy(true)
     setMessage('')
 
     try {
@@ -3221,6 +3229,7 @@ export default function SupplierAiTools() {
       console.error(error)
       setMessage(error.message || 'Project Engine failed.')
     } finally {
+      setEngineBusy(false)
       setBusy(false)
     }
   }
@@ -3663,7 +3672,7 @@ export default function SupplierAiTools() {
                         onClick={() => runOcrForFile(file.id)}
                         disabled={busy}
                       >
-                        {busy ? copy.runningOcr : copy.runOcr}
+                        {analyzerBusy ? copy.runningOcr : copy.runOcr}
                       </button>
                     ) : null}
                     <button
@@ -3715,11 +3724,11 @@ export default function SupplierAiTools() {
               className="btn primary"
               type="button"
               onClick={handleRunAnalyzer}
-              disabled={busy || (!uploadedFiles.length && !projectNotes.trim())}
+              disabled={analyzerBusy || engineBusy || (!uploadedFiles.length && !projectNotes.trim())}
             >
-              {busy ? copy.runningOcr : copy.runOcr}
+              {analyzerBusy ? copy.runningOcr : copy.runOcr}
             </button>
-            <Chip onClick={runProjectEngine}>{busy ? copy.engineRunning : copy.engineRunButton}</Chip>
+            <Chip onClick={runProjectEngine}>{engineBusy ? copy.engineRunning : copy.engineRunButton}</Chip>
             <Chip onClick={useAnalyzerForSupplier}>{copy.supplierTab}</Chip>
             <Chip onClick={useAnalyzerForCrew}>{copy.crewTab}</Chip>
             <Chip onClick={useAnalyzerForDelivery}>{copy.deliveryTab}</Chip>
@@ -3759,7 +3768,7 @@ export default function SupplierAiTools() {
                 className="btn primary"
                 type="button"
                 onClick={handleCreateProjectFromAnalysis}
-                disabled={creatingProject || busy}
+                disabled={creatingProject || analyzerBusy || engineBusy}
               >
                 {creatingProject ? copy.creatingProjectRecord : copy.createProjectRecord}
               </button>
