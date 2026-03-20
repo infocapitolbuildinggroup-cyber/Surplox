@@ -39,6 +39,31 @@ const COPY = {
     stagedRows: 'Staged Rows',
     sourcePipeline: 'Source Pipeline',
     sourcePipelineBody: 'Current live-source mode still uses adapter-shaped staging data inside the file. The next backend step can connect real county endpoints or importer routes into this same UI.',
+    phase5Title: 'Phase 5 Source Bridge',
+    phase5Body: 'This phase adds a real-source bridge shell: endpoint configuration, manual JSON/CSV staging, normalized import parsing, and imported-row generation so live adapters can plug into the existing scoring flow next.',
+    liveEndpointTitle: 'Adapter Endpoint Config',
+    liveEndpointBody: 'Set county/source adapter endpoints here. These values persist locally now and can be wired to real backend routes next.',
+    endpointUrl: 'Endpoint URL',
+    endpointMethod: 'Method',
+    endpointLabel: 'Adapter Label',
+    endpointCounty: 'Adapter County',
+    saveEndpoint: 'Save Endpoint',
+    endpointSaved: 'Endpoint Saved',
+    importTitle: 'Manual Source Import',
+    importBody: 'Paste JSON rows or CSV-like lines to stage real candidate records into the ingestion queue without removing the current engine.',
+    importPlaceholder: 'Paste JSON array or newline rows like: address | county | city | record_type | source',
+    importRows: 'Import Rows',
+    importingRows: 'Importing Rows…',
+    clearImported: 'Clear Imported Rows',
+    importedRowsTitle: 'Imported Source Rows',
+    importedRowsEmpty: 'No imported source rows yet.',
+    importError: 'Unable to parse imported rows.',
+    importedRowCount: 'Imported Rows',
+    generateImported: 'Generate From Imported Rows',
+    generatingImported: 'Generating Imported Rows…',
+    liveBridgeStatus: 'Bridge Status',
+    liveBridgeReady: 'Ready for backend connection',
+    liveBridgeNote: 'Imported or endpoint-fed rows can now flow into ranking without replacing the current mock engine.',
     county: 'County',
     city: 'City / ZIP',
     distressType: 'Distress Type',
@@ -209,6 +234,31 @@ const COPY = {
     stagedRows: 'Filas Preparadas',
     sourcePipeline: 'Pipeline de Fuente',
     sourcePipelineBody: 'El modo actual de fuente en vivo todavía usa datos de staging con forma de adaptador dentro del archivo. El siguiente paso de backend puede conectar endpoints reales de condado o rutas de importación a esta misma UI.',
+    phase5Title: 'Puente de Fuentes Fase 5',
+    phase5Body: 'Esta fase agrega un puente de fuente real: configuración de endpoints, staging manual JSON/CSV, parseo normalizado de imports y generación desde filas importadas para que los adaptadores en vivo se conecten al flujo actual.',
+    liveEndpointTitle: 'Configuración de Endpoint',
+    liveEndpointBody: 'Define aquí los endpoints de adaptadores por condado/fuente. Estos valores persisten localmente por ahora y después pueden conectarse a rutas reales de backend.',
+    endpointUrl: 'URL del Endpoint',
+    endpointMethod: 'Método',
+    endpointLabel: 'Etiqueta del Adaptador',
+    endpointCounty: 'Condado del Adaptador',
+    saveEndpoint: 'Guardar Endpoint',
+    endpointSaved: 'Endpoint Guardado',
+    importTitle: 'Import Manual de Fuente',
+    importBody: 'Pega filas JSON o líneas tipo CSV para preparar registros candidatos reales en la cola de ingesta sin quitar el motor actual.',
+    importPlaceholder: 'Pega arreglo JSON o líneas como: address | county | city | record_type | source',
+    importRows: 'Importar Filas',
+    importingRows: 'Importando Filas…',
+    clearImported: 'Limpiar Filas Importadas',
+    importedRowsTitle: 'Filas de Fuente Importadas',
+    importedRowsEmpty: 'Todavía no hay filas de fuente importadas.',
+    importError: 'No se pudieron parsear las filas importadas.',
+    importedRowCount: 'Filas Importadas',
+    generateImported: 'Generar Desde Filas Importadas',
+    generatingImported: 'Generando Filas Importadas…',
+    liveBridgeStatus: 'Estado del Puente',
+    liveBridgeReady: 'Listo para conexión backend',
+    liveBridgeNote: 'Las filas importadas o alimentadas por endpoint ahora pueden fluir al ranking sin reemplazar el motor mock actual.',
     county: 'Condado',
     city: 'Ciudad / ZIP',
     distressType: 'Tipo de Distress',
@@ -351,7 +401,10 @@ const STORAGE_KEYS = {
   filters: 'surplox_flip_engine_filters_v1',
   expandedId: 'surplox_flip_engine_expanded_id_v1',
   sourceMode: 'surplox_flip_engine_source_mode_v1',
-  stagedRows: 'surplox_flip_engine_staged_rows_v1'
+  stagedRows: 'surplox_flip_engine_staged_rows_v1',
+  endpointConfigs: 'surplox_flip_engine_endpoint_configs_v1',
+  importInput: 'surplox_flip_engine_import_input_v1',
+  importedRows: 'surplox_flip_engine_imported_rows_v1'
 }
 
 const COUNTY_OPTIONS = ['Dallas County', 'Tarrant County', 'Denton County', 'Collin County', 'Ellis County', 'Johnson County']
@@ -779,6 +832,84 @@ function buildAdapterStatusRows(filters = {}) {
   }))
 }
 
+function normalizeImportedRow(row = {}, index = 0) {
+  const address =
+    String(row.address || row.normalizedAddress || row.normalized_address || '').trim()
+  const county = String(row.county || 'Dallas County').trim() || 'Dallas County'
+  const city = String(row.city || 'Dallas').trim() || 'Dallas'
+  const zip = String(row.zip || '').trim()
+  const recordType = String(row.recordType || row.record_type || row.distressType || row.distress_type || 'preforeclosure').trim() || 'preforeclosure'
+  const source = String(row.source || `${county} Imported Source`).trim() || `${county} Imported Source`
+  const occupancy = String(row.occupancy || 'any').trim() || 'any'
+
+  return {
+    id: row.id || `imported-${index}`,
+    county,
+    city,
+    zip,
+    recordType,
+    normalizedAddress: address || `${1400 + index * 17} Imported St, ${city}, TX ${zip || '75000'}`,
+    source,
+    status: 'imported',
+    refresh: 'Manual import',
+    occupancy
+  }
+}
+
+function parseImportRows(value = '') {
+  const raw = String(value || '').trim()
+  if (!raw) return { rows: [], error: '' }
+
+  try {
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) {
+      return { rows: parsed.map((row, index) => normalizeImportedRow(row, index)), error: '' }
+    }
+  } catch (error) {
+    // fall through to line parsing
+  }
+
+  const lines = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  const rows = lines.map((line, index) => {
+    const parts = line.split('|').map((part) => part.trim())
+    return normalizeImportedRow({
+      address: parts[0] || '',
+      county: parts[1] || '',
+      city: parts[2] || '',
+      record_type: parts[3] || '',
+      source: parts[4] || ''
+    }, index)
+  })
+
+  return { rows, error: rows.length ? '' : 'parse_error' }
+}
+
+function generatePropertyFromImportedRow(seedIndex, filters, copy, row) {
+  const generated = generateProperty(seedIndex, {
+    ...filters,
+    county: row.county || filters.county,
+    city: row.city || filters.city,
+    distressType: row.recordType || filters.distressType,
+    occupancy: row.occupancy || filters.occupancy
+  }, copy)
+
+  return {
+    ...generated,
+    id: `imported-${row.id}-${seedIndex}`,
+    address: row.normalizedAddress || generated.address,
+    county: row.county || generated.county,
+    city: row.city || generated.city,
+    zip: row.zip || generated.zip,
+    distressType: row.recordType || generated.distressType,
+    source: row.source || generated.source,
+    sourceMode: 'imported'
+  }
+}
+
 
 function scoreTone(score) {
   if (score >= 85) return { background: '#dcf4e5', color: '#177245' }
@@ -826,6 +957,13 @@ export default function FlipEngine({ lang = 'en' }) {
   const [queuedIds, setQueuedIds] = useState(() => readStoredJson(STORAGE_KEYS.queuedIds, []))
   const [sourceMode, setSourceMode] = useState(() => readStoredJson(STORAGE_KEYS.sourceMode, 'mock'))
   const [stagedRows, setStagedRows] = useState(() => readStoredJson(STORAGE_KEYS.stagedRows, []))
+  const [endpointConfigs, setEndpointConfigs] = useState(() => readStoredJson(STORAGE_KEYS.endpointConfigs, [
+    { id: 'endpoint-1', county: 'Dallas County', label: 'Dallas Adapter', method: 'GET', url: '' },
+    { id: 'endpoint-2', county: 'Tarrant County', label: 'Tarrant Adapter', method: 'GET', url: '' }
+  ]))
+  const [importInput, setImportInput] = useState(() => readStoredJson(STORAGE_KEYS.importInput, ''))
+  const [importedRows, setImportedRows] = useState(() => readStoredJson(STORAGE_KEYS.importedRows, []))
+  const [importMessage, setImportMessage] = useState('')
   const [filters, setFilters] = useState(() => ({ ...defaultFilters, ...readStoredJson(STORAGE_KEYS.filters, {}) }))
   const [results, setResults] = useState(() => readStoredJson(STORAGE_KEYS.results, []))
 
@@ -865,6 +1003,18 @@ export default function FlipEngine({ lang = 'en' }) {
     window.localStorage.setItem(STORAGE_KEYS.stagedRows, JSON.stringify(stagedRows))
   }, [stagedRows])
 
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.endpointConfigs, JSON.stringify(endpointConfigs))
+  }, [endpointConfigs])
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.importInput, JSON.stringify(importInput))
+  }, [importInput])
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.importedRows, JSON.stringify(importedRows))
+  }, [importedRows])
+
   function sortDeals(items = [], sortBy = 'score') {
     const rows = [...items]
     if (sortBy === 'profit') return rows.sort((a, b) => b.netProfit - a.netProfit || b.score - a.score)
@@ -880,6 +1030,17 @@ export default function FlipEngine({ lang = 'en' }) {
     if (sourceMode === 'mock') {
       const generated = sortDeals(
         Array.from({ length: count }, (_, index) => generateProperty(index + 1, filters, copy)),
+        filters.sortBy
+      )
+      setResults(generated)
+      setExpandedId(generated[0]?.id || '')
+      setTimeout(() => setBusy(false), 250)
+      return
+    }
+
+    if (sourceMode === 'manual' && importedRows.length) {
+      const generated = sortDeals(
+        importedRows.slice(0, count).map((row, index) => generatePropertyFromImportedRow(index + 1, filters, copy, row)),
         filters.sortBy
       )
       setResults(generated)
@@ -904,6 +1065,44 @@ export default function FlipEngine({ lang = 'en' }) {
     setBusy(true)
     const rows = buildAdapterRows(filters)
     setStagedRows(rows)
+    setTimeout(() => setBusy(false), 250)
+  }
+
+  function updateEndpoint(id, key, value) {
+    setEndpointConfigs((prev) => prev.map((item) => (item.id === id ? { ...item, [key]: value } : item)))
+  }
+
+  function handleImportRows() {
+    setBusy(true)
+    setImportMessage('')
+    const parsed = parseImportRows(importInput)
+    if (parsed.error) {
+      setImportMessage(copy.importError)
+      setTimeout(() => setBusy(false), 250)
+      return
+    }
+    setImportedRows(parsed.rows)
+    setStagedRows(parsed.rows)
+    setImportMessage(`${copy.importedRowCount}: ${parsed.rows.length}`)
+    setTimeout(() => setBusy(false), 250)
+  }
+
+  function handleClearImportedRows() {
+    setImportedRows([])
+    setImportInput('')
+    setImportMessage('')
+  }
+
+  function handleGenerateImportedRows() {
+    if (!importedRows.length) return
+    setBusy(true)
+    const count = Math.min(Number(filters.dealCount || 10), importedRows.length)
+    const generated = sortDeals(
+      importedRows.slice(0, count).map((row, index) => generatePropertyFromImportedRow(index + 1, filters, copy, row)),
+      filters.sortBy
+    )
+    setResults(generated)
+    setExpandedId(generated[0]?.id || '')
     setTimeout(() => setBusy(false), 250)
   }
 
@@ -976,6 +1175,76 @@ export default function FlipEngine({ lang = 'en' }) {
           <div className="card-section-title">{copy.phase4Title}</div>
           <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
             <div className="muted" style={{ lineHeight: 1.7 }}>{copy.phase4Body}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid two" style={{ alignItems: 'start' }}>
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.liveEndpointTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.liveEndpointBody}</p>
+          <div className="list" style={{ marginTop: 14 }}>
+            {endpointConfigs.map((endpoint) => (
+              <div key={endpoint.id} className="card-soft" style={{ background: '#ffffff' }}>
+                <div className="grid two">
+                  <div>
+                    <div className="muted" style={{ marginBottom: 6 }}>{copy.endpointCounty}</div>
+                    <input className="input" value={endpoint.county} onChange={(e) => updateEndpoint(endpoint.id, 'county', e.target.value)} />
+                  </div>
+                  <div>
+                    <div className="muted" style={{ marginBottom: 6 }}>{copy.endpointLabel}</div>
+                    <input className="input" value={endpoint.label} onChange={(e) => updateEndpoint(endpoint.id, 'label', e.target.value)} />
+                  </div>
+                  <div>
+                    <div className="muted" style={{ marginBottom: 6 }}>{copy.endpointMethod}</div>
+                    <select className="input" value={endpoint.method} onChange={(e) => updateEndpoint(endpoint.id, 'method', e.target.value)}>
+                      <option value="GET">GET</option>
+                      <option value="POST">POST</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div className="muted" style={{ marginBottom: 6 }}>{copy.endpointUrl}</div>
+                    <input className="input" value={endpoint.url} onChange={(e) => updateEndpoint(endpoint.id, 'url', e.target.value)} placeholder="https://..." />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
+            <div className="muted"><strong>{copy.liveBridgeStatus}:</strong> {copy.liveBridgeReady}</div>
+          </div>
+        </div>
+
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.importTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.importBody}</p>
+          <div style={{ marginTop: 14 }}>
+            <textarea
+              className="input"
+              value={importInput}
+              onChange={(e) => setImportInput(e.target.value)}
+              placeholder={copy.importPlaceholder}
+              style={{ minHeight: 180 }}
+            />
+          </div>
+          <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button className="btn primary" type="button" onClick={handleImportRows} disabled={busy}>
+              {busy ? copy.importingRows : copy.importRows}
+            </button>
+            <button className="btn" type="button" onClick={handleGenerateImportedRows} disabled={busy || !importedRows.length}>
+              {busy ? copy.generatingImported : copy.generateImported}
+            </button>
+            <button className="btn" type="button" onClick={handleClearImportedRows}>
+              {copy.clearImported}
+            </button>
+          </div>
+          {importMessage ? (
+            <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
+              <div className="muted">{importMessage}</div>
+            </div>
+          ) : null}
+          <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
+            <div className="muted" style={{ lineHeight: 1.7 }}>{copy.liveBridgeNote}</div>
           </div>
         </div>
       </div>
@@ -1113,6 +1382,10 @@ export default function FlipEngine({ lang = 'en' }) {
               <div className="muted">{copy.savedDeals}</div>
               <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{savedDeals.length}</div>
             </div>
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">{copy.importedRowCount}</div>
+              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{importedRows.length}</div>
+            </div>
           </div>
 
           <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
@@ -1180,6 +1453,26 @@ export default function FlipEngine({ lang = 'en' }) {
             <div className="muted" style={{ lineHeight: 1.7 }}>{copy.sourcePipelineBody}</div>
           </div>
         </div>
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">{copy.importedRowsTitle}</div>
+        {!importedRows.length ? (
+          <div className="card-soft" style={{ marginTop: 14 }}>{copy.importedRowsEmpty}</div>
+        ) : (
+          <div className="list" style={{ marginTop: 14 }}>
+            {importedRows.map((row) => (
+              <div key={`imported-${row.id}`} className="card-soft" style={{ background: '#ffffff' }}>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <div><strong>{copy.normalizedAddress}:</strong> {row.normalizedAddress}</div>
+                  <div><strong>{copy.recordType}:</strong> {titleCase(row.recordType)}</div>
+                  <div><strong>{copy.source}:</strong> {row.source}</div>
+                  <div><strong>{copy.adapterStatus}:</strong> Imported</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
