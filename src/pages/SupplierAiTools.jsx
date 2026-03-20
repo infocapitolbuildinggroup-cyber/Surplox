@@ -133,6 +133,13 @@ const COPY = {
     blueprintExclusionsTitle: 'Likely Exclusions / Verify Boundaries',
     blueprintExclusionsEmpty:
       'No likely exclusions generated yet. Add a scope target to isolate what should stay out of your bid.',
+    blueprintScopeLocationTitle: 'Where Your Scope Appears',
+    blueprintScopeLocationBody:
+      'These are the strongest page-aware scope hits so you can jump to the likely plan areas that matter most for your bid.',
+    blueprintScopeLocationEmpty:
+      'No page-aware scope hits yet. Upload more readable plan text or tighten your scope target.',
+    blueprintPageLabel: 'Page',
+    blueprintEvidenceExcerpt: 'Evidence excerpt',
     uploadLabel: 'Blueprint / document upload',
     uploadHelp:
       'Upload PDF, image, txt, csv, json, or md files. Text-based files extract immediately. OCR can be run on scans and images.',
@@ -800,15 +807,25 @@ function buildTargetedScopeAnalysis({
 
 
 function detectSheetsFromText(text = '') {
-  const lines = String(text || '')
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-
+  const lines = String(text || '').split(/\r?\n/)
   const results = []
   const seen = new Set()
+  let currentPage = 1
 
-  lines.forEach((line, index) => {
+  lines.forEach((rawLine, index) => {
+    const line = String(rawLine || '').trim()
+    if (!line) return
+
+    const pageMatch =
+      line.match(/\bpage\s*(\d{1,4})\b/i) ||
+      line.match(/^\s*(\d{1,4})\s*\/\s*\d{1,4}\s*$/) ||
+      line.match(/^\s*sheet\s*(\d{1,4})\s*$/i)
+
+    if (pageMatch) {
+      const parsed = parseInt(pageMatch[1] || String(pageMatch[0] || '').replace(/\D/g, ''), 10)
+      if (Number.isFinite(parsed) && parsed > 0) currentPage = parsed
+    }
+
     const normalized = normalizeSourceText(line)
     if (!normalized) return
 
@@ -833,6 +850,7 @@ function detectSheetsFromText(text = '') {
       sheetNumber: rawNumber,
       sheetTitle: rawTitle,
       lineIndex: index,
+      page: currentPage,
       discipline: inferDisciplineFromText(`${rawNumber} ${rawTitle}`)
     })
   })
@@ -902,6 +920,67 @@ function buildBlueprintScopeMatches({
     .filter((sheet) => sheet.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, 8)
+}
+
+function buildPageAwareMatches({
+  scopeTarget = '',
+  extractedText = '',
+  detectedSheets = [],
+  projectSummary = {}
+}) {
+  const requestedScope = normalizeScopeTarget(scopeTarget)
+  if (!requestedScope || !detectedSheets.length) return []
+
+  const lines = String(extractedText || '').split(/\r?\n/)
+  const keywordMap = buildScopeKeywordMap()
+  const normalizedTarget = inferScopeTradeFromTarget(requestedScope)
+  const targetKeywords = Array.from(
+    new Set([
+      requestedScope,
+      normalizedTarget,
+      ...(keywordMap[normalizedTarget] || []),
+      ...requestedScope.split(/\s+/)
+    ].filter(Boolean))
+  )
+
+  return detectedSheets
+    .map((sheet, index) => {
+      const nextLineIndex =
+        index < detectedSheets.length - 1 ? detectedSheets[index + 1].lineIndex : Math.min(lines.length, sheet.lineIndex + 60)
+      const nearbyLines = lines
+        .slice(sheet.lineIndex, Math.max(sheet.lineIndex + 1, nextLineIndex))
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .slice(0, 60)
+
+      const nearbyText = nearbyLines.join(' ').toLowerCase()
+      let score = 0
+
+      targetKeywords.forEach((term) => {
+        const normalized = String(term || '').toLowerCase()
+        if (!normalized) return
+        if (nearbyText.includes(normalized)) score += normalized === requestedScope ? 30 : 12
+        if (String(sheet.sheetTitle || '').toLowerCase().includes(normalized)) score += 18
+      })
+
+      if ((projectSummary.primaryTrades || []).includes(normalizedTarget)) score += 10
+      if ((projectSummary.secondaryTrades || []).includes(normalizedTarget)) score += 6
+
+      const evidenceLine =
+        nearbyLines.find((line) =>
+          targetKeywords.some((term) => String(line).toLowerCase().includes(String(term).toLowerCase()))
+        ) || nearbyLines[0] || ''
+
+      return {
+        ...sheet,
+        score,
+        evidenceExcerpt: evidenceLine,
+        evidenceBlock: nearbyLines.slice(0, 8).join(' ')
+      }
+    })
+    .filter((sheet) => sheet.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6)
 }
 
 function buildLikelyExclusions({
@@ -1718,7 +1797,7 @@ async function runSupplierEngine(materialsPlan = [], zip = '', supplierForm = {}
         })
       })
 
-      const data = await response.json()
+      const data = await parseJsonOrTextResponse(response)
       if (response.ok && Array.isArray(data?.suppliers)) {
         groupSuppliers = data.suppliers.slice(0, 4)
       }
@@ -2314,6 +2393,17 @@ export default function SupplierAiTools() {
     [scopeTarget, effectiveProjectSummary, targetedScopeAnalysis]
   )
 
+  const pageAwareMatches = useMemo(
+    () =>
+      buildPageAwareMatches({
+        scopeTarget,
+        extractedText,
+        detectedSheets,
+        projectSummary: effectiveProjectSummary
+      }),
+    [scopeTarget, extractedText, detectedSheets, effectiveProjectSummary]
+  )
+
 
 
   const analyzerProjectPackage = useMemo(
@@ -2815,7 +2905,7 @@ export default function SupplierAiTools() {
         throw new Error(detailText)
       }
 
-      const text = String(data?.extractedText || '').trim()
+      const text = String(data?.extractedText || data?.text || '').trim()
 
       setUploadedFiles((prev) =>
         prev.map((item) =>
@@ -4086,6 +4176,12 @@ export default function SupplierAiTools() {
                         <div className="muted" style={{ marginTop: 6 }}>
                           {copy.blueprintDiscipline}: {disciplineLabel(sheet.discipline)}
                         </div>
+                        <div className="muted" style={{ marginTop: 4 }}>
+                          {copy.blueprintPageLabel}: {sheet.page || '—'}
+                        </div>
+                        <div className="muted" style={{ marginTop: 4 }}>
+                          {copy.blueprintPageLabel}: {sheet.page || '—'}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -4145,6 +4241,43 @@ export default function SupplierAiTools() {
                 <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.blueprintExclusionsEmpty}</p>
               )}
             </div>
+          </div>
+
+          <div className="card-soft" style={{ marginTop: 16, background: '#eef5ff' }}>
+            <div className="card-section-title">{copy.blueprintScopeLocationTitle}</div>
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              {copy.blueprintScopeLocationBody}
+            </p>
+
+            {pageAwareMatches.length ? (
+              <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+                {pageAwareMatches.map((item) => (
+                  <div key={`page-aware-${item.id}`} className="card-soft" style={{ background: '#ffffff' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                      <div style={{ fontWeight: 800 }}>
+                        {item.sheetNumber} · {item.sheetTitle}
+                      </div>
+                      <span className="badge">
+                        {copy.blueprintMatchScore}: {item.score}
+                      </span>
+                    </div>
+                    <div className="muted" style={{ marginTop: 6 }}>
+                      {copy.blueprintPageLabel}: {item.page || '—'} · {copy.blueprintDiscipline}: {disciplineLabel(item.discipline)}
+                    </div>
+                    <div style={{ marginTop: 10 }}>
+                      <div className="muted">{copy.blueprintEvidenceExcerpt}</div>
+                      <div style={{ marginTop: 6, lineHeight: 1.7 }}>
+                        {item.evidenceExcerpt || item.evidenceBlock || 'No nearby evidence excerpt.'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+                {copy.blueprintScopeLocationEmpty}
+              </p>
+            )}
           </div>
 
           <div className="card-soft" style={{ marginTop: 16, background: '#eef7ff' }}>
