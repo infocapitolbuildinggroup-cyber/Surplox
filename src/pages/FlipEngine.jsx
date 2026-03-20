@@ -13,6 +13,32 @@ const COPY = {
     generationSourceBody: 'Right now Flip Engine is generating deterministic mock opportunities from the built-in county, city, distress, and scenario logic inside this file. It is not pulling live government records yet.',
     persistenceTitle: 'Phase 3 Persistence',
     persistenceBody: 'Saved deals, shortlist flags, queued underwriting items, and generated results now persist in local storage so your workflow survives refreshes while we prepare live-source ingestion.',
+    phase4Title: 'Phase 4 Live Source Layer',
+    phase4Body: 'This phase adds the ingestion shell for county adapters, manual imports, and normalized deal feeds so Flip Engine can move from mock generation toward live public-record pipelines.',
+    sourceModeTitle: 'Source Mode',
+    sourceModeBody: 'Switch between internal mock generation, adapter-ready live mode, and manual-import staging without removing the existing scoring workflow.',
+    sourceModeMock: 'Mock Engine',
+    sourceModeLive: 'Live Adapter Mode',
+    sourceModeManual: 'Manual Import Mode',
+    adapterStatusTitle: 'County Adapter Status',
+    adapterStatusBody: 'These adapters are still shell connectors in this phase, but the page is now structured for real county-specific ingestion next.',
+    adapterName: 'Adapter',
+    adapterCoverage: 'Coverage',
+    adapterStatus: 'Status',
+    adapterRefresh: 'Refresh',
+    adapterReady: 'Architecture Ready',
+    adapterPending: 'Pending Integration',
+    ingestQueueTitle: 'Ingestion Queue',
+    ingestQueueBody: 'Normalized candidate rows land here first before they are scored into ranked opportunities.',
+    queueEmpty: 'No imported source rows yet. Use Live Adapter Mode or Manual Import Mode to stage source records.',
+    normalizedAddress: 'Normalized Address',
+    recordType: 'Record Type',
+    sourceModeLabel: 'Mode',
+    importSeed: 'Stage Source Rows',
+    importSeeding: 'Staging Rows…',
+    stagedRows: 'Staged Rows',
+    sourcePipeline: 'Source Pipeline',
+    sourcePipelineBody: 'Current live-source mode still uses adapter-shaped staging data inside the file. The next backend step can connect real county endpoints or importer routes into this same UI.',
     county: 'County',
     city: 'City / ZIP',
     distressType: 'Distress Type',
@@ -157,6 +183,32 @@ const COPY = {
     generationSourceBody: 'Por ahora Flip Engine genera oportunidades mock determinísticas usando la lógica interna de condados, ciudades, distress y escenarios dentro de este archivo. Todavía no consume registros gubernamentales en vivo.',
     persistenceTitle: 'Persistencia de Fase 3',
     persistenceBody: 'Los deals guardados, shortlist, underwriting en cola y resultados generados ahora persisten en local storage para que el flujo sobreviva recargas mientras preparamos la ingesta de fuentes en vivo.',
+    phase4Title: 'Capa de Fuentes en Vivo Fase 4',
+    phase4Body: 'Esta fase agrega el armazón de ingesta para adaptadores por condado, imports manuales y feeds normalizados para que Flip Engine avance de generación mock a pipelines de registros públicos en vivo.',
+    sourceModeTitle: 'Modo de Fuente',
+    sourceModeBody: 'Cambia entre generación mock interna, modo en vivo listo para adaptadores y preparación por import manual sin quitar el flujo actual de scoring.',
+    sourceModeMock: 'Motor Mock',
+    sourceModeLive: 'Modo Adaptador en Vivo',
+    sourceModeManual: 'Modo Import Manual',
+    adapterStatusTitle: 'Estado de Adaptadores por Condado',
+    adapterStatusBody: 'Estos adaptadores todavía son conectores shell en esta fase, pero la página ya está estructurada para una ingesta real específica por condado.',
+    adapterName: 'Adaptador',
+    adapterCoverage: 'Cobertura',
+    adapterStatus: 'Estado',
+    adapterRefresh: 'Actualización',
+    adapterReady: 'Arquitectura Lista',
+    adapterPending: 'Integración Pendiente',
+    ingestQueueTitle: 'Cola de Ingesta',
+    ingestQueueBody: 'Las filas candidatas normalizadas llegan aquí primero antes de convertirse en oportunidades rankeadas.',
+    queueEmpty: 'Todavía no hay filas de fuente importadas. Usa Modo Adaptador en Vivo o Modo Import Manual para preparar registros.',
+    normalizedAddress: 'Dirección Normalizada',
+    recordType: 'Tipo de Registro',
+    sourceModeLabel: 'Modo',
+    importSeed: 'Preparar Filas de Fuente',
+    importSeeding: 'Preparando Filas…',
+    stagedRows: 'Filas Preparadas',
+    sourcePipeline: 'Pipeline de Fuente',
+    sourcePipelineBody: 'El modo actual de fuente en vivo todavía usa datos de staging con forma de adaptador dentro del archivo. El siguiente paso de backend puede conectar endpoints reales de condado o rutas de importación a esta misma UI.',
     county: 'Condado',
     city: 'Ciudad / ZIP',
     distressType: 'Tipo de Distress',
@@ -297,7 +349,9 @@ const STORAGE_KEYS = {
   shortlistIds: 'surplox_flip_engine_shortlist_ids_v1',
   queuedIds: 'surplox_flip_engine_queued_ids_v1',
   filters: 'surplox_flip_engine_filters_v1',
-  expandedId: 'surplox_flip_engine_expanded_id_v1'
+  expandedId: 'surplox_flip_engine_expanded_id_v1',
+  sourceMode: 'surplox_flip_engine_source_mode_v1',
+  stagedRows: 'surplox_flip_engine_staged_rows_v1'
 }
 
 const COUNTY_OPTIONS = ['Dallas County', 'Tarrant County', 'Denton County', 'Collin County', 'Ellis County', 'Johnson County']
@@ -660,6 +714,72 @@ function generateProperty(seedIndex, filters, copy) {
   }
 }
 
+
+function buildAdapterRows(filters = {}) {
+  const counties = filters.county ? [filters.county] : COUNTY_OPTIONS.slice(0, 4)
+  const distressList = filters.distressType === 'all' ? DISTRESS_OPTIONS.slice(0, 4) : [filters.distressType]
+  const cities = filters.city ? [filters.city] : CITY_OPTIONS.slice(0, 4)
+  const rows = []
+
+  counties.forEach((county, countyIndex) => {
+    distressList.forEach((recordType, recordIndex) => {
+      const city = cities[(countyIndex + recordIndex) % cities.length] || CITY_OPTIONS[0]
+      const streetNames = ['Parkview Dr', 'Lakecrest Ln', 'Saddle Ridge Rd', 'Cypress Bend Ct', 'Timber Falls Dr']
+      const houseNumber = 1200 + countyIndex * 240 + recordIndex * 31
+      const zip = 75000 + countyIndex * 120 + recordIndex * 11
+
+      rows.push({
+        id: `source-${countyIndex}-${recordIndex}`,
+        county,
+        city,
+        zip: String(zip),
+        recordType,
+        normalizedAddress: `${houseNumber} ${streetNames[(countyIndex + recordIndex) % streetNames.length]}, ${city}, TX ${zip}`,
+        source: `${county} ${titleCase(recordType)} Adapter`,
+        status: countyIndex % 2 === 0 ? 'ready' : 'pending',
+        refresh: countyIndex % 2 === 0 ? 'Hourly shell' : 'Manual shell',
+        occupancy: recordIndex % 2 === 0 ? 'vacant' : 'owner_occupied'
+      })
+    })
+  })
+
+  return rows
+}
+
+function generatePropertyFromSourceRow(seedIndex, filters, copy, row) {
+  const generated = generateProperty(seedIndex, {
+    ...filters,
+    county: row.county || filters.county,
+    city: row.city || filters.city,
+    distressType: row.recordType || filters.distressType,
+    occupancy: row.occupancy || filters.occupancy
+  }, copy)
+
+  return {
+    ...generated,
+    id: `live-${row.id}-${seedIndex}`,
+    address: row.normalizedAddress || generated.address,
+    county: row.county || generated.county,
+    city: row.city || generated.city,
+    zip: row.zip || generated.zip,
+    distressType: row.recordType || generated.distressType,
+    source: row.source || generated.source,
+    sourceMode: row.status === 'pending' ? 'manual' : 'live'
+  }
+}
+
+function buildAdapterStatusRows(filters = {}) {
+  const targetCounties = filters.county ? [filters.county] : COUNTY_OPTIONS.slice(0, 4)
+  return targetCounties.map((county, index) => ({
+    id: `adapter-${index}`,
+    name: `${county} Adapter`,
+    coverage: 'Pre-foreclosure, tax delinquent, probate, code shell',
+    status: index % 2 === 0 ? 'ready' : 'pending',
+    refresh: index % 2 === 0 ? 'Hourly shell' : 'Manual staging'
+  }))
+}
+
+
 function scoreTone(score) {
   if (score >= 85) return { background: '#dcf4e5', color: '#177245' }
   if (score >= 70) return { background: '#d8ecff', color: '#0d3f73' }
@@ -704,6 +824,8 @@ export default function FlipEngine({ lang = 'en' }) {
   const [savedIds, setSavedIds] = useState(() => readStoredJson(STORAGE_KEYS.savedIds, []))
   const [shortlistIds, setShortlistIds] = useState(() => readStoredJson(STORAGE_KEYS.shortlistIds, []))
   const [queuedIds, setQueuedIds] = useState(() => readStoredJson(STORAGE_KEYS.queuedIds, []))
+  const [sourceMode, setSourceMode] = useState(() => readStoredJson(STORAGE_KEYS.sourceMode, 'mock'))
+  const [stagedRows, setStagedRows] = useState(() => readStoredJson(STORAGE_KEYS.stagedRows, []))
   const [filters, setFilters] = useState(() => ({ ...defaultFilters, ...readStoredJson(STORAGE_KEYS.filters, {}) }))
   const [results, setResults] = useState(() => readStoredJson(STORAGE_KEYS.results, []))
 
@@ -735,6 +857,14 @@ export default function FlipEngine({ lang = 'en' }) {
     window.localStorage.setItem(STORAGE_KEYS.expandedId, JSON.stringify(expandedId))
   }, [expandedId])
 
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.sourceMode, JSON.stringify(sourceMode))
+  }, [sourceMode])
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.stagedRows, JSON.stringify(stagedRows))
+  }, [stagedRows])
+
   function sortDeals(items = [], sortBy = 'score') {
     const rows = [...items]
     if (sortBy === 'profit') return rows.sort((a, b) => b.netProfit - a.netProfit || b.score - a.score)
@@ -746,12 +876,34 @@ export default function FlipEngine({ lang = 'en' }) {
   function handleGenerate() {
     setBusy(true)
     const count = Number(filters.dealCount || 10)
+
+    if (sourceMode === 'mock') {
+      const generated = sortDeals(
+        Array.from({ length: count }, (_, index) => generateProperty(index + 1, filters, copy)),
+        filters.sortBy
+      )
+      setResults(generated)
+      setExpandedId(generated[0]?.id || '')
+      setTimeout(() => setBusy(false), 250)
+      return
+    }
+
+    const sourceRows = buildAdapterRows(filters).slice(0, count)
+    setStagedRows(sourceRows)
+
     const generated = sortDeals(
-      Array.from({ length: count }, (_, index) => generateProperty(index + 1, filters, copy)),
+      sourceRows.map((row, index) => generatePropertyFromSourceRow(index + 1, filters, copy, row)),
       filters.sortBy
     )
     setResults(generated)
     setExpandedId(generated[0]?.id || '')
+    setTimeout(() => setBusy(false), 250)
+  }
+
+  function handleStageRows() {
+    setBusy(true)
+    const rows = buildAdapterRows(filters)
+    setStagedRows(rows)
     setTimeout(() => setBusy(false), 250)
   }
 
@@ -783,6 +935,8 @@ export default function FlipEngine({ lang = 'en' }) {
     return results.filter((item) => savedIds.includes(item.id) || shortlistIds.includes(item.id))
   }, [results, savedIds, shortlistIds])
 
+  const adapterRows = useMemo(() => buildAdapterStatusRows(filters), [filters])
+
   return (
     <div className="grid" style={{ gap: 18 }}>
       <div
@@ -801,154 +955,48 @@ export default function FlipEngine({ lang = 'en' }) {
         </p>
       </div>
 
-      <div className="grid two" style={{ alignItems: 'start' }}>
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.filtersTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.filtersBody}</p>
-
-          <div className="grid two" style={{ marginTop: 14 }}>
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.county}</div>
-              <select className="input" value={filters.county} onChange={(e) => setField('county', e.target.value)}>
-                {COUNTY_OPTIONS.map((option) => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.city}</div>
-              <input
-                className="input"
-                value={filters.city}
-                onChange={(e) => setField('city', e.target.value)}
-                placeholder={CITY_OPTIONS.join(', ')}
-              />
-            </div>
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.distressType}</div>
-              <select className="input" value={filters.distressType} onChange={(e) => setField('distressType', e.target.value)}>
-                <option value="all">{copy.all}</option>
-                <option value="preforeclosure">{copy.preforeclosure}</option>
-                <option value="tax_delinquent">{copy.taxDelinquent}</option>
-                <option value="code_violation">{copy.codeViolation}</option>
-                <option value="probate">{copy.probate}</option>
-                <option value="inherited">{copy.inherited}</option>
-              </select>
-            </div>
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.propertyType}</div>
-              <select className="input" value={filters.propertyType} onChange={(e) => setField('propertyType', e.target.value)}>
-                <option value="all">{copy.all}</option>
-                <option value="single_family">{copy.singleFamily}</option>
-                <option value="townhome">{copy.townhome}</option>
-                <option value="small_multifamily">{copy.smallMultifamily}</option>
-              </select>
-            </div>
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.occupancy}</div>
-              <select className="input" value={filters.occupancy} onChange={(e) => setField('occupancy', e.target.value)}>
-                <option value="any">{copy.any}</option>
-                <option value="owner_occupied">{copy.ownerOccupied}</option>
-                <option value="vacant">{copy.vacant}</option>
-              </select>
-            </div>
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.dealCount}</div>
-              <select className="input" value={filters.dealCount} onChange={(e) => setField('dealCount', e.target.value)}>
-                {DEAL_COUNT_OPTIONS.map((count) => (
-                  <option key={count} value={String(count)}>{count}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.sortBy}</div>
-              <select className="input" value={filters.sortBy} onChange={(e) => setField('sortBy', e.target.value)}>
-                <option value="score">{copy.byScore}</option>
-                <option value="profit">{copy.byProfit}</option>
-                <option value="margin">{copy.byMargin}</option>
-                <option value="rehab">{copy.byLowestRehab}</option>
-              </select>
-            </div>
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.arvMode}</div>
-              <select className="input" value={filters.arvMode} onChange={(e) => setField('arvMode', e.target.value)}>
-                <option value="conservative">{copy.conservative}</option>
-                <option value="balanced">{copy.balanced}</option>
-                <option value="aggressive">{copy.aggressive}</option>
-              </select>
-            </div>
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.riskTolerance}</div>
-              <select className="input" value={filters.riskTolerance} onChange={(e) => setField('riskTolerance', e.target.value)}>
-                <option value="low">{copy.low}</option>
-                <option value="medium">{copy.medium}</option>
-                <option value="high">{copy.high}</option>
-              </select>
-            </div>
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.targetMargin}</div>
-              <input className="input" type="number" value={filters.targetMargin} onChange={(e) => setField('targetMargin', e.target.value)} />
-            </div>
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.targetProfit}</div>
-              <input className="input" type="number" value={filters.targetProfit} onChange={(e) => setField('targetProfit', e.target.value)} />
-            </div>
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.maxRehab}</div>
-              <input className="input" type="number" value={filters.maxRehab} onChange={(e) => setField('maxRehab', e.target.value)} />
-            </div>
-          </div>
-
-          <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button className="btn primary" type="button" onClick={handleGenerate} disabled={busy}>
-              {busy ? copy.generating : copy.generate}
-            </button>
-          </div>
-        </div>
-
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.opportunitySummary}</div>
-          <div className="grid two" style={{ marginTop: 14 }}>
-            <div className="card-soft" style={{ background: '#ffffff' }}>
-              <div className="muted">{copy.totalResults}</div>
-              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{metrics.total}</div>
-            </div>
-            <div className="card-soft" style={{ background: '#ffffff' }}>
-              <div className="muted">{copy.avgProfit}</div>
-              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{currency(metrics.avgProfit)}</div>
-            </div>
-            <div className="card-soft" style={{ background: '#ffffff' }}>
-              <div className="muted">{copy.bestDeal}</div>
-              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{currency(metrics.bestDeal)}</div>
-            </div>
-            <div className="card-soft" style={{ background: '#ffffff' }}>
-              <div className="muted">{copy.avgMargin}</div>
-              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{pct(metrics.avgMargin)}</div>
-            </div>
-            <div className="card-soft" style={{ background: '#ffffff' }}>
-              <div className="muted">{copy.savedDeals}</div>
-              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{savedDeals.length}</div>
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
-            <div className="muted" style={{ lineHeight: 1.7 }}>{copy.dataGenerated}</div>
-          </div>
-        </div>
-      </div>
 
       <div className="grid two" style={{ alignItems: 'start' }}>
         <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.generationSourceTitle}</div>
-          <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
-            <div className="muted" style={{ lineHeight: 1.7 }}>{copy.generationSourceBody}</div>
+          <div className="card-section-title">{copy.adapterStatusTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.adapterStatusBody}</p>
+          <div className="list" style={{ marginTop: 14 }}>
+            {adapterRows.map((row) => (
+              <div key={row.id} className="card-soft" style={{ background: '#ffffff' }}>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <div><strong>{copy.adapterName}:</strong> {row.name}</div>
+                  <div><strong>{copy.adapterCoverage}:</strong> {row.coverage}</div>
+                  <div><strong>{copy.adapterStatus}:</strong> {row.status === 'ready' ? copy.adapterReady : copy.adapterPending}</div>
+                  <div><strong>{copy.adapterRefresh}:</strong> {row.refresh}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
         <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.persistenceTitle}</div>
+          <div className="card-section-title">{copy.ingestQueueTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.ingestQueueBody}</p>
+
+          {!stagedRows.length ? (
+            <div className="card-soft" style={{ marginTop: 14 }}>{copy.queueEmpty}</div>
+          ) : (
+            <div className="list" style={{ marginTop: 14 }}>
+              {stagedRows.map((row) => (
+                <div key={row.id} className="card-soft" style={{ background: '#ffffff' }}>
+                  <div style={{ display: 'grid', gap: 6 }}>
+                    <div><strong>{copy.normalizedAddress}:</strong> {row.normalizedAddress}</div>
+                    <div><strong>{copy.recordType}:</strong> {titleCase(row.recordType)}</div>
+                    <div><strong>{copy.source}:</strong> {row.source}</div>
+                    <div><strong>{copy.sourceModeLabel}:</strong> {sourceMode === 'live' ? copy.sourceModeLive : copy.sourceModeManual}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
-            <div className="muted" style={{ lineHeight: 1.7 }}>{copy.persistenceBody}</div>
+            <div className="muted" style={{ lineHeight: 1.7 }}>{copy.sourcePipelineBody}</div>
           </div>
         </div>
       </div>
