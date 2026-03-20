@@ -2416,6 +2416,7 @@ export default function SupplierAiTools() {
   const [projectNotes, setProjectNotes] = useState('')
   const [scopeTarget, setScopeTarget] = useState('')
   const [uploadedFiles, setUploadedFiles] = useState([])
+  const [hasAnalyzerRun, setHasAnalyzerRun] = useState(false)
   const [extractedText, setExtractedText] = useState('')
   const [projectEngine, setProjectEngine] = useState(null)
   const [analyzerMode, setAnalyzerMode] = useState('build')
@@ -2659,21 +2660,28 @@ export default function SupplierAiTools() {
     setDeliveryForm((prev) => ({ ...prev, [key]: value }))
   }
 
+  function buildCombinedExtractedText(files = []) {
+    return files
+      .map((item) => String(item?.extractedText || '').trim())
+      .filter(Boolean)
+      .join('\n\n')
+  }
+
   function removeUploadedFile(fileId) {
     const nextFiles = uploadedFiles.filter((file) => file.id !== fileId)
     setUploadedFiles(nextFiles)
-
-    const combinedText = nextFiles
-      .map((item) => item.extractedText)
-      .filter(Boolean)
-      .join('\n\n')
-
-    setExtractedText(combinedText)
+    setExtractedText(buildCombinedExtractedText(nextFiles))
+    setProjectEngine(null)
+    setCreatedProjectId('')
+    setHasAnalyzerRun(false)
   }
 
   function clearUploadedFiles() {
     setUploadedFiles([])
     setExtractedText('')
+    setProjectEngine(null)
+    setCreatedProjectId('')
+    setHasAnalyzerRun(false)
   }
 
   function pushWithParams(path, values = {}) {
@@ -2967,13 +2975,10 @@ export default function SupplierAiTools() {
       }
 
       setUploadedFiles(next)
-
-      const combinedText = next
-        .map((item) => item.extractedText)
-        .filter(Boolean)
-        .join('\n\n')
-
-      setExtractedText(combinedText)
+      setExtractedText(buildCombinedExtractedText(next))
+      setProjectEngine(null)
+      setCreatedProjectId('')
+      setHasAnalyzerRun(false)
       event.target.value = ''
     } finally {
       setBusy(false)
@@ -2990,18 +2995,56 @@ export default function SupplierAiTools() {
 
       setMessage(`Analyzer: processing ${target.name}…`)
       const text = await handleLargeFileProcessing(target.file, target.mimeType)
+      const nextFiles = uploadedFiles.map((item) =>
+        item.id === fileId
+          ? { ...item, extractedText: text, ocrDone: Boolean(text) }
+          : item
+      )
 
-      setUploadedFiles((prev) =>
-        prev.map((item) =>
-          item.id === fileId
+      setUploadedFiles(nextFiles)
+      setExtractedText(buildCombinedExtractedText(nextFiles))
+      setHasAnalyzerRun(true)
+      setMessage('Project Analyzer scan complete.')
+    } catch (error) {
+      console.error(error)
+      setMessage(`OCR failed: ${error.message || 'Unknown error'}`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleRunAnalyzer() {
+    const hasSourceText = Boolean(projectNotes.trim() || extractedText.trim() || uploadedFiles.length)
+    if (!hasSourceText) {
+      setMessage(copy.noSummary)
+      return
+    }
+
+    setBusy(true)
+    setMessage('')
+
+    try {
+      let nextFiles = [...uploadedFiles]
+
+      for (const file of nextFiles) {
+        const needsOcr = Boolean(file.ocrReady && !String(file.extractedText || '').trim())
+        if (!needsOcr) continue
+
+        setMessage(`Analyzer: processing ${file.name}…`)
+        const text = await handleLargeFileProcessing(file.file, file.mimeType)
+        nextFiles = nextFiles.map((item) =>
+          item.id === file.id
             ? { ...item, extractedText: text, ocrDone: Boolean(text) }
             : item
         )
-      )
-
-      if (text) {
-        setExtractedText((prev) => [prev, text].filter(Boolean).join('\n\n'))
       }
+
+      setUploadedFiles(nextFiles)
+      setExtractedText(buildCombinedExtractedText(nextFiles))
+      setProjectEngine(null)
+      setCreatedProjectId('')
+      setHasAnalyzerRun(true)
+      setMessage('Project Analyzer scan complete.')
     } catch (error) {
       console.error(error)
       setMessage(`OCR failed: ${error.message || 'Unknown error'}`)
@@ -3668,11 +3711,28 @@ export default function SupplierAiTools() {
           </div>
 
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+            <button
+              className="btn primary"
+              type="button"
+              onClick={handleRunAnalyzer}
+              disabled={busy || (!uploadedFiles.length && !projectNotes.trim())}
+            >
+              {busy ? copy.runningOcr : copy.runOcr}
+            </button>
             <Chip onClick={runProjectEngine}>{busy ? copy.engineRunning : copy.engineRunButton}</Chip>
             <Chip onClick={useAnalyzerForSupplier}>{copy.supplierTab}</Chip>
             <Chip onClick={useAnalyzerForCrew}>{copy.crewTab}</Chip>
             <Chip onClick={useAnalyzerForDelivery}>{copy.deliveryTab}</Chip>
           </div>
+
+          {hasAnalyzerRun ? (
+            <div className="card-soft" style={{ marginTop: 12, background: '#eef7f1' }}>
+              <div style={{ fontWeight: 800 }}>Project Analyzer ready</div>
+              <div className="card-section-subtitle" style={{ marginTop: 6 }}>
+                OCR and file extraction completed. Review the analyzer output below or run the Project Engine for the full handoff.
+              </div>
+            </div>
+          ) : null}
 
           <div className="card-soft" style={{ marginTop: 16, background: analyzerMode === 'permit' ? '#fff4da' : '#eef5ff' }}>
             <div className="card-section-title">Analyzer Mode</div>
