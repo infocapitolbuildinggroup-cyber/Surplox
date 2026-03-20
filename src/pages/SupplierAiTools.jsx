@@ -1,13 +1,14 @@
 import React, { useMemo, useState } from 'react'
 import * as pdfjsLib from 'pdfjs-dist/build/pdf'
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import jsPDF from 'jspdf'
 import { autoTable } from 'jspdf-autotable'
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
-
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString()
 const OCR_MAX_DIRECT_FILE_SIZE = 4 * 1024 * 1024
 const PDF_PAGE_RENDER_ATTEMPTS = [
   { scale: 1.35, quality: 0.76 },
@@ -97,17 +98,6 @@ async function handleLargeFileProcessing(file, mimeType = '') {
 
   if (!isPdf) {
     return await ocrSingleFile(file, type || file.type || 'application/octet-stream')
-  }
-
-  if (file.size <= OCR_MAX_DIRECT_FILE_SIZE) {
-    try {
-      return await ocrSingleFile(file, 'application/pdf')
-    } catch (error) {
-      const message = String(error?.message || '')
-      if (!/too large|payload too large|request entity too large/i.test(message)) {
-        throw error
-      }
-    }
   }
 
   const pageFiles = await renderPdfPagesToImages(file)
