@@ -2036,7 +2036,13 @@ async function parseJsonOrTextResponse(response) {
     return JSON.parse(raw)
   } catch (error) {
     console.error('Non-JSON response body:', raw)
-    throw new Error('OCR failed: server did not return valid JSON')
+
+    const normalized = String(raw || '').trim()
+    if (/request entity too large/i.test(normalized) || /payload too large/i.test(normalized)) {
+      throw new Error('Uploaded file is too large for the current OCR endpoint. Try a smaller PDF or increase the server request size limit.')
+    }
+
+    throw new Error(normalized.slice(0, 220) || 'OCR failed: server did not return valid JSON')
   }
 }
 
@@ -2750,7 +2756,7 @@ export default function SupplierAiTools() {
         body: JSON.stringify(supplierForm)
       })
 
-      const data = await response.json()
+      const data = await parseJsonOrTextResponse(response)
       if (!response.ok) throw new Error(data?.error || copy.importError)
 
       setImportedSuppliers(Array.isArray(data.suppliers) ? data.suppliers : [])
