@@ -1,6 +1,68 @@
 
+// --- PDF PAGE-BASED SPLITTING (PRODUCTION UPGRADE) ---
+import * as pdfjsLib from "pdfjs-dist/build/pdf"
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js`;
+
+async function splitPdfToImages(file) {
+  const arrayBuffer = await file.arrayBuffer()
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+
+  const pages = []
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i)
+    const viewport = page.getViewport({ scale: 1.5 })
+
+    const canvas = document.createElement("canvas")
+    const context = canvas.getContext("2d")
+
+    canvas.width = viewport.width
+    canvas.height = viewport.height
+
+    await page.render({
+      canvasContext: context,
+      viewport: viewport
+    }).promise
+
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.7))
+    pages.push({ blob, pageNumber: i })
+  }
+
+  return pages
+}
+
+async function handleLargePdfWithPageSplitting(file, runOcrForFile) {
+  const MAX_SIZE = 4 * 1024 * 1024
+
+  if (file.size <= MAX_SIZE && file.type !== "application/pdf") {
+    return await runOcrForFile(file)
+  }
+
+  console.log("PDF detected → splitting by pages...")
+
+  const pages = await splitPdfToImages(file)
+  let results = []
+
+  for (const p of pages) {
+    const pageFile = new File([p.blob], `page-${p.pageNumber}.jpg`, { type: "image/jpeg" })
+
+    try {
+      const res = await runOcrForFile(pageFile)
+      if (res) {
+        results.push(`[PAGE ${p.pageNumber}]\n${res}`)
+      }
+    } catch (e) {
+      console.error("Page OCR failed", p.pageNumber, e)
+    }
+  }
+
+  return results.join("\n\n")
+}
+
+
+
 // --- LARGE FILE HANDLING (AUTO SPLIT SIMULATION) ---
-async function handleLargeFileProcessing(file, runOcrForFile) {
+async function handleLargePdfWithPageSplitting(file, runOcrForFile) {
   const MAX_SIZE = 4 * 1024 * 1024
 
   if (file.size <= MAX_SIZE) {
