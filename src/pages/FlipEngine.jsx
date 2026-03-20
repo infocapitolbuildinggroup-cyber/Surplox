@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 
 const COPY = {
   en: {
@@ -9,6 +9,10 @@ const COPY = {
     filtersTitle: 'Opportunity Filters',
     filtersBody:
       'Set your target buy box and let the engine generate ranked opportunities with rehab budgets, ARV ranges, crew plans, suppliers, delivery planning, and compliance snapshots.',
+    generationSourceTitle: 'Current Generation Source',
+    generationSourceBody: 'Right now Flip Engine is generating deterministic mock opportunities from the built-in county, city, distress, and scenario logic inside this file. It is not pulling live government records yet.',
+    persistenceTitle: 'Phase 3 Persistence',
+    persistenceBody: 'Saved deals, shortlist flags, queued underwriting items, and generated results now persist in local storage so your workflow survives refreshes while we prepare live-source ingestion.',
     county: 'County',
     city: 'City / ZIP',
     distressType: 'Distress Type',
@@ -149,6 +153,10 @@ const COPY = {
     filtersTitle: 'Filtros de Oportunidad',
     filtersBody:
       'Define tu caja de compra y deja que el motor genere oportunidades con presupuesto de rehab, rango ARV, cuadrillas, proveedores, entrega y cumplimiento.',
+    generationSourceTitle: 'Fuente Actual de Generación',
+    generationSourceBody: 'Por ahora Flip Engine genera oportunidades mock determinísticas usando la lógica interna de condados, ciudades, distress y escenarios dentro de este archivo. Todavía no consume registros gubernamentales en vivo.',
+    persistenceTitle: 'Persistencia de Fase 3',
+    persistenceBody: 'Los deals guardados, shortlist, underwriting en cola y resultados generados ahora persisten en local storage para que el flujo sobreviva recargas mientras preparamos la ingesta de fuentes en vivo.',
     county: 'Condado',
     city: 'Ciudad / ZIP',
     distressType: 'Tipo de Distress',
@@ -283,12 +291,30 @@ const COPY = {
   }
 }
 
+const STORAGE_KEYS = {
+  results: 'surplox_flip_engine_results_v1',
+  savedIds: 'surplox_flip_engine_saved_ids_v1',
+  shortlistIds: 'surplox_flip_engine_shortlist_ids_v1',
+  queuedIds: 'surplox_flip_engine_queued_ids_v1',
+  filters: 'surplox_flip_engine_filters_v1',
+  expandedId: 'surplox_flip_engine_expanded_id_v1'
+}
+
 const COUNTY_OPTIONS = ['Dallas County', 'Tarrant County', 'Denton County', 'Collin County', 'Ellis County', 'Johnson County']
 const CITY_OPTIONS = ['Dallas', 'Fort Worth', 'Arlington', 'Irving', 'Plano', 'Frisco', 'Midlothian', 'Mansfield']
 const DISTRESS_OPTIONS = ['preforeclosure', 'tax_delinquent', 'code_violation', 'probate', 'inherited']
 const PROPERTY_TYPES = ['single_family', 'townhome', 'small_multifamily']
 const OCCUPANCY_OPTIONS = ['any', 'owner_occupied', 'vacant']
 const DEAL_COUNT_OPTIONS = [5, 10, 15]
+
+function readStoredJson(key, fallback) {
+  try {
+    const value = window.localStorage.getItem(key)
+    return value ? JSON.parse(value) : fallback
+  } catch (error) {
+    return fallback
+  }
+}
 
 function currency(value) {
   return `$${Math.round(Number(value || 0)).toLocaleString()}`
@@ -660,11 +686,7 @@ function ownerNameDisplay(lastName = '') {
 export default function FlipEngine({ lang = 'en' }) {
   const copy = COPY[lang] || COPY.en
   const [busy, setBusy] = useState(false)
-  const [expandedId, setExpandedId] = useState('')
-  const [savedIds, setSavedIds] = useState([])
-  const [shortlistIds, setShortlistIds] = useState([])
-  const [queuedIds, setQueuedIds] = useState([])
-  const [filters, setFilters] = useState({
+  const defaultFilters = {
     county: 'Dallas County',
     city: '',
     distressType: 'all',
@@ -677,12 +699,41 @@ export default function FlipEngine({ lang = 'en' }) {
     sortBy: 'score',
     arvMode: 'balanced',
     riskTolerance: 'medium'
-  })
-  const [results, setResults] = useState([])
+  }
+  const [expandedId, setExpandedId] = useState(() => readStoredJson(STORAGE_KEYS.expandedId, ''))
+  const [savedIds, setSavedIds] = useState(() => readStoredJson(STORAGE_KEYS.savedIds, []))
+  const [shortlistIds, setShortlistIds] = useState(() => readStoredJson(STORAGE_KEYS.shortlistIds, []))
+  const [queuedIds, setQueuedIds] = useState(() => readStoredJson(STORAGE_KEYS.queuedIds, []))
+  const [filters, setFilters] = useState(() => ({ ...defaultFilters, ...readStoredJson(STORAGE_KEYS.filters, {}) }))
+  const [results, setResults] = useState(() => readStoredJson(STORAGE_KEYS.results, []))
 
   function setField(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }))
   }
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.results, JSON.stringify(results))
+  }, [results])
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.savedIds, JSON.stringify(savedIds))
+  }, [savedIds])
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.shortlistIds, JSON.stringify(shortlistIds))
+  }, [shortlistIds])
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.queuedIds, JSON.stringify(queuedIds))
+  }, [queuedIds])
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.filters, JSON.stringify(filters))
+  }, [filters])
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.expandedId, JSON.stringify(expandedId))
+  }, [expandedId])
 
   function sortDeals(items = [], sortBy = 'score') {
     const rows = [...items]
@@ -882,6 +933,22 @@ export default function FlipEngine({ lang = 'en' }) {
 
           <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
             <div className="muted" style={{ lineHeight: 1.7 }}>{copy.dataGenerated}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid two" style={{ alignItems: 'start' }}>
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.generationSourceTitle}</div>
+          <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
+            <div className="muted" style={{ lineHeight: 1.7 }}>{copy.generationSourceBody}</div>
+          </div>
+        </div>
+
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.persistenceTitle}</div>
+          <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
+            <div className="muted" style={{ lineHeight: 1.7 }}>{copy.persistenceBody}</div>
           </div>
         </div>
       </div>
