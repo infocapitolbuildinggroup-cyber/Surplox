@@ -1,132 +1,8 @@
 import React, { useMemo, useState } from 'react'
-import * as pdfjsLib from 'pdfjs-dist/build/pdf'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import jsPDF from 'jspdf'
 import { autoTable } from 'jspdf-autotable'
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = '//cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.394/pdf.worker.min.mjs'
-
-const OCR_MAX_DIRECT_FILE_SIZE = 4 * 1024 * 1024
-const PDF_PAGE_RENDER_ATTEMPTS = [
-  { scale: 1.35, quality: 0.76 },
-  { scale: 1.1, quality: 0.62 },
-  { scale: 0.9, quality: 0.5 },
-  { scale: 0.75, quality: 0.42 }
-]
-
-async function ocrSingleFile(file, mimeType = '') {
-  const fileBase64 = await fileToBase64(file)
-  const response = await fetch(API_OCR_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      fileBase64,
-      mimeType: mimeType || file.type || 'application/octet-stream'
-    })
-  })
-
-  const data = await parseJsonOrTextResponse(response)
-  if (!response.ok) {
-    const detailText =
-      typeof data?.details === 'string'
-        ? data.details
-        : typeof data?.error === 'string'
-          ? data.error
-          : 'OCR request failed (server error)'
-    throw new Error(detailText)
-  }
-
-  return String(data?.extractedText || data?.text || '').trim()
-}
-
-async function renderSinglePdfPageToSizedImage(page, pageNum, baseName = 'document') {
-  for (const attempt of PDF_PAGE_RENDER_ATTEMPTS) {
-    const viewport = page.getViewport({ scale: attempt.scale })
-    const canvas = document.createElement('canvas')
-    const context = canvas.getContext('2d', { alpha: false })
-
-    if (!context) throw new Error('Unable to create PDF rendering context.')
-
-    canvas.width = Math.ceil(viewport.width)
-    canvas.height = Math.ceil(viewport.height)
-
-    await page.render({ canvasContext: context, viewport }).promise
-
-    const blob = await new Promise((resolve, reject) => {
-      canvas.toBlob(
-        (value) => (value ? resolve(value) : reject(new Error(`Failed to rasterize PDF page ${pageNum}.`))),
-        'image/jpeg',
-        attempt.quality
-      )
-    })
-
-    canvas.width = 0
-    canvas.height = 0
-
-    if (blob.size <= OCR_MAX_DIRECT_FILE_SIZE) {
-      return new File([blob], `${baseName}-page-${pageNum}.jpg`, {
-        type: 'image/jpeg'
-      })
-    }
-  }
-
-  throw new Error(`PDF page ${pageNum} is still too large for OCR after compression.`)
-}
-
-async function renderPdfPagesToImages(file) {
-  const arrayBuffer = await file.arrayBuffer()
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-  const renderedPages = []
-  const baseName = file.name.replace(/\.pdf$/i, '') || 'document'
-
-  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
-    const page = await pdf.getPage(pageNum)
-    const sizedFile = await renderSinglePdfPageToSizedImage(page, pageNum, baseName)
-    renderedPages.push(sizedFile)
-  }
-
-  return renderedPages
-}
-
-async function handleLargeFileProcessing(file, mimeType = '') {
-  const type = String(mimeType || file?.type || '').toLowerCase()
-  const lowerName = String(file?.name || '').toLowerCase()
-  const isPdf = type === 'application/pdf' || /\.pdf$/i.test(lowerName)
-
-  if (!isPdf) {
-    return await ocrSingleFile(file, type || file.type || 'application/octet-stream')
-  }
-
-  if (file.size <= OCR_MAX_DIRECT_FILE_SIZE) {
-    try {
-      return await ocrSingleFile(file, 'application/pdf')
-    } catch (error) {
-      const message = String(error?.message || '')
-      if (!/too large|payload too large|request entity too large/i.test(message)) {
-        throw error
-      }
-    }
-  }
-
-  const pageFiles = await renderPdfPagesToImages(file)
-  const pageResults = []
-
-  for (let index = 0; index < pageFiles.length; index += 1) {
-    const pageFile = pageFiles[index]
-
-    if (pageFile.size > OCR_MAX_DIRECT_FILE_SIZE) {
-      throw new Error(`PDF page ${index + 1} is still too large for OCR after compression.`)
-    }
-
-    const pageText = await ocrSingleFile(pageFile, pageFile.type)
-    if (pageText) {
-      pageResults.push(`[PAGE ${index + 1}]\n${pageText}`)
-    }
-  }
-
-  return pageResults.join('\n\n').trim()
-}
 
 const API_IMPORT_ENDPOINT =
   (typeof import.meta !== 'undefined' &&
@@ -241,29 +117,6 @@ const COPY = {
     scopeFocusCrew: 'Crew / trade focus',
     scopeFocusRisks: 'Pricing / field checks',
     scopeFocusNoMatch: 'No strong targeted scope match yet. Add clearer scope wording like welding, framing, demo, concrete, drywall, or plumbing.',
-    blueprintIntelTitle: 'Blueprint Intelligence',
-    blueprintIntelBody:
-      'Detect likely sheet titles, scope-relevant plan areas, and likely exclusions from uploaded blueprint text without interrupting the rest of the analyzer workflow.',
-    blueprintSheetsTitle: 'Likely Relevant Sheets',
-    blueprintSheetsBody:
-      'These sheets look most relevant to your selected scope based on sheet labels, nearby detail text, and discipline signals.',
-    blueprintSheetsEmpty:
-      'No strong scope-to-sheet matches yet. Upload more plan text or tighten your scope target.',
-    blueprintDetectedSheets: 'Detected sheets',
-    blueprintNoSheets: 'No sheet titles detected yet from the uploaded blueprint text.',
-    blueprintMatchScore: 'Sheet match score',
-    blueprintDiscipline: 'Discipline',
-    blueprintNearbySignals: 'Nearby scope signals',
-    blueprintExclusionsTitle: 'Likely Exclusions / Verify Boundaries',
-    blueprintExclusionsEmpty:
-      'No likely exclusions generated yet. Add a scope target to isolate what should stay out of your bid.',
-    blueprintScopeLocationTitle: 'Where Your Scope Appears',
-    blueprintScopeLocationBody:
-      'These are the strongest page-aware scope hits so you can jump to the likely plan areas that matter most for your bid.',
-    blueprintScopeLocationEmpty:
-      'No page-aware scope hits yet. Upload more readable plan text or tighten your scope target.',
-    blueprintPageLabel: 'Page',
-    blueprintEvidenceExcerpt: 'Evidence excerpt',
     uploadLabel: 'Blueprint / document upload',
     uploadHelp:
       'Upload PDF, image, txt, csv, json, or md files. Text-based files extract immediately. OCR can be run on scans and images.',
@@ -926,222 +779,6 @@ function buildTargetedScopeAnalysis({
     risks,
     targetedSummary
   }
-}
-
-
-
-function detectSheetsFromText(text = '') {
-  const lines = String(text || '').split(/\r?\n/)
-  const results = []
-  const seen = new Set()
-  let currentPage = 1
-
-  lines.forEach((rawLine, index) => {
-    const line = String(rawLine || '').trim()
-    if (!line) return
-
-    const pageMatch =
-      line.match(/\bpage\s*(\d{1,4})\b/i) ||
-      line.match(/^\s*(\d{1,4})\s*\/\s*\d{1,4}\s*$/) ||
-      line.match(/^\s*sheet\s*(\d{1,4})\s*$/i)
-
-    if (pageMatch) {
-      const parsed = parseInt(pageMatch[1] || String(pageMatch[0] || '').replace(/\D/g, ''), 10)
-      if (Number.isFinite(parsed) && parsed > 0) currentPage = parsed
-    }
-
-    const normalized = normalizeSourceText(line)
-    if (!normalized) return
-
-    const matchers = [
-      normalized.match(/\b([A-Z]{1,3}\d{1,2}\.\d{2})\b\s*[\-–:]?\s*(.+)/),
-      normalized.match(/\b(SHEET\s+[A-Z]{1,3}\d{1,2}\.\d{2})\b\s*[\-–:]?\s*(.+)/i),
-      normalized.match(/\b([A-Z]-?\d{1,2}\.\d{2})\b\s*[\-–:]?\s*(.+)/)
-    ].filter(Boolean)
-
-    if (!matchers.length) return
-    const match = matchers[0]
-    const rawNumber = String(match[1] || '').replace(/^sheet\s+/i, '').trim()
-    const rawTitle = String(match[2] || '').trim()
-
-    if (!rawNumber || !rawTitle) return
-    const key = `${rawNumber}::${rawTitle}`.toLowerCase()
-    if (seen.has(key)) return
-    seen.add(key)
-
-    results.push({
-      id: `sheet-${results.length}`,
-      sheetNumber: rawNumber,
-      sheetTitle: rawTitle,
-      lineIndex: index,
-      page: currentPage,
-      discipline: inferDisciplineFromText(`${rawNumber} ${rawTitle}`)
-    })
-  })
-
-  return results.slice(0, 40)
-}
-
-function buildBlueprintScopeMatches({
-  scopeTarget = '',
-  extractedText = '',
-  detectedSheets = [],
-  projectSummary = {},
-  structuredSegments = []
-}) {
-  const requestedScope = normalizeScopeTarget(scopeTarget)
-  if (!requestedScope || !detectedSheets.length) return []
-
-  const lines = String(extractedText || '').split(/\r?\n/)
-  const keywordMap = buildScopeKeywordMap()
-  const normalizedTarget = inferScopeTradeFromTarget(requestedScope)
-  const targetKeywords = Array.from(
-    new Set([
-      requestedScope,
-      normalizedTarget,
-      ...(keywordMap[normalizedTarget] || []),
-      ...requestedScope.split(/\s+/)
-    ].filter(Boolean))
-  )
-
-  return detectedSheets
-    .map((sheet, index) => {
-      const nextLineIndex =
-        index < detectedSheets.length - 1 ? detectedSheets[index + 1].lineIndex : Math.min(lines.length, sheet.lineIndex + 40)
-      const nearbyLines = lines
-        .slice(sheet.lineIndex, Math.max(sheet.lineIndex + 1, nextLineIndex))
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .slice(0, 40)
-
-      const nearbyText = nearbyLines.join(' ').toLowerCase()
-      let score = 0
-
-      targetKeywords.forEach((term) => {
-        const normalized = String(term || '').toLowerCase()
-        if (!normalized) return
-        if (nearbyText.includes(normalized)) score += normalized === requestedScope ? 30 : 12
-        if (String(sheet.sheetTitle || '').toLowerCase().includes(normalized)) score += 18
-      })
-
-      if ((projectSummary.primaryTrades || []).includes(normalizedTarget)) score += 10
-      if ((projectSummary.secondaryTrades || []).includes(normalizedTarget)) score += 6
-      if (sheet.discipline === inferDisciplineFromText(normalizedTarget)) score += 8
-
-      const nearbySignals = uniqueList(
-        nearbyLines.filter((line) =>
-          targetKeywords.some((term) => String(line).toLowerCase().includes(String(term).toLowerCase()))
-        )
-      ).slice(0, 4)
-
-      return {
-        ...sheet,
-        score,
-        nearbySignals,
-        excerpt: nearbyLines.slice(0, 8).join(' '),
-      }
-    })
-    .filter((sheet) => sheet.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 8)
-}
-
-function buildPageAwareMatches({
-  scopeTarget = '',
-  extractedText = '',
-  detectedSheets = [],
-  projectSummary = {}
-}) {
-  const requestedScope = normalizeScopeTarget(scopeTarget)
-  if (!requestedScope || !detectedSheets.length) return []
-
-  const lines = String(extractedText || '').split(/\r?\n/)
-  const keywordMap = buildScopeKeywordMap()
-  const normalizedTarget = inferScopeTradeFromTarget(requestedScope)
-  const targetKeywords = Array.from(
-    new Set([
-      requestedScope,
-      normalizedTarget,
-      ...(keywordMap[normalizedTarget] || []),
-      ...requestedScope.split(/\s+/)
-    ].filter(Boolean))
-  )
-
-  return detectedSheets
-    .map((sheet, index) => {
-      const nextLineIndex =
-        index < detectedSheets.length - 1 ? detectedSheets[index + 1].lineIndex : Math.min(lines.length, sheet.lineIndex + 60)
-      const nearbyLines = lines
-        .slice(sheet.lineIndex, Math.max(sheet.lineIndex + 1, nextLineIndex))
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .slice(0, 60)
-
-      const nearbyText = nearbyLines.join(' ').toLowerCase()
-      let score = 0
-
-      targetKeywords.forEach((term) => {
-        const normalized = String(term || '').toLowerCase()
-        if (!normalized) return
-        if (nearbyText.includes(normalized)) score += normalized === requestedScope ? 30 : 12
-        if (String(sheet.sheetTitle || '').toLowerCase().includes(normalized)) score += 18
-      })
-
-      if ((projectSummary.primaryTrades || []).includes(normalizedTarget)) score += 10
-      if ((projectSummary.secondaryTrades || []).includes(normalizedTarget)) score += 6
-
-      const evidenceLine =
-        nearbyLines.find((line) =>
-          targetKeywords.some((term) => String(line).toLowerCase().includes(String(term).toLowerCase()))
-        ) || nearbyLines[0] || ''
-
-      return {
-        ...sheet,
-        score,
-        evidenceExcerpt: evidenceLine,
-        evidenceBlock: nearbyLines.slice(0, 8).join(' ')
-      }
-    })
-    .filter((sheet) => sheet.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 6)
-}
-
-function buildLikelyExclusions({
-  scopeTarget = '',
-  projectSummary = {},
-  targetedScopeAnalysis = {}
-}) {
-  const normalizedTarget = inferScopeTradeFromTarget(scopeTarget)
-  if (!normalizedTarget) return []
-
-  const tradeExclusionMap = {
-    welding: ['Do not carry concrete, CMU, roofing, or finish trades unless specifically called out.', 'Verify whether shop fabrication, galvanizing, and touch-up paint are excluded or delegated.'],
-    steel: ['Do not carry concrete footings, masonry, or adjacent finish scopes unless specifically called out.', 'Verify who owns embeds, anchors, and final coating requirements.'],
-    framing: ['Do not carry drywall finish, paint, MEP rough-in, or casework unless specifically called out.', 'Verify backing vs. finish carpentry boundaries.'],
-    demo: ['Do not carry rebuild, patch-back, utility reroutes, or hazardous disposal unless specifically called out.', 'Verify who owns haul-off, dump fees, and temporary protection.'],
-    concrete: ['Do not carry reinforcing fabrication, masonry, steel install, or site striping unless specifically called out.', 'Verify excavation, subgrade prep, and sawcut / dowel boundaries.'],
-    masonry: ['Do not carry structural concrete, steel fabrication, or gate hardware unless specifically called out.', 'Verify grout, reinforcing, and finish block texture responsibilities.'],
-    drywall: ['Do not carry framing, insulation, paint, or specialty ceilings unless specifically called out.', 'Verify finish level and patch scope boundaries.'],
-    electrical: ['Do not carry low-voltage, fire alarm, controls, or utility company work unless specifically called out.', 'Verify who owns trenching, core drilling, and temporary power.'],
-    plumbing: ['Do not carry civil utility tie-ins, concrete patch-back, or mechanical controls unless specifically called out.', 'Verify permits, shutdowns, and fixture owner-furnished items.'],
-    hvac: ['Do not carry controls, electrical feeders, roof patching, or structural supports unless specifically called out.', 'Verify startup, TAB, and curb / penetration responsibilities.'],
-    roofing: ['Do not carry decking repair, structural steel, sheet metal trim beyond listed details, or MEP curb work unless specifically called out.', 'Verify warranty, tear-off, and patch boundary assumptions.'],
-    sitework: ['Do not carry vertical building scopes, building MEP, or landscape unless specifically called out.', 'Verify survey, export, haul-off, and traffic control boundaries.'],
-    paint: ['Do not carry substrate repair, drywall finish, or specialty coatings unless specifically called out.', 'Verify prep level and who owns masking / protection.'],
-    carpentry: ['Do not carry framing, drywall finish, flooring, or final hardware unless specifically called out.', 'Verify millwork supply vs install boundaries.']
-  }
-
-  const exclusions = [
-    ...(tradeExclusionMap[normalizedTarget] || []),
-    ...((projectSummary.secondaryTrades || [])
-      .filter((item) => item && item !== normalizedTarget)
-      .slice(0, 4)
-      .map((item) => `Verify whether ${titleCase(item)} is excluded from your ${titleCase(normalizedTarget)} bid scope.`)),
-    ...((targetedScopeAnalysis.risks || []).slice(0, 2).map((item) => `Boundary check: ${item}`))
-  ]
-
-  return uniqueList(exclusions).slice(0, 8)
 }
 
 
@@ -1921,7 +1558,7 @@ async function runSupplierEngine(materialsPlan = [], zip = '', supplierForm = {}
         })
       })
 
-      const data = await parseJsonOrTextResponse(response)
+      const data = await response.json()
       if (response.ok && Array.isArray(data?.suppliers)) {
         groupSuppliers = data.suppliers.slice(0, 4)
       }
@@ -2160,13 +1797,7 @@ async function parseJsonOrTextResponse(response) {
     return JSON.parse(raw)
   } catch (error) {
     console.error('Non-JSON response body:', raw)
-
-    const normalized = String(raw || '').trim()
-    if (/request entity too large/i.test(normalized) || /payload too large/i.test(normalized)) {
-      throw new Error('Uploaded file is too large for the current OCR endpoint. Try a smaller PDF or increase the server request size limit.')
-    }
-
-    throw new Error(normalized.slice(0, 220) || 'OCR failed: server did not return valid JSON')
+    throw new Error('OCR failed: server did not return valid JSON')
   }
 }
 
@@ -2193,7 +1824,25 @@ async function extractUploadedFileText(file, mimeType = '') {
   }
 
   if (type === 'application/pdf' || /\.pdf$/i.test(lower) || type.startsWith('image/')) {
-    return await handleLargeFileProcessing(file, type || 'application/octet-stream')
+    const fileBase64 = await fileToBase64(file)
+    const response = await fetch(API_OCR_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileBase64, mimeType: type || 'application/octet-stream' })
+    })
+
+    const data = await parseJsonOrTextResponse(response)
+    if (!response.ok) {
+      const detailText =
+        typeof data?.details === 'string'
+          ? data.details
+          : typeof data?.error === 'string'
+            ? data.error
+            : 'OCR request failed (server error)'
+      throw new Error(detailText)
+    }
+
+    return String(data?.extractedText || data?.text || '').trim()
   }
 
   return ''
@@ -2476,44 +2125,6 @@ export default function SupplierAiTools() {
   const permitRequirements = useMemo(
     () => getPermitRequirements({ projectSummary: effectiveProjectSummary, projectDetailSummary, fullText: `${projectNotes}\n${extractedText}` }),
     [effectiveProjectSummary, projectDetailSummary, projectNotes, extractedText]
-  )
-
-  const detectedSheets = useMemo(
-    () => detectSheetsFromText(extractedText),
-    [extractedText]
-  )
-
-  const blueprintScopeMatches = useMemo(
-    () =>
-      buildBlueprintScopeMatches({
-        scopeTarget,
-        extractedText,
-        detectedSheets,
-        projectSummary: effectiveProjectSummary,
-        structuredSegments
-      }),
-    [scopeTarget, extractedText, detectedSheets, effectiveProjectSummary, structuredSegments]
-  )
-
-  const likelyExclusions = useMemo(
-    () =>
-      buildLikelyExclusions({
-        scopeTarget,
-        projectSummary: effectiveProjectSummary,
-        targetedScopeAnalysis
-      }),
-    [scopeTarget, effectiveProjectSummary, targetedScopeAnalysis]
-  )
-
-  const pageAwareMatches = useMemo(
-    () =>
-      buildPageAwareMatches({
-        scopeTarget,
-        extractedText,
-        detectedSheets,
-        projectSummary: effectiveProjectSummary
-      }),
-    [scopeTarget, extractedText, detectedSheets, effectiveProjectSummary]
   )
 
 
@@ -2862,7 +2473,7 @@ export default function SupplierAiTools() {
         body: JSON.stringify(supplierForm)
       })
 
-      const data = await parseJsonOrTextResponse(response)
+      const data = await response.json()
       if (!response.ok) throw new Error(data?.error || copy.importError)
 
       setImportedSuppliers(Array.isArray(data.suppliers) ? data.suppliers : [])
@@ -2887,7 +2498,7 @@ export default function SupplierAiTools() {
         body: JSON.stringify(supplierForm)
       })
 
-      const data = await parseJsonOrTextResponse(response)
+      const data = await response.json()
       if (!response.ok) throw new Error(data?.error || copy.importError)
 
       setSupplierSuggestions(Array.isArray(data.suppliers) ? data.suppliers : [])
@@ -2997,27 +2608,8 @@ export default function SupplierAiTools() {
       const target = uploadedFiles.find((item) => item.id === fileId)
       if (!target) throw new Error('File not found.')
 
-      const fileBase64 = await fileToBase64(target.file)
-      const response = await fetch(API_OCR_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileBase64, mimeType: target.mimeType })
-      })
-
-      const data = await parseJsonOrTextResponse(response)
-
-      if (!response.ok) {
-        const detailText =
-          typeof data?.details === 'string'
-            ? data.details
-            : typeof data?.error === 'string'
-              ? data.error
-              : 'OCR request failed (server error)'
-      
-        throw new Error(detailText)
-      }
-
-      const text = String(data?.extractedText || data?.text || '').trim()
+      setMessage(`Analyzer: processing ${target.name}…`)
+      const text = await handleLargeFileProcessing(target.file, target.mimeType)
 
       setUploadedFiles((prev) =>
         prev.map((item) =>
@@ -4266,126 +3858,6 @@ export default function SupplierAiTools() {
               </div>
             ) : (
               <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.permitNoSegments}</p>
-            )}
-          </div>
-
-          <div className="card-soft" style={{ marginTop: 16, background: '#f3f8ff' }}>
-            <div className="card-section-title">{copy.blueprintIntelTitle}</div>
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-              {copy.blueprintIntelBody}
-            </p>
-
-            <div className="grid two" style={{ gap: 14, marginTop: 12 }}>
-              <div className="card-soft" style={{ background: '#ffffff' }}>
-                <div className="muted">{copy.blueprintDetectedSheets}</div>
-                {detectedSheets.length ? (
-                  <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
-                    {detectedSheets.slice(0, 10).map((sheet) => (
-                      <div key={sheet.id} className="card-soft" style={{ background: '#f8f7ef' }}>
-                        <div style={{ fontWeight: 800 }}>
-                          {sheet.sheetNumber} · {sheet.sheetTitle}
-                        </div>
-                        <div className="muted" style={{ marginTop: 6 }}>
-                          {copy.blueprintDiscipline}: {disciplineLabel(sheet.discipline)}
-                        </div>
-                        <div className="muted" style={{ marginTop: 4 }}>
-                          {copy.blueprintPageLabel}: {sheet.page || '—'}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.blueprintNoSheets}</p>
-                )}
-              </div>
-
-              <div className="card-soft" style={{ background: '#ffffff' }}>
-                <div className="muted">{copy.blueprintSheetsTitle}</div>
-                <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-                  {copy.blueprintSheetsBody}
-                </p>
-                {blueprintScopeMatches.length ? (
-                  <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
-                    {blueprintScopeMatches.map((sheet) => (
-                      <div key={`blueprint-match-${sheet.id}`} className="card-soft" style={{ background: '#f8f7ef' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                          <div style={{ fontWeight: 800 }}>
-                            {sheet.sheetNumber} · {sheet.sheetTitle}
-                          </div>
-                          <span className="badge">
-                            {copy.blueprintMatchScore}: {sheet.score}
-                          </span>
-                        </div>
-                        <div className="muted" style={{ marginTop: 6 }}>
-                          {copy.blueprintDiscipline}: {disciplineLabel(sheet.discipline)}
-                        </div>
-                        {sheet.nearbySignals?.length ? (
-                          <div style={{ marginTop: 10 }}>
-                            <div className="muted">{copy.blueprintNearbySignals}</div>
-                            <ul style={{ margin: '8px 0 0 18px', padding: 0 }}>
-                              {sheet.nearbySignals.map((item) => (
-                                <li key={`sheet-signal-${sheet.id}-${item}`} style={{ marginTop: 4 }}>{item}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.blueprintSheetsEmpty}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
-              <div className="muted">{copy.blueprintExclusionsTitle}</div>
-              {likelyExclusions.length ? (
-                <ul style={{ margin: '10px 0 0 18px', padding: 0 }}>
-                  {likelyExclusions.map((item) => (
-                    <li key={`likely-exclusion-${item}`} style={{ marginTop: 4 }}>{item}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.blueprintExclusionsEmpty}</p>
-              )}
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ marginTop: 16, background: '#eef5ff' }}>
-            <div className="card-section-title">{copy.blueprintScopeLocationTitle}</div>
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-              {copy.blueprintScopeLocationBody}
-            </p>
-
-            {pageAwareMatches.length ? (
-              <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
-                {pageAwareMatches.map((item) => (
-                  <div key={`page-aware-${item.id}`} className="card-soft" style={{ background: '#ffffff' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                      <div style={{ fontWeight: 800 }}>
-                        {item.sheetNumber} · {item.sheetTitle}
-                      </div>
-                      <span className="badge">
-                        {copy.blueprintMatchScore}: {item.score}
-                      </span>
-                    </div>
-                    <div className="muted" style={{ marginTop: 6 }}>
-                      {copy.blueprintPageLabel}: {item.page || '—'} · {copy.blueprintDiscipline}: {disciplineLabel(item.discipline)}
-                    </div>
-                    <div style={{ marginTop: 10 }}>
-                      <div className="muted">{copy.blueprintEvidenceExcerpt}</div>
-                      <div style={{ marginTop: 6, lineHeight: 1.7 }}>
-                        {item.evidenceExcerpt || item.evidenceBlock || 'No nearby evidence excerpt.'}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-                {copy.blueprintScopeLocationEmpty}
-              </p>
             )}
           </div>
 
