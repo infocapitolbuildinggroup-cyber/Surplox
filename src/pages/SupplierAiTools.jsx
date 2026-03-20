@@ -8,8 +8,12 @@ import { autoTable } from 'jspdf-autotable'
 pdfjsLib.GlobalWorkerOptions.workerSrc = '//cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.394/pdf.worker.min.mjs'
 
 const OCR_MAX_DIRECT_FILE_SIZE = 4 * 1024 * 1024
-const PDF_PAGE_RENDER_SCALE = 1.35
-const PDF_PAGE_IMAGE_QUALITY = 0.76
+const PDF_PAGE_RENDER_ATTEMPTS = [
+  { scale: 1.35, quality: 0.76 },
+  { scale: 1.1, quality: 0.62 },
+  { scale: 0.9, quality: 0.5 },
+  { scale: 0.75, quality: 0.42 }
+]
 
 async function ocrSingleFile(file, mimeType = '') {
   const fileBase64 = await fileToBase64(file)
@@ -36,14 +40,9 @@ async function ocrSingleFile(file, mimeType = '') {
   return String(data?.extractedText || data?.text || '').trim()
 }
 
-async function renderPdfPagesToImages(file) {
-  const arrayBuffer = await file.arrayBuffer()
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-  const renderedPages = []
-
-  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
-    const page = await pdf.getPage(pageNum)
-    const viewport = page.getViewport({ scale: PDF_PAGE_RENDER_SCALE })
+async function renderSinglePdfPageToSizedImage(page, pageNum, baseName = 'document') {
+  for (const attempt of PDF_PAGE_RENDER_ATTEMPTS) {
+    const viewport = page.getViewport({ scale: attempt.scale })
     const canvas = document.createElement('canvas')
     const context = canvas.getContext('2d', { alpha: false })
 
@@ -58,18 +57,33 @@ async function renderPdfPagesToImages(file) {
       canvas.toBlob(
         (value) => (value ? resolve(value) : reject(new Error(`Failed to rasterize PDF page ${pageNum}.`))),
         'image/jpeg',
-        PDF_PAGE_IMAGE_QUALITY
+        attempt.quality
       )
     })
 
-    renderedPages.push(
-      new File([blob], `${file.name.replace(/\.pdf$/i, '') || 'document'}-page-${pageNum}.jpg`, {
-        type: 'image/jpeg'
-      })
-    )
-
     canvas.width = 0
     canvas.height = 0
+
+    if (blob.size <= OCR_MAX_DIRECT_FILE_SIZE) {
+      return new File([blob], `${baseName}-page-${pageNum}.jpg`, {
+        type: 'image/jpeg'
+      })
+    }
+  }
+
+  throw new Error(`PDF page ${pageNum} is still too large for OCR after compression.`)
+}
+
+async function renderPdfPagesToImages(file) {
+  const arrayBuffer = await file.arrayBuffer()
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+  const renderedPages = []
+  const baseName = file.name.replace(/\.pdf$/i, '') || 'document'
+
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+    const page = await pdf.getPage(pageNum)
+    const sizedFile = await renderSinglePdfPageToSizedImage(page, pageNum, baseName)
+    renderedPages.push(sizedFile)
   }
 
   return renderedPages
@@ -100,6 +114,11 @@ async function handleLargeFileProcessing(file, mimeType = '') {
 
   for (let index = 0; index < pageFiles.length; index += 1) {
     const pageFile = pageFiles[index]
+
+    if (pageFile.size > OCR_MAX_DIRECT_FILE_SIZE) {
+      throw new Error(`PDF page ${index + 1} is still too large for OCR after compression.`)
+    }
+
     const pageText = await ocrSingleFile(pageFile, pageFile.type)
     if (pageText) {
       pageResults.push(`[PAGE ${index + 1}]\n${pageText}`)
