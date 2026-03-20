@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react'
 import * as pdfjsLib from 'pdfjs-dist/build/pdf'
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import jsPDF from 'jspdf'
 import { autoTable } from 'jspdf-autotable'
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = '//cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.394/pdf.worker.min.mjs'
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
 
 const OCR_MAX_DIRECT_FILE_SIZE = 4 * 1024 * 1024
 const PDF_PAGE_RENDER_ATTEMPTS = [
