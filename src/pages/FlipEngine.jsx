@@ -938,6 +938,8 @@ function generatePropertyFromImportedRow(seedIndex, filters, copy, row) {
   }
 }
 
+
+
 function buildLiveFetchPayload(filters = {}, endpoint = {}) {
   return {
     county: endpoint.county || filters.county || '',
@@ -1024,6 +1026,7 @@ export default function FlipEngine({ lang = 'en' }) {
     { id: 'endpoint-2', county: 'Tarrant County', label: 'Tarrant Adapter', method: 'GET', url: '' }
   ]))
   const [importInput, setImportInput] = useState(() => readStoredJson(STORAGE_KEYS.importInput, ''))
+  const [importedRows, setImportedRows] = useState(() => readStoredJson(STORAGE_KEYS.importedRows, []))
   const [liveRows, setLiveRows] = useState(() => readStoredJson(STORAGE_KEYS.liveRows, []))
   const [liveFetchMeta, setLiveFetchMeta] = useState(() => readStoredJson(STORAGE_KEYS.liveFetchMeta, { message: '', fetchedAt: '' }))
   const [importMessage, setImportMessage] = useState('')
@@ -1085,6 +1088,7 @@ export default function FlipEngine({ lang = 'en' }) {
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEYS.liveFetchMeta, JSON.stringify(liveFetchMeta))
   }, [liveFetchMeta])
+
 
   function sortDeals(items = [], sortBy = 'score') {
     const rows = [...items]
@@ -1155,9 +1159,7 @@ export default function FlipEngine({ lang = 'en' }) {
   }
 
   async function handleFetchLiveRows() {
-    const activeEndpoint =
-      endpointConfigs.find((item) => String(item.url || '').trim()) ||
-      null
+    const activeEndpoint = endpointConfigs.find((item) => String(item.url || '').trim()) || null
 
     if (!activeEndpoint) {
       setLiveFetchMeta({ message: copy.endpointRequired, fetchedAt: '' })
@@ -1165,7 +1167,7 @@ export default function FlipEngine({ lang = 'en' }) {
     }
 
     setBusy(true)
-    setLiveFetchMeta({ message: '', fetchedAt: liveFetchMeta.fetchedAt || '' })
+    setLiveFetchMeta((prev) => ({ ...prev, message: '' }))
 
     try {
       const payload = buildLiveFetchPayload(filters, activeEndpoint)
@@ -1204,12 +1206,14 @@ export default function FlipEngine({ lang = 'en' }) {
 
       setLiveRows(normalized)
       setStagedRows(normalized)
-      setImportedRows(normalized)
       setSourceMode('live')
       setLiveFetchMeta({ message: copy.liveFetchSuccess, fetchedAt: new Date().toLocaleString() })
     } catch (error) {
       console.error(error)
-      setLiveFetchMeta({ message: `${copy.liveFetchError}${error?.message ? ` (${error.message})` : ''}`, fetchedAt: liveFetchMeta.fetchedAt || '' })
+      setLiveFetchMeta({
+        message: `${copy.liveFetchError}${error?.message ? ` (${error.message})` : ''}`,
+        fetchedAt: new Date().toLocaleString()
+      })
     } finally {
       setBusy(false)
     }
@@ -1576,6 +1580,10 @@ export default function FlipEngine({ lang = 'en' }) {
             <div className="card-soft" style={{ background: '#ffffff' }}>
               <div className="muted">{copy.importedRowCount}</div>
               <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{importedRows.length}</div>
+            </div>
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">{copy.liveSourceRows}</div>
+              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{liveRows.length}</div>
             </div>
           </div>
 
