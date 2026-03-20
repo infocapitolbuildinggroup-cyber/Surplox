@@ -77,6 +77,33 @@ const COPY = {
     liveSourceRows: 'Live Source Rows',
     liveSourceRowsEmpty: 'No live rows fetched yet.',
     endpointRequired: 'Add at least one endpoint URL before fetching live rows.',
+    phase8Title: 'Phase 8 Source Registry',
+    phase8Body: 'Add unlimited county and state source URLs into a reusable registry so Flip Engine can scale beyond a few hardcoded markets.',
+    registryTitle: 'Source Registry / Adapter Manager',
+    registryBody: 'Store foreclosure and tax-delinquent sources by county and state, choose parser type, toggle them on or off, and reuse them across the live-source workflow.',
+    sourceRegistry: 'Source Registry',
+    addRegistrySource: 'Add Source',
+    removeRegistrySource: 'Remove Source',
+    saveRegistrySources: 'Save Registry',
+    registrySaved: 'Registry Saved',
+    registryState: 'State',
+    registryCounty: 'County',
+    registrySourceName: 'Source Name',
+    registrySourceType: 'Source Type',
+    registryParserType: 'Parser Type',
+    registryUrl: 'Source URL',
+    registryActive: 'Active',
+    registryForeclosure: 'Foreclosure',
+    registryTaxDelinquent: 'Tax Delinquent',
+    parserHtml: 'HTML Table',
+    parserCsv: 'CSV Download',
+    parserJson: 'JSON API',
+    parserPdf: 'PDF Notice',
+    parserSearch: 'Search Form',
+    parserCustom: 'Custom',
+    registryNotes: 'Notes',
+    useRegistryForLive: 'Use Registry Sources',
+    registryCount: 'Registry Sources',
     county: 'County',
     city: 'City / ZIP',
     distressType: 'Distress Type',
@@ -285,6 +312,33 @@ const COPY = {
     liveSourceRows: 'Filas de Fuente en Vivo',
     liveSourceRowsEmpty: 'Todavía no hay filas en vivo obtenidas.',
     endpointRequired: 'Agrega al menos una URL de endpoint antes de traer filas en vivo.',
+    phase8Title: 'Registro de Fuentes Fase 8',
+    phase8Body: 'Agrega URLs de fuentes por condado y estado sin límite en un registro reutilizable para que Flip Engine escale más allá de unos pocos mercados hardcodeados.',
+    registryTitle: 'Registro de Fuentes / Gestor de Adaptadores',
+    registryBody: 'Guarda fuentes de foreclosure e impuestos morosos por condado y estado, elige parser, actívalas o desactívalas, y reutilízalas en el flujo de fuentes en vivo.',
+    sourceRegistry: 'Registro de Fuentes',
+    addRegistrySource: 'Agregar Fuente',
+    removeRegistrySource: 'Quitar Fuente',
+    saveRegistrySources: 'Guardar Registro',
+    registrySaved: 'Registro Guardado',
+    registryState: 'Estado',
+    registryCounty: 'Condado',
+    registrySourceName: 'Nombre de Fuente',
+    registrySourceType: 'Tipo de Fuente',
+    registryParserType: 'Tipo de Parser',
+    registryUrl: 'URL de Fuente',
+    registryActive: 'Activa',
+    registryForeclosure: 'Foreclosure',
+    registryTaxDelinquent: 'Impuestos Morosos',
+    parserHtml: 'Tabla HTML',
+    parserCsv: 'Descarga CSV',
+    parserJson: 'API JSON',
+    parserPdf: 'Aviso PDF',
+    parserSearch: 'Formulario de Búsqueda',
+    parserCustom: 'Custom',
+    registryNotes: 'Notas',
+    useRegistryForLive: 'Usar Fuentes del Registro',
+    registryCount: 'Fuentes Registradas',
     county: 'Condado',
     city: 'Ciudad / ZIP',
     distressType: 'Tipo de Distress',
@@ -432,7 +486,9 @@ const STORAGE_KEYS = {
   importInput: 'surplox_flip_engine_import_input_v1',
   importedRows: 'surplox_flip_engine_imported_rows_v1',
   liveRows: 'surplox_flip_engine_live_rows_v1',
-  liveFetchMeta: 'surplox_flip_engine_live_fetch_meta_v1'
+  liveFetchMeta: 'surplox_flip_engine_live_fetch_meta_v1',
+  sourceRegistry: 'surplox_flip_engine_source_registry_v1',
+  registryMeta: 'surplox_flip_engine_registry_meta_v1'
 }
 
 const COUNTY_OPTIONS = ['Dallas County', 'Tarrant County', 'Denton County', 'Collin County', 'Ellis County', 'Johnson County']
@@ -441,6 +497,20 @@ const DISTRESS_OPTIONS = ['preforeclosure', 'tax_delinquent', 'code_violation', 
 const PROPERTY_TYPES = ['single_family', 'townhome', 'small_multifamily']
 const OCCUPANCY_OPTIONS = ['any', 'owner_occupied', 'vacant']
 const DEAL_COUNT_OPTIONS = [5, 10, 15]
+
+function createRegistrySource(seed = 1) {
+  return {
+    id: `registry-${Date.now()}-${seed}`,
+    state: 'TX',
+    county: 'Dallas County',
+    sourceName: 'County Foreclosure Source',
+    sourceType: 'foreclosure',
+    parserType: 'html_table',
+    url: '',
+    active: true,
+    notes: ''
+  }
+}
 
 function readStoredJson(key, fallback) {
   try {
@@ -1029,6 +1099,31 @@ export default function FlipEngine({ lang = 'en' }) {
   const [importedRows, setImportedRows] = useState(() => readStoredJson(STORAGE_KEYS.importedRows, []))
   const [liveRows, setLiveRows] = useState(() => readStoredJson(STORAGE_KEYS.liveRows, []))
   const [liveFetchMeta, setLiveFetchMeta] = useState(() => readStoredJson(STORAGE_KEYS.liveFetchMeta, { message: '', fetchedAt: '' }))
+  const [sourceRegistry, setSourceRegistry] = useState(() => readStoredJson(STORAGE_KEYS.sourceRegistry, [
+    {
+      id: 'registry-1',
+      state: 'TX',
+      county: 'Dallas County',
+      sourceName: 'Dallas County Foreclosure',
+      sourceType: 'foreclosure',
+      parserType: 'html_table',
+      url: '',
+      active: true,
+      notes: ''
+    },
+    {
+      id: 'registry-2',
+      state: 'TX',
+      county: 'Dallas County',
+      sourceName: 'Dallas County Tax Delinquent',
+      sourceType: 'tax_delinquent',
+      parserType: 'csv_download',
+      url: '',
+      active: true,
+      notes: ''
+    }
+  ]))
+  const [registryMeta, setRegistryMeta] = useState(() => readStoredJson(STORAGE_KEYS.registryMeta, { message: '' }))
   const [importMessage, setImportMessage] = useState('')
   const [filters, setFilters] = useState(() => ({ ...defaultFilters, ...readStoredJson(STORAGE_KEYS.filters, {}) }))
   const [results, setResults] = useState(() => readStoredJson(STORAGE_KEYS.results, []))
@@ -1088,6 +1183,14 @@ export default function FlipEngine({ lang = 'en' }) {
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEYS.liveFetchMeta, JSON.stringify(liveFetchMeta))
   }, [liveFetchMeta])
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.sourceRegistry, JSON.stringify(sourceRegistry))
+  }, [sourceRegistry])
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.registryMeta, JSON.stringify(registryMeta))
+  }, [registryMeta])
 
 
   function sortDeals(items = [], sortBy = 'score') {
@@ -1256,6 +1359,22 @@ export default function FlipEngine({ lang = 'en' }) {
     setResults(generated)
     setExpandedId(generated[0]?.id || '')
     setTimeout(() => setBusy(false), 250)
+  }
+
+  function updateRegistrySource(id, key, value) {
+    setSourceRegistry((prev) => prev.map((item) => (item.id === id ? { ...item, [key]: value } : item)))
+  }
+
+  function handleAddRegistrySource() {
+    setSourceRegistry((prev) => [...prev, createRegistrySource(prev.length + 1)])
+  }
+
+  function handleRemoveRegistrySource(id) {
+    setSourceRegistry((prev) => prev.filter((item) => item.id !== id))
+  }
+
+  function handleSaveRegistrySources() {
+    setRegistryMeta({ message: copy.registrySaved })
   }
 
   function toggleSaved(id) {
@@ -1446,6 +1565,95 @@ export default function FlipEngine({ lang = 'en' }) {
 
       <div className="grid two" style={{ alignItems: 'start' }}>
         <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.phase8Title}</div>
+          <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
+            <div className="muted" style={{ lineHeight: 1.7 }}>{copy.phase8Body}</div>
+          </div>
+        </div>
+
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.registryTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.registryBody}</p>
+          <div style={{ marginTop: 14, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button className="btn primary" type="button" onClick={handleAddRegistrySource}>
+              {copy.addRegistrySource}
+            </button>
+            <button className="btn" type="button" onClick={handleSaveRegistrySources}>
+              {copy.saveRegistrySources}
+            </button>
+          </div>
+          {registryMeta.message ? (
+            <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
+              <div className="muted">{registryMeta.message}</div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">{copy.sourceRegistry}</div>
+        <div className="list" style={{ marginTop: 14 }}>
+          {sourceRegistry.map((row) => (
+            <div key={row.id} className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="grid two">
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>{copy.registryState}</div>
+                  <input className="input" value={row.state} onChange={(e) => updateRegistrySource(row.id, 'state', e.target.value)} />
+                </div>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>{copy.registryCounty}</div>
+                  <input className="input" value={row.county} onChange={(e) => updateRegistrySource(row.id, 'county', e.target.value)} />
+                </div>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>{copy.registrySourceName}</div>
+                  <input className="input" value={row.sourceName} onChange={(e) => updateRegistrySource(row.id, 'sourceName', e.target.value)} />
+                </div>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>{copy.registrySourceType}</div>
+                  <select className="input" value={row.sourceType} onChange={(e) => updateRegistrySource(row.id, 'sourceType', e.target.value)}>
+                    <option value="foreclosure">{copy.registryForeclosure}</option>
+                    <option value="tax_delinquent">{copy.registryTaxDelinquent}</option>
+                  </select>
+                </div>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>{copy.registryParserType}</div>
+                  <select className="input" value={row.parserType} onChange={(e) => updateRegistrySource(row.id, 'parserType', e.target.value)}>
+                    <option value="html_table">{copy.parserHtml}</option>
+                    <option value="csv_download">{copy.parserCsv}</option>
+                    <option value="json_api">{copy.parserJson}</option>
+                    <option value="pdf_notice">{copy.parserPdf}</option>
+                    <option value="search_form">{copy.parserSearch}</option>
+                    <option value="custom">{copy.parserCustom}</option>
+                  </select>
+                </div>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>{copy.registryUrl}</div>
+                  <input className="input" value={row.url} onChange={(e) => updateRegistrySource(row.id, 'url', e.target.value)} placeholder="https://..." />
+                </div>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>{copy.registryNotes}</div>
+                  <input className="input" value={row.notes} onChange={(e) => updateRegistrySource(row.id, 'notes', e.target.value)} />
+                </div>
+                <div>
+                  <div className="muted" style={{ marginBottom: 6 }}>{copy.registryActive}</div>
+                  <select className="input" value={row.active ? 'true' : 'false'} onChange={(e) => updateRegistrySource(row.id, 'active', e.target.value === 'true')}>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ marginTop: 14 }}>
+                <button className="btn small" type="button" onClick={() => handleRemoveRegistrySource(row.id)}>
+                  {copy.removeRegistrySource}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid two" style={{ alignItems: 'start' }}>
+        <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">{copy.filtersTitle}</div>
           <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.filtersBody}</p>
 
@@ -1584,6 +1792,10 @@ export default function FlipEngine({ lang = 'en' }) {
             <div className="card-soft" style={{ background: '#ffffff' }}>
               <div className="muted">{copy.liveSourceRows}</div>
               <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{liveRows.length}</div>
+            </div>
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">{copy.registryCount}</div>
+              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{sourceRegistry.length}</div>
             </div>
           </div>
 
