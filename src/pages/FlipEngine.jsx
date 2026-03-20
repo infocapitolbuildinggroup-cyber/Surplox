@@ -955,6 +955,187 @@ export default function FlipEngine({ lang = 'en' }) {
         </p>
       </div>
 
+      <div className="grid two" style={{ alignItems: 'start' }}>
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.sourceModeTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.sourceModeBody}</p>
+          <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" className={sourceMode === 'mock' ? 'btn primary small' : 'btn small'} onClick={() => setSourceMode('mock')}>
+              {copy.sourceModeMock}
+            </button>
+            <button type="button" className={sourceMode === 'live' ? 'btn primary small' : 'btn small'} onClick={() => setSourceMode('live')}>
+              {copy.sourceModeLive}
+            </button>
+            <button type="button" className={sourceMode === 'manual' ? 'btn primary small' : 'btn small'} onClick={() => setSourceMode('manual')}>
+              {copy.sourceModeManual}
+            </button>
+          </div>
+        </div>
+
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.phase4Title}</div>
+          <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
+            <div className="muted" style={{ lineHeight: 1.7 }}>{copy.phase4Body}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid two" style={{ alignItems: 'start' }}>
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.filtersTitle}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.filtersBody}</p>
+
+          <div className="grid two" style={{ marginTop: 14 }}>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.county}</div>
+              <select className="input" value={filters.county} onChange={(e) => setField('county', e.target.value)}>
+                {COUNTY_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.city}</div>
+              <input
+                className="input"
+                value={filters.city}
+                onChange={(e) => setField('city', e.target.value)}
+                placeholder={CITY_OPTIONS.join(', ')}
+              />
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.distressType}</div>
+              <select className="input" value={filters.distressType} onChange={(e) => setField('distressType', e.target.value)}>
+                <option value="all">{copy.all}</option>
+                <option value="preforeclosure">{copy.preforeclosure}</option>
+                <option value="tax_delinquent">{copy.taxDelinquent}</option>
+                <option value="code_violation">{copy.codeViolation}</option>
+                <option value="probate">{copy.probate}</option>
+                <option value="inherited">{copy.inherited}</option>
+              </select>
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.propertyType}</div>
+              <select className="input" value={filters.propertyType} onChange={(e) => setField('propertyType', e.target.value)}>
+                <option value="all">{copy.all}</option>
+                <option value="single_family">{copy.singleFamily}</option>
+                <option value="townhome">{copy.townhome}</option>
+                <option value="small_multifamily">{copy.smallMultifamily}</option>
+              </select>
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.occupancy}</div>
+              <select className="input" value={filters.occupancy} onChange={(e) => setField('occupancy', e.target.value)}>
+                <option value="any">{copy.any}</option>
+                <option value="owner_occupied">{copy.ownerOccupied}</option>
+                <option value="vacant">{copy.vacant}</option>
+              </select>
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.dealCount}</div>
+              <select className="input" value={filters.dealCount} onChange={(e) => setField('dealCount', e.target.value)}>
+                {DEAL_COUNT_OPTIONS.map((count) => (
+                  <option key={count} value={String(count)}>{count}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.sortBy}</div>
+              <select className="input" value={filters.sortBy} onChange={(e) => setField('sortBy', e.target.value)}>
+                <option value="score">{copy.byScore}</option>
+                <option value="profit">{copy.byProfit}</option>
+                <option value="margin">{copy.byMargin}</option>
+                <option value="rehab">{copy.byLowestRehab}</option>
+              </select>
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.arvMode}</div>
+              <select className="input" value={filters.arvMode} onChange={(e) => setField('arvMode', e.target.value)}>
+                <option value="conservative">{copy.conservative}</option>
+                <option value="balanced">{copy.balanced}</option>
+                <option value="aggressive">{copy.aggressive}</option>
+              </select>
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.riskTolerance}</div>
+              <select className="input" value={filters.riskTolerance} onChange={(e) => setField('riskTolerance', e.target.value)}>
+                <option value="low">{copy.low}</option>
+                <option value="medium">{copy.medium}</option>
+                <option value="high">{copy.high}</option>
+              </select>
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.targetMargin}</div>
+              <input className="input" type="number" value={filters.targetMargin} onChange={(e) => setField('targetMargin', e.target.value)} />
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.targetProfit}</div>
+              <input className="input" type="number" value={filters.targetProfit} onChange={(e) => setField('targetProfit', e.target.value)} />
+            </div>
+            <div>
+              <div className="muted" style={{ marginBottom: 6 }}>{copy.maxRehab}</div>
+              <input className="input" type="number" value={filters.maxRehab} onChange={(e) => setField('maxRehab', e.target.value)} />
+            </div>
+          </div>
+
+          <div style={{ marginTop: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button className="btn primary" type="button" onClick={handleGenerate} disabled={busy}>
+              {busy ? copy.generating : copy.generate}
+            </button>
+            {(sourceMode === 'live' || sourceMode === 'manual') ? (
+              <button className="btn" type="button" onClick={handleStageRows} disabled={busy}>
+                {busy ? copy.importSeeding : copy.importSeed}
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.opportunitySummary}</div>
+          <div className="grid two" style={{ marginTop: 14 }}>
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">{copy.totalResults}</div>
+              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{metrics.total}</div>
+            </div>
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">{copy.avgProfit}</div>
+              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{currency(metrics.avgProfit)}</div>
+            </div>
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">{copy.bestDeal}</div>
+              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{currency(metrics.bestDeal)}</div>
+            </div>
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">{copy.avgMargin}</div>
+              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{pct(metrics.avgMargin)}</div>
+            </div>
+            <div className="card-soft" style={{ background: '#ffffff' }}>
+              <div className="muted">{copy.savedDeals}</div>
+              <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900 }}>{savedDeals.length}</div>
+            </div>
+          </div>
+
+          <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
+            <div className="muted" style={{ lineHeight: 1.7 }}>{copy.dataGenerated}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid two" style={{ alignItems: 'start' }}>
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.generationSourceTitle}</div>
+          <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
+            <div className="muted" style={{ lineHeight: 1.7 }}>{copy.generationSourceBody}</div>
+          </div>
+        </div>
+
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.persistenceTitle}</div>
+          <div className="card-soft" style={{ marginTop: 14, background: '#ffffff' }}>
+            <div className="muted" style={{ lineHeight: 1.7 }}>{copy.persistenceBody}</div>
+          </div>
+        </div>
+      </div>
 
       <div className="grid two" style={{ alignItems: 'start' }}>
         <div className="card rounded-xl" style={{ padding: 22 }}>
