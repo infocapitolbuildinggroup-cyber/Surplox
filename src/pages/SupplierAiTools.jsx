@@ -1788,6 +1788,19 @@ function DriverCard({ driver, copy, onOpenDriverSearch, onBuildDeliveryPost }) {
   )
 }
 
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = String(reader.result || '')
+      const base64 = result.includes(',') ? result.split(',')[1] : result
+      resolve(base64)
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
 
 async function extractUploadedFileText(file, mimeType = '') {
   const lower = String(file?.name || '').toLowerCase()
@@ -1807,32 +1820,19 @@ async function extractUploadedFileText(file, mimeType = '') {
 
     const data = await response.json().catch(() => ({}))
     if (!response.ok) {
-      throw new Error(
+      const detailText =
         typeof data?.details === 'string'
           ? data.details
           : typeof data?.error === 'string'
             ? data.error
             : 'Unable to analyze this file.'
-      )
+      throw new Error(detailText)
     }
 
     return String(data?.extractedText || data?.text || '').trim()
   }
 
   return ''
-}
-
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = String(reader.result || '')
-      const base64 = result.includes(',') ? result.split(',')[1] : result
-      resolve(base64)
-    }
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
 }
 
 function normalizeTradeName(value = '') {
@@ -2269,7 +2269,12 @@ export default function SupplierAiTools() {
   function removeUploadedFile(fileId) {
     const nextFiles = uploadedFiles.filter((file) => file.id !== fileId)
     setUploadedFiles(nextFiles)
-    const combinedText = nextFiles.map((item) => item.extractedText).filter(Boolean).join('\n\n')
+
+    const combinedText = nextFiles
+      .map((item) => item.extractedText)
+      .filter(Boolean)
+      .join('\n\n')
+
     setExtractedText(combinedText)
   }
 
@@ -2277,7 +2282,6 @@ export default function SupplierAiTools() {
     setUploadedFiles([])
     setExtractedText('')
   }
-
 
   function pushWithParams(path, values = {}) {
     const params = new URLSearchParams()
@@ -2540,22 +2544,22 @@ export default function SupplierAiTools() {
       for (const file of files) {
         const lower = file.name.toLowerCase()
         const mimeType = file.type || 'application/octet-stream'
-        let extracted = ''
+        let extractedTextForFile = ''
         let ocrReady = false
         let ocrDone = false
 
         try {
-          extracted = await extractUploadedFileText(file, mimeType)
+          extractedTextForFile = await extractUploadedFileText(file, mimeType)
         } catch (error) {
           console.error(error)
         }
 
-        if (file.type.startsWith('text/') || /\.(txt|md|json|csv)$/i.test(lower)) {
+        if (mimeType.startsWith('text/') || /\.(txt|md|json|csv)$/i.test(lower)) {
           ocrReady = false
-          ocrDone = Boolean(extracted)
-        } else if (file.type === 'application/pdf' || /\.pdf$/i.test(lower) || file.type.startsWith('image/')) {
+          ocrDone = Boolean(extractedTextForFile)
+        } else if (mimeType === 'application/pdf' || /\.pdf$/i.test(lower) || mimeType.startsWith('image/')) {
           ocrReady = true
-          ocrDone = Boolean(extracted)
+          ocrDone = Boolean(extractedTextForFile)
         }
 
         next.push({
@@ -2563,7 +2567,7 @@ export default function SupplierAiTools() {
           file,
           name: file.name,
           mimeType,
-          extractedText: extracted,
+          extractedText: extractedTextForFile,
           ocrReady,
           ocrDone
         })
@@ -2574,9 +2578,7 @@ export default function SupplierAiTools() {
       const combinedText = next
         .map((item) => item.extractedText)
         .filter(Boolean)
-        .join('
-
-')
+        .join('\n\n')
 
       setExtractedText(combinedText)
       event.target.value = ''
