@@ -1788,6 +1788,19 @@ function DriverCard({ driver, copy, onOpenDriverSearch, onBuildDeliveryPost }) {
   )
 }
 
+
+async function parseJsonOrTextResponse(response) {
+  const raw = await response.text()
+  if (!raw) return {}
+
+  try {
+    return JSON.parse(raw)
+  } catch (error) {
+    console.error('Non-JSON response body:', raw)
+    throw new Error('OCR failed: server did not return valid JSON')
+  }
+}
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -1818,14 +1831,14 @@ async function extractUploadedFileText(file, mimeType = '') {
       body: JSON.stringify({ fileBase64, mimeType: type || 'application/octet-stream' })
     })
 
-    const data = await response.json().catch(() => ({}))
+    const data = await parseJsonOrTextResponse(response)
     if (!response.ok) {
       const detailText =
         typeof data?.details === 'string'
           ? data.details
           : typeof data?.error === 'string'
             ? data.error
-            : 'Unable to analyze this file.'
+            : 'OCR request failed (server error)'
       throw new Error(detailText)
     }
 
