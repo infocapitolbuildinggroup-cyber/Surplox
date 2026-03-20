@@ -1,43 +1,108 @@
-
-// --- LARGE FILE HANDLING (AUTO SPLIT SIMULATION) ---
-async function handleLargeFileProcessing(file, runOcrForFile) {
-  const MAX_SIZE = 4 * 1024 * 1024
-
-  if (file.size <= MAX_SIZE) {
-    return await runOcrForFile(file)
-  }
-
-  console.warn('Large file detected, splitting...')
-
-  // NOTE: lightweight fallback (no pdfjs yet)
-  // Splits file blob into chunks by size
-  const chunkSize = MAX_SIZE
-  let offset = 0
-  let results = []
-
-  while (offset < file.size) {
-    const chunk = file.slice(offset, offset + chunkSize)
-    const chunkFile = new File([chunk], file.name, { type: file.type })
-
-    try {
-      const res = await runOcrForFile(chunkFile)
-      if (res) results.push(res)
-    } catch (e) {
-      console.error('Chunk OCR failed', e)
-    }
-
-    offset += chunkSize
-  }
-
-  return results.join('\n\n')
-}
-
-
 import React, { useMemo, useState } from 'react'
+import * as pdfjsLib from 'pdfjs-dist/build/pdf'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import jsPDF from 'jspdf'
 import { autoTable } from 'jspdf-autotable'
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = '//cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.394/pdf.worker.min.mjs'
+
+const OCR_MAX_DIRECT_FILE_SIZE = 4 * 1024 * 1024
+const PDF_PAGE_RENDER_SCALE = 1.35
+const PDF_PAGE_IMAGE_QUALITY = 0.76
+
+async function ocrSingleFile(file, mimeType = '') {
+  const fileBase64 = await fileToBase64(file)
+  const response = await fetch(API_OCR_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      fileBase64,
+      mimeType: mimeType || file.type || 'application/octet-stream'
+    })
+  })
+
+  const data = await parseJsonOrTextResponse(response)
+  if (!response.ok) {
+    const detailText =
+      typeof data?.details === 'string'
+        ? data.details
+        : typeof data?.error === 'string'
+          ? data.error
+          : 'OCR request failed (server error)'
+    throw new Error(detailText)
+  }
+
+  return String(data?.extractedText || data?.text || '').trim()
+}
+
+async function renderPdfPagesToImages(file) {
+  const arrayBuffer = await file.arrayBuffer()
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+  const renderedPages = []
+
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+    const page = await pdf.getPage(pageNum)
+    const viewport = page.getViewport({ scale: PDF_PAGE_RENDER_SCALE })
+    const canvas = document.createElement('canvas')
+    const context = canvas.getContext('2d', { alpha: false })
+    if (!context) throw new Error('Unable to create PDF rendering context.')
+
+    canvas.width = Math.ceil(viewport.width)
+    canvas.height = Math.ceil(viewport.height)
+
+    await page.render({ canvasContext: context, viewport }).promise
+
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (value) => (value ? resolve(value) : reject(new Error(`Failed to rasterize PDF page ${pageNum}.`))),
+        'image/jpeg',
+        PDF_PAGE_IMAGE_QUALITY
+      )
+    })
+
+    renderedPages.push(
+      new File([blob], `${file.name.replace(/\.pdf$/i, '') || 'document'}-page-${pageNum}.jpg`, {
+        type: 'image/jpeg'
+      })
+    )
+
+    canvas.width = 0
+    canvas.height = 0
+  }
+
+  return renderedPages
+}
+
+async function handleLargeFileProcessing(file, mimeType = '') {
+  const type = String(mimeType || file?.type || '').toLowerCase()
+  const lowerName = String(file?.name || '').toLowerCase()
+  const isPdf = type === 'application/pdf' || /\.pdf$/i.test(lowerName)
+
+  if (!isPdf) {
+    return await ocrSingleFile(file, type || file.type || 'application/octet-stream')
+  }
+
+  if (file.size <= OCR_MAX_DIRECT_FILE_SIZE) {
+    try {
+      return await ocrSingleFile(file, 'application/pdf')
+    } catch (error) {
+      const message = String(error?.message || '')
+      if (!/too large|payload too large|request entity too large/i.test(message)) throw error
+    }
+  }
+
+  const pageFiles = await renderPdfPagesToImages(file)
+  const pageResults = []
+
+  for (let index = 0; index < pageFiles.length; index += 1) {
+    const pageFile = pageFiles[index]
+    const pageText = await ocrSingleFile(pageFile, pageFile.type)
+    if (pageText) pageResults.push(`[PAGE ${index + 1}]\n${pageText}`)
+  }
+
+  return pageResults.join('\n\n').trim()
+}
 
 const API_IMPORT_ENDPOINT =
   (typeof import.meta !== 'undefined' &&
@@ -2104,25 +2169,7 @@ async function extractUploadedFileText(file, mimeType = '') {
   }
 
   if (type === 'application/pdf' || /\.pdf$/i.test(lower) || type.startsWith('image/')) {
-    const fileBase64 = await fileToBase64(file)
-    const response = await fetch(API_OCR_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileBase64, mimeType: type || 'application/octet-stream' })
-    })
-
-    const data = await parseJsonOrTextResponse(response)
-    if (!response.ok) {
-      const detailText =
-        typeof data?.details === 'string'
-          ? data.details
-          : typeof data?.error === 'string'
-            ? data.error
-            : 'OCR request failed (server error)'
-      throw new Error(detailText)
-    }
-
-    return String(data?.extractedText || data?.text || '').trim()
+    return await handleLargeFileProcessing(file, type || 'application/octet-stream')
   }
 
   return ''
@@ -2816,7 +2863,7 @@ export default function SupplierAiTools() {
         body: JSON.stringify(supplierForm)
       })
 
-      const data = await parseJsonOrTextResponse(response)
+      const data = await response.json()
       if (!response.ok) throw new Error(data?.error || copy.importError)
 
       setSupplierSuggestions(Array.isArray(data.suppliers) ? data.suppliers : [])
@@ -2933,7 +2980,7 @@ export default function SupplierAiTools() {
         body: JSON.stringify({ fileBase64, mimeType: target.mimeType })
       })
 
-      const data = await parseJsonOrTextResponse(response)
+      const data = await response.json()
 
       if (!response.ok) {
         const detailText =
@@ -2941,7 +2988,7 @@ export default function SupplierAiTools() {
             ? data.details
             : typeof data?.error === 'string'
               ? data.error
-              : 'OCR request failed (server error)'
+              : 'OCR failed.'
       
         throw new Error(detailText)
       }
@@ -4216,9 +4263,6 @@ export default function SupplierAiTools() {
                         </div>
                         <div className="muted" style={{ marginTop: 6 }}>
                           {copy.blueprintDiscipline}: {disciplineLabel(sheet.discipline)}
-                        </div>
-                        <div className="muted" style={{ marginTop: 4 }}>
-                          {copy.blueprintPageLabel}: {sheet.page || '—'}
                         </div>
                         <div className="muted" style={{ marginTop: 4 }}>
                           {copy.blueprintPageLabel}: {sheet.page || '—'}
