@@ -2,10 +2,10 @@ import React, { useMemo, useState } from 'react'
 
 const COPY = {
   en: {
-    badge: 'CBG Deal OS',
+    badge: 'Surplox Deal OS',
     title: 'Flip Engine',
     body:
-      'Generate distressed-property opportunities, score them for CBG execution, and rank each deal by projected profitability, confidence, and remodel fit.',
+      'Generate distressed-property opportunities, score them for execution, and rank each deal by projected profitability, confidence, and remodel fit.',
     filtersTitle: 'Opportunity Filters',
     filtersBody:
       'Set your target buy box and let the engine generate ranked opportunities with rehab budgets, ARV ranges, crew plans, suppliers, delivery planning, and compliance snapshots.',
@@ -37,10 +37,10 @@ const COPY = {
     bestDeal: 'Best Deal',
     avgMargin: 'Average Margin',
     rankedResults: 'Ranked Opportunities',
-    resultsBody: 'These opportunities are ranked by Flip Opportunity Score so CBG sees the best combinations of spread, confidence, and execution fit first.',
+    resultsBody: 'These opportunities are ranked by Flip Opportunity Score so you see the best combinations of spread, confidence, and execution fit first.',
     noResults: 'No opportunities generated yet. Set your filters and run the engine.',
     score: 'Flip Score',
-    cbgFit: 'CBG Fit',
+    executionFit: 'Execution Fit',
     confidence: 'Confidence',
     difficulty: 'Execution Difficulty',
     source: 'Deal Source',
@@ -76,7 +76,7 @@ const COPY = {
     holdCost: 'Holding Cost',
     sellCost: 'Selling Cost',
     contingency: 'Contingency',
-    contractorMargin: 'CBG Contractor Margin',
+    contractorMargin: 'Contractor Margin',
     profitBand: 'Profit Band',
     thinDeal: 'Too thin unless buy price improves.',
     workableDeal: 'Workable deal if scope stays controlled.',
@@ -89,10 +89,10 @@ const COPY = {
     dataGenerated: 'Generated planning data is mock logic for Phase 1 so the workflow is live immediately. Next phase can connect county records and saved deal tracking.'
   },
   es: {
-    badge: 'CBG Deal OS',
+    badge: 'Surplox Deal OS',
     title: 'Flip Engine',
     body:
-      'Genera oportunidades de propiedades en distress, califícalas para la ejecución de CBG y ordénalas por rentabilidad proyectada, confianza y ajuste de remodelación.',
+      'Genera oportunidades de propiedades en distress, califícalas para la ejecución y ordénalas por rentabilidad proyectada, confianza y ajuste de remodelación.',
     filtersTitle: 'Filtros de Oportunidad',
     filtersBody:
       'Define tu caja de compra y deja que el motor genere oportunidades con presupuesto de rehab, rango ARV, cuadrillas, proveedores, entrega y cumplimiento.',
@@ -124,10 +124,10 @@ const COPY = {
     bestDeal: 'Mejor Deal',
     avgMargin: 'Margen Promedio',
     rankedResults: 'Oportunidades Ordenadas',
-    resultsBody: 'Estas oportunidades se ordenan por Flip Opportunity Score para que CBG vea primero las mejores combinaciones de utilidad, confianza y ajuste operativo.',
+    resultsBody: 'Estas oportunidades se ordenan por Flip Opportunity Score para que veas primero las mejores combinaciones de utilidad, confianza y ajuste operativo.',
     noResults: 'Todavía no se generan oportunidades. Ajusta los filtros y corre el motor.',
     score: 'Flip Score',
-    cbgFit: 'Ajuste CBG',
+    executionFit: 'Ajuste de Ejecución',
     confidence: 'Confianza',
     difficulty: 'Dificultad de Ejecución',
     source: 'Fuente del Deal',
@@ -163,11 +163,11 @@ const COPY = {
     holdCost: 'Costo de Holding',
     sellCost: 'Costo de Venta',
     contingency: 'Contingencia',
-    contractorMargin: 'Margen Contratista CBG',
+    contractorMargin: 'Margen del Contratista',
     profitBand: 'Banda de Ganancia',
     thinDeal: 'Muy delgado salvo que mejore el precio de compra.',
     workableDeal: 'Deal trabajable si el alcance se controla.',
-    strongDeal: 'Buen candidato de flip para CBG.',
+    strongDeal: 'Buen candidato de flip .',
     eliteDeal: 'Oportunidad top con buen spread y fit.',
     pursue: 'Perseguir Inmediatamente',
     underwrite: 'Vale Underwrite Completo',
@@ -286,14 +286,14 @@ function generateProperty(seedIndex, filters, copy) {
   const titleRisk = 20 + seededRandom(seedIndex + 12) * 60
   const financingFit = 62 + seededRandom(seedIndex + 13) * 30
   const resaleConfidence = 58 + seededRandom(seedIndex + 14) * 35
-  const cbgFit = clamp(55 + (propertyType === 'single_family' ? 12 : 0) + (rehabLevel === 'moderate' ? 10 : rehabLevel === 'heavy' ? -2 : 4) + seededRandom(seedIndex + 15) * 22, 0, 100)
+  const executionFit = clamp(55 + (propertyType === 'single_family' ? 12 : 0) + (rehabLevel === 'moderate' ? 10 : rehabLevel === 'heavy' ? -2 : 4) + seededRandom(seedIndex + 15) * 22, 0, 100)
   const confidence = clamp((dataQuality * 0.45) + (resaleConfidence * 0.35) + ((100 - titleRisk) * 0.2), 0, 100)
   const difficulty = clamp((rehabIntensityScore * 0.55) + (titleRisk * 0.25) + ((propertyType === 'small_multifamily' ? 18 : 0)), 0, 100)
   const score = clamp(
     ((netProfit / Math.max(Number(filters.targetProfit || 45000), 1)) * 20) +
     (marginPctValue * 1.8) +
     (confidence * 0.22) +
-    (cbgFit * 0.18) -
+    (executionFit * 0.18) -
     (difficulty * 0.16),
     0,
     100
@@ -341,7 +341,7 @@ function generateProperty(seedIndex, filters, copy) {
     contractorMargin,
     netProfit,
     marginPctValue,
-    cbgFit: Math.round(cbgFit),
+    executionFit: Math.round(executionFit),
     confidence: Math.round(confidence),
     difficulty: Math.round(difficulty),
     score: Math.round(score),
@@ -560,7 +560,7 @@ export default function FlipEngine({ lang = 'en' }) {
                     <div style={{ flex: '1 1 420px' }}>
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                         <span className="badge" style={scoreTone(deal.score)}>{copy.score}: {deal.score}</span>
-                        <span className="badge">{copy.cbgFit}: {deal.cbgFit}</span>
+                        <span className="badge">{copy.executionFit}: {deal.executionFit}</span>
                         <span className="badge">{copy.confidence}: {deal.confidence}</span>
                         <span className="badge" style={difficultyTone(deal.difficulty)}>{copy.difficulty}: {deal.difficulty}</span>
                       </div>
@@ -617,7 +617,7 @@ export default function FlipEngine({ lang = 'en' }) {
                         <div className="card-section-title">{copy.scoringSection}</div>
                         <div style={{ marginTop: 10, display: 'grid', gap: 8 }}>
                           <div><strong>{copy.score}:</strong> {deal.score}</div>
-                          <div><strong>{copy.cbgFit}:</strong> {deal.cbgFit}</div>
+                          <div><strong>{copy.executionFit}:</strong> {deal.executionFit}</div>
                           <div><strong>{copy.confidence}:</strong> {deal.confidence}</div>
                           <div><strong>{copy.difficulty}:</strong> {deal.difficulty}</div>
                           <div><strong>{copy.titleRisk}:</strong> {deal.titleRisk}/100</div>
