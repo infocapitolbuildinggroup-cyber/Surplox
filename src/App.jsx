@@ -664,18 +664,18 @@ function AppShell({ lang, setLang }) {
 
     return [
       { to: '/feed', label: lang === 'es' ? 'Feed' : 'Feed' },
-      { to: '/channels', label: lang === 'es' ? 'Canales' : 'Channels' },
       { to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
       { to: '/materials', label: lang === 'es' ? 'Materiales' : 'Materials' },
       { to: '/delivery', label: lang === 'es' ? 'Delivery' : 'Delivery' },
-      { to: quickLinks.repair, label: lang === 'es' ? 'Mecánica / Reparación' : 'Mechanic / Repair' },
-      ...(isAdmin ? [
-        { to: '/ai-tools', label: lang === 'es' ? 'Surplox AI Tools' : 'Surplox AI Tools' },
-        { to: '/flip-engine', label: lang === 'es' ? 'Flip Engine' : 'Flip Engine' }
-      ] : []),
       { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
       { to: '/messages', label: lang === 'es' ? 'Mensajes' : 'Messages' },
-      { to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' }
+      { to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' },
+      ...(isAdmin ? [
+        { to: '/channels', label: lang === 'es' ? 'Canales' : 'Channels' },
+        { to: quickLinks.repair, label: lang === 'es' ? 'Mecánica / Reparación' : 'Mechanic / Repair' },
+        { to: '/ai-tools', label: lang === 'es' ? 'Surplox AI Tools' : 'Surplox AI Tools' },
+        { to: '/flip-engine', label: lang === 'es' ? 'Flip Engine' : 'Flip Engine' }
+      ] : [])
     ]
   }, [session, lang, quickLinks.repair, isAdmin])
 
@@ -924,7 +924,13 @@ function AppShell({ lang, setLang }) {
             />
             <Route
               path="/mechanics"
-              element={session ? <MechanicRepair lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
+              element={
+                session ? (
+                  isAdmin ? <MechanicRepair lang={lang} /> : <Navigate to="/feed" replace />
+                ) : (
+                  <Navigate to="/auth?mode=signin" replace />
+                )
+              }
             />
             <Route
               path="/ai-tools"
@@ -984,7 +990,13 @@ function AppShell({ lang, setLang }) {
             />
             <Route
               path="/channels"
-              element={session ? <Channels lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
+              element={
+                session ? (
+                  isAdmin ? <Channels lang={lang} /> : <Navigate to="/feed" replace />
+                ) : (
+                  <Navigate to="/auth?mode=signin" replace />
+                )
+              }
             />
             <Route
               path="/onboarding"
