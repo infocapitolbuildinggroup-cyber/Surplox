@@ -613,6 +613,26 @@ function MessagesCenter({ lang = 'en' }) {
 }
 
 
+
+function ProjectHub({ lang = 'en' }) {
+  return (
+    <div className="card">
+      <div className="h1">{lang === 'es' ? 'Proyectos' : 'Projects'}</div>
+      <p className="muted" style={{marginTop:10}}>
+        {lang === 'es' 
+          ? 'Crea y gestiona proyectos. (Base lista — próxima fase: chat y crew)' 
+          : 'Create and manage projects. (Foundation ready — next phase: chat & crew)'}
+      </p>
+      <div style={{marginTop:16}}>
+        <button className="btn primary">
+          {lang === 'es' ? 'Crear Proyecto' : 'Create Project'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+
 function AppShell({ lang, setLang }) {
   const location = useLocation()
   const [session, setSession] = useState(null)
@@ -663,6 +683,7 @@ function AppShell({ lang, setLang }) {
     if (!session) return []
 
     return [
+      { to: '/projects', label: lang === 'es' ? 'Proyectos' : 'Projects' },
       { to: '/feed', label: lang === 'es' ? 'Feed' : 'Feed' },
       { to: '/new', label: lang === 'es' ? 'Nueva publicación' : 'New Post' },
       { to: '/materials', label: lang === 'es' ? 'Materiales' : 'Materials' },
@@ -910,6 +931,10 @@ function AppShell({ lang, setLang }) {
           <Routes>
             <Route path="/" element={<Home lang={lang} />} />
             <Route path="/auth" element={<Auth lang={lang} setLang={setLang} />} />
+            <Route
+              path="/projects"
+              element={session ? <ProjectHub lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
+            />
             <Route
               path="/feed"
               element={session ? <Feed lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
