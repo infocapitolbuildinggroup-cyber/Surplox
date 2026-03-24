@@ -185,6 +185,30 @@ export default function AdminProjects({ lang = 'en' }) {
   const [statusFilter, setStatusFilter] = useState('all')
   const [sortBy, setSortBy] = useState('newest')
 
+  const [showCreate, setShowCreate] = useState(false)
+  const [newProjectName, setNewProjectName] = useState('')
+  const [newProjectLocation, setNewProjectLocation] = useState('')
+
+  async function handleCreateProject() {
+    if (!newProjectName.trim()) return
+    try {
+      const { error } = await supabase.from('admin_crm_records').insert({
+        project: newProjectName,
+        project_city: newProjectLocation,
+        project_status: 'active'
+      })
+      if (!error) {
+        setShowCreate(false)
+        setNewProjectName('')
+        setNewProjectLocation('')
+        window.location.reload()
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+
   useEffect(() => {
     let active = true
 
@@ -412,7 +436,8 @@ export default function AdminProjects({ lang = 'en' }) {
           </div>
         </div>
 
-        <div style={{ marginTop: 14 }}>
+        <div style={{ marginTop: 14, display:'flex', gap:10 }}>
+          <button className="btn primary" onClick={()=>setShowCreate(true)}>Create Project</button>
           <Link className="btn" to="/admin">Back to Admin</Link>
         </div>
       </div>
@@ -614,6 +639,19 @@ export default function AdminProjects({ lang = 'en' }) {
           ))}
         </div>
       )}
+
+      {showCreate && (
+        <div className="card" style={{position:'fixed', top:80, left:'50%', transform:'translateX(-50%)', zIndex:1000, width:400}}>
+          <div className="h1">Create Project</div>
+          <input className="input" placeholder="Project Name" value={newProjectName} onChange={e=>setNewProjectName(e.target.value)} />
+          <input className="input" style={{marginTop:10}} placeholder="Location" value={newProjectLocation} onChange={e=>setNewProjectLocation(e.target.value)} />
+          <div style={{marginTop:12, display:'flex', gap:10}}>
+            <button className="btn primary" onClick={handleCreateProject}>Create</button>
+            <button className="btn" onClick={()=>setShowCreate(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
