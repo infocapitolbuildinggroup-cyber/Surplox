@@ -1,725 +1,409 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { supabase } from '../supabaseClient'
 import { Link } from 'react-router-dom'
+import { supabase } from '../supabaseClient'
 
-const COPY = {
-  en: {
-    loading: 'Loading alerts…',
-    loadError: 'Unable to load alerts right now.',
-    markAllError: 'Unable to mark alerts as read.',
-    markOneError: 'Unable to mark this alert as read.',
-    title: 'Alerts',
-    intro:
-      'Replies, crew joins, hired updates, jobsite support activity, supplier visibility, and profile reminders show up here.',
-    markAllRead: 'Mark All Read',
-    refresh: 'Refresh',
-    emptyTitle: 'No Alerts Yet',
-    emptyBody:
-      'Once people reply to your posts, join your crew requests, interact with your jobsite support posts, or connect through supplier activity, those alerts will appear here.',
-    read: 'Read',
-    unread: 'Unread',
-    openPost: 'Open Post',
-    markRead: 'Mark Read',
-    typeReply: 'Reply',
-    typeCrewJoined: 'Crew Joined',
-    typeMarkedHired: 'Marked Hired',
-    typeJobsiteSupport: 'Jobsite Support',
-    typeSupplier: 'Supplier Activity',
-    typeDriverAssigned: 'Driver Assigned',
-    typeMechanicAssigned: 'Mechanic Assigned',
-    typeCompleted: 'Completed',
-    typeUrgent: 'Urgent Activity',
-    reminderTitle: 'Complete your profile to unlock more value',
-    reminderBody:
-      'You can already use Surplox, but finishing these details will make your profile stronger and unlock more posting use cases.',
-    reminderCta: 'Finish Profile',
-    addFirstLast: 'Add first and last name',
-    addPhone: 'Add phone number',
-    addCity: 'Add city',
-    addRole: 'Add primary role',
-    addBio: 'Add bio / experience',
-    addCrewSize: 'Add crew size',
-    addAvailabilityStatus: 'Add availability status',
-    addTrade: 'Add trade',
-    addServiceTags: 'Add service tags',
-    addEquipmentTags: 'Add equipment tags',
-    addBusinessName: 'Add business name',
-    addBusinessAddress: 'Add business address',
-    addBusinessZip: 'Add business ZIP',
-    addMaterialsCategories: 'Add materials categories',
-    addDeliveryRadius: 'Add delivery radius',
-    addStorefront: 'Enable storefront',
-    jobsiteSupportReminder:
-      'Jobsite Support profiles should include service tags and equipment tags so contractors know exactly what you can do.',
-    supplierReminder:
-      'Supplier profiles work best when business name, business location, materials categories, delivery radius, and storefront visibility are all filled in.',
-    heroBadge: 'Alerts center',
-    heroTitle: 'Stay on top of real network activity.',
-    heroBody:
-      'Replies, crew joins, hires, support activity, supplier visibility, and account reminders all surface here in one cleaner alerts view.',
-    statUnread: 'Unread alerts',
-    statTotal: 'Total alerts',
-    statProfile: 'Profile reminders',
-    statAction: 'Action alerts',
-    urgencyTitle: 'High-priority activity',
-    urgencyBody: 'Assignments, completions, and urgent activity rise to the top here so you can close loops faster.',
-    openAlertsFeed: 'Open Feed'
-  },
-  es: {
-    loading: 'Cargando alertas…',
-    loadError: 'No se pudieron cargar las alertas en este momento.',
-    markAllError: 'No se pudieron marcar las alertas como leídas.',
-    markOneError: 'No se pudo marcar esta alerta como leída.',
-    title: 'Alertas',
-    intro:
-      'Las respuestas, uniones a cuadrillas, contrataciones, actividad de soporte de obra, visibilidad de proveedor y recordatorios de perfil aparecen aquí.',
-    markAllRead: 'Marcar todas como leídas',
-    refresh: 'Actualizar',
-    emptyTitle: 'Todavía no hay alertas',
-    emptyBody:
-      'Cuando alguien responda a tus publicaciones, se una a tus solicitudes de cuadrilla, interactúe con tus publicaciones de soporte de obra o haya actividad de proveedor, esas alertas aparecerán aquí.',
-    read: 'Leída',
-    unread: 'No leída',
-    openPost: 'Abrir publicación',
-    markRead: 'Marcar como leída',
-    typeReply: 'Respuesta',
-    typeCrewJoined: 'Se unió a la cuadrilla',
-    typeMarkedHired: 'Marcado como contratado',
-    typeJobsiteSupport: 'Soporte de obra',
-    typeSupplier: 'Actividad de proveedor',
-    typeDriverAssigned: 'Conductor asignado',
-    typeMechanicAssigned: 'Mecánico asignado',
-    typeCompleted: 'Completado',
-    typeUrgent: 'Actividad urgente',
-    reminderTitle: 'Completa tu perfil para desbloquear más valor',
-    reminderBody:
-      'Ya puedes usar Surplox, pero completar estos detalles hará tu perfil más fuerte y desbloqueará más usos al publicar.',
-    reminderCta: 'Completar perfil',
-    addFirstLast: 'Agregar nombre y apellido',
-    addPhone: 'Agregar número de teléfono',
-    addCity: 'Agregar ciudad',
-    addRole: 'Agregar rol principal',
-    addBio: 'Agregar biografía / experiencia',
-    addCrewSize: 'Agregar tamaño de cuadrilla',
-    addAvailabilityStatus: 'Agregar estado de disponibilidad',
-    addTrade: 'Agregar oficio',
-    addServiceTags: 'Agregar etiquetas de servicio',
-    addEquipmentTags: 'Agregar etiquetas de equipo',
-    addBusinessName: 'Agregar nombre comercial',
-    addBusinessAddress: 'Agregar dirección comercial',
-    addBusinessZip: 'Agregar ZIP comercial',
-    addMaterialsCategories: 'Agregar categorías de materiales',
-    addDeliveryRadius: 'Agregar radio de entrega',
-    addStorefront: 'Habilitar tienda',
-    jobsiteSupportReminder:
-      'Los perfiles de Soporte de obra deben incluir etiquetas de servicio y equipo para que los contratistas sepan exactamente lo que puedes hacer.',
-    supplierReminder:
-      'Los perfiles de proveedor funcionan mejor cuando el nombre comercial, la ubicación del negocio, las categorías de materiales, el radio de entrega y la visibilidad de la tienda están completos.',
-    heroBadge: 'Centro de alertas',
-    heroTitle: 'Mantente al tanto de la actividad real de la red.',
-    heroBody:
-      'Las respuestas, uniones a cuadrillas, contrataciones, actividad de soporte, visibilidad de proveedor y recordatorios de cuenta aparecen aquí en una vista más limpia.',
-    statUnread: 'Alertas sin leer',
-    statTotal: 'Alertas totales',
-    statProfile: 'Recordatorios de perfil',
-    statAction: 'Alertas de acción',
-    urgencyTitle: 'Actividad prioritaria',
-    urgencyBody: 'Las asignaciones, cierres y actividad urgente suben primero aquí para cerrar ciclos más rápido.',
-    openAlertsFeed: 'Abrir feed'
-  }
+function todayDate() {
+  return new Date().toISOString().slice(0, 10)
 }
 
-function timeAgo(ts, lang = 'en') {
+function timeAgo(ts) {
+  if (!ts) return ''
+
   const date = new Date(ts)
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
 
-  if (seconds < 60) return lang === 'es' ? 'justo ahora' : 'just now'
-  if (seconds < 3600) {
-    const mins = Math.floor(seconds / 60)
-    return lang === 'es' ? `hace ${mins} min` : `${mins} min ago`
-  }
-  if (seconds < 86400) {
-    const hrs = Math.floor(seconds / 3600)
-    return lang === 'es' ? `hace ${hrs} h` : `${hrs}h ago`
-  }
-  const days = Math.floor(seconds / 86400)
-  return lang === 'es' ? `hace ${days} d` : `${days}d ago`
+  if (seconds < 60) return 'just now'
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
+
+  return `${Math.floor(seconds / 86400)}d ago`
 }
 
-function notificationTypeStyle(type) {
-  if (type === 'crew_hired' || type === 'completed_post') {
-    return {
-      background: '#111111',
-      color: '#ffffff'
-    }
-  }
-
-  if (type === 'crew_join') {
-    return {
-      background: '#fff0b4',
-      color: '#111111'
-    }
-  }
-
-  if (type === 'jobsite_support' || type === 'assigned_delivery_post' || type === 'assigned_repair_post') {
-    return {
-      background: '#f1e7a8',
-      color: '#111111'
-    }
-  }
-
-  if (type === 'supplier_activity') {
-    return {
-      background: '#fff7cf',
-      color: '#111111'
-    }
-  }
-
-  if (type === 'urgent_post') {
-    return {
-      background: '#ffde59',
-      color: '#111111'
-    }
-  }
-
-  return {
-    background: '#ecebe3',
-    color: '#111111'
-  }
+function prettyStatus(value) {
+  return String(value || '')
+    .replace(/-/g, ' ')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-function notificationTypeLabel(type, lang = 'en') {
-  const copy = COPY[lang] || COPY.en
-  if (type === 'crew_hired') return copy.typeMarkedHired
-  if (type === 'crew_join') return copy.typeCrewJoined
-  if (type === 'jobsite_support') return copy.typeJobsiteSupport
-  if (type === 'supplier_activity') return copy.typeSupplier
-  if (type === 'assigned_delivery_post') return copy.typeDriverAssigned
-  if (type === 'assigned_repair_post') return copy.typeMechanicAssigned
-  if (type === 'completed_post') return copy.typeCompleted
-  if (type === 'urgent_post') return copy.typeUrgent
-  return copy.typeReply
+function statusStyle(status) {
+  if (status === 'new') return { background: '#fff0b4', color: '#111111' }
+  if (status === 'picking') return { background: '#d8ecff', color: '#0d3f73' }
+  if (status === 'partial') return { background: '#fff4da', color: '#8a5a00' }
+  if (status === 'ready') return { background: '#dcf4e5', color: '#177245' }
+  if (status === 'delivered') return { background: '#111111', color: '#ffffff' }
+  if (status === 'closed') return { background: '#ecebe3', color: '#111111' }
+  return { background: '#ecebe3', color: '#111111' }
 }
 
-function isActionType(type) {
-  return ['crew_hired', 'assigned_delivery_post', 'assigned_repair_post', 'completed_post', 'urgent_post'].includes(type)
+function priorityStyle(priority) {
+  if (priority === 'shutdown-critical') return { background: '#111111', color: '#ffffff' }
+  if (priority === 'urgent') return { background: '#ffde59', color: '#111111' }
+  return { background: '#ecebe3', color: '#111111' }
 }
 
-function getReminderItems(profile = {}, contact = {}, lang = 'en') {
-  const copy = COPY[lang] || COPY.en
-  const items = []
-
-  const crewSizeOptional = ['supplier', 'driver', 'mechanic'].includes(profile.role)
-  const tradeOptional = profile.role === 'supplier'
-
-  if (profile.role === 'supplier') {
-    if (!String(profile.business_name || '').trim()) {
-      items.push(copy.addBusinessName)
-    }
-
-    if (!String(profile.business_address || '').trim()) {
-      items.push(copy.addBusinessAddress)
-    }
-
-    if (!String(profile.business_zip || '').trim()) {
-      items.push(copy.addBusinessZip)
-    }
-
-    if (!Array.isArray(profile.materials_categories) || profile.materials_categories.length === 0) {
-      items.push(copy.addMaterialsCategories)
-    }
-
-    if (!String(profile.delivery_radius || '').trim() && !Number(profile.delivery_radius || 0)) {
-      items.push(copy.addDeliveryRadius)
-    }
-
-    if (!Boolean(profile.storefront)) {
-      items.push(copy.addStorefront)
-    }
-
-    if (!String(profile.bio || '').trim()) {
-      items.push(copy.addBio)
-    }
-
-    if (!String(contact.phone || '').trim()) {
-      items.push(copy.addPhone)
-    }
-
-    if (!String(contact.city || '').trim()) {
-      items.push(copy.addCity)
-    }
-
-    return items
-  }
-
-  if (!String(profile.first_name || '').trim() || !String(profile.last_name || '').trim()) {
-    items.push(copy.addFirstLast)
-  }
-
-  if (!String(contact.phone || '').trim()) {
-    items.push(copy.addPhone)
-  }
-
-  if (!String(contact.city || '').trim()) {
-    items.push(copy.addCity)
-  }
-
-  if (!String(profile.role || '').trim()) {
-    items.push(copy.addRole)
-  }
-
-  if (!String(profile.bio || '').trim()) {
-    items.push(copy.addBio)
-  }
-
-  if (!crewSizeOptional && (!Number(profile.crew_size || 0) || Number(profile.crew_size || 0) <= 1)) {
-    items.push(copy.addCrewSize)
-  }
-
-  if (!String(profile.availability_status || '').trim()) {
-    items.push(copy.addAvailabilityStatus)
-  }
-
-  const categoryGroup = profile.category_group || 'trade'
-
-  if (categoryGroup === 'trade') {
-    if (!tradeOptional && !profile.trade_id) {
-      items.push(copy.addTrade)
-    }
-  }
-
-  if (categoryGroup === 'jobsite_support') {
-    if (!Array.isArray(profile.service_tags) || profile.service_tags.length === 0) {
-      items.push(copy.addServiceTags)
-    }
-
-    if (!Array.isArray(profile.equipment_tags) || profile.equipment_tags.length === 0) {
-      items.push(copy.addEquipmentTags)
-    }
-  }
-
-  return items
+function movementStyle(type) {
+  if (type === 'received') return { background: '#dcf4e5', color: '#177245' }
+  if (type === 'issued_to_field') return { background: '#d8ecff', color: '#0d3f73' }
+  if (type === 'returned_from_field') return { background: '#fff0b4', color: '#111111' }
+  if (type === 'damaged') return { background: '#111111', color: '#ffffff' }
+  if (type === 'adjustment') return { background: '#ecebe3', color: '#111111' }
+  return { background: '#ecebe3', color: '#111111' }
 }
 
-function StatCard({ label, value, dark = false }) {
-  return (
-    <div
-      className={dark ? 'card surface-dark rounded-xl' : 'card-soft'}
-      style={{ padding: 18, minHeight: 110 }}
-    >
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 800,
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          opacity: dark ? 0.72 : 1,
-          color: dark ? 'rgba(255,255,255,0.72)' : 'var(--muted-soft)'
-        }}
-      >
-        {label}
-      </div>
-      <div style={{ marginTop: 8, fontSize: 28, fontWeight: 900, lineHeight: 1 }}>
-        {value}
-      </div>
-    </div>
-  )
-}
-
-export default function Notifications({ lang: langProp = 'en' }) {
+export default function Notifications() {
   const [loading, setLoading] = useState(true)
-  const [msg, setMsg] = useState('')
-  const [notifications, setNotifications] = useState([])
-  const [lang, setLang] = useState(langProp || localStorage.getItem('surplox_lang') || 'en')
-  const [profileReminderItems, setProfileReminderItems] = useState([])
-  const [profileCategoryGroup, setProfileCategoryGroup] = useState('trade')
-  const [profileRole, setProfileRole] = useState('')
-
-  const copy = COPY[lang] || COPY.en
+  const [message, setMessage] = useState('')
+  const [requests, setRequests] = useState([])
+  const [requestItems, setRequestItems] = useState([])
+  const [receivingLogs, setReceivingLogs] = useState([])
+  const [movements, setMovements] = useState([])
 
   useEffect(() => {
-    setLang(langProp || localStorage.getItem('surplox_lang') || 'en')
-  }, [langProp])
+    loadAlerts()
+  }, [])
 
-  async function loadNotifications() {
+  async function loadAlerts() {
     setLoading(true)
-    setMsg('')
+    setMessage('')
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession()
-      const user = sessionData.session?.user
+      const [requestsRes, requestItemsRes, receivingRes, movementsRes] = await Promise.all([
+        supabase
+          .from('yard_requests')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(75),
 
-      if (!user) {
-        setNotifications([])
-        setProfileReminderItems([])
-        setLoading(false)
-        return
-      }
+        supabase
+          .from('yard_request_items')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(200),
 
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select(
-          `
-          preferred_language,
-          first_name,
-          last_name,
-          role,
-          bio,
-          crew_size,
-          availability_status,
-          trade_id,
-          category_group,
-          service_tags,
-          equipment_tags,
-          business_name,
-          business_address,
-          business_zip,
-          materials_categories,
-          storefront,
-          delivery_radius
-        `
-        )
-        .eq('user_id', user.id)
-        .maybeSingle()
+        supabase
+          .from('receiving_log')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50),
 
-      const { data: contact } = await supabase
-        .from('contact_private')
-        .select('phone, city')
-        .eq('user_id', user.id)
-        .maybeSingle()
+        supabase
+          .from('yard_inventory_movements')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(75)
+      ])
 
-      const activeLang =
-        prof?.preferred_language || langProp || localStorage.getItem('surplox_lang') || 'en'
+      if (requestsRes.error) throw requestsRes.error
+      if (requestItemsRes.error) throw requestItemsRes.error
+      if (receivingRes.error) throw receivingRes.error
+      if (movementsRes.error) throw movementsRes.error
 
-      setLang(activeLang)
-      localStorage.setItem('surplox_lang', activeLang)
-
-      setProfileReminderItems(getReminderItems(prof || {}, contact || {}, activeLang))
-      setProfileCategoryGroup(prof?.category_group || 'trade')
-      setProfileRole(prof?.role || '')
-
-      const { data, error } = await supabase
-        .from('notifications')
-        .select(
-          `
-          id,
-          user_id,
-          actor_user_id,
-          post_id,
-          type,
-          message,
-          is_read,
-          created_at,
-          actor:profiles!notifications_actor_user_id_fkey(
-            user_id,
-            display_name,
-            role
-          )
-        `
-        )
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-
-      setNotifications(
-        (data || []).map((row) => ({
-          ...row,
-          actor_name: row.actor?.display_name || '',
-          actor_role: row.actor?.role || ''
-        }))
-      )
+      setRequests(requestsRes.data || [])
+      setRequestItems(requestItemsRes.data || [])
+      setReceivingLogs(receivingRes.data || [])
+      setMovements(movementsRes.data || [])
     } catch (error) {
       console.error(error)
-      setMsg(copy.loadError)
+      setMessage('Unable to load industrial alerts.')
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    loadNotifications()
-  }, [])
+  const itemsByRequestId = useMemo(() => {
+    const map = {}
 
-  async function markAllRead() {
-    try {
-      const unreadIds = notifications.filter((item) => !item.is_read).map((item) => item.id)
-      if (unreadIds.length === 0) return
+    requestItems.forEach((item) => {
+      if (!map[item.request_id]) map[item.request_id] = []
+      map[item.request_id].push(item)
+    })
 
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .in('id', unreadIds)
+    return map
+  }, [requestItems])
 
-      if (error) throw error
+  const today = todayDate()
 
-      setNotifications((prev) => prev.map((item) => ({ ...item, is_read: true })))
-    } catch (error) {
-      console.error(error)
-      setMsg(copy.markAllError)
+  const stats = useMemo(() => {
+    return {
+      newRequests: requests.filter((item) => item.status === 'new').length,
+      picking: requests.filter((item) => item.status === 'picking' || item.status === 'partial').length,
+      ready: requests.filter((item) => item.status === 'ready').length,
+      deliveredToday: requests.filter(
+        (item) => item.status === 'delivered' && String(item.issued_date || '').slice(0, 10) === today
+      ).length,
+      urgent: requests.filter(
+        (item) => item.priority === 'urgent' || item.priority === 'shutdown-critical'
+      ).length,
+      receivingToday: receivingLogs.filter(
+        (item) => String(item.received_date || '').slice(0, 10) === today
+      ).length,
+      damaged: movements.filter((item) => item.movement_type === 'damaged').length,
+      returns: movements.filter((item) => item.movement_type === 'returned_from_field').length
     }
-  }
+  }, [requests, receivingLogs, movements, today])
 
-  async function markOneRead(notificationId) {
-    try {
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notificationId)
+  const priorityRequests = useMemo(() => {
+    return requests
+      .filter((item) => item.priority === 'urgent' || item.priority === 'shutdown-critical' || item.status === 'new')
+      .slice(0, 12)
+  }, [requests])
 
-      if (error) throw error
+  const readyRequests = useMemo(() => {
+    return requests.filter((item) => item.status === 'ready').slice(0, 10)
+  }, [requests])
 
-      setNotifications((prev) =>
-        prev.map((item) =>
-          item.id === notificationId ? { ...item, is_read: true } : item
-        )
-      )
-    } catch (error) {
-      console.error(error)
-      setMsg(copy.markOneError)
-    }
-  }
+  const activeRequests = useMemo(() => {
+    return requests
+      .filter((item) => !['delivered', 'closed'].includes(item.status))
+      .slice(0, 20)
+  }, [requests])
 
-  const unreadCount = useMemo(
-    () => notifications.filter((item) => !item.is_read).length,
-    [notifications]
-  )
+  const recentOperations = useMemo(() => {
+    const receivingEvents = receivingLogs.slice(0, 12).map((item) => ({
+      id: `receiving-${item.id}`,
+      type: 'receiving',
+      title: item.vendor || item.manufacturer || 'Vendor delivery',
+      subtitle: `Packing Slip: ${item.packing_slip_number || '—'} · PO: ${item.po_number || '—'}`,
+      detail: `Offload: ${item.offload_location || 'No location'} · Status: ${prettyStatus(item.status)}`,
+      created_at: item.created_at,
+      badge: 'Receiving',
+      style: { background: '#dcf4e5', color: '#177245' }
+    }))
 
-  const totalCount = notifications.length
-  const reminderCount = profileReminderItems.length
-  const actionCount = useMemo(
-    () => notifications.filter((item) => isActionType(item.type)).length,
-    [notifications]
-  )
-  const priorityNotifications = useMemo(
-    () => notifications.filter((item) => isActionType(item.type)).slice(0, 5),
-    [notifications]
-  )
+    const movementEvents = movements.slice(0, 18).map((item) => ({
+      id: `movement-${item.id}`,
+      type: 'movement',
+      title: prettyStatus(item.movement_type),
+      subtitle: `${item.quantity || 0} ${item.unit || 'ea'} · ${item.reference_number || 'No reference'}`,
+      detail: item.notes || 'No notes',
+      created_at: item.created_at,
+      badge: prettyStatus(item.movement_type),
+      style: movementStyle(item.movement_type)
+    }))
+
+    return [...receivingEvents, ...movementEvents]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 18)
+  }, [receivingLogs, movements])
 
   if (loading) {
-    return <div className="card">{copy.loading}</div>
+    return <div className="card">Loading industrial alerts…</div>
   }
 
   return (
     <div className="grid" style={{ gap: 18 }}>
-      {msg ? (
-        <div className="card-message" style={{ padding: 14, borderRadius: 18 }}>
-          {msg}
+      {message ? (
+        <div className="card-soft" style={{ background: '#fff4da' }}>
+          {message}
         </div>
       ) : null}
 
       <div
         className="card rounded-xl"
         style={{
-          padding: 28,
-          background: 'linear-gradient(180deg, #fff7c8 0%, #f7f7f2 100%)'
+          padding: 24,
+          background: 'linear-gradient(180deg, #fff7cf 0%, #ffffff 100%)'
         }}
       >
-        <div className="badge" style={{ marginBottom: 14, background: '#f1e7a8' }}>
-          {copy.heroBadge}
+        <div className="badge">Surplox Industrial Alerts</div>
+
+        <div className="h1" style={{ marginTop: 14 }}>
+          Order Queue & Material Alerts
         </div>
 
-        <div className="h1" style={{ maxWidth: 760 }}>
-          {copy.heroTitle}
-        </div>
-
-        <p className="muted" style={{ marginTop: 12, maxWidth: 820, fontSize: 17, lineHeight: 1.7 }}>
-          {copy.heroBody}
+        <p className="muted" style={{ marginTop: 10, maxWidth: 900, lineHeight: 1.7 }}>
+          Live view of FMRs, receiving activity, inventory movements, returns, damaged material, and ready-for-delivery requests.
         </p>
 
-        <div className="grid three" style={{ marginTop: 18 }}>
-          <StatCard label={copy.statUnread} value={unreadCount} dark />
-          <StatCard label={copy.statTotal} value={totalCount} />
-          <StatCard label={copy.statProfile} value={reminderCount} />
-        </div>
+        <div className="row" style={{ marginTop: 18 }}>
+          <Link className="btn primary" to="/yard">
+            Open Yard Manager
+          </Link>
 
-        <div style={{ marginTop: 14, maxWidth: 260 }}>
-          <StatCard label={copy.statAction} value={actionCount} />
-        </div>
-      </div>
-
-      <div className="card rounded-xl" style={{ padding: 22 }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            gap: 12,
-            alignItems: 'center',
-            flexWrap: 'wrap'
-          }}
-        >
-          <div>
-            <div className="card-section-title">{copy.title}</div>
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-              {copy.intro}
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button className="btn" onClick={loadNotifications}>
-              {copy.refresh}
-            </button>
-            <button className="btn primary" onClick={markAllRead}>
-              {copy.markAllRead}
-            </button>
-          </div>
+          <button className="btn" type="button" onClick={loadAlerts}>
+            Refresh Alerts
+          </button>
         </div>
       </div>
 
-      {priorityNotifications.length > 0 ? (
+      <div className="row">
+        <Metric title="New FMRs" value={stats.newRequests} />
+        <Metric title="Picking / Partial" value={stats.picking} />
+        <Metric title="Ready" value={stats.ready} />
+        <Metric title="Urgent / Critical" value={stats.urgent} />
+        <Metric title="Delivered Today" value={stats.deliveredToday} />
+        <Metric title="Receiving Today" value={stats.receivingToday} />
+        <Metric title="Returns" value={stats.returns} />
+        <Metric title="Damaged" value={stats.damaged} />
+      </div>
+
+      {priorityRequests.length > 0 ? (
         <div className="card rounded-xl" style={{ padding: 22, background: '#fffaf0' }}>
-          <div className="card-section-title">{copy.urgencyTitle}</div>
+          <div className="card-section-title">Priority FMRs</div>
           <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.urgencyBody}
+            New, urgent, and shutdown-critical requests that need yard attention.
           </p>
 
           <div className="list" style={{ marginTop: 14 }}>
-            {priorityNotifications.map((item) => (
-              <div
-                key={`priority-${item.id}`}
-                className="card-soft"
-                style={{ background: '#ffffff', minHeight: 'auto' }}
-              >
-                <div className="postMeta">
-                  <span className="badge" style={notificationTypeStyle(item.type)}>
-                    {notificationTypeLabel(item.type, lang)}
-                  </span>
-                  <span className="badge">{timeAgo(item.created_at, lang)}</span>
-                  {!item.is_read ? <span className="badge">{copy.unread}</span> : null}
-                </div>
-
-                <div style={{ marginTop: 10, lineHeight: 1.7 }}>
-                  {item.message}
-                </div>
-
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
-                  {item.post_id ? (
-                    <Link className="btn small primary" to={`/p/${item.post_id}`}>
-                      {copy.openPost}
-                    </Link>
-                  ) : (
-                    <Link className="btn small primary" to="/feed">
-                      {copy.openAlertsFeed}
-                    </Link>
-                  )}
-
-                  {!item.is_read ? (
-                    <button className="btn small" onClick={() => markOneRead(item.id)}>
-                      {copy.markRead}
-                    </button>
-                  ) : null}
-                </div>
-              </div>
+            {priorityRequests.map((request) => (
+              <RequestAlert
+                key={request.id}
+                request={request}
+                items={itemsByRequestId[request.id] || []}
+              />
             ))}
           </div>
         </div>
       ) : null}
 
-      {profileReminderItems.length > 0 ? (
-        <div className="card rounded-xl" style={{ padding: 22, background: '#fffaf0' }}>
-          <div className="card-section-title">{copy.reminderTitle}</div>
+      {readyRequests.length > 0 ? (
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">Ready for Field Delivery</div>
           <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.reminderBody}
+            Requests marked ready and waiting to be taken from the yard to the plant.
           </p>
 
-          {profileCategoryGroup === 'jobsite_support' && profileRole !== 'supplier' ? (
-            <div className="card-soft" style={{ marginTop: 12, background: '#ffffff' }}>
-              {copy.jobsiteSupportReminder}
-            </div>
-          ) : null}
-
-          {profileRole === 'supplier' ? (
-            <div className="card-soft" style={{ marginTop: 12, background: '#ffffff' }}>
-              {copy.supplierReminder}
-            </div>
-          ) : null}
-
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
-            {profileReminderItems.map((item) => (
-              <span key={item} className="badge">
-                {item}
-              </span>
+          <div className="list" style={{ marginTop: 14 }}>
+            {readyRequests.map((request) => (
+              <RequestAlert
+                key={request.id}
+                request={request}
+                items={itemsByRequestId[request.id] || []}
+              />
             ))}
-          </div>
-
-          <div style={{ marginTop: 14 }}>
-            <Link className="btn primary" to="/account">
-              {copy.reminderCta}
-            </Link>
           </div>
         </div>
       ) : null}
 
-      {notifications.length === 0 ? (
-        <div className="card rounded-xl" style={{ padding: 24 }}>
-          <div className="h3">{copy.emptyTitle}</div>
-          <p className="muted" style={{ marginTop: 8, lineHeight: 1.7 }}>
-            {copy.emptyBody}
+      <div className="grid two" style={{ alignItems: 'start' }}>
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">Active FMR Queue</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            All open requests that are not delivered or closed.
           </p>
-        </div>
-      ) : (
-        <div className="list">
-          {notifications.map((item) => (
-            <div
-              key={item.id}
-              className="card rounded-xl"
-              style={{
-                padding: 20,
-                background: item.is_read ? '#ffffff' : '#fffdf4',
-                border: item.is_read ? '1px solid rgba(17,17,17,0.06)' : '1px solid rgba(241,231,168,0.95)'
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                  flexWrap: 'wrap',
-                  alignItems: 'center'
-                }}
-              >
-                <div className="postMeta">
-                  <span className="badge" style={notificationTypeStyle(item.type)}>
-                    {notificationTypeLabel(item.type, lang)}
-                  </span>
 
-                  <span className="badge">
-                    {item.is_read ? copy.read : copy.unread}
-                  </span>
-
-                  <span className="badge">
-                    {timeAgo(item.created_at, lang)}
-                  </span>
-
-                  {item.actor_name ? (
-                    <span className="badge">
-                      {item.actor_name}
-                    </span>
-                  ) : null}
-                </div>
-
-                {!item.is_read ? (
-                  <button className="btn small" onClick={() => markOneRead(item.id)}>
-                    {copy.markRead}
-                  </button>
-                ) : null}
-              </div>
-
-              <div style={{ marginTop: 12, lineHeight: 1.7 }}>
-                {item.message}
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
-                {item.post_id ? (
-                  <Link className="btn small primary" to={`/p/${item.post_id}`}>
-                    {copy.openPost}
-                  </Link>
-                ) : null}
-              </div>
+          {activeRequests.length === 0 ? (
+            <div className="card-soft" style={{ marginTop: 14 }}>
+              No active FMRs right now.
             </div>
-          ))}
+          ) : (
+            <div className="list" style={{ marginTop: 14 }}>
+              {activeRequests.map((request) => (
+                <RequestAlert
+                  key={request.id}
+                  request={request}
+                  items={itemsByRequestId[request.id] || []}
+                  compact
+                />
+              ))}
+            </div>
+          )}
         </div>
-      )}
+
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">Recent Operations</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            Receiving, inventory updates, field issues, returns, and damaged material.
+          </p>
+
+          {recentOperations.length === 0 ? (
+            <div className="card-soft" style={{ marginTop: 14 }}>
+              No recent operations yet.
+            </div>
+          ) : (
+            <div className="list" style={{ marginTop: 14 }}>
+              {recentOperations.map((event) => (
+                <div key={event.id} className="card-soft">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontWeight: 900 }}>{event.title}</div>
+                      <div className="muted">{event.subtitle}</div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <span className="badge" style={event.style}>
+                        {event.badge}
+                      </span>
+                      <span className="badge">
+                        {timeAgo(event.created_at)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="muted" style={{ marginTop: 8 }}>
+                    {event.detail}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Metric({ title, value }) {
+  return (
+    <div className="card-soft">
+      <div className="muted">{title}</div>
+      <div className="h2">{value}</div>
+    </div>
+  )
+}
+
+function RequestAlert({ request, items, compact = false }) {
+  return (
+    <div className="card-soft">
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontWeight: 900 }}>
+            {request.fmr_number || 'FMR Pending'} · {request.requested_by || 'Unknown Requester'}
+          </div>
+
+          <div className="muted">
+            {request.request_date || 'No date'} · {request.dropoff_location || 'No delivery area'}
+          </div>
+
+          {!compact ? (
+            <div className="muted">
+              Equipment: {request.equipment_tag || '—'} · ISO: {request.iso_number || '—'}
+            </div>
+          ) : null}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'start' }}>
+          <span className="badge" style={priorityStyle(request.priority)}>
+            {prettyStatus(request.priority || 'normal')}
+          </span>
+          <span className="badge" style={statusStyle(request.status)}>
+            {prettyStatus(request.status)}
+          </span>
+          <span className="badge">
+            {timeAgo(request.created_at)}
+          </span>
+        </div>
+      </div>
+
+      {!compact ? (
+        <div style={{ marginTop: 12 }}>
+          {items.length === 0 ? (
+            <div className="muted">No items attached.</div>
+          ) : (
+            items.slice(0, 6).map((item) => (
+              <div key={item.id} className="muted">
+                {item.quantity_requested} {item.unit || 'ea'} · {item.item_name}
+                {item.notes ? ` · ${item.notes}` : ''}
+              </div>
+            ))
+          )}
+
+          {items.length > 6 ? (
+            <div className="muted">+ {items.length - 6} more items</div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }
