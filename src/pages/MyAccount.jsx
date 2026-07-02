@@ -1,1156 +1,235 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 
-const ROLE_OPTIONS = [
-  { value: 'laborer', label: { en: 'Laborer', es: 'Trabajador' } },
-  { value: 'subcontractor', label: { en: 'Subcontractor', es: 'Subcontratista' } },
-  { value: 'contractor', label: { en: 'Contractor', es: 'Contratista' } },
-  { value: 'supplier', label: { en: 'Supplier', es: 'Proveedor' } },
-  { value: 'driver', label: { en: 'Driver', es: 'Conductor' } },
-  { value: 'mechanic', label: { en: 'Mechanic', es: 'Mecánico' } }
+const YARD_OPTIONS = [
+  'Warehouse / Main Yard',
+  'Mexico',
+  'Oklahoma Yard',
+  'Stainless Tent',
+  'Receiving Gate',
+  'Field / Plant'
 ]
 
-const CATEGORY_GROUP_OPTIONS = [
-  { value: 'trade', label: { en: 'Trades', es: 'Oficios' } },
-  { value: 'jobsite_support', label: { en: 'Jobsite Support', es: 'Soporte de obra' } }
+const SHIFT_OPTIONS = [
+  'Day Shift',
+  'Night Shift',
+  'Swing Shift',
+  'Rotating',
+  'Other'
 ]
 
-const JOBSITE_SUPPORT_OPTIONS = [
-  {
-    value: 'material_delivery',
-    label: { en: 'Material Delivery / Hot Shot', es: 'Entrega de materiales / Hot Shot' },
-    role: 'driver',
-    service_tags: ['material_delivery', 'hot_shot'],
-    equipment_tags: ['pickup_truck', 'flatbed_trailer', 'gooseneck_trailer'],
-    default_vehicle_type: 'pickup_truck'
-  },
-  {
-    value: 'cargo_van_delivery',
-    label: { en: 'Cargo Van / Local Delivery', es: 'Cargo Van / Entrega local' },
-    role: 'driver',
-    service_tags: ['material_delivery', 'last_mile_delivery', 'local_runs', 'same_day_delivery'],
-    equipment_tags: ['cargo_van'],
-    default_vehicle_type: 'cargo_van'
-  },
-  {
-    value: 'equipment_fleet_repair',
-    label: { en: 'Mechanic / Equipment Repair', es: 'Mecánico / Reparación de equipo' },
-    role: 'mechanic',
-    service_tags: ['diesel_mechanic', 'field_service'],
-    equipment_tags: ['mobile_repair_truck', 'service_truck'],
-    default_vehicle_type: 'mobile_repair_truck'
-  }
-]
-
-const AVAILABILITY_OPTIONS = [
-  { value: 'available_now', label: { en: 'Available Now', es: 'Disponible ahora' } },
-  { value: 'available_this_week', label: { en: 'Available This Week', es: 'Disponible esta semana' } },
-  { value: 'busy', label: { en: 'Busy', es: 'Ocupado' } }
-]
-
-const MATERIAL_DELIVERY_SERVICE_TAGS = [
-  { value: 'material_delivery', label: { en: 'Material Delivery', es: 'Entrega de materiales' } },
-  { value: 'hot_shot', label: { en: 'Hot Shot', es: 'Hot Shot' } },
-  { value: 'last_mile_delivery', label: { en: 'Last Mile Delivery', es: 'Entrega última milla' } },
-  { value: 'local_runs', label: { en: 'Local Runs', es: 'Viajes locales' } },
-  { value: 'same_day_delivery', label: { en: 'Same Day Delivery', es: 'Entrega el mismo día' } },
-  { value: 'long_distance', label: { en: 'Long Distance', es: 'Larga distancia' } }
-]
-
-const MATERIAL_DELIVERY_EQUIPMENT_TAGS = [
-  { value: 'pickup_truck', label: { en: 'Pickup Truck', es: 'Pickup' } },
-  { value: 'cargo_van', label: { en: 'Cargo Van', es: 'Cargo van' } },
-  { value: 'flatbed_trailer', label: { en: 'Flatbed Trailer', es: 'Remolque plataforma' } },
-  { value: 'gooseneck_trailer', label: { en: 'Gooseneck Trailer', es: 'Remolque gooseneck' } }
-]
-
-const FLEET_REPAIR_SERVICE_TAGS = [
-  { value: 'diesel_mechanic', label: { en: 'Diesel Mechanic', es: 'Mecánico diésel' } },
-  { value: 'small_engine_repair', label: { en: 'Small Engine Repair', es: 'Reparación de motores pequeños' } },
-  { value: 'skid_steer_repair', label: { en: 'Skid Steer Repair', es: 'Reparación de skid steer' } },
-  { value: 'tractor_repair', label: { en: 'Tractor Repair', es: 'Reparación de tractores' } },
-  { value: 'mini_ex_repair', label: { en: 'Mini Excavator Repair', es: 'Reparación de mini excavadora' } },
-  { value: 'heavy_equipment_repair', label: { en: 'Large Machine Repair', es: 'Reparación de maquinaria grande' } },
-  { value: 'hydraulic_repair', label: { en: 'Hydraulic Repair', es: 'Reparación hidráulica' } },
-  { value: 'trailer_repair', label: { en: 'Trailer Repair', es: 'Reparación de remolques' } },
-  { value: 'field_service', label: { en: 'Mobile Field Service', es: 'Servicio móvil en campo' } },
-  { value: 'emergency_repair', label: { en: 'Emergency Repair', es: 'Reparación de emergencia' } },
-  { value: 'jobsite_service', label: { en: 'Jobsite Service', es: 'Servicio en obra' } }
-]
-
-const FLEET_REPAIR_EQUIPMENT_TAGS = [
-  { value: 'mobile_repair_truck', label: { en: 'Mobile Repair Truck', es: 'Camión de reparación móvil' } },
-  { value: 'service_truck', label: { en: 'Service Truck', es: 'Camión de servicio' } },
-  { value: 'diesel_diagnostics', label: { en: 'Diesel Diagnostics', es: 'Diagnóstico diésel' } },
-  { value: 'hydraulic_tools', label: { en: 'Hydraulic Tools', es: 'Herramientas hidráulicas' } },
-  { value: 'welder_generator', label: { en: 'Welder / Generator', es: 'Soldadora / generador' } },
-  { value: 'trailer_brake_tools', label: { en: 'Trailer Brake Tools', es: 'Herramientas de frenos de remolque' } },
-  { value: 'battery_jump_setup', label: { en: 'Battery / Jump Setup', es: 'Equipo de batería / arranque' } },
-  { value: 'on_site_tools', label: { en: 'On-Site Repair Tools', es: 'Herramientas de reparación en sitio' } }
-]
-
-const DRIVER_VEHICLE_OPTIONS = [
-  { value: 'pickup_truck', label: { en: 'Pickup Truck', es: 'Pickup' } },
-  { value: 'cargo_van', label: { en: 'Cargo Van', es: 'Cargo van' } },
-  { value: 'box_truck', label: { en: 'Box Truck', es: 'Camión caja' } },
-  { value: 'flatbed_truck', label: { en: 'Flatbed Truck', es: 'Camión plataforma' } }
-]
-
-const DRIVER_TRAILER_OPTIONS = [
-  { value: 'none', label: { en: 'No Trailer', es: 'Sin remolque' } },
-  { value: 'utility_trailer', label: { en: 'Utility Trailer', es: 'Remolque utilitario' } },
-  { value: 'flatbed_trailer', label: { en: 'Flatbed Trailer', es: 'Remolque plataforma' } },
-  { value: 'gooseneck_trailer', label: { en: 'Gooseneck Trailer', es: 'Remolque gooseneck' } },
-  { value: 'equipment_trailer', label: { en: 'Equipment Trailer', es: 'Remolque para equipo' } },
-  { value: 'enclosed_trailer', label: { en: 'Enclosed Trailer', es: 'Remolque cerrado' } }
-]
-
-const BUSINESS_HOUR_DAYS = [
-  { key: 'monday', copyKey: 'monday' },
-  { key: 'tuesday', copyKey: 'tuesday' },
-  { key: 'wednesday', copyKey: 'wednesday' },
-  { key: 'thursday', copyKey: 'thursday' },
-  { key: 'friday', copyKey: 'friday' },
-  { key: 'saturday', copyKey: 'saturday' },
-  { key: 'sunday', copyKey: 'sunday' }
-]
-
-const BUSINESS_HOUR_OPTIONS = [
-  '12:00 AM','12:30 AM','1:00 AM','1:30 AM','2:00 AM','2:30 AM','3:00 AM','3:30 AM','4:00 AM','4:30 AM',
-  '5:00 AM','5:30 AM','6:00 AM','6:30 AM','7:00 AM','7:30 AM','8:00 AM','8:30 AM','9:00 AM','9:30 AM',
-  '10:00 AM','10:30 AM','11:00 AM','11:30 AM','12:00 PM','12:30 PM','1:00 PM','1:30 PM','2:00 PM','2:30 PM',
-  '3:00 PM','3:30 PM','4:00 PM','4:30 PM','5:00 PM','5:30 PM','6:00 PM','6:30 PM','7:00 PM','7:30 PM',
-  '8:00 PM','8:30 PM','9:00 PM','9:30 PM','10:00 PM','10:30 PM','11:00 PM','11:30 PM'
-]
-
-function defaultBusinessHours() {
+function emptyForm() {
   return {
-    monday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
-    tuesday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
-    wednesday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
-    thursday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
-    friday: { closed: false, open: '8:00 AM', close: '5:00 PM' },
-    saturday: { closed: true, open: '8:00 AM', close: '5:00 PM' },
-    sunday: { closed: true, open: '8:00 AM', close: '5:00 PM' }
+    full_name: '',
+    company: 'Summit Industrial',
+    project_name: 'IREN Childress Data Center',
+    department: 'Material Handling',
+    role_title: '',
+    shift: '',
+    assigned_yard: '',
+    phone: '',
+    email: '',
+    supervisor: '',
+    forklift_certified: false,
+    telehandler_certified: false,
+    rigger: false,
+    pipefitter: false,
+    notifications_new_fmrs: true,
+    notifications_status_changes: true,
+    notifications_receiving: true,
+    notifications_inventory: true,
+    notes: ''
   }
 }
 
-function normalizeBusinessHours(value) {
-  const base = defaultBusinessHours()
-  if (!value || typeof value !== 'object') return base
-
-  const next = { ...base }
-  BUSINESS_HOUR_DAYS.forEach((day) => {
-    const row = value?.[day.key]
-    if (row && typeof row === 'object') {
-      next[day.key] = {
-        closed: Boolean(row.closed),
-        open: BUSINESS_HOUR_OPTIONS.includes(row.open) ? row.open : base[day.key].open,
-        close: BUSINESS_HOUR_OPTIONS.includes(row.close) ? row.close : base[day.key].close
-      }
-    }
-  })
-
-  return next
-}
-
-function parseTimeLabelToMinutes(label) {
-  const match = String(label || '').match(/^(\d{1,2}):(\d{2})\s(AM|PM)$/)
-  if (!match) return null
-  let hour = Number(match[1])
-  const minute = Number(match[2])
-  const suffix = match[3]
-
-  if (suffix === 'AM') {
-    if (hour === 12) hour = 0
-  } else if (hour !== 12) {
-    hour += 12
-  }
-
-  return hour * 60 + minute
-}
-
-function getCurrentBusinessStatus(businessHours) {
-  const normalized = normalizeBusinessHours(businessHours)
-  const dayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-  const today = normalized[dayKeys[new Date().getDay()]]
-  if (!today || today.closed) return 'closed'
-
-  const now = new Date()
-  const currentMinutes = now.getHours() * 60 + now.getMinutes()
-  const openMinutes = parseTimeLabelToMinutes(today.open)
-  const closeMinutes = parseTimeLabelToMinutes(today.close)
-
-  if (openMinutes === null || closeMinutes === null) return 'closed'
-  return currentMinutes >= openMinutes && currentMinutes < closeMinutes ? 'open' : 'closed'
-}
-
-const COPY = {
-  en: {
-    loading: 'Loading your account…',
-    signedInRequired: 'You must be signed in to update your account.',
-    displayNameRequired: 'Display name is required.',
-    zipInvalid: 'Enter a valid 5-digit ZIP code.',
-    tradeRequired: 'Select your trade.',
-    emailInvalid: 'Enter a valid email address.',
-    phoneInvalid: 'Enter a valid phone number.',
-    languageInvalid: 'Select a valid language.',
-    availabilityInvalid: 'Select a valid availability status.',
-    categoryInvalid: 'Select a valid category group.',
-    supportTypeInvalid: 'Select a valid jobsite support type.',
-    success: 'Your account has been updated.',
-    saveError: 'Unable to save your account changes.',
-    title: 'My Surplox Account',
-    intro: 'Review and update your account information below.',
-    displayName: 'Display Name',
-    primaryRole: 'Account Type',
-    trade: 'Trade',
-    firstName: 'First Name',
-    lastName: 'Last Name',
-    email: 'Email Address',
-    phone: 'Phone Number',
-    city: 'City',
-    zip: 'Home ZIP Code',
-    radius: 'Travel Radius (Miles)',
-    crewSize: 'Crew Size',
-    language: 'Preferred Language',
-    bio: 'Bio / Experience / Certifications',
-    bioPlaceholder:
-      'Share what kind of work you do, your experience level, certifications, capabilities, delivery coverage, or repair specialty.',
-    selectTrade: 'Select your trade',
-    inviteTitle: 'Invite Your Crew',
-    inviteBody:
-      'Use your personal Surplox invite link to bring classmates, coworkers, runners, mechanics, or people from your crew onto the network.',
-    copyInvite: 'Copy Invite Link',
-    shareInvite: 'Share Invite',
-    textInvite: 'Text Invite',
-    emailInvite: 'Email Invite',
-    inviteCopied: 'Your invite link was copied.',
-    inviteCopyError: 'Unable to copy your invite link right now.',
-    inviteShareError: 'Unable to open the share menu right now.',
-    inviteTextError: 'Unable to open text invite right now.',
-    inviteEmailError: 'Unable to open email invite right now.',
-    invitePreviewLabel: 'Your invite link',
-    save: 'Save Changes',
-    saving: 'Saving…',
-    completionTitle: 'Finish Profile Completion',
-    completionBody:
-      'Complete these remaining items so your profile is fully finished and carries more weight with workers, crews, contractors, suppliers, and drivers.',
-    completionCrew: 'Add crew size',
-    completionBio: 'Add experience and certifications in your bio',
-    completionPhone: 'Add phone number',
-    completionCity: 'Add city',
-    completionFirstLast: 'Add first and last name',
-    completionRole: 'Add primary role',
-    completionBusinessZip: 'Add business ZIP',
-    completionDeliveryRadius: 'Add delivery radius',
-    completionStorefront: 'Enable storefront',
-    completionVehicleType: 'Add vehicle type',
-    completionTrailerType: 'Add trailer type',
-    completionPayload: 'Add payload capacity',
-    completionMechanicServices: 'Add mechanic specialties',
-    completionMechanicEquipment: 'Add repair equipment / capability tags',
-    accountOverview: 'Account Overview',
-    accountOverviewBody:
-      'Keep your profile clean, credible, and ready for nearby work opportunities, material runs, repair requests, and crew invites.',
-    profileStrength: 'Profile Strength',
-    complete: 'Complete',
-    incomplete: 'Needs work',
-    categoryGroup: 'Category Group',
-    jobsiteSupportType: 'Jobsite Support Type',
-    jobsiteSupportIntro:
-      'Use Jobsite Support for material delivery, hot shot, cargo van delivery, and mechanic / equipment repair profiles.',
-    serviceTags: 'Service Tags',
-    equipmentTags: 'Equipment Tags',
-    availabilityStatus: 'Availability Status',
-    contractorVerification: 'Contractor Verification',
-    verifiedContractor: 'Verified Contractor',
-    notVerifiedContractor: 'Not Verified',
-    serviceProfileTitle: 'Jobsite Support Profile',
-    servicesEquipmentBody:
-      'Select the services you offer and the equipment you have so contractors know exactly what you can do.',
-    mechanicProfileTitle: 'Mechanic / Equipment Repair Profile',
-    mechanicProfileBody:
-      'Use this lane for diesel mechanics, small engine repair, skid steer repair, tractor repair, large machine repair, trailer repair, hydraulics, and mobile field service.',
-    mechanicExamplesTitle: 'Mechanic specialties to show',
-    mechanicExamplesBody:
-      'Use the tags below to clearly show whether you handle diesel, small engines, skid steers, tractors, mini excavators, trailers, hydraulic issues, or urgent jobsite calls.',
-    tradesGroup: 'Trades',
-    jobsiteSupportGroup: 'Jobsite Support',
-    materialDeliveryType: 'Material Delivery / Hot Shot',
-    cargoVanType: 'Cargo Van / Local Delivery',
-    fleetRepairType: 'Mechanic / Equipment Repair',
-    selectSupportType: 'Select support type',
-    supplierTradeOptional: 'Supplier accounts use business details instead of trade, crew, or worker availability fields.',
-    supplierBusinessBio: 'Business Bio',
-    businessName: 'Business Name',
-    businessLocation: 'Business Location',
-    businessZip: 'Business ZIP',
-    deliveryRadius: 'Delivery Radius',
-    storefront: 'Storefront',
-    storefrontEnabled: 'Storefront enabled',
-    storefrontDisabled: 'Storefront disabled',
-    storefrontActions: 'Storefront Actions',
-    storefrontActionsBody:
-      'Open your supplier storefront page to review how contractors and crews will see your business.',
-    viewStorefront: 'View Storefront',
-    materialsCategories: 'Materials Categories',
-    customCategoryPlaceholder: 'Type a material category and press Add',
-    addCategory: 'Add',
-    businessHours: 'Business Hours',
-    openNow: 'Open Now',
-    closedNow: 'Closed Now',
-    closedAllDay: 'Closed All Day',
-    monday: 'Monday',
-    tuesday: 'Tuesday',
-    wednesday: 'Wednesday',
-    thursday: 'Thursday',
-    friday: 'Friday',
-    saturday: 'Saturday',
-    sunday: 'Sunday',
-    supportCrewOptional: 'Crew size is optional for supplier, driver, and mechanic profiles.',
-    miles: 'miles',
-    driverProfileTitle: 'Driver Profile',
-    driverProfileBody:
-      'Driver accounts stay separate from laborer, subcontractor, and contractor accounts. Keep your hauling setup updated so supplier → driver → jobsite matching works correctly.',
-    vehicleType: 'Vehicle Type',
-    trailerType: 'Trailer Type',
-    trailerLength: 'Trailer Length (ft)',
-    payloadCapacity: 'Payload Capacity (lbs)',
-    driverRoleLocked: 'Driver and mechanic account roles are kept aligned with the support type selected during signup.',
-    supplierRoleLocked: 'Supplier accounts stay separate from worker accounts.',
-    noTrailer: 'No Trailer',
-    completionActionTitle: 'Profile Action Center',
-    completionActionBody:
-      'Finish the highest-impact profile items first so your account gets more trust, stronger quick connects, and better visibility across labor, supplier, delivery, and repair flows.',
-    unlocksTitle: 'What profile completion unlocks',
-    unlocksVisibility: 'Stronger public profile credibility',
-    unlocksQuickConnect: 'Better quick-connect conversion',
-    unlocksPosts: 'Better post response quality',
-    unlocksRequests: 'Cleaner supplier, delivery, and repair requests',
-    finishNow: 'Finish Top Items Now',
-    openPublicProfile: 'Open Public Profile',
-    openMessages: 'Open Messages',
-    supplierNextStep: 'Review Storefront',
-    driverNextStep: 'Open Delivery Lane',
-    mechanicNextStep: 'Open Repair Lane',
-    laborNextStep: 'Open My Profile'
-  },
-  es: {
-    loading: 'Cargando tu cuenta…',
-    signedInRequired: 'Debes iniciar sesión para actualizar tu cuenta.',
-    displayNameRequired: 'El nombre visible es obligatorio.',
-    zipInvalid: 'Ingresa un código postal válido de 5 dígitos.',
-    tradeRequired: 'Selecciona tu oficio.',
-    emailInvalid: 'Ingresa un correo electrónico válido.',
-    phoneInvalid: 'Ingresa un número de teléfono válido.',
-    languageInvalid: 'Selecciona un idioma válido.',
-    availabilityInvalid: 'Selecciona un estado de disponibilidad válido.',
-    categoryInvalid: 'Selecciona un grupo de categoría válido.',
-    supportTypeInvalid: 'Selecciona un tipo válido de soporte de obra.',
-    success: 'Tu cuenta ha sido actualizada.',
-    saveError: 'No se pudieron guardar los cambios de tu cuenta.',
-    title: 'Mi cuenta de Surplox',
-    intro: 'Revisa y actualiza la información de tu cuenta abajo.',
-    displayName: 'Nombre visible',
-    primaryRole: 'Tipo de cuenta',
-    trade: 'Oficio',
-    firstName: 'Nombre',
-    lastName: 'Apellido',
-    email: 'Correo electrónico',
-    phone: 'Número de teléfono',
-    city: 'Ciudad',
-    zip: 'Código postal',
-    radius: 'Radio de viaje (millas)',
-    crewSize: 'Tamaño de cuadrilla',
-    language: 'Idioma preferido',
-    bio: 'Biografía / Experiencia / Certificaciones',
-    bioPlaceholder:
-      'Comparte qué tipo de trabajo haces, tu experiencia, certificaciones, capacidades, cobertura de entrega o especialidad de reparación.',
-    selectTrade: 'Selecciona tu oficio',
-    inviteTitle: 'Invita a tu cuadrilla',
-    inviteBody:
-      'Usa tu enlace personal de Surplox para invitar compañeros de clase, compañeros de trabajo, runners, mecánicos o gente de tu cuadrilla.',
-    copyInvite: 'Copiar enlace',
-    shareInvite: 'Compartir',
-    textInvite: 'Invitar por texto',
-    emailInvite: 'Invitar por correo',
-    inviteCopied: 'Tu enlace de invitación fue copiado.',
-    inviteCopyError: 'No se pudo copiar tu enlace en este momento.',
-    inviteShareError: 'No se pudo abrir el menú para compartir.',
-    inviteTextError: 'No se pudo abrir la invitación por texto.',
-    inviteEmailError: 'No se pudo abrir la invitación por correo.',
-    invitePreviewLabel: 'Tu enlace de invitación',
-    save: 'Guardar cambios',
-    saving: 'Guardando…',
-    completionTitle: 'Terminar perfil',
-    completionBody:
-      'Completa estos elementos restantes para que tu perfil quede completamente terminado y tenga más peso con trabajadores, cuadrillas, contratistas, proveedores y conductores.',
-    completionCrew: 'Agregar tamaño de cuadrilla',
-    completionBio: 'Agregar experiencia y certificaciones en tu biografía',
-    completionPhone: 'Agregar número de teléfono',
-    completionCity: 'Agregar ciudad',
-    completionFirstLast: 'Agregar nombre y apellido',
-    completionRole: 'Agregar rol principal',
-    completionBusinessZip: 'Agregar ZIP comercial',
-    completionDeliveryRadius: 'Agregar radio de entrega',
-    completionStorefront: 'Habilitar tienda',
-    completionVehicleType: 'Agregar tipo de vehículo',
-    completionTrailerType: 'Agregar tipo de remolque',
-    completionPayload: 'Agregar capacidad de carga',
-    completionMechanicServices: 'Agregar especialidades de mecánica',
-    completionMechanicEquipment: 'Agregar equipo / capacidades de reparación',
-    accountOverview: 'Resumen de cuenta',
-    accountOverviewBody:
-      'Mantén tu perfil limpio, creíble y listo para oportunidades cercanas, entregas de materiales, solicitudes de reparación e invitaciones de cuadrilla.',
-    profileStrength: 'Fuerza del perfil',
-    complete: 'Completo',
-    incomplete: 'Necesita trabajo',
-    categoryGroup: 'Grupo de categoría',
-    jobsiteSupportType: 'Tipo de soporte de obra',
-    jobsiteSupportIntro:
-      'Usa Soporte de obra para entrega de materiales, hot shot, cargo van y perfiles de mecánico / reparación de equipo.',
-    serviceTags: 'Etiquetas de servicio',
-    equipmentTags: 'Etiquetas de equipo',
-    availabilityStatus: 'Estado de disponibilidad',
-    contractorVerification: 'Verificación de contratista',
-    verifiedContractor: 'Contratista verificado',
-    notVerifiedContractor: 'No verificado',
-    serviceProfileTitle: 'Perfil de soporte de obra',
-    servicesEquipmentBody:
-      'Selecciona los servicios que ofreces y el equipo que tienes para que los contratistas sepan exactamente lo que puedes hacer.',
-    mechanicProfileTitle: 'Perfil de mecánico / reparación de equipo',
-    mechanicProfileBody:
-      'Usa esta línea para mecánicos diésel, reparación de motores pequeños, skid steer, tractores, maquinaria grande, remolques, hidráulicos y servicio móvil en campo.',
-    mechanicExamplesTitle: 'Especialidades de mecánica para mostrar',
-    mechanicExamplesBody:
-      'Usa las etiquetas de abajo para dejar claro si haces diésel, motor pequeño, skid steer, tractores, mini excavadoras, remolques, hidráulicos o emergencias en obra.',
-    tradesGroup: 'Oficios',
-    jobsiteSupportGroup: 'Soporte de obra',
-    materialDeliveryType: 'Entrega de materiales / Hot Shot',
-    cargoVanType: 'Cargo Van / Entrega local',
-    fleetRepairType: 'Mecánico / Reparación de equipo',
-    selectSupportType: 'Selecciona el tipo de soporte',
-    supplierTradeOptional: 'Las cuentas de proveedor usan detalles comerciales en lugar de oficio, cuadrilla o disponibilidad de trabajador.',
-    supplierBusinessBio: 'Biografía del negocio',
-    businessName: 'Nombre comercial',
-    businessLocation: 'Ubicación del negocio',
-    businessZip: 'ZIP comercial',
-    deliveryRadius: 'Radio de entrega',
-    storefront: 'Tienda',
-    storefrontEnabled: 'Tienda habilitada',
-    storefrontDisabled: 'Tienda deshabilitada',
-    storefrontActions: 'Acciones de tienda',
-    storefrontActionsBody:
-      'Abre tu página de tienda proveedora para revisar cómo contratistas y cuadrillas verán tu negocio.',
-    viewStorefront: 'Ver tienda',
-    materialsCategories: 'Categorías de materiales',
-    customCategoryPlaceholder: 'Escribe una categoría de materiales y presiona Agregar',
-    addCategory: 'Agregar',
-    businessHours: 'Horario Comercial',
-    openNow: 'Abierto Ahora',
-    closedNow: 'Cerrado Ahora',
-    closedAllDay: 'Cerrado Todo el Día',
-    monday: 'Lunes',
-    tuesday: 'Martes',
-    wednesday: 'Miércoles',
-    thursday: 'Jueves',
-    friday: 'Viernes',
-    saturday: 'Sábado',
-    sunday: 'Domingo',
-    supportCrewOptional: 'El tamaño de cuadrilla es opcional para perfiles de proveedor, conductor y mecánico.',
-    miles: 'millas',
-    driverProfileTitle: 'Perfil del conductor',
-    driverProfileBody:
-      'Las cuentas de conductor se mantienen separadas de las cuentas de trabajador, subcontratista y contratista. Mantén actualizada tu configuración de carga para que funcione bien la conexión proveedor → conductor → obra.',
-    vehicleType: 'Tipo de vehículo',
-    trailerType: 'Tipo de remolque',
-    trailerLength: 'Largo del remolque (ft)',
-    payloadCapacity: 'Capacidad de carga (lbs)',
-    driverRoleLocked: 'Los roles de conductor y mecánico se mantienen alineados con el tipo de soporte elegido en el registro.',
-    supplierRoleLocked: 'Las cuentas de proveedor permanecen separadas de las cuentas de trabajadores.',
-    noTrailer: 'Sin remolque',
-    completionActionTitle: 'Centro de acción del perfil',
-    completionActionBody:
-      'Completa primero los elementos de mayor impacto para que tu cuenta tenga más confianza, mejores conexiones rápidas y mejor visibilidad en mano de obra, proveedores, entrega y reparación.',
-    unlocksTitle: 'Lo que desbloquea un perfil completo',
-    unlocksVisibility: 'Más credibilidad en tu perfil público',
-    unlocksQuickConnect: 'Mejor conversión en conexiones rápidas',
-    unlocksPosts: 'Mejor calidad de respuesta en publicaciones',
-    unlocksRequests: 'Solicitudes más limpias de proveedor, entrega y reparación',
-    finishNow: 'Completar elementos principales',
-    openPublicProfile: 'Abrir perfil público',
-    openMessages: 'Abrir mensajes',
-    supplierNextStep: 'Revisar tienda',
-    driverNextStep: 'Abrir entrega',
-    mechanicNextStep: 'Abrir reparación',
-    laborNextStep: 'Abrir mi perfil'
-  }
-}
-
-function formatOptionLabel(option, lang = 'en') {
-  return option.label?.[lang] || option.label?.en || option.value
-}
-
-function detectSupportType(serviceTags = [], role = '', vehicleType = '') {
-  const repairTags = new Set([
-    'diesel_mechanic',
-    'small_engine_repair',
-    'skid_steer_repair',
-    'tractor_repair',
-    'mini_ex_repair',
-    'heavy_equipment_repair',
-    'hydraulic_repair',
-    'trailer_repair',
-    'field_service',
-    'emergency_repair',
-    'jobsite_service'
-  ])
-
-  if (serviceTags.some((tag) => repairTags.has(tag)) || role === 'mechanic') {
-    return 'equipment_fleet_repair'
-  }
-
-  if (serviceTags.includes('local_runs') || serviceTags.includes('last_mile_delivery') || vehicleType === 'cargo_van') {
-    return 'cargo_van_delivery'
-  }
-
-  return 'material_delivery'
-}
-
-function getSupportOptions(type) {
-  if (type === 'equipment_fleet_repair') {
-    return {
-      serviceOptions: FLEET_REPAIR_SERVICE_TAGS,
-      equipmentOptions: FLEET_REPAIR_EQUIPMENT_TAGS
-    }
-  }
-
-  if (type === 'cargo_van_delivery') {
-    return {
-      serviceOptions: MATERIAL_DELIVERY_SERVICE_TAGS.filter((option) =>
-        ['material_delivery', 'last_mile_delivery', 'local_runs', 'same_day_delivery'].includes(option.value)
-      ),
-      equipmentOptions: MATERIAL_DELIVERY_EQUIPMENT_TAGS.filter((option) =>
-        ['pickup_truck', 'cargo_van'].includes(option.value)
-      )
-    }
-  }
-
-  return {
-    serviceOptions: MATERIAL_DELIVERY_SERVICE_TAGS,
-    equipmentOptions: MATERIAL_DELIVERY_EQUIPMENT_TAGS
-  }
-}
-
-function getProfileCompletionPercent(profile) {
-  const crewSizeOptional = ['supplier', 'driver', 'mechanic'].includes(profile.role)
-  const tradeOptional = profile.role === 'supplier'
-
-  const checks = [
-    Boolean(String(profile.display_name || '').trim()),
-    Boolean(String(profile.role || '').trim()),
-    profile.role === 'supplier'
-      ? Boolean(String(profile.business_address || '').trim())
-      : Boolean(String(profile.home_zip || '').trim()),
-    profile.role === 'supplier'
-      ? true
-      : Boolean(String(profile.first_name || '').trim()),
-    profile.role === 'supplier'
-      ? true
-      : Boolean(String(profile.last_name || '').trim()),
-    Boolean(String(profile.phone || '').trim()),
-    Boolean(String(profile.city || '').trim()),
-    Boolean(String(profile.bio || '').trim()),
-    crewSizeOptional ? true : Boolean(Number(profile.crew_size || 0) > 1),
-    profile.role === 'supplier'
-      ? true
-      : Boolean(String(profile.availability_status || '').trim()) || profile.role === 'driver' || profile.role === 'mechanic',
-    profile.role === 'supplier'
-      ? Boolean(String(profile.business_zip || '').trim()) &&
-        Array.isArray(profile.materials_categories) &&
-        profile.materials_categories.length > 0 &&
-        (Boolean(Number(profile.delivery_radius || 0)) || String(profile.delivery_radius || '').trim() !== '') &&
-        Boolean(profile.storefront)
-      : profile.role === 'driver'
-        ? Boolean(String(profile.vehicle_type || '').trim()) &&
-          Boolean(String(profile.trailer_type || '').trim()) &&
-          (Boolean(Number(profile.payload_capacity || 0)) || String(profile.payload_capacity || '').trim() !== '') &&
-          (Boolean(Number(profile.delivery_radius || 0)) || String(profile.delivery_radius || '').trim() !== '')
-        : profile.role === 'mechanic'
-          ? Array.isArray(profile.service_tags) &&
-            profile.service_tags.length > 0 &&
-            Array.isArray(profile.equipment_tags) &&
-            profile.equipment_tags.length > 0
-          : profile.category_group === 'trade'
-            ? tradeOptional || Boolean(String(profile.trade_id || '').trim())
-            : Array.isArray(profile.service_tags) &&
-              profile.service_tags.length > 0 &&
-              Array.isArray(profile.equipment_tags) &&
-              profile.equipment_tags.length > 0
-  ]
-
-  const completeCount = checks.filter(Boolean).length
-  return Math.round((completeCount / checks.length) * 100)
-}
-
-function labelForOption(option, lang) {
-  return option.label?.[lang] || option.label?.en || option.value
-}
-
-function getCompletionItems(profile, copy) {
-  const items = []
-  const crewSizeOptional = ['supplier', 'driver', 'mechanic'].includes(profile.role)
-  const tradeOptional = profile.role === 'supplier'
-
-  if (profile.role !== 'supplier' && (!String(profile.first_name || '').trim() || !String(profile.last_name || '').trim())) {
-    items.push(copy.completionFirstLast)
-  }
-
-  if (!String(profile.phone || '').trim()) {
-    items.push(copy.completionPhone)
-  }
-
-  if (!String(profile.city || '').trim()) {
-    items.push(copy.completionCity)
-  }
-
-  if (!String(profile.role || '').trim()) {
-    items.push(copy.completionRole)
-  }
-
-  if (!String(profile.bio || '').trim()) {
-    items.push(copy.completionBio)
-  }
-
-  if (!crewSizeOptional && (!Number(profile.crew_size || 0) || Number(profile.crew_size || 0) <= 1)) {
-    items.push(copy.completionCrew)
-  }
-
-  if (profile.role === 'supplier') {
-    if (!String(profile.business_address || '').trim()) {
-      items.push(copy.businessLocation)
-    }
-    if (!String(profile.business_zip || '').trim()) {
-      items.push(copy.completionBusinessZip)
-    }
-    if (!Array.isArray(profile.materials_categories) || profile.materials_categories.length === 0) {
-      items.push(copy.materialsCategories)
-    }
-    if (!Number(profile.delivery_radius || 0) && !String(profile.delivery_radius || '').trim()) {
-      items.push(copy.completionDeliveryRadius)
-    }
-    if (!Boolean(profile.storefront)) {
-      items.push(copy.completionStorefront)
-    }
-  } else if (profile.role === 'driver') {
-    if (!String(profile.vehicle_type || '').trim()) {
-      items.push(copy.completionVehicleType)
-    }
-    if (!String(profile.trailer_type || '').trim()) {
-      items.push(copy.completionTrailerType)
-    }
-    if (!Number(profile.payload_capacity || 0) && !String(profile.payload_capacity || '').trim()) {
-      items.push(copy.completionPayload)
-    }
-    if (!Number(profile.delivery_radius || 0) && !String(profile.delivery_radius || '').trim()) {
-      items.push(copy.completionDeliveryRadius)
-    }
-  } else if (profile.role === 'mechanic') {
-    if (!Array.isArray(profile.service_tags) || profile.service_tags.length === 0) {
-      items.push(copy.completionMechanicServices)
-    }
-    if (!Array.isArray(profile.equipment_tags) || profile.equipment_tags.length === 0) {
-      items.push(copy.completionMechanicEquipment)
-    }
-  } else if (profile.category_group === 'trade' && !tradeOptional && !String(profile.trade_id || '').trim()) {
-    items.push(copy.tradeRequired)
-  }
-
-  return items
-}
-
-export default function MyAccount({ lang = 'en', setLang = () => {} }) {
+export default function MyAccount({ lang = 'en' }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [msg, setMsg] = useState('')
-  const [trades, setTrades] = useState([])
-  const [inviteLink, setInviteLink] = useState('')
-  const [copyStatus, setCopyStatus] = useState('')
-  const [completionItems, setCompletionItems] = useState([])
-  const [customMaterialCategory, setCustomMaterialCategory] = useState('')
-  const [currentUserId, setCurrentUserId] = useState('')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [userId, setUserId] = useState('')
+  const [form, setForm] = useState(emptyForm())
 
-  const [form, setForm] = useState({
-    display_name: '',
-    role: 'laborer',
-    trade_id: '',
-    first_name: '',
-    last_name: '',
-    email: '',
-    phone: '',
-    city: '',
-    home_zip: '',
-    travel_radius_miles: 50,
-    crew_size: 1,
-    preferred_language: lang || 'en',
-    bio: '',
-    category_group: 'trade',
-    jobsite_support_type: 'material_delivery',
-    service_tags: [],
-    equipment_tags: [],
-    availability_status: 'available_now',
-    contractor_verified: false,
-    business_name: '',
-    business_address: '',
-    business_zip: '',
-    materials_categories: [],
-    storefront: false,
-    vehicle_type: '',
-    trailer_type: 'none',
-    trailer_length: '',
-    payload_capacity: '',
-    delivery_radius: '',
-    business_hours: defaultBusinessHours()
-  })
-
-  const copy = COPY[form.preferred_language] || COPY.en
-  const profileStrength = useMemo(() => getProfileCompletionPercent(form), [form])
-  const publicProfileLink = useMemo(() => {
-    if (!currentUserId) return '/feed'
-    if (form.role === 'supplier') return `/supplier/${currentUserId}`
-    return `/u/${currentUserId}`
-  }, [currentUserId, form.role])
-  const roleNextStep = useMemo(() => {
-    if (form.role === 'supplier') return { to: currentUserId ? `/supplier/${currentUserId}` : '/materials', label: copy.supplierNextStep }
-    if (form.role === 'driver') return { to: '/delivery', label: copy.driverNextStep }
-    if (form.role === 'mechanic') return { to: '/mechanics', label: copy.mechanicNextStep }
-    return { to: currentUserId ? `/u/${currentUserId}` : '/feed', label: copy.laborNextStep }
-  }, [form.role, currentUserId, copy])
-
-  const supportOptions = useMemo(
-    () => getSupportOptions(form.jobsite_support_type),
-    [form.jobsite_support_type]
-  )
-
-  const serviceOptions = supportOptions.serviceOptions
-  const equipmentOptions = supportOptions.equipmentOptions
-
-  const selectedSupportConfig = useMemo(
-    () =>
-      JOBSITE_SUPPORT_OPTIONS.find((option) => option.value === form.jobsite_support_type) ||
-      JOBSITE_SUPPORT_OPTIONS[0],
-    [form.jobsite_support_type]
-  )
-
-  const isSupplier = form.role === 'supplier'
-  const isDriver = form.role === 'driver'
-  const isMechanic = form.role === 'mechanic'
-  const roleLocked = isSupplier || form.category_group === 'jobsite_support'
+  const copy =
+    lang === 'es'
+      ? {
+          loading: 'Cargando cuenta…',
+          title: 'Mi cuenta',
+          intro: 'Perfil interno para Surplox Industrial, material handling, FMRs, inventario y comunicación del proyecto.',
+          identity: 'Identidad',
+          jobInfo: 'Información del proyecto',
+          certifications: 'Certificaciones / capacidades',
+          notifications: 'Preferencias de alertas',
+          notes: 'Notas',
+          save: 'Guardar cambios',
+          saving: 'Guardando…',
+          saved: 'Cuenta actualizada.',
+          loadError: 'No se pudo cargar la cuenta.',
+          saveError: 'No se pudieron guardar los cambios.',
+          signedOut: 'Debes iniciar sesión.',
+          fullName: 'Nombre completo',
+          company: 'Compañía',
+          project: 'Proyecto',
+          department: 'Departamento',
+          role: 'Puesto / rol',
+          shift: 'Turno',
+          assignedYard: 'Yarda asignada',
+          phone: 'Teléfono',
+          email: 'Correo',
+          supervisor: 'Supervisor',
+          forklift: 'Forklift certificado',
+          telehandler: 'Telehandler certificado',
+          rigger: 'Rigger',
+          pipefitter: 'Pipefitter',
+          newFmrs: 'Nuevos FMRs',
+          statusChanges: 'Cambios de estatus',
+          receiving: 'Receiving / entregas de proveedor',
+          inventory: 'Movimientos de inventario'
+        }
+      : {
+          loading: 'Loading account…',
+          title: 'My Account',
+          intro: 'Internal profile for Surplox Industrial, material handling, FMRs, inventory, and project communication.',
+          identity: 'Identity',
+          jobInfo: 'Project information',
+          certifications: 'Certifications / capabilities',
+          notifications: 'Alert preferences',
+          notes: 'Notes',
+          save: 'Save changes',
+          saving: 'Saving…',
+          saved: 'Account updated.',
+          loadError: 'Unable to load account.',
+          saveError: 'Unable to save changes.',
+          signedOut: 'You must be signed in.',
+          fullName: 'Full name',
+          company: 'Company',
+          project: 'Project',
+          department: 'Department',
+          role: 'Position / role',
+          shift: 'Shift',
+          assignedYard: 'Assigned yard',
+          phone: 'Phone',
+          email: 'Email',
+          supervisor: 'Supervisor',
+          forklift: 'Forklift certified',
+          telehandler: 'Telehandler certified',
+          rigger: 'Rigger',
+          pipefitter: 'Pipefitter',
+          newFmrs: 'New FMRs',
+          statusChanges: 'Status changes',
+          receiving: 'Receiving / vendor deliveries',
+          inventory: 'Inventory movements'
+        }
 
   function setField(key, value) {
-    setForm((prev) => ({ ...prev, [key]: value }))
-  }
-
-  function toggleMultiTag(key, value) {
-    setForm((prev) => {
-      const current = Array.isArray(prev[key]) ? prev[key] : []
-      const exists = current.includes(value)
-      return {
-        ...prev,
-        [key]: exists ? current.filter((item) => item !== value) : [...current, value]
-      }
-    })
-  }
-
-  function toggleMaterialsCategory(value) {
-    setForm((prev) => {
-      const current = Array.isArray(prev.materials_categories) ? prev.materials_categories : []
-      const exists = current.includes(value)
-      return {
-        ...prev,
-        materials_categories: exists ? current.filter((item) => item !== value) : [...current, value]
-      }
-    })
-  }
-
-  function addCustomMaterialsCategory() {
-    const value = String(customMaterialCategory || '').trim()
-    if (!value) return
-    setForm((prev) => {
-      const current = Array.isArray(prev.materials_categories) ? prev.materials_categories : []
-      if (current.includes(value)) return prev
-      return { ...prev, materials_categories: [...current, value] }
-    })
-    setCustomMaterialCategory('')
-  }
-
-  function prettyMaterialLabel(value) {
-    const map = {
-      equipment_rental: 'Equipment Rental',
-      safety_equipment: 'Safety Equipment',
-      lumber: 'Lumber',
-      concrete: 'Concrete',
-      steel: 'Steel',
-      electrical: 'Electrical',
-      plumbing: 'Plumbing',
-      drywall: 'Drywall',
-      fasteners: 'Fasteners',
-      tools: 'Tools'
-    }
-    return map[value] || value
-  }
-
-  function updateBusinessHours(dayKey, updates) {
     setForm((prev) => ({
       ...prev,
-      business_hours: {
-        ...normalizeBusinessHours(prev.business_hours),
-        [dayKey]: {
-          ...normalizeBusinessHours(prev.business_hours)[dayKey],
-          ...updates
-        }
-      }
+      [key]: value
     }))
   }
 
-  function buildInviteLink(userId) {
-    if (!userId) return ''
-    return `${window.location.origin}/auth?ref=${userId}`
-  }
-
-  async function loadData() {
+  async function loadProfile() {
     setLoading(true)
-    setMsg('')
+    setError('')
+    setMessage('')
 
-    const { data: sessionData } = await supabase.auth.getSession()
-    const user = sessionData.session?.user
-
-    if (!user) {
-      setMsg(copy.signedInRequired)
-      setLoading(false)
-      return
-    }
-
-    setCurrentUserId(user.id)
-
-    const [
-      { data: tradesData, error: tradesError },
-      { data: profileData, error: profileError },
-      { data: privateData, error: privateError }
-    ] = await Promise.all([
-      supabase.from('trades').select('id,name').order('name'),
-      supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle(),
-      supabase.from('contact_private').select('*').eq('user_id', user.id).maybeSingle()
-    ])
-
-    if (tradesError) console.error(tradesError)
-    if (profileError) console.error(profileError)
-    if (privateError) console.error(privateError)
-
-    setTrades(tradesData || [])
-
-    const nextLang =
-      profileData?.preferred_language || lang || localStorage.getItem('surplox_lang') || 'en'
-
-    const supportType =
-      profileData?.category_group === 'jobsite_support'
-        ? detectSupportType(profileData?.service_tags || [], profileData?.role || '', profileData?.vehicle_type || '')
-        : 'material_delivery'
-
-    const mergedForm = {
-      display_name: profileData?.display_name || '',
-      role: profileData?.role || 'laborer',
-      trade_id: profileData?.trade_id ? String(profileData.trade_id) : '',
-      first_name: profileData?.first_name || '',
-      last_name: profileData?.last_name || '',
-      email: privateData?.email || user.email || '',
-      phone: privateData?.phone || '',
-      city: privateData?.city || '',
-      home_zip: profileData?.home_zip ? String(profileData.home_zip) : '',
-      travel_radius_miles: profileData?.travel_radius_miles || 50,
-      crew_size: profileData?.crew_size || 1,
-      preferred_language: nextLang,
-      bio: profileData?.bio || '',
-      category_group:
-        profileData?.role === 'driver' || profileData?.role === 'mechanic'
-          ? 'jobsite_support'
-          : profileData?.category_group || 'trade',
-      jobsite_support_type: supportType,
-      service_tags: Array.isArray(profileData?.service_tags) ? profileData.service_tags : [],
-      equipment_tags: Array.isArray(profileData?.equipment_tags) ? profileData.equipment_tags : [],
-      availability_status: profileData?.availability_status || 'available_now',
-      contractor_verified: Boolean(profileData?.contractor_verified),
-      business_name: profileData?.business_name || '',
-      business_address: profileData?.business_address || '',
-      business_zip: profileData?.business_zip || '',
-      materials_categories: Array.isArray(profileData?.materials_categories) ? profileData.materials_categories : [],
-      storefront: Boolean(profileData?.storefront),
-      vehicle_type: profileData?.vehicle_type || '',
-      trailer_type: profileData?.trailer_type || 'none',
-      trailer_length: profileData?.trailer_length ?? '',
-      payload_capacity: profileData?.payload_capacity ?? '',
-      delivery_radius: profileData?.delivery_radius ?? '',
-      business_hours: normalizeBusinessHours(profileData?.business_hours)
-    }
-
-    setForm(mergedForm)
-    setInviteLink(buildInviteLink(user.id))
-    setLang(nextLang)
-    localStorage.setItem('surplox_lang', nextLang)
-    setCompletionItems(getCompletionItems(mergedForm, COPY[nextLang] || COPY.en))
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  useEffect(() => {
-    setCompletionItems(getCompletionItems(form, copy))
-  }, [form, copy])
-
-  useEffect(() => {
-    if (form.category_group === 'jobsite_support') {
-      const roleFromSupport = selectedSupportConfig.role
-      setForm((prev) => ({
-        ...prev,
-        role: roleFromSupport,
-        vehicle_type:
-          roleFromSupport === 'driver'
-            ? prev.vehicle_type || selectedSupportConfig.default_vehicle_type || ''
-            : prev.vehicle_type
-      }))
-    }
-  }, [form.category_group, selectedSupportConfig])
-
-  async function copyInviteLink() {
     try {
-      if (!inviteLink) throw new Error('Missing invite link')
-      await navigator.clipboard.writeText(inviteLink)
-      setCopyStatus(copy.inviteCopied)
-      setTimeout(() => setCopyStatus(''), 2000)
-    } catch (error) {
-      console.error(error)
-      setCopyStatus(copy.inviteCopyError)
-      setTimeout(() => setCopyStatus(''), 2500)
-    }
-  }
+      const { data: sessionData } = await supabase.auth.getSession()
+      const user = sessionData.session?.user
 
-  async function shareInvite() {
-    try {
-      if (!inviteLink) throw new Error('Missing invite link')
-      if (navigator.share) {
-        await navigator.share({
-          title: 'Surplox Invite',
-          text: inviteLink,
-          url: inviteLink
+      if (!user) {
+        setError(copy.signedOut)
+        setLoading(false)
+        return
+      }
+
+      setUserId(user.id)
+
+      const { data, error: profileError } = await supabase
+        .from('industrial_user_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (profileError) throw profileError
+
+      if (data) {
+        setForm({
+          ...emptyForm(),
+          ...data,
+          email: data.email || user.email || ''
         })
       } else {
-        await copyInviteLink()
+        setForm({
+          ...emptyForm(),
+          email: user.email || ''
+        })
       }
-    } catch (error) {
-      console.error(error)
-      setCopyStatus(copy.inviteShareError)
-      setTimeout(() => setCopyStatus(''), 2500)
+    } catch (err) {
+      console.error(err)
+      setError(copy.loadError)
+    } finally {
+      setLoading(false)
     }
   }
 
-  function textInvite() {
-    try {
-      if (!inviteLink) throw new Error('Missing invite link')
-      window.location.href = `sms:?&body=${encodeURIComponent(inviteLink)}`
-    } catch (error) {
-      console.error(error)
-      setCopyStatus(copy.inviteTextError)
-      setTimeout(() => setCopyStatus(''), 2500)
-    }
-  }
+  useEffect(() => {
+    loadProfile()
+  }, [])
 
-  function emailInvite() {
-    try {
-      if (!inviteLink) throw new Error('Missing invite link')
-      window.location.href = `mailto:?subject=${encodeURIComponent('Join me on Surplox')}&body=${encodeURIComponent(inviteLink)}`
-    } catch (error) {
-      console.error(error)
-      setCopyStatus(copy.inviteEmailError)
-      setTimeout(() => setCopyStatus(''), 2500)
-    }
-  }
-
-  function validateForm() {
-    if (!String(form.display_name || '').trim()) {
-      setMsg(copy.displayNameRequired)
-      return false
-    }
-
-    if (!isSupplier && !/^\d{5}$/.test(String(form.home_zip || '').trim())) {
-      setMsg(copy.zipInvalid)
-      return false
-    }
-
-    if (form.category_group === 'trade' && !isSupplier && !String(form.trade_id || '').trim()) {
-      setMsg(copy.tradeRequired)
-      return false
-    }
-
-    if (String(form.email || '').trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(form.email).trim())) {
-      setMsg(copy.emailInvalid)
-      return false
-    }
-
-    if (String(form.phone || '').trim()) {
-      const digits = String(form.phone || '').replace(/\D/g, '')
-      if (digits.length < 10) {
-        setMsg(copy.phoneInvalid)
-        return false
-      }
-    }
-
-    if (!['en', 'es'].includes(form.preferred_language)) {
-      setMsg(copy.languageInvalid)
-      return false
-    }
-
-    if (!isSupplier && !isDriver && !isMechanic && !AVAILABILITY_OPTIONS.some((option) => option.value === form.availability_status)) {
-      setMsg(copy.availabilityInvalid)
-      return false
-    }
-
-    if (!CATEGORY_GROUP_OPTIONS.some((option) => option.value === form.category_group)) {
-      setMsg(copy.categoryInvalid)
-      return false
-    }
-
-    if (form.category_group === 'jobsite_support' && !JOBSITE_SUPPORT_OPTIONS.some((option) => option.value === form.jobsite_support_type)) {
-      setMsg(copy.supportTypeInvalid)
-      return false
-    }
-
-    return true
-  }
-
-  async function save() {
-    setMsg('')
-    if (!validateForm()) return
-
+  async function saveProfile(event) {
+    event.preventDefault()
     setSaving(true)
+    setError('')
+    setMessage('')
 
-    const { data: sessionData } = await supabase.auth.getSession()
-    const user = sessionData.session?.user
+    try {
+      if (!userId) throw new Error(copy.signedOut)
 
-    if (!user) {
-      setMsg(copy.signedInRequired)
+      const payload = {
+        user_id: userId,
+        full_name: form.full_name.trim(),
+        company: form.company.trim(),
+        project_name: form.project_name.trim(),
+        department: form.department.trim(),
+        role_title: form.role_title.trim(),
+        shift: form.shift.trim(),
+        assigned_yard: form.assigned_yard.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim(),
+        supervisor: form.supervisor.trim(),
+        forklift_certified: Boolean(form.forklift_certified),
+        telehandler_certified: Boolean(form.telehandler_certified),
+        rigger: Boolean(form.rigger),
+        pipefitter: Boolean(form.pipefitter),
+        notifications_new_fmrs: Boolean(form.notifications_new_fmrs),
+        notifications_status_changes: Boolean(form.notifications_status_changes),
+        notifications_receiving: Boolean(form.notifications_receiving),
+        notifications_inventory: Boolean(form.notifications_inventory),
+        notes: form.notes.trim()
+      }
+
+      const { error: saveError } = await supabase
+        .from('industrial_user_profiles')
+        .upsert(payload, { onConflict: 'user_id' })
+
+      if (saveError) throw saveError
+
+      setMessage(copy.saved)
+    } catch (err) {
+      console.error(err)
+      setError(copy.saveError)
+    } finally {
       setSaving(false)
-      return
     }
-
-    const resolvedIsSupplier = form.role === 'supplier'
-    const resolvedCategoryGroup = resolvedIsSupplier ? 'trade' : form.category_group
-    const resolvedSupportConfig =
-      resolvedCategoryGroup === 'jobsite_support'
-        ? JOBSITE_SUPPORT_OPTIONS.find((option) => option.value === form.jobsite_support_type) || JOBSITE_SUPPORT_OPTIONS[0]
-        : null
-    const resolvedRole = resolvedIsSupplier
-      ? 'supplier'
-      : resolvedCategoryGroup === 'jobsite_support'
-        ? resolvedSupportConfig.role
-        : form.role
-
-    const resolvedServiceTags =
-      resolvedIsSupplier
-        ? []
-        : resolvedCategoryGroup === 'jobsite_support'
-          ? (Array.isArray(form.service_tags) && form.service_tags.length > 0 ? form.service_tags : resolvedSupportConfig.service_tags)
-          : []
-
-    const resolvedEquipmentTags =
-      resolvedIsSupplier
-        ? []
-        : resolvedCategoryGroup === 'jobsite_support'
-          ? (Array.isArray(form.equipment_tags) && form.equipment_tags.length > 0 ? form.equipment_tags : resolvedSupportConfig.equipment_tags)
-          : []
-
-    const profilePayload = {
-      user_id: user.id,
-      display_name: form.display_name.trim(),
-      role: resolvedRole,
-      trade_id:
-        resolvedIsSupplier
-          ? null
-          : resolvedCategoryGroup === 'trade'
-            ? Number(form.trade_id) || null
-            : null,
-      first_name: resolvedIsSupplier ? '' : form.first_name.trim(),
-      last_name: resolvedIsSupplier ? '' : form.last_name.trim(),
-      home_zip: resolvedIsSupplier ? null : form.home_zip.trim(),
-      travel_radius_miles: resolvedIsSupplier ? null : Number(form.travel_radius_miles) || 50,
-      crew_size: resolvedIsSupplier ? null : Number(form.crew_size) || 1,
-      preferred_language: form.preferred_language,
-      bio: form.bio.trim(),
-      category_group: resolvedCategoryGroup,
-      availability_status: resolvedIsSupplier || resolvedRole === 'driver' || resolvedRole === 'mechanic' ? null : form.availability_status,
-      contractor_verified: Boolean(form.contractor_verified),
-      service_tags: resolvedServiceTags,
-      equipment_tags: resolvedEquipmentTags,
-      business_name: resolvedIsSupplier ? form.business_name.trim() : null,
-      business_address: resolvedIsSupplier ? form.business_address.trim() : null,
-      business_zip: resolvedIsSupplier ? form.business_zip.trim() : null,
-      materials_categories: resolvedIsSupplier ? form.materials_categories : [],
-      storefront: resolvedIsSupplier ? Boolean(form.storefront) : false,
-      business_hours: resolvedIsSupplier ? normalizeBusinessHours(form.business_hours) : null,
-      vehicle_type: resolvedRole === 'driver' ? form.vehicle_type || null : null,
-      trailer_type: resolvedRole === 'driver' ? form.trailer_type || 'none' : null,
-      trailer_length: resolvedRole === 'driver' && String(form.trailer_length || '').trim() ? Number(form.trailer_length) : null,
-      payload_capacity: resolvedRole === 'driver' && String(form.payload_capacity || '').trim() ? Number(form.payload_capacity) : null,
-      delivery_radius:
-        (resolvedRole === 'driver' || resolvedIsSupplier) && String(form.delivery_radius || '').trim()
-          ? Number(form.delivery_radius)
-          : null
-    }
-
-    const privatePayload = {
-      user_id: user.id,
-      email: form.email.trim(),
-      phone: form.phone.trim(),
-      city: form.city.trim()
-    }
-
-    const [{ error: profileError }, { error: privateError }] = await Promise.all([
-      supabase.from('profiles').upsert(profilePayload),
-      supabase.from('contact_private').upsert(privatePayload)
-    ])
-
-    if (profileError || privateError) {
-      console.error(profileError || privateError)
-      setMsg(copy.saveError)
-      setSaving(false)
-      return
-    }
-
-    setForm((prev) => ({
-      ...prev,
-      role: resolvedRole,
-      category_group: resolvedCategoryGroup,
-      service_tags: resolvedServiceTags,
-      equipment_tags: resolvedEquipmentTags
-    }))
-
-    setMsg(copy.success)
-    setSaving(false)
   }
 
   if (loading) {
-    return (
-      <div className="card rounded-xl">
-        <div className="muted">{copy.loading}</div>
-      </div>
-    )
+    return <div className="card">{copy.loading}</div>
   }
 
   return (
-    <div className="grid" style={{ gap: 18 }}>
+    <form onSubmit={saveProfile} className="grid" style={{ gap: 18 }}>
       <div
         className="card rounded-xl"
         style={{
@@ -1158,327 +237,52 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
           background: 'linear-gradient(180deg, #fff7cf 0%, #ffffff 100%)'
         }}
       >
-        <div className="badge good">{copy.title}</div>
-        <div className="h1" style={{ marginTop: 14 }}>{copy.title}</div>
-        <p className="muted" style={{ marginTop: 8 }}>{copy.intro}</p>
-
-        <div className="grid three" style={{ marginTop: 18 }}>
-          <div className="card-soft" style={{ minHeight: 92 }}>
-            <div className="muted" style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>
-              {copy.profileStrength}
-            </div>
-            <div style={{ marginTop: 8, fontSize: 32, fontWeight: 900 }}>{profileStrength}%</div>
-          </div>
-          <div className="card-soft" style={{ minHeight: 92 }}>
-            <div className="muted" style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>
-              {copy.complete}
-            </div>
-            <div style={{ marginTop: 8, fontSize: 32, fontWeight: 900 }}>
-              {Math.max(0, 100 - (completionItems.length * 10))}
-            </div>
-          </div>
-          <div className="card-soft" style={{ minHeight: 92 }}>
-            <div className="muted" style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase' }}>
-              {copy.incomplete}
-            </div>
-            <div style={{ marginTop: 8, fontSize: 32, fontWeight: 900 }}>{completionItems.length}</div>
-          </div>
+        <div className="badge">Surplox Industrial</div>
+        <div className="h1" style={{ marginTop: 14 }}>
+          {copy.title}
         </div>
+        <p className="muted" style={{ marginTop: 10, maxWidth: 820, lineHeight: 1.7 }}>
+          {copy.intro}
+        </p>
       </div>
 
-      {completionItems.length > 0 ? (
-        <div className="card rounded-xl" style={{ padding: 24 }}>
-          <div className="card-section-title">{copy.completionTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.completionBody}</p>
-
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
-            {completionItems.map((item) => (
-              <span key={item} className="badge">{item}</span>
-            ))}
-          </div>
+      {error ? (
+        <div className="card-soft" style={{ background: '#fff4da' }}>
+          {error}
         </div>
       ) : null}
 
-      <div className="card rounded-xl" style={{ padding: 24, background: '#fffaf0' }}>
-        <div className="card-section-title">{copy.completionActionTitle}</div>
-        <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.completionActionBody}</p>
-
-        <div className="grid two" style={{ marginTop: 16 }}>
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="card-section-title" style={{ fontSize: 16 }}>{copy.unlocksTitle}</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-              <span className="badge">{copy.unlocksVisibility}</span>
-              <span className="badge">{copy.unlocksQuickConnect}</span>
-              <span className="badge">{copy.unlocksPosts}</span>
-              <span className="badge">{copy.unlocksRequests}</span>
-            </div>
-          </div>
-
-          <div className="card-soft" style={{ background: '#ffffff' }}>
-            <div className="card-section-title" style={{ fontSize: 16 }}>{copy.profileStrength}</div>
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-              {completionItems.length > 0
-                ? `${completionItems.length} ${copy.incomplete.toLowerCase()}`
-                : copy.complete}
-            </p>
-
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 }}>
-              <a href="#account-form" className="btn primary">
-                {copy.finishNow}
-              </a>
-
-              <Link className="btn" to={publicProfileLink}>
-                {copy.openPublicProfile}
-              </Link>
-
-              <Link className="btn" to="/messages">
-                {copy.openMessages}
-              </Link>
-
-              <Link className="btn" to={roleNextStep.to}>
-                {roleNextStep.label}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="card rounded-xl" style={{ padding: 24 }}>
-        <div className="card-section-title">{copy.inviteTitle}</div>
-        <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.inviteBody}</p>
-
-        <div className="grid" style={{ marginTop: 14, gap: 12 }}>
-          <div>
-            <div className="muted" style={{ marginBottom: 6 }}>{copy.invitePreviewLabel}</div>
-            <div className="card-soft" style={{ minHeight: 'auto', padding: 14, wordBreak: 'break-all' }}>
-              {inviteLink || '—'}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button type="button" className="btn primary" onClick={copyInviteLink}>
-              {copy.copyInvite}
-            </button>
-            <button type="button" className="btn" onClick={shareInvite}>
-              {copy.shareInvite}
-            </button>
-            <button type="button" className="btn" onClick={textInvite}>
-              {copy.textInvite}
-            </button>
-            <button type="button" className="btn" onClick={emailInvite}>
-              {copy.emailInvite}
-            </button>
-          </div>
-
-          {copyStatus ? (
-            <div className="card-soft" style={{ minHeight: 'auto', padding: 14 }}>
-              {copyStatus}
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      {msg ? (
-        <div className="card rounded-xl" style={{ padding: 18 }}>
-          <div>{msg}</div>
+      {message ? (
+        <div className="card-soft" style={{ background: '#dcf4e5', color: '#177245' }}>
+          {message}
         </div>
       ) : null}
 
-      <div className="grid two">
-        <div id="account-form" className="card rounded-xl" style={{ padding: 24 }}>
-          <div className="card-section-title">{copy.accountOverview}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>{copy.accountOverviewBody}</p>
+      <div className="grid two" style={{ alignItems: 'start' }}>
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.identity}</div>
 
-          <div className="grid" style={{ marginTop: 18, gap: 14 }}>
+          <div className="grid" style={{ marginTop: 16, gap: 14 }}>
             <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.displayName}</div>
+              <label className="muted">{copy.fullName}</label>
               <input
                 className="input"
-                value={form.display_name}
-                onChange={(e) => setField('display_name', e.target.value)}
+                value={form.full_name}
+                onChange={(e) => setField('full_name', e.target.value)}
               />
             </div>
 
             <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.primaryRole}</div>
-              <select
+              <label className="muted">{copy.phone}</label>
+              <input
                 className="input"
-                value={form.role}
-                onChange={(e) => setField('role', e.target.value)}
-                disabled={roleLocked}
-              >
-                {ROLE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {formatOptionLabel(option, form.preferred_language)}
-                  </option>
-                ))}
-              </select>
-              {isSupplier ? (
-                <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
-                  {copy.supplierRoleLocked}
-                </div>
-              ) : null}
-              {form.category_group === 'jobsite_support' ? (
-                <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
-                  {copy.driverRoleLocked}
-                </div>
-              ) : null}
+                value={form.phone}
+                onChange={(e) => setField('phone', e.target.value)}
+              />
             </div>
 
-            {!isSupplier ? (
-              <div>
-                <div className="muted" style={{ marginBottom: 6 }}>{copy.categoryGroup}</div>
-                <select
-                  className="input"
-                  value={form.category_group}
-                  onChange={(e) => setField('category_group', e.target.value)}
-                  disabled={form.category_group === 'jobsite_support'}
-                >
-                  {CATEGORY_GROUP_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {labelForOption(option, form.preferred_language)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : null}
-
-            {form.category_group === 'trade' && !isSupplier ? (
-              <div>
-                <div className="muted" style={{ marginBottom: 6 }}>{copy.trade}</div>
-                <select
-                  className="input"
-                  value={form.trade_id}
-                  onChange={(e) => setField('trade_id', e.target.value)}
-                >
-                  <option value="">{copy.selectTrade}</option>
-                  {trades.map((trade) => (
-                    <option key={trade.id} value={trade.id}>
-                      {trade.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              !isSupplier ? (
-                <>
-                  <div>
-                    <div className="muted" style={{ marginBottom: 6 }}>{copy.jobsiteSupportType}</div>
-                    <select
-                      className="input"
-                      value={form.jobsite_support_type}
-                      onChange={(e) => {
-                        const nextType = e.target.value
-                        const nextConfig =
-                          JOBSITE_SUPPORT_OPTIONS.find((option) => option.value === nextType) || JOBSITE_SUPPORT_OPTIONS[0]
-                        setForm((prev) => ({
-                          ...prev,
-                          jobsite_support_type: nextType,
-                          role: nextConfig.role,
-                          category_group: 'jobsite_support',
-                          service_tags:
-                            Array.isArray(prev.service_tags) && prev.jobsite_support_type === nextType && prev.service_tags.length > 0
-                              ? prev.service_tags
-                              : nextConfig.service_tags,
-                          equipment_tags:
-                            Array.isArray(prev.equipment_tags) && prev.jobsite_support_type === nextType && prev.equipment_tags.length > 0
-                              ? prev.equipment_tags
-                              : nextConfig.equipment_tags,
-                          vehicle_type:
-                            nextConfig.role === 'driver'
-                              ? prev.vehicle_type || nextConfig.default_vehicle_type || ''
-                              : prev.vehicle_type
-                        }))
-                      }}
-                    >
-                      {JOBSITE_SUPPORT_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {labelForOption(option, form.preferred_language)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="card-soft" style={{ background: '#fffaf0' }}>
-                    <div className="card-section-title" style={{ fontSize: 15 }}>
-                      {isMechanic ? copy.mechanicProfileTitle : copy.serviceProfileTitle}
-                    </div>
-                    <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-                      {isMechanic ? copy.mechanicProfileBody : copy.servicesEquipmentBody}
-                    </p>
-                  </div>
-                </>
-              ) : null
-            )}
-
-            {!isSupplier ? (
-              <div>
-                <div className="muted" style={{ marginBottom: 6 }}>{copy.zip}</div>
-                <input
-                  className="input"
-                  value={form.home_zip}
-                  onChange={(e) => setField('home_zip', e.target.value.replace(/[^\d]/g, '').slice(0, 5))}
-                />
-              </div>
-            ) : null}
-
-            {!isSupplier ? (
-              <div>
-                <div className="muted" style={{ marginBottom: 6 }}>{copy.radius}</div>
-                <input
-                  className="input"
-                  type="number"
-                  value={form.travel_radius_miles}
-                  onChange={(e) => setField('travel_radius_miles', e.target.value)}
-                />
-              </div>
-            ) : null}
-
-            {!isSupplier ? (
-              <div>
-                <div className="muted" style={{ marginBottom: 6 }}>{copy.crewSize}</div>
-                <input
-                  className="input"
-                  type="number"
-                  value={form.crew_size}
-                  onChange={(e) => setField('crew_size', e.target.value)}
-                />
-                {['driver', 'mechanic'].includes(form.role) ? (
-                  <div className="muted" style={{ marginTop: 8, fontSize: 13 }}>
-                    {copy.supportCrewOptional}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="card rounded-xl" style={{ padding: 24 }}>
-          <div className="grid" style={{ gap: 14 }}>
-            {!isSupplier ? (
-              <>
-                <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>{copy.firstName}</div>
-                  <input
-                    className="input"
-                    value={form.first_name}
-                    onChange={(e) => setField('first_name', e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <div className="muted" style={{ marginBottom: 6 }}>{copy.lastName}</div>
-                  <input
-                    className="input"
-                    value={form.last_name}
-                    onChange={(e) => setField('last_name', e.target.value)}
-                  />
-                </div>
-              </>
-            ) : null}
-
             <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.email}</div>
+              <label className="muted">{copy.email}</label>
               <input
                 className="input"
                 type="email"
@@ -1488,463 +292,176 @@ export default function MyAccount({ lang = 'en', setLang = () => {} }) {
             </div>
 
             <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.phone}</div>
+              <label className="muted">{copy.supervisor}</label>
               <input
                 className="input"
-                value={form.phone}
-                onChange={(e) => setField('phone', e.target.value)}
+                value={form.supervisor}
+                onChange={(e) => setField('supervisor', e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.jobInfo}</div>
+
+          <div className="grid" style={{ marginTop: 16, gap: 14 }}>
+            <div>
+              <label className="muted">{copy.company}</label>
+              <input
+                className="input"
+                value={form.company}
+                onChange={(e) => setField('company', e.target.value)}
               />
             </div>
 
             <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.city}</div>
+              <label className="muted">{copy.project}</label>
               <input
                 className="input"
-                value={form.city}
-                onChange={(e) => setField('city', e.target.value)}
+                value={form.project_name}
+                onChange={(e) => setField('project_name', e.target.value)}
               />
             </div>
 
             <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.language}</div>
+              <label className="muted">{copy.department}</label>
+              <input
+                className="input"
+                value={form.department}
+                onChange={(e) => setField('department', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="muted">{copy.role}</label>
+              <input
+                className="input"
+                value={form.role_title}
+                onChange={(e) => setField('role_title', e.target.value)}
+                placeholder="Warehouse Hand, Material Handler, Foreman..."
+              />
+            </div>
+
+            <div>
+              <label className="muted">{copy.shift}</label>
               <select
-                className="input"
-                value={form.preferred_language}
-                onChange={(e) => {
-                  const nextLang = e.target.value
-                  setField('preferred_language', nextLang)
-                  setLang(nextLang)
-                  localStorage.setItem('surplox_lang', nextLang)
-                }}
+                value={form.shift}
+                onChange={(e) => setField('shift', e.target.value)}
               >
-                <option value="en">English</option>
-                <option value="es">Español</option>
+                <option value=""></option>
+                {SHIFT_OPTIONS.map((shift) => (
+                  <option key={shift} value={shift}>
+                    {shift}
+                  </option>
+                ))}
               </select>
             </div>
 
-            {!isSupplier && !isDriver && !isMechanic ? (
-              <div>
-                <div className="muted" style={{ marginBottom: 6 }}>{copy.availabilityStatus}</div>
-                <select
-                  className="input"
-                  value={form.availability_status}
-                  onChange={(e) => setField('availability_status', e.target.value)}
-                >
-                  {AVAILABILITY_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {labelForOption(option, form.preferred_language)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : null}
-
             <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.contractorVerification}</div>
-              <div className="card-soft" style={{ minHeight: 'auto', padding: 14 }}>
-                <span
-                  className="badge"
-                  style={
-                    form.contractor_verified
-                      ? { background: '#111111', color: '#ffffff' }
-                      : { background: '#ecebe3', color: '#111111' }
-                  }
-                >
-                  {form.contractor_verified ? copy.verifiedContractor : copy.notVerifiedContractor}
-                </span>
-              </div>
+              <label className="muted">{copy.assignedYard}</label>
+              <select
+                value={form.assigned_yard}
+                onChange={(e) => setField('assigned_yard', e.target.value)}
+              >
+                <option value=""></option>
+                {YARD_OPTIONS.map((yard) => (
+                  <option key={yard} value={yard}>
+                    {yard}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
       </div>
 
-      {isSupplier ? (
-        <div className="card rounded-xl" style={{ padding: 24 }}>
-          <div className="card-section-title">{copy.businessName}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.supplierTradeOptional}
-          </p>
+      <div className="grid two" style={{ alignItems: 'start' }}>
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.certifications}</div>
 
-          <div className="grid two" style={{ marginTop: 16 }}>
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.businessName}</div>
-              <input
-                className="input"
-                value={form.business_name}
-                onChange={(e) => setField('business_name', e.target.value)}
-              />
-            </div>
-
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.city}</div>
-              <input
-                className="input"
-                value={form.city}
-                onChange={(e) => setField('city', e.target.value)}
-              />
-            </div>
-
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.businessZip}</div>
-              <input
-                className="input"
-                value={form.business_zip}
-                onChange={(e) => setField('business_zip', e.target.value.replace(/[^\d]/g, '').slice(0, 5))}
-              />
-            </div>
-
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.deliveryRadius}</div>
-              <input
-                className="input"
-                type="number"
-                value={form.delivery_radius}
-                onChange={(e) => setField('delivery_radius', e.target.value)}
-              />
-            </div>
-
-            <div style={{ gridColumn: '1 / -1' }}>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.businessLocation}</div>
-              <input
-                className="input"
-                value={form.business_address}
-                onChange={(e) => setField('business_address', e.target.value)}
-              />
-            </div>
-
-            <div style={{ gridColumn: '1 / -1' }}>
-              <div className="muted" style={{ marginBottom: 8 }}>{copy.storefront}</div>
-              <button
-                type="button"
-                className={form.storefront ? 'btn primary' : 'btn'}
-                onClick={() => setField('storefront', !form.storefront)}
-              >
-                {form.storefront ? copy.storefrontEnabled : copy.storefrontDisabled}
-              </button>
-            </div>
-
-            <div style={{ gridColumn: '1 / -1' }}>
-              <div className="muted" style={{ marginBottom: 8 }}>{copy.materialsCategories}</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {['lumber','concrete','steel','electrical','plumbing','drywall','fasteners','equipment_rental','tools','safety_equipment'].map((option) => {
-                  const active = form.materials_categories.includes(option)
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      className={active ? 'btn primary small' : 'btn small'}
-                      onClick={() => toggleMaterialsCategory(option)}
-                    >
-                      {prettyMaterialLabel(option)}
-                    </button>
-                  )
-                })}
-              </div>
-
-              <div style={{ display: 'flex', gap: 10, marginTop: 12, alignItems: 'center' }}>
-                <input
-                  className="input"
-                  style={{ flex: 1 }}
-                  value={customMaterialCategory}
-                  onChange={(e) => setCustomMaterialCategory(e.target.value)}
-                  placeholder={copy.customCategoryPlaceholder}
-                />
-                <button type="button" className="btn" onClick={addCustomMaterialsCategory}>
-                  {copy.addCategory}
-                </button>
-              </div>
-            </div>
-
-            <div style={{ gridColumn: '1 / -1' }}>
-              <div className="card-soft" style={{ minHeight: 'auto', padding: 16, background: '#fffaf0' }}>
-                <div className="card-section-title" style={{ fontSize: 16 }}>{copy.storefrontActions}</div>
-                <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-                  {copy.storefrontActionsBody}
-                </p>
-
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
-                  <span
-                    className="badge"
-                    style={
-                      form.storefront
-                        ? { background: '#dcf4e5', color: '#177245' }
-                        : { background: '#ecebe3', color: '#111111' }
-                    }
-                  >
-                    {form.storefront ? copy.storefrontEnabled : copy.storefrontDisabled}
-                  </span>
-
-                  {currentUserId ? (
-                    <Link className="btn primary small" to={`/supplier/${currentUserId}`}>
-                      {copy.viewStorefront}
-                    </Link>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ gridColumn: '1 / -1' }}>
-              <div className="muted" style={{ marginBottom: 8 }}>{copy.businessHours}</div>
-
-              <div
-                className="card-soft"
-                style={{
-                  minHeight: 'auto',
-                  padding: 14,
-                  marginBottom: 12,
-                  background: getCurrentBusinessStatus(form.business_hours) === 'open' ? '#dcf4e5' : '#f8f7ef'
-                }}
-              >
-                <strong>
-                  {getCurrentBusinessStatus(form.business_hours) === 'open' ? copy.openNow : copy.closedNow}
-                </strong>
-              </div>
-
-              <div style={{ display: 'grid', gap: 10 }}>
-                {BUSINESS_HOUR_DAYS.map((day) => {
-                  const row = normalizeBusinessHours(form.business_hours)[day.key]
-                  return (
-                    <div
-                      key={day.key}
-                      className="card-soft"
-                      style={{ minHeight: 'auto', padding: 14, background: '#ffffff' }}
-                    >
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: '1.2fr 1fr 1fr auto',
-                          gap: 10,
-                          alignItems: 'center'
-                        }}
-                      >
-                        <div style={{ fontWeight: 700 }}>{copy[day.copyKey]}</div>
-
-                        <select
-                          className="input"
-                          value={row.open}
-                          disabled={row.closed}
-                          onChange={(e) => updateBusinessHours(day.key, { open: e.target.value })}
-                        >
-                          {BUSINESS_HOUR_OPTIONS.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-
-                        <select
-                          className="input"
-                          value={row.close}
-                          disabled={row.closed}
-                          onChange={(e) => updateBusinessHours(day.key, { close: e.target.value })}
-                        >
-                          {BUSINESS_HOUR_OPTIONS.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
-                          <input
-                            type="checkbox"
-                            checked={Boolean(row.closed)}
-                            onChange={(e) => updateBusinessHours(day.key, { closed: e.target.checked })}
-                          />
-                          <span>{copy.closedAllDay}</span>
-                        </label>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
+          <div className="grid" style={{ marginTop: 16, gap: 12 }}>
+            <CheckRow
+              label={copy.forklift}
+              checked={form.forklift_certified}
+              onChange={(value) => setField('forklift_certified', value)}
+            />
+            <CheckRow
+              label={copy.telehandler}
+              checked={form.telehandler_certified}
+              onChange={(value) => setField('telehandler_certified', value)}
+            />
+            <CheckRow
+              label={copy.rigger}
+              checked={form.rigger}
+              onChange={(value) => setField('rigger', value)}
+            />
+            <CheckRow
+              label={copy.pipefitter}
+              checked={form.pipefitter}
+              onChange={(value) => setField('pipefitter', value)}
+            />
           </div>
         </div>
-      ) : null}
 
-      {isDriver ? (
-        <div className="card rounded-xl" style={{ padding: 24 }}>
-          <div className="card-section-title">{copy.driverProfileTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.driverProfileBody}
-          </p>
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{copy.notifications}</div>
 
-          <div className="grid two" style={{ marginTop: 16 }}>
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.jobsiteSupportType}</div>
-              <select
-                className="input"
-                value={form.jobsite_support_type}
-                onChange={(e) => {
-                  const nextType = e.target.value
-                  const nextConfig =
-                    JOBSITE_SUPPORT_OPTIONS.find((option) => option.value === nextType) || JOBSITE_SUPPORT_OPTIONS[0]
-                  setForm((prev) => ({
-                    ...prev,
-                    jobsite_support_type: nextType,
-                    role: nextConfig.role,
-                    category_group: 'jobsite_support',
-                    service_tags: nextConfig.service_tags,
-                    equipment_tags: nextConfig.equipment_tags,
-                    vehicle_type: prev.vehicle_type || nextConfig.default_vehicle_type || ''
-                  }))
-                }}
-              >
-                {JOBSITE_SUPPORT_OPTIONS.filter((option) => option.role === 'driver').map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {labelForOption(option, form.preferred_language)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.deliveryRadius}</div>
-              <input
-                className="input"
-                type="number"
-                value={form.delivery_radius}
-                onChange={(e) => setField('delivery_radius', e.target.value)}
-              />
-            </div>
-
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.vehicleType}</div>
-              <select
-                className="input"
-                value={form.vehicle_type}
-                onChange={(e) => setField('vehicle_type', e.target.value)}
-              >
-                <option value=""></option>
-                {DRIVER_VEHICLE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {labelForOption(option, form.preferred_language)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.trailerType}</div>
-              <select
-                className="input"
-                value={form.trailer_type}
-                onChange={(e) => setField('trailer_type', e.target.value)}
-              >
-                {DRIVER_TRAILER_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {labelForOption(option, form.preferred_language)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.trailerLength}</div>
-              <input
-                className="input"
-                type="number"
-                value={form.trailer_length}
-                onChange={(e) => setField('trailer_length', e.target.value)}
-              />
-            </div>
-
-            <div>
-              <div className="muted" style={{ marginBottom: 6 }}>{copy.payloadCapacity}</div>
-              <input
-                className="input"
-                type="number"
-                value={form.payload_capacity}
-                onChange={(e) => setField('payload_capacity', e.target.value)}
-              />
-            </div>
+          <div className="grid" style={{ marginTop: 16, gap: 12 }}>
+            <CheckRow
+              label={copy.newFmrs}
+              checked={form.notifications_new_fmrs}
+              onChange={(value) => setField('notifications_new_fmrs', value)}
+            />
+            <CheckRow
+              label={copy.statusChanges}
+              checked={form.notifications_status_changes}
+              onChange={(value) => setField('notifications_status_changes', value)}
+            />
+            <CheckRow
+              label={copy.receiving}
+              checked={form.notifications_receiving}
+              onChange={(value) => setField('notifications_receiving', value)}
+            />
+            <CheckRow
+              label={copy.inventory}
+              checked={form.notifications_inventory}
+              onChange={(value) => setField('notifications_inventory', value)}
+            />
           </div>
         </div>
-      ) : null}
+      </div>
 
-      {isMechanic ? (
-        <div className="card rounded-xl" style={{ padding: 24 }}>
-          <div className="card-section-title">{copy.mechanicProfileTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {copy.mechanicProfileBody}
-          </p>
-
-          <div className="card-soft" style={{ marginTop: 16, background: '#fffaf0' }}>
-            <div className="card-section-title" style={{ fontSize: 16 }}>{copy.mechanicExamplesTitle}</div>
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-              {copy.mechanicExamplesBody}
-            </p>
-          </div>
-        </div>
-      ) : null}
-
-      {form.category_group === 'jobsite_support' && !isSupplier ? (
-        <div className="card rounded-xl" style={{ padding: 24 }}>
-          <div className="card-section-title">{isMechanic ? copy.mechanicProfileTitle : copy.serviceProfileTitle}</div>
-          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-            {isMechanic ? copy.mechanicExamplesBody : copy.jobsiteSupportIntro}
-          </p>
-
-          <div className="grid two" style={{ marginTop: 16 }}>
-            <div>
-              <div className="muted" style={{ marginBottom: 8 }}>{copy.serviceTags}</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {serviceOptions.map((option) => {
-                  const active = form.service_tags.includes(option.value)
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={active ? 'btn primary small' : 'btn small'}
-                      onClick={() => toggleMultiTag('service_tags', option.value)}
-                    >
-                      {labelForOption(option, form.preferred_language)}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <div>
-              <div className="muted" style={{ marginBottom: 8 }}>{copy.equipmentTags}</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {equipmentOptions.map((option) => {
-                  const active = form.equipment_tags.includes(option.value)
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={active ? 'btn primary small' : 'btn small'}
-                      onClick={() => toggleMultiTag('equipment_tags', option.value)}
-                    >
-                      {labelForOption(option, form.preferred_language)}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="card rounded-xl" style={{ padding: 24 }}>
-        <div className="muted" style={{ marginBottom: 6 }}>
-          {isSupplier ? copy.supplierBusinessBio : copy.bio}
-        </div>
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">{copy.notes}</div>
         <textarea
           className="input"
-          value={form.bio}
-          onChange={(e) => setField('bio', e.target.value)}
-          placeholder={copy.bioPlaceholder}
+          style={{ marginTop: 14 }}
+          value={form.notes}
+          onChange={(e) => setField('notes', e.target.value)}
+          placeholder="Special responsibilities, yard notes, communication preferences..."
         />
       </div>
 
       <div>
-        <button className="btn primary" onClick={save} disabled={saving}>
+        <button className="btn primary" type="submit" disabled={saving}>
           {saving ? copy.saving : copy.save}
         </button>
       </div>
-    </div>
+    </form>
+  )
+}
+
+function CheckRow({ label, checked, onChange }) {
+  return (
+    <label className="form-check">
+      <input
+        className="form-check-input"
+        type="checkbox"
+        checked={Boolean(checked)}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <span className="form-check-label">{label}</span>
+    </label>
   )
 }
