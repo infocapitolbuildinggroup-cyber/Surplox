@@ -7,13 +7,10 @@ import Auth from './pages/Auth'
 import MyAccount from './pages/MyAccount'
 import Notifications from './pages/Notifications'
 import Onboarding from './pages/Onboarding'
-import AdminDirectory from './pages/AdminDirectory'
 import PublicInvoice from './pages/PublicInvoice'
 import YardManager from './pages/YardManager'
 
 import './styles.css'
-
-const ADMIN_EMAILS = new Set(['david@capitolbuildinggroup.com'])
 
 function usePreferredLanguage() {
   const [lang, setLang] = useState(localStorage.getItem('surplox_lang') || 'en')
@@ -96,37 +93,9 @@ function HamburgerIcon() {
   )
 }
 
-function getCandidateEmails(user) {
-  if (!user) return []
-
-  const identityEmails = Array.isArray(user.identities)
-    ? user.identities
-        .flatMap((identity) => [identity?.email, identity?.identity_data?.email])
-        .filter(Boolean)
-    : []
-
-  return Array.from(
-    new Set(
-      [
-        user.email,
-        user.new_email,
-        user.email_change,
-        user.user_metadata?.email,
-        user.app_metadata?.email,
-        ...identityEmails
-      ]
-        .map((value) => String(value || '').trim().toLowerCase())
-        .filter(Boolean)
-    )
-  )
-}
-
-function hasAdminAccess(user) {
-  return getCandidateEmails(user).some((email) => ADMIN_EMAILS.has(email))
-}
-
 function timeAgoLabel(ts, lang = 'en') {
   if (!ts) return ''
+
   const date = new Date(ts)
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
 
@@ -178,7 +147,6 @@ function MessagesCenter({ lang = 'en' }) {
           setupSoftError:
             'La tabla direct_messages todavía no está lista o no respondió. La bandeja se activará cuando exista la tabla.',
           goYard: 'Ir al Yard Manager',
-          openProfile: 'Abrir perfil',
           lastMessage: 'Último mensaje',
           you: 'Tú',
           startConversation: 'Inicia una conversación',
@@ -202,7 +170,6 @@ function MessagesCenter({ lang = 'en' }) {
           setupSoftError:
             'The direct_messages table is not ready yet or did not respond. The inbox will go live as soon as the table exists.',
           goYard: 'Go to Yard Manager',
-          openProfile: 'Open Profile',
           lastMessage: 'Last message',
           you: 'You',
           startConversation: 'Start a conversation',
@@ -213,6 +180,7 @@ function MessagesCenter({ lang = 'en' }) {
   useEffect(() => {
     const to = searchParams.get('to') || ''
     const presetDraft = searchParams.get('draft') || ''
+
     if (to) setSelectedUserId(to)
     if (presetDraft) setDraft(presetDraft)
   }, [searchParams])
@@ -276,6 +244,7 @@ function MessagesCenter({ lang = 'en' }) {
         )
 
         let profileRows = []
+
         if (counterpartIds.length > 0) {
           const { data: profs, error: profErr } = await supabase
             .from('profiles')
@@ -409,6 +378,7 @@ function MessagesCenter({ lang = 'en' }) {
       setMessages((prev) =>
         [...prev, inserted].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       )
+
       setDraft('')
       setSearchParams(selectedUserId ? { to: selectedUserId } : {})
     } catch (err) {
@@ -667,8 +637,6 @@ function AppShell({ lang, setLang }) {
     setMobileMenuOpen(false)
   }, [location.pathname, location.search])
 
-  const isAdmin = useMemo(() => hasAdminAccess(session?.user), [session?.user])
-
   const navItems = useMemo(() => {
     if (!session) return []
 
@@ -811,16 +779,6 @@ function AppShell({ lang, setLang }) {
                   </Link>
                 ))}
 
-                {session && isAdmin ? (
-                  <Link
-                    to="/admin"
-                    className={isActive('/admin') ? 'btn primary small' : 'btn small'}
-                    style={{ textDecoration: 'none' }}
-                  >
-                    Admin
-                  </Link>
-                ) : null}
-
                 {session ? (
                   <button type="button" className="btn small" onClick={handleSignOut}>
                     {lang === 'es' ? 'Salir' : 'Sign Out'}
@@ -863,12 +821,6 @@ function AppShell({ lang, setLang }) {
                         {item.label}
                       </Link>
                     ))}
-
-                    {isAdmin ? (
-                      <Link to="/admin" className={isActive('/admin') ? 'btn primary' : 'btn'}>
-                        Admin
-                      </Link>
-                    ) : null}
 
                     <button type="button" className="btn nav-mobile-signout" onClick={handleSignOut}>
                       {lang === 'es' ? 'Salir' : 'Sign Out'}
@@ -935,11 +887,6 @@ function AppShell({ lang, setLang }) {
                   <Navigate to="/auth?mode=signin" replace />
                 )
               }
-            />
-
-            <Route
-              path="/admin"
-              element={session && isAdmin ? <AdminDirectory lang={lang} /> : <Navigate to="/yard" replace />}
             />
 
             <Route path="/invoice/:id" element={<PublicInvoice />} />
