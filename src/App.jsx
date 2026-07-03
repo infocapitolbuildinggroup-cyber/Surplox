@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useSearchParams } from 'react-router-dom'
 import { supabase } from './supabaseClient'
+import { UserProvider, useUser } from './context/UserContext'
 
 import Home from './pages/Home'
 import Auth from './pages/Auth'
@@ -24,10 +25,7 @@ function usePreferredLanguage() {
 
 function LanguageSlider({ lang, setLang }) {
   return (
-    <div
-      className="lang-toggle"
-      aria-label={lang === 'es' ? 'Selector de idioma' : 'Language selector'}
-    >
+    <div className="lang-toggle" aria-label={lang === 'es' ? 'Selector de idioma' : 'Language selector'}>
       <div className={`lang-toggle-thumb ${lang === 'es' ? 'is-es' : 'is-en'}`} />
 
       <button
@@ -62,33 +60,9 @@ function HamburgerIcon() {
         minWidth: 18
       }}
     >
-      <span
-        style={{
-          display: 'block',
-          width: '100%',
-          height: 2,
-          borderRadius: 999,
-          background: 'currentColor'
-        }}
-      />
-      <span
-        style={{
-          display: 'block',
-          width: '100%',
-          height: 2,
-          borderRadius: 999,
-          background: 'currentColor'
-        }}
-      />
-      <span
-        style={{
-          display: 'block',
-          width: '100%',
-          height: 2,
-          borderRadius: 999,
-          background: 'currentColor'
-        }}
-      />
+      <span style={{ display: 'block', width: '100%', height: 2, borderRadius: 999, background: 'currentColor' }} />
+      <span style={{ display: 'block', width: '100%', height: 2, borderRadius: 999, background: 'currentColor' }} />
+      <span style={{ display: 'block', width: '100%', height: 2, borderRadius: 999, background: 'currentColor' }} />
     </span>
   )
 }
@@ -100,12 +74,10 @@ function timeAgoLabel(ts, lang = 'en') {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
 
   if (seconds < 60) return lang === 'es' ? 'ahora' : 'now'
-
   if (seconds < 3600) {
     const mins = Math.floor(seconds / 60)
     return lang === 'es' ? `hace ${mins} min` : `${mins}m ago`
   }
-
   if (seconds < 86400) {
     const hrs = Math.floor(seconds / 3600)
     return lang === 'es' ? `hace ${hrs} h` : `${hrs}h ago`
@@ -144,8 +116,7 @@ function MessagesCenter({ lang = 'en' }) {
           draftPlaceholder: 'Escribe tu mensaje aquí…',
           send: 'Enviar',
           sending: 'Enviando…',
-          setupSoftError:
-            'La tabla direct_messages todavía no está lista o no respondió. La bandeja se activará cuando exista la tabla.',
+          setupSoftError: 'La tabla direct_messages todavía no está lista o no respondió.',
           goYard: 'Ir al Yard Manager',
           lastMessage: 'Último mensaje',
           you: 'Tú',
@@ -167,8 +138,7 @@ function MessagesCenter({ lang = 'en' }) {
           draftPlaceholder: 'Write your message here…',
           send: 'Send',
           sending: 'Sending…',
-          setupSoftError:
-            'The direct_messages table is not ready yet or did not respond. The inbox will go live as soon as the table exists.',
+          setupSoftError: 'The direct_messages table is not ready yet or did not respond.',
           goYard: 'Go to Yard Manager',
           lastMessage: 'Last message',
           you: 'You',
@@ -291,9 +261,7 @@ function MessagesCenter({ lang = 'en' }) {
     const map = new Map()
 
     messages.forEach((item) => {
-      const counterpartId =
-        item.sender_user_id === currentUserId ? item.recipient_user_id : item.sender_user_id
-
+      const counterpartId = item.sender_user_id === currentUserId ? item.recipient_user_id : item.sender_user_id
       if (!counterpartId) return
 
       if (!map.has(counterpartId)) {
@@ -357,15 +325,13 @@ function MessagesCenter({ lang = 'en' }) {
     setError('')
 
     try {
-      const payload = {
-        sender_user_id: currentUserId,
-        recipient_user_id: selectedUserId,
-        body: String(draft || '').trim()
-      }
-
       const { data: inserted, error: insertErr } = await supabase
         .from('direct_messages')
-        .insert(payload)
+        .insert({
+          sender_user_id: currentUserId,
+          recipient_user_id: selectedUserId,
+          body: String(draft || '').trim()
+        })
         .select('id,sender_user_id,recipient_user_id,body,created_at,is_read')
         .single()
 
@@ -500,12 +466,8 @@ function MessagesCenter({ lang = 'en' }) {
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                      <div style={{ fontWeight: 900 }}>
-                        {profile.display_name || row.userId}
-                      </div>
-                      <div className="muted">
-                        {timeAgoLabel(row.lastMessage?.created_at, lang)}
-                      </div>
+                      <div style={{ fontWeight: 900 }}>{profile.display_name || row.userId}</div>
+                      <div className="muted">{timeAgoLabel(row.lastMessage?.created_at, lang)}</div>
                     </div>
 
                     <div className="muted" style={{ marginTop: 8 }}>
@@ -604,34 +566,9 @@ function MessagesCenter({ lang = 'en' }) {
 
 function AppShell({ lang, setLang }) {
   const location = useLocation()
-  const [session, setSession] = useState(null)
-  const [loadingSession, setLoadingSession] = useState(true)
+  const { session, loadingUser, permissions } = useUser()
   const [logoError, setLogoError] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
-  useEffect(() => {
-    let mounted = true
-
-    async function loadSession() {
-      const { data } = await supabase.auth.getSession()
-      if (!mounted) return
-      setSession(data.session || null)
-      setLoadingSession(false)
-    }
-
-    loadSession()
-
-    const {
-      data: { subscription }
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession || null)
-    })
-
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
-    }
-  }, [])
 
   useEffect(() => {
     setMobileMenuOpen(false)
@@ -640,13 +577,24 @@ function AppShell({ lang, setLang }) {
   const navItems = useMemo(() => {
     if (!session) return []
 
-    return [
-      { to: '/yard', label: lang === 'es' ? 'Yard Manager' : 'Yard Manager' },
-      { to: '/messages', label: lang === 'es' ? 'Mensajes' : 'Messages' },
-      { to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' },
-      { to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' }
-    ]
-  }, [session, lang])
+    const items = []
+
+    if (permissions.dashboard) {
+      items.push({ to: '/yard', label: lang === 'es' ? 'Yard Manager' : 'Yard Manager' })
+    }
+
+    if (permissions.messages) {
+      items.push({ to: '/messages', label: lang === 'es' ? 'Mensajes' : 'Messages' })
+    }
+
+    if (permissions.alerts) {
+      items.push({ to: '/notifications', label: lang === 'es' ? 'Alertas' : 'Alerts' })
+    }
+
+    items.push({ to: '/account', label: lang === 'es' ? 'Mi cuenta' : 'My Account' })
+
+    return items
+  }, [session, lang, permissions])
 
   const isActive = (to) => {
     if (to === '/') return location.pathname === '/'
@@ -658,7 +606,7 @@ function AppShell({ lang, setLang }) {
     await supabase.auth.signOut()
   }
 
-  if (loadingSession) {
+  if (loadingUser) {
     return (
       <div className="page-shell">
         <div className="container" style={{ paddingTop: 40, paddingBottom: 40 }}>
@@ -712,15 +660,7 @@ function AppShell({ lang, setLang }) {
                   className="btn nav-mobile-toggle"
                   onClick={() => setMobileMenuOpen((prev) => !prev)}
                   aria-expanded={mobileMenuOpen}
-                  aria-label={
-                    mobileMenuOpen
-                      ? lang === 'es'
-                        ? 'Cerrar menú'
-                        : 'Close menu'
-                      : lang === 'es'
-                        ? 'Abrir menú'
-                        : 'Open menu'
-                  }
+                  aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
                   style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                 >
                   <HamburgerIcon />
@@ -741,15 +681,7 @@ function AppShell({ lang, setLang }) {
                     className="btn nav-mobile-toggle"
                     onClick={() => setMobileMenuOpen((prev) => !prev)}
                     aria-expanded={mobileMenuOpen}
-                    aria-label={
-                      mobileMenuOpen
-                        ? lang === 'es'
-                          ? 'Cerrar menú'
-                          : 'Close menu'
-                        : lang === 'es'
-                          ? 'Abrir menú'
-                          : 'Open menu'
-                    }
+                    aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
                     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     <HamburgerIcon />
@@ -761,13 +693,7 @@ function AppShell({ lang, setLang }) {
 
           {showNav ? (
             <div className="nav-desktop-nav" style={{ paddingBottom: 12 }}>
-              <nav
-                style={{
-                  display: 'flex',
-                  gap: 10,
-                  flexWrap: 'wrap'
-                }}
-              >
+              <nav style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {navItems.map((item) => (
                   <Link
                     key={item.to}
@@ -803,21 +729,9 @@ function AppShell({ lang, setLang }) {
                 }}
               >
                 {session ? (
-                  <div
-                    className="nav-mobile-menu-list"
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 10,
-                      paddingBottom: 12
-                    }}
-                  >
+                  <div className="nav-mobile-menu-list" style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 12 }}>
                     {navItems.map((item) => (
-                      <Link
-                        key={item.to}
-                        to={item.to}
-                        className={isActive(item.to) ? 'btn primary' : 'btn'}
-                      >
+                      <Link key={item.to} to={item.to} className={isActive(item.to) ? 'btn primary' : 'btn'}>
                         {item.label}
                       </Link>
                     ))}
@@ -845,10 +759,7 @@ function AppShell({ lang, setLang }) {
       <main>
         <div className="container" style={{ paddingTop: 22, paddingBottom: 32 }}>
           <Routes>
-            <Route
-              path="/"
-              element={session ? <Navigate to="/yard" replace /> : <Home lang={lang} />}
-            />
+            <Route path="/" element={session ? <Navigate to="/yard" replace /> : <Home lang={lang} />} />
 
             <Route path="/auth" element={<Auth lang={lang} setLang={setLang} />} />
 
@@ -859,34 +770,34 @@ function AppShell({ lang, setLang }) {
 
             <Route
               path="/messages"
-              element={session ? <MessagesCenter lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
+              element={
+                session && permissions.messages ? (
+                  <MessagesCenter lang={lang} />
+                ) : (
+                  <Navigate to={session ? '/yard' : '/auth?mode=signin'} replace />
+                )
+              }
             />
 
             <Route
               path="/notifications"
-              element={session ? <Notifications lang={lang} /> : <Navigate to="/auth?mode=signin" replace />}
+              element={
+                session && permissions.alerts ? (
+                  <Notifications lang={lang} />
+                ) : (
+                  <Navigate to={session ? '/yard' : '/auth?mode=signin'} replace />
+                )
+              }
             />
 
             <Route
               path="/account"
-              element={
-                session ? (
-                  <MyAccount lang={lang} setLang={setLang} />
-                ) : (
-                  <Navigate to="/auth?mode=signin" replace />
-                )
-              }
+              element={session ? <MyAccount lang={lang} setLang={setLang} /> : <Navigate to="/auth?mode=signin" replace />}
             />
 
             <Route
               path="/onboarding"
-              element={
-                session ? (
-                  <Onboarding lang={lang} setLang={setLang} />
-                ) : (
-                  <Navigate to="/auth?mode=signin" replace />
-                )
-              }
+              element={session ? <Onboarding lang={lang} setLang={setLang} /> : <Navigate to="/auth?mode=signin" replace />}
             />
 
             <Route path="/invoice/:id" element={<PublicInvoice />} />
@@ -899,7 +810,15 @@ function AppShell({ lang, setLang }) {
   )
 }
 
+function AppWithUserProvider({ lang, setLang }) {
+  return (
+    <UserProvider>
+      <AppShell lang={lang} setLang={setLang} />
+    </UserProvider>
+  )
+}
+
 export default function App() {
   const [lang, setLang] = usePreferredLanguage()
-  return <AppShell lang={lang} setLang={setLang} />
+  return <AppWithUserProvider lang={lang} setLang={setLang} />
 }
