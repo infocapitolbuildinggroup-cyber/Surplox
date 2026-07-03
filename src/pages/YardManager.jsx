@@ -147,20 +147,14 @@ export default function YardManager() {
   const [inventorySearch, setInventorySearch] = useState('')
   const [requestSearch, setRequestSearch] = useState('')
 
-  const workerName =
-    profile?.full_name ||
-    profile?.role_title ||
-    user?.email ||
-    'Warehouse User'
+  const workerName = profile?.full_name || profile?.role_title || user?.email || 'Warehouse User'
 
   useEffect(() => {
     loadAll()
   }, [permissions?.inventory, permissions?.receiving, permissions?.fieldDelivery, permissions?.returns, permissions?.damaged])
 
   useEffect(() => {
-    if (!canUseTab(activeTab)) {
-      setActiveTab('dashboard')
-    }
+    if (!canUseTab(activeTab)) setActiveTab('dashboard')
   }, [activeTab, permissions])
 
   function canUseTab(tab) {
@@ -182,11 +176,6 @@ export default function YardManager() {
     setError('')
 
     try {
-      const requestQuery = supabase
-        .from('yard_requests')
-        .select('*')
-        .order('created_at', { ascending: false })
-
       const [
         requestsRes,
         requestItemsRes,
@@ -195,7 +184,7 @@ export default function YardManager() {
         receivingRes,
         movementsRes
       ] = await Promise.all([
-        requestQuery,
+        supabase.from('yard_requests').select('*').order('created_at', { ascending: false }),
         supabase.from('yard_request_items').select('*').order('created_at', { ascending: true }),
         supabase.from('plant_locations').select('*').order('location_name'),
         permissions.inventory || permissions.fieldDelivery || permissions.returns || permissions.damaged
@@ -363,13 +352,8 @@ export default function YardManager() {
         payload.picking_started_at = request.picking_started_at || nowIso()
       }
 
-      if (action.next === 'ready') {
-        payload.picking_finished_at = request.picking_finished_at || nowIso()
-      }
-
-      if (action.next === 'loaded') {
-        payload.loaded_at = request.loaded_at || nowIso()
-      }
+      if (action.next === 'ready') payload.picking_finished_at = request.picking_finished_at || nowIso()
+      if (action.next === 'loaded') payload.loaded_at = request.loaded_at || nowIso()
 
       if (action.next === 'in_transit') {
         payload.delivery_started_at = request.delivery_started_at || nowIso()
@@ -382,9 +366,7 @@ export default function YardManager() {
         payload.delivered_by = request.delivered_by || workerName
       }
 
-      if (action.next === 'closed') {
-        payload.closed_at = request.closed_at || nowIso()
-      }
+      if (action.next === 'closed') payload.closed_at = request.closed_at || nowIso()
 
       const { error: updateError } = await supabase
         .from('yard_requests')
@@ -398,40 +380,6 @@ export default function YardManager() {
     } catch (err) {
       console.error(err)
       setError(err?.message || 'Unable to update FMR workflow.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function updateRequestStatus(request, nextStatus) {
-    setSaving(true)
-    setError('')
-
-    try {
-      const payload = { status: nextStatus, updated_by: user?.id || null }
-
-      if (nextStatus === 'delivered') {
-        payload.delivered_at = nowIso()
-        payload.issued_date = todayDate()
-        payload.delivered_by = request.delivered_by || workerName
-      }
-
-      if (nextStatus === 'closed') {
-        payload.closed_at = nowIso()
-      }
-
-      const { error: updateError } = await supabase
-        .from('yard_requests')
-        .update(payload)
-        .eq('id', request.id)
-
-      if (updateError) throw updateError
-
-      showMessage(`${request.fmr_number || 'FMR'} moved to ${prettyStatus(nextStatus)}.`)
-      await loadAll()
-    } catch (err) {
-      console.error(err)
-      setError(err?.message || 'Unable to update FMR status.')
     } finally {
       setSaving(false)
     }
@@ -493,7 +441,6 @@ export default function YardManager() {
       const currentQty = cleanNumber(selected.quantity_on_hand)
 
       let nextQty = currentQty
-
       if (movementForm.movement_type === 'received') nextQty = currentQty + qty
       if (movementForm.movement_type === 'returned_from_field') nextQty = currentQty + qty
       if (movementForm.movement_type === 'issued_to_field') nextQty = currentQty - qty
@@ -770,9 +717,7 @@ export default function YardManager() {
     })
   }, [inventory, inventorySearch])
 
-  if (loading) {
-    return <div className="card">Loading Yard Manager…</div>
-  }
+  if (loading) return <div className="card">Loading Yard Manager…</div>
 
   return (
     <div className="grid" style={{ gap: 18 }}>
@@ -780,7 +725,9 @@ export default function YardManager() {
         <div className="badge" style={{ marginBottom: 12 }}>
           {profile?.permission_group ? prettyStatus(profile.permission_group) : 'Surplox Industrial'}
         </div>
+
         <div className="h1">Yard Manager</div>
+
         <p className="muted" style={{ marginTop: 10, maxWidth: 900, lineHeight: 1.7 }}>
           Digital FMRs, request tracking, material movement, plant locations, and role-based access for field and warehouse teams.
         </p>
@@ -837,6 +784,7 @@ export default function YardManager() {
           onAdvance={permissions.queue ? advanceRequest : null}
           requestSearch={requestSearch}
           setRequestSearch={setRequestSearch}
+          queueMode={false}
         />
       ) : null}
 
@@ -849,6 +797,7 @@ export default function YardManager() {
           onAdvance={advanceRequest}
           requestSearch={requestSearch}
           setRequestSearch={setRequestSearch}
+          queueMode
         />
       ) : null}
 
@@ -896,231 +845,195 @@ export default function YardManager() {
 }
 
 function TabButton({ active, onClick, children }) {
-  return (
-    <button className={`btn ${active ? 'primary' : ''}`} type="button" onClick={onClick}>
-      {children}
-    </button>
-  )
+  return <button className={`btn ${active ? 'primary' : ''}`} type="button" onClick={onClick}>{children}</button>
 }
 
 function Dashboard({ permissions, stats, requests, itemsByRequestId, movements, saving, onAdvance, setActiveTab, openMovementTab }) {
-    const openRequests = requests.filter((r) => !['delivered', 'closed'].includes(r.status))
-    const urgentRequests = requests.filter((r) => r.priority === 'urgent' || r.priority === 'shutdown-critical')
-    const readyRequests = requests.filter((r) => r.status === 'ready' || r.status === 'loaded')
-    const pickingRequests = requests.filter((r) => r.status === 'accepted' || r.status === 'picking' || r.status === 'partial')
-    const newestRequests = requests.slice(0, 6)
-  
-    return (
-      <div className="grid" style={{ gap: 18 }}>
-        <div
-          className="card rounded-xl"
-          style={{
-            padding: 24,
-            background: 'linear-gradient(180deg, #111111 0%, #2b2b2b 100%)',
-            color: '#ffffff'
-          }}
-        >
-          <div className="badge" style={{ background: 'rgba(255,255,255,0.12)', color: '#ffffff' }}>
-            Operations Board
-          </div>
-  
-          <div className="h1" style={{ color: '#ffffff', marginTop: 14 }}>
-            Today’s Yard Activity
-          </div>
-  
-          <p style={{ marginTop: 10, color: 'rgba(255,255,255,0.78)', lineHeight: 1.7, maxWidth: 900 }}>
-            Live summary of active FMRs, picking work, ready material, deliveries, returns, damaged material, and recent yard movement.
-          </p>
+  const openRequests = requests.filter((r) => !['delivered', 'closed'].includes(r.status))
+  const urgentRequests = requests.filter((r) => r.priority === 'urgent' || r.priority === 'shutdown-critical')
+  const readyRequests = requests.filter((r) => r.status === 'ready' || r.status === 'loaded')
+  const pickingRequests = requests.filter((r) => r.status === 'accepted' || r.status === 'picking' || r.status === 'partial')
+  const newestRequests = requests.slice(0, 6)
+
+  return (
+    <div className="grid" style={{ gap: 18 }}>
+      <div className="card rounded-xl" style={{ padding: 24, background: 'linear-gradient(180deg, #111111 0%, #2b2b2b 100%)', color: '#ffffff' }}>
+        <div className="badge" style={{ background: 'rgba(255,255,255,0.12)', color: '#ffffff' }}>Operations Board</div>
+        <div className="h1" style={{ color: '#ffffff', marginTop: 14 }}>Today’s Yard Activity</div>
+        <p style={{ marginTop: 10, color: 'rgba(255,255,255,0.78)', lineHeight: 1.7, maxWidth: 900 }}>
+          Live summary of active FMRs, picking work, ready material, deliveries, returns, damaged material, and recent yard movement.
+        </p>
+      </div>
+
+      <div className="row">
+        <Metric title="Open FMRs" value={openRequests.length} />
+        <Metric title="Urgent / Critical" value={urgentRequests.length} />
+        <Metric title="Picking / Partial" value={stats.picking} />
+        <Metric title="Ready / Loaded" value={readyRequests.length} />
+        <Metric title="Delivered Today" value={stats.deliveredToday} />
+        {permissions.receiving ? <Metric title="Receiving Today" value={stats.receivingToday} /> : null}
+        {permissions.returns ? <Metric title="Returns" value={stats.returns} /> : null}
+        {permissions.damaged ? <Metric title="Damaged" value={stats.damaged} /> : null}
+      </div>
+
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">Quick Actions</div>
+        <div className="row" style={{ marginTop: 14 }}>
+          {permissions.newFMR ? <button className="btn primary" type="button" onClick={() => setActiveTab('new-fmr')}>Create FMR</button> : null}
+          {permissions.queue ? <button className="btn" type="button" onClick={() => setActiveTab('queue')}>Work FMR Queue</button> : null}
+          {permissions.myRequests ? <button className="btn" type="button" onClick={() => setActiveTab('my-requests')}>My Requests</button> : null}
+          {permissions.receiving ? <button className="btn" type="button" onClick={() => setActiveTab('receiving')}>Receive Vendor Delivery</button> : null}
+          {permissions.inventory ? <button className="btn" type="button" onClick={() => setActiveTab('inventory')}>Inventory</button> : null}
+          {permissions.fieldDelivery ? <button className="btn" type="button" onClick={() => openMovementTab('issued_to_field', 'field-delivery')}>Issue Material</button> : null}
+          {permissions.returns ? <button className="btn" type="button" onClick={() => openMovementTab('returned_from_field', 'returns')}>Return Material</button> : null}
+          {permissions.damaged ? <button className="btn" type="button" onClick={() => openMovementTab('damaged', 'damaged')}>Report Damaged</button> : null}
+          {permissions.plantMap ? <button className="btn" type="button" onClick={() => setActiveTab('plant-map')}>Plant Map</button> : null}
         </div>
-  
-        <div className="row">
-          <Metric title="Open FMRs" value={openRequests.length} />
-          <Metric title="Urgent / Critical" value={urgentRequests.length} />
-          <Metric title="Picking / Partial" value={stats.picking} />
-          <Metric title="Ready / Loaded" value={readyRequests.length} />
-          <Metric title="Delivered Today" value={stats.deliveredToday} />
-          {permissions.receiving ? <Metric title="Receiving Today" value={stats.receivingToday} /> : null}
-          {permissions.returns ? <Metric title="Returns" value={stats.returns} /> : null}
-          {permissions.damaged ? <Metric title="Damaged" value={stats.damaged} /> : null}
-        </div>
-  
+      </div>
+
+      <div className="grid two" style={{ alignItems: 'start' }}>
         <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">Quick Actions</div>
-  
-          <div className="row" style={{ marginTop: 14 }}>
-            {permissions.newFMR ? (
-              <button className="btn primary" type="button" onClick={() => setActiveTab('new-fmr')}>
-                Create FMR
-              </button>
-            ) : null}
-  
-            {permissions.queue ? (
-              <button className="btn" type="button" onClick={() => setActiveTab('queue')}>
-                Work FMR Queue
-              </button>
-            ) : null}
-  
-            {permissions.myRequests ? (
-              <button className="btn" type="button" onClick={() => setActiveTab('my-requests')}>
-                My Requests
-              </button>
-            ) : null}
-  
-            {permissions.receiving ? (
-              <button className="btn" type="button" onClick={() => setActiveTab('receiving')}>
-                Receive Vendor Delivery
-              </button>
-            ) : null}
-  
-            {permissions.inventory ? (
-              <button className="btn" type="button" onClick={() => setActiveTab('inventory')}>
-                Inventory
-              </button>
-            ) : null}
-  
-            {permissions.fieldDelivery ? (
-              <button className="btn" type="button" onClick={() => openMovementTab('issued_to_field', 'field-delivery')}>
-                Issue Material
-              </button>
-            ) : null}
-  
-            {permissions.returns ? (
-              <button className="btn" type="button" onClick={() => openMovementTab('returned_from_field', 'returns')}>
-                Return Material
-              </button>
-            ) : null}
-  
-            {permissions.damaged ? (
-              <button className="btn" type="button" onClick={() => openMovementTab('damaged', 'damaged')}>
-                Report Damaged
-              </button>
-            ) : null}
-  
-            {permissions.plantMap ? (
-              <button className="btn" type="button" onClick={() => setActiveTab('plant-map')}>
-                Plant Map
-              </button>
-            ) : null}
+          <div className="card-section-title">{permissions.queue ? 'Priority Work Queue' : 'My Active Requests'}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>Requests that need attention first.</p>
+          <div className="list" style={{ marginTop: 14 }}>
+            {(urgentRequests.length ? urgentRequests : newestRequests).slice(0, 6).map((request) => (
+              <RequestCard key={request.id} request={request} items={itemsByRequestId[request.id] || []} saving={saving} onAdvance={permissions.queue ? onAdvance : null} />
+            ))}
+            {requests.length === 0 ? <div className="card-soft">No FMRs yet.</div> : null}
           </div>
         </div>
-  
+
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{permissions.inventory ? 'Recent Material Movements' : 'Request Status Guide'}</div>
+          {permissions.inventory ? (
+            <div className="list" style={{ marginTop: 14 }}>
+              {movements.slice(0, 8).map((move) => (
+                <div key={move.id} className="card-soft">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontWeight: 900 }}>{movementLabel(move.movement_type)}</div>
+                      <div className="muted">{move.quantity} {move.unit} · {move.reference_number || 'No reference'}</div>
+                    </div>
+                    <span className="badge">{move.from_location || move.to_location || 'Yard'}</span>
+                  </div>
+                  <div className="muted" style={{ marginTop: 8 }}>{move.notes || 'No notes'}</div>
+                </div>
+              ))}
+              {movements.length === 0 ? <div className="card-soft">No inventory movements yet.</div> : null}
+            </div>
+          ) : (
+            <div className="list" style={{ marginTop: 14 }}>
+              {REQUEST_STATUSES.map((status) => (
+                <div key={status} className="card-soft">
+                  <span className="badge" style={statusStyle(status)}>{prettyStatus(status)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {permissions.queue ? (
         <div className="grid two" style={{ alignItems: 'start' }}>
           <div className="card rounded-xl" style={{ padding: 22 }}>
-            <div className="card-section-title">
-              {permissions.queue ? 'Priority Work Queue' : 'My Active Requests'}
-            </div>
-  
-            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
-              Requests that need attention first.
-            </p>
-  
+            <div className="card-section-title">Currently Being Picked</div>
             <div className="list" style={{ marginTop: 14 }}>
-              {(urgentRequests.length ? urgentRequests : newestRequests).slice(0, 6).map((request) => (
-                <RequestCard
-                  key={request.id}
-                  request={request}
-                  items={itemsByRequestId[request.id] || []}
-                  saving={saving}
-                  onAdvance={permissions.queue ? onAdvance : null}
-                />
+              {pickingRequests.slice(0, 5).map((request) => (
+                <RequestCard key={request.id} request={request} items={itemsByRequestId[request.id] || []} saving={saving} onAdvance={onAdvance} />
               ))}
-  
-              {requests.length === 0 ? (
-                <div className="card-soft">No FMRs yet.</div>
-              ) : null}
+              {pickingRequests.length === 0 ? <div className="card-soft">No orders are currently being picked.</div> : null}
             </div>
           </div>
-  
+
           <div className="card rounded-xl" style={{ padding: 22 }}>
-            <div className="card-section-title">
-              {permissions.inventory ? 'Recent Material Movements' : 'Request Status Guide'}
+            <div className="card-section-title">Ready / Loaded</div>
+            <div className="list" style={{ marginTop: 14 }}>
+              {readyRequests.slice(0, 5).map((request) => (
+                <RequestCard key={request.id} request={request} items={itemsByRequestId[request.id] || []} saving={saving} onAdvance={onAdvance} />
+              ))}
+              {readyRequests.length === 0 ? <div className="card-soft">No material is currently ready or loaded.</div> : null}
             </div>
-  
-            {permissions.inventory ? (
-              <div className="list" style={{ marginTop: 14 }}>
-                {movements.slice(0, 8).map((move) => (
-                  <div key={move.id} className="card-soft">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                      <div>
-                        <div style={{ fontWeight: 900 }}>{movementLabel(move.movement_type)}</div>
-                        <div className="muted">
-                          {move.quantity} {move.unit} · {move.reference_number || 'No reference'}
-                        </div>
-                      </div>
-  
-                      <span className="badge">{move.from_location || move.to_location || 'Yard'}</span>
-                    </div>
-  
-                    <div className="muted" style={{ marginTop: 8 }}>
-                      {move.notes || 'No notes'}
-                    </div>
-                  </div>
-                ))}
-  
-                {movements.length === 0 ? (
-                  <div className="card-soft">No inventory movements yet.</div>
-                ) : null}
-              </div>
-            ) : (
-              <div className="list" style={{ marginTop: 14 }}>
-                {REQUEST_STATUSES.map((status) => (
-                  <div key={status} className="card-soft">
-                    <span className="badge" style={statusStyle(status)}>
-                      {prettyStatus(status)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
-  
-        {permissions.queue ? (
-          <div className="grid two" style={{ alignItems: 'start' }}>
-            <div className="card rounded-xl" style={{ padding: 22 }}>
-              <div className="card-section-title">Currently Being Picked</div>
-  
-              <div className="list" style={{ marginTop: 14 }}>
-                {pickingRequests.slice(0, 5).map((request) => (
-                  <RequestCard
-                    key={request.id}
-                    request={request}
-                    items={itemsByRequestId[request.id] || []}
-                    saving={saving}
-                    onAdvance={onAdvance}
-                  />
-                ))}
-  
-                {pickingRequests.length === 0 ? (
-                  <div className="card-soft">No orders are currently being picked.</div>
-                ) : null}
-              </div>
-            </div>
-  
-            <div className="card rounded-xl" style={{ padding: 22 }}>
-              <div className="card-section-title">Ready / Loaded</div>
-  
-              <div className="list" style={{ marginTop: 14 }}>
-                {readyRequests.slice(0, 5).map((request) => (
-                  <RequestCard
-                    key={request.id}
-                    request={request}
-                    items={itemsByRequestId[request.id] || []}
-                    saving={saving}
-                    onAdvance={onAdvance}
-                  />
-                ))}
-  
-                {readyRequests.length === 0 ? (
-                  <div className="card-soft">No material is currently ready or loaded.</div>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        ) : null}
+      ) : null}
+    </div>
+  )
+}
+
+function RequestList({ title, requests, itemsByRequestId, saving, onAdvance, requestSearch, setRequestSearch, queueMode = false }) {
+  const lanes = [
+    { key: 'new', title: 'New' },
+    { key: 'accepted', title: 'Accepted' },
+    { key: 'picking', title: 'Picking / Partial', match: ['picking', 'partial'] },
+    { key: 'ready', title: 'Ready' },
+    { key: 'loaded', title: 'Loaded' },
+    { key: 'in_transit', title: 'In Transit' },
+    { key: 'delivered', title: 'Delivered / Closed', match: ['delivered', 'closed'] }
+  ]
+
+  if (!queueMode) {
+    return (
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">{title}</div>
+        <input
+          className="input"
+          style={{ marginTop: 14 }}
+          value={requestSearch}
+          onChange={(e) => setRequestSearch(e.target.value)}
+          placeholder="Search FMR number, requester, ISO, equipment tag, item, or delivery area..."
+        />
+        <div className="list" style={{ marginTop: 16 }}>
+          {requests.map((request) => (
+            <RequestCard key={request.id} request={request} items={itemsByRequestId[request.id] || []} saving={saving} onAdvance={onAdvance} />
+          ))}
+          {requests.length === 0 ? <div className="card-soft">No requests found.</div> : null}
+        </div>
       </div>
     )
   }
+
+  return (
+    <div className="grid" style={{ gap: 18 }}>
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">{title}</div>
+        <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+          Work orders by current status. Each card advances through the correct warehouse sequence.
+        </p>
+        <input
+          className="input"
+          style={{ marginTop: 14 }}
+          value={requestSearch}
+          onChange={(e) => setRequestSearch(e.target.value)}
+          placeholder="Search FMR number, requester, ISO, equipment tag, item, or delivery area..."
+        />
+      </div>
+
+      <div className="grid" style={{ gap: 18 }}>
+        {lanes.map((lane) => {
+          const statuses = lane.match || [lane.key]
+          const laneRequests = requests.filter((request) => statuses.includes(request.status))
+
+          return (
+            <div key={lane.key} className="card rounded-xl" style={{ padding: 22 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                <div className="card-section-title">{lane.title}</div>
+                <span className="badge">{laneRequests.length}</span>
+              </div>
+
+              <div className="list" style={{ marginTop: 14 }}>
+                {laneRequests.map((request) => (
+                  <RequestCard key={request.id} request={request} items={itemsByRequestId[request.id] || []} saving={saving} onAdvance={onAdvance} />
+                ))}
+
+                {laneRequests.length === 0 ? <div className="card-soft">No FMRs in this lane.</div> : null}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 function NewFmrForm({ form, setField, setItem, addItem, removeItem, onSubmit, saving }) {
   return (
@@ -1194,6 +1107,7 @@ function NewFmrForm({ form, setField, setItem, addItem, removeItem, onSubmit, sa
             </div>
           ))}
         </div>
+
         <button className="btn small" type="button" onClick={addItem} style={{ marginTop: 12 }}>+ Add Item</button>
       </div>
 
@@ -1243,6 +1157,7 @@ function InventoryTab({ inventoryForm, setInventoryForm, filteredInventory, inve
               </div>
             </div>
           ))}
+          {filteredInventory.length === 0 ? <div className="card-soft">No inventory items found.</div> : null}
         </div>
       </div>
     </div>
@@ -1385,6 +1300,7 @@ function ReceivingTab({ form, setForm, updateItem, addItem, removeItem, onSubmit
               <div className="badge" style={{ marginTop: 10 }}>{prettyStatus(log.status)}</div>
             </div>
           ))}
+          {receivingLogs.length === 0 ? <div className="card-soft">No receiving logs yet.</div> : null}
         </div>
       </div>
     </div>
@@ -1411,6 +1327,7 @@ function PlantMapTab({ plantLocations }) {
             </div>
           </div>
         ))}
+        {plantLocations.length === 0 ? <div className="card-soft">No plant locations yet.</div> : null}
       </div>
     </div>
   )
@@ -1436,20 +1353,24 @@ function Metric({ title, value }) {
 
 function RequestCard({ request, items, saving, onAdvance }) {
   const action = nextWorkflowAction(request.status)
+  const isUrgent = request.priority === 'urgent' || request.priority === 'shutdown-critical'
 
   return (
-    <div className="card-soft">
+    <div className="card-soft" style={isUrgent ? { border: '1px solid #d97706', background: '#fffaf0' } : undefined}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontWeight: 900 }}>
             {request.fmr_number || 'FMR Pending'} · {request.requested_by || 'Unknown Requester'}
           </div>
+
           <div className="muted">
             {request.request_date || 'No date'} · {request.dropoff_location || 'No delivery area'}
           </div>
+
           <div className="muted">
             Equipment: {request.equipment_tag || '—'} · ISO: {request.iso_number || '—'}
           </div>
+
           <div className="muted">
             Assigned To: {request.assigned_to || 'Unassigned'}
           </div>
@@ -1457,7 +1378,9 @@ function RequestCard({ request, items, saving, onAdvance }) {
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'start' }}>
           <span className="badge" style={statusStyle(request.status)}>{prettyStatus(request.status)}</span>
-          <span className="badge">{prettyStatus(request.priority || 'normal')}</span>
+          <span className="badge" style={isUrgent ? { background: '#fff0b4', color: '#111111' } : undefined}>
+            {prettyStatus(request.priority || 'normal')}
+          </span>
         </div>
       </div>
 
@@ -1476,12 +1399,7 @@ function RequestCard({ request, items, saving, onAdvance }) {
 
       <div className="row" style={{ marginTop: 14 }}>
         {onAdvance && action ? (
-          <button
-            className="btn primary small"
-            type="button"
-            disabled={saving}
-            onClick={() => onAdvance(request)}
-          >
+          <button className="btn primary small" type="button" disabled={saving} onClick={() => onAdvance(request)}>
             {action.label}
           </button>
         ) : null}
