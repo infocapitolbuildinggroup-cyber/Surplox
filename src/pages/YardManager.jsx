@@ -1,14 +1,30 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
+import { useUser } from '../context/UserContext'
 
 const STORAGE_AREAS = ['Mexico', 'Oklahoma Yard', 'Warehouse / Main Yard', 'Stainless Tent']
-
-const REQUEST_STATUSES = ['new', 'picking', 'partial', 'ready', 'delivered', 'closed']
+const REQUEST_STATUSES = ['new', 'accepted', 'picking', 'partial', 'ready', 'loaded', 'in_transit', 'delivered', 'closed']
 const PRIORITIES = ['normal', 'urgent', 'shutdown-critical']
 const UNITS = ['ea', 'sticks', 'ft', 'boxes', 'crates', 'bundles']
 
 function todayDate() {
   return new Date().toISOString().slice(0, 10)
+}
+
+function nowIso() {
+  return new Date().toISOString()
+}
+
+function cleanNumber(value) {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : 0
+}
+
+function prettyStatus(value) {
+  return String(value || '')
+    .replace(/-/g, ' ')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 function emptyFmrForm() {
@@ -75,23 +91,14 @@ function emptyReceivingForm() {
   }
 }
 
-function cleanNumber(value) {
-  const n = Number(value)
-  return Number.isFinite(n) ? n : 0
-}
-
-function prettyStatus(value) {
-  return String(value || '')
-    .replace(/-/g, ' ')
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
 function statusStyle(status) {
   if (status === 'new') return { background: '#fff0b4', color: '#111111' }
+  if (status === 'accepted') return { background: '#f1e7a8', color: '#111111' }
   if (status === 'picking') return { background: '#d8ecff', color: '#0d3f73' }
   if (status === 'partial') return { background: '#fff4da', color: '#8a5a00' }
   if (status === 'ready') return { background: '#dcf4e5', color: '#177245' }
+  if (status === 'loaded') return { background: '#e8f6ee', color: '#177245' }
+  if (status === 'in_transit') return { background: '#111111', color: '#ffffff' }
   if (status === 'delivered') return { background: '#111111', color: '#ffffff' }
   if (status === 'closed') return { background: '#ecebe3', color: '#111111' }
   return {}
@@ -105,7 +112,20 @@ function movementLabel(type) {
   return prettyStatus(type)
 }
 
+function nextWorkflowAction(status) {
+  if (status === 'new') return { label: 'Accept Order', next: 'accepted' }
+  if (status === 'accepted') return { label: 'Start Picking', next: 'picking' }
+  if (status === 'picking' || status === 'partial') return { label: 'Mark Ready', next: 'ready' }
+  if (status === 'ready') return { label: 'Load Material', next: 'loaded' }
+  if (status === 'loaded') return { label: 'Start Delivery', next: 'in_transit' }
+  if (status === 'in_transit') return { label: 'Mark Delivered', next: 'delivered' }
+  if (status === 'delivered') return { label: 'Close FMR', next: 'closed' }
+  return null
+}
+
 export default function YardManager() {
+  const { user, profile, permissions } = useUser()
+
   const [activeTab, setActiveTab] = useState('dashboard')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -127,36 +147,80 @@ export default function YardManager() {
   const [inventorySearch, setInventorySearch] = useState('')
   const [requestSearch, setRequestSearch] = useState('')
 
+  const workerName =
+    profile?.full_name ||
+    profile?.role_title ||
+    user?.email ||
+    'Warehouse User'
+
   useEffect(() => {
     loadAll()
-  }, [])
+  }, [permissions?.inventory, permissions?.receiving, permissions?.fieldDelivery, permissions?.returns, permissions?.damaged])
+
+  useEffect(() => {
+    if (!canUseTab(activeTab)) {
+      setActiveTab('dashboard')
+    }
+  }, [activeTab, permissions])
+
+  function canUseTab(tab) {
+    if (tab === 'dashboard') return Boolean(permissions.dashboard)
+    if (tab === 'new-fmr') return Boolean(permissions.newFMR)
+    if (tab === 'my-requests') return Boolean(permissions.myRequests)
+    if (tab === 'queue') return Boolean(permissions.queue)
+    if (tab === 'inventory') return Boolean(permissions.inventory)
+    if (tab === 'receiving') return Boolean(permissions.receiving)
+    if (tab === 'field-delivery') return Boolean(permissions.fieldDelivery)
+    if (tab === 'returns') return Boolean(permissions.returns)
+    if (tab === 'damaged') return Boolean(permissions.damaged)
+    if (tab === 'plant-map') return Boolean(permissions.plantMap)
+    return false
+  }
 
   async function loadAll() {
     setLoading(true)
     setError('')
 
     try {
-      const [inventoryRes, requestsRes, requestItemsRes, receivingRes, locationsRes, movementsRes] = await Promise.all([
-        supabase.from('yard_inventory').select('*').order('item_name'),
-        supabase.from('yard_requests').select('*').order('created_at', { ascending: false }),
+      const requestQuery = supabase
+        .from('yard_requests')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      const [
+        requestsRes,
+        requestItemsRes,
+        locationsRes,
+        inventoryRes,
+        receivingRes,
+        movementsRes
+      ] = await Promise.all([
+        requestQuery,
         supabase.from('yard_request_items').select('*').order('created_at', { ascending: true }),
-        supabase.from('receiving_log').select('*').order('created_at', { ascending: false }),
         supabase.from('plant_locations').select('*').order('location_name'),
-        supabase.from('yard_inventory_movements').select('*').order('created_at', { ascending: false }).limit(75)
+        permissions.inventory || permissions.fieldDelivery || permissions.returns || permissions.damaged
+          ? supabase.from('yard_inventory').select('*').order('item_name')
+          : Promise.resolve({ data: [], error: null }),
+        permissions.receiving
+          ? supabase.from('receiving_log').select('*').order('created_at', { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
+        permissions.inventory || permissions.fieldDelivery || permissions.returns || permissions.damaged
+          ? supabase.from('yard_inventory_movements').select('*').order('created_at', { ascending: false }).limit(75)
+          : Promise.resolve({ data: [], error: null })
       ])
 
-      if (inventoryRes.error) throw inventoryRes.error
       if (requestsRes.error) throw requestsRes.error
       if (requestItemsRes.error) throw requestItemsRes.error
-      if (receivingRes.error) throw receivingRes.error
       if (locationsRes.error) throw locationsRes.error
+      if (inventoryRes.error) throw inventoryRes.error
+      if (receivingRes.error) throw receivingRes.error
       if (movementsRes.error) throw movementsRes.error
 
-      setInventory(inventoryRes.data || [])
       setRequests(requestsRes.data || [])
       setRequestItems(requestItemsRes.data || [])
-      setReceivingLogs(receivingRes.data || [])
       setPlantLocations(locationsRes.data || [])
+      setInventory(inventoryRes.data || [])
+      setReceivingLogs(receivingRes.data || [])
       setMovements(movementsRes.data || [])
     } catch (err) {
       console.error(err)
@@ -172,6 +236,7 @@ export default function YardManager() {
   }
 
   function openMovementTab(type, tab) {
+    if (!canUseTab(tab)) return
     setMovementForm(emptyMovementForm(type))
     setActiveTab(tab)
   }
@@ -222,8 +287,7 @@ export default function YardManager() {
 
       if (validItems.length === 0) throw new Error('Add at least one material item.')
 
-      const { data: sessionData } = await supabase.auth.getSession()
-      const userId = sessionData.session?.user?.id || null
+      const userId = user?.id || null
 
       const { data: request, error: requestError } = await supabase
         .from('yard_requests')
@@ -252,24 +316,88 @@ export default function YardManager() {
 
       if (requestError) throw requestError
 
-      const itemRows = validItems.map((item) => ({
-        request_id: request.id,
-        item_name: item.item_name,
-        quantity_requested: item.quantity_requested,
-        unit: item.unit,
-        notes: item.notes
-      }))
+      const { error: itemError } = await supabase.from('yard_request_items').insert(
+        validItems.map((item) => ({
+          request_id: request.id,
+          item_name: item.item_name,
+          quantity_requested: item.quantity_requested,
+          unit: item.unit,
+          notes: item.notes
+        }))
+      )
 
-      const { error: itemError } = await supabase.from('yard_request_items').insert(itemRows)
       if (itemError) throw itemError
 
       setFmrForm(emptyFmrForm())
       showMessage(`Created ${request.fmr_number || 'new FMR'}.`)
       await loadAll()
-      setActiveTab('queue')
+      setActiveTab(permissions.queue ? 'queue' : 'my-requests')
     } catch (err) {
       console.error(err)
       setError(err?.message || 'Unable to create FMR.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function advanceRequest(request) {
+    const action = nextWorkflowAction(request.status)
+    if (!action) return
+
+    setSaving(true)
+    setError('')
+
+    try {
+      const payload = {
+        status: action.next,
+        updated_by: user?.id || null
+      }
+
+      if (action.next === 'accepted') {
+        payload.assigned_to = request.assigned_to || workerName
+        payload.accepted_at = request.accepted_at || nowIso()
+      }
+
+      if (action.next === 'picking') {
+        payload.assigned_to = request.assigned_to || workerName
+        payload.picking_started_at = request.picking_started_at || nowIso()
+      }
+
+      if (action.next === 'ready') {
+        payload.picking_finished_at = request.picking_finished_at || nowIso()
+      }
+
+      if (action.next === 'loaded') {
+        payload.loaded_at = request.loaded_at || nowIso()
+      }
+
+      if (action.next === 'in_transit') {
+        payload.delivery_started_at = request.delivery_started_at || nowIso()
+        payload.delivered_by = request.delivered_by || workerName
+      }
+
+      if (action.next === 'delivered') {
+        payload.delivered_at = request.delivered_at || nowIso()
+        payload.issued_date = todayDate()
+        payload.delivered_by = request.delivered_by || workerName
+      }
+
+      if (action.next === 'closed') {
+        payload.closed_at = request.closed_at || nowIso()
+      }
+
+      const { error: updateError } = await supabase
+        .from('yard_requests')
+        .update(payload)
+        .eq('id', request.id)
+
+      if (updateError) throw updateError
+
+      showMessage(`${request.fmr_number || 'FMR'} moved to ${prettyStatus(action.next)}.`)
+      await loadAll()
+    } catch (err) {
+      console.error(err)
+      setError(err?.message || 'Unable to update FMR workflow.')
     } finally {
       setSaving(false)
     }
@@ -280,15 +408,16 @@ export default function YardManager() {
     setError('')
 
     try {
-      const payload = { status: nextStatus }
+      const payload = { status: nextStatus, updated_by: user?.id || null }
 
       if (nextStatus === 'delivered') {
-        payload.delivered_at = new Date().toISOString()
+        payload.delivered_at = nowIso()
         payload.issued_date = todayDate()
+        payload.delivered_by = request.delivered_by || workerName
       }
 
       if (nextStatus === 'closed') {
-        payload.closed_at = new Date().toISOString()
+        payload.closed_at = nowIso()
       }
 
       const { error: updateError } = await supabase
@@ -314,10 +443,8 @@ export default function YardManager() {
     setError('')
 
     try {
+      if (!permissions.inventory) throw new Error('You do not have access to inventory.')
       if (!inventoryForm.item_name.trim()) throw new Error('Item name is required.')
-
-      const { data: sessionData } = await supabase.auth.getSession()
-      const userId = sessionData.session?.user?.id || null
 
       const { error: insertError } = await supabase.from('yard_inventory').insert({
         item_name: inventoryForm.item_name.trim(),
@@ -326,8 +453,8 @@ export default function YardManager() {
         storage_area: inventoryForm.storage_area,
         storage_detail: inventoryForm.storage_detail.trim(),
         notes: inventoryForm.notes.trim(),
-        created_by: userId,
-        updated_by: userId
+        created_by: user?.id || null,
+        updated_by: user?.id || null
       })
 
       if (insertError) throw insertError
@@ -349,6 +476,13 @@ export default function YardManager() {
     setError('')
 
     try {
+      const tabAllowed =
+        (movementForm.movement_type === 'issued_to_field' && permissions.fieldDelivery) ||
+        (movementForm.movement_type === 'returned_from_field' && permissions.returns) ||
+        (movementForm.movement_type === 'damaged' && permissions.damaged) ||
+        permissions.inventory
+
+      if (!tabAllowed) throw new Error('You do not have access to this inventory movement.')
       if (!movementForm.inventory_id) throw new Error('Select an inventory item.')
       if (cleanNumber(movementForm.quantity) <= 0) throw new Error('Quantity must be greater than zero.')
 
@@ -367,9 +501,6 @@ export default function YardManager() {
       if (movementForm.movement_type === 'adjustment') nextQty = qty
       if (nextQty < 0) nextQty = 0
 
-      const { data: sessionData } = await supabase.auth.getSession()
-      const userId = sessionData.session?.user?.id || null
-
       const { error: movementError } = await supabase.from('yard_inventory_movements').insert({
         inventory_id: selected.id,
         movement_type: movementForm.movement_type,
@@ -379,7 +510,7 @@ export default function YardManager() {
         to_location: movementForm.to_location.trim(),
         reference_number: movementForm.reference_number.trim(),
         notes: movementForm.notes.trim(),
-        created_by: userId
+        created_by: user?.id || null
       })
 
       if (movementError) throw movementError
@@ -388,7 +519,7 @@ export default function YardManager() {
         .from('yard_inventory')
         .update({
           quantity_on_hand: nextQty,
-          updated_by: userId
+          updated_by: user?.id || null
         })
         .eq('id', selected.id)
 
@@ -434,6 +565,7 @@ export default function YardManager() {
     setError('')
 
     try {
+      if (!permissions.receiving) throw new Error('You do not have access to receiving.')
       if (!receivingForm.vendor.trim() && !receivingForm.manufacturer.trim()) {
         throw new Error('Vendor or manufacturer is required.')
       }
@@ -449,9 +581,6 @@ export default function YardManager() {
         .filter((item) => item.item_name && item.quantity_received > 0)
 
       if (validItems.length === 0) throw new Error('Add at least one received item.')
-
-      const { data: sessionData } = await supabase.auth.getSession()
-      const userId = sessionData.session?.user?.id || null
 
       const { data: receiving, error: receivingError } = await supabase
         .from('receiving_log')
@@ -470,8 +599,8 @@ export default function YardManager() {
           checked_into_inventory: !!receivingForm.checked_into_inventory,
           status: receivingForm.checked_into_inventory ? 'checked_in' : 'received',
           notes: receivingForm.notes.trim(),
-          created_by: userId,
-          updated_by: userId
+          created_by: user?.id || null,
+          updated_by: user?.id || null
         })
         .select('*')
         .single()
@@ -505,7 +634,7 @@ export default function YardManager() {
               .from('yard_inventory')
               .update({
                 quantity_on_hand: cleanNumber(existing.quantity_on_hand) + item.quantity_received,
-                updated_by: userId
+                updated_by: user?.id || null
               })
               .eq('id', existing.id)
 
@@ -519,7 +648,7 @@ export default function YardManager() {
               reference_id: receiving.id,
               reference_number: receivingForm.packing_slip_number.trim(),
               notes: `Received from ${receivingForm.vendor || receivingForm.manufacturer}`,
-              created_by: userId
+              created_by: user?.id || null
             })
           } else {
             const { data: createdInventory } = await supabase
@@ -530,8 +659,8 @@ export default function YardManager() {
                 unit: item.unit,
                 storage_area: item.storage_area,
                 notes: item.notes,
-                created_by: userId,
-                updated_by: userId
+                created_by: user?.id || null,
+                updated_by: user?.id || null
               })
               .select('*')
               .single()
@@ -547,7 +676,7 @@ export default function YardManager() {
                 reference_id: receiving.id,
                 reference_number: receivingForm.packing_slip_number.trim(),
                 notes: `Received from ${receivingForm.vendor || receivingForm.manufacturer}`,
-                created_by: userId
+                created_by: user?.id || null
               })
             }
           }
@@ -566,20 +695,6 @@ export default function YardManager() {
     }
   }
 
-  const stats = useMemo(() => {
-    const today = todayDate()
-    return {
-      newRequests: requests.filter((r) => r.status === 'new').length,
-      picking: requests.filter((r) => r.status === 'picking' || r.status === 'partial').length,
-      ready: requests.filter((r) => r.status === 'ready').length,
-      deliveredToday: requests.filter((r) => r.status === 'delivered' && String(r.issued_date || '').slice(0, 10) === today).length,
-      receivingToday: receivingLogs.filter((r) => String(r.received_date || '').slice(0, 10) === today).length,
-      inventoryRows: inventory.length,
-      returns: movements.filter((m) => m.movement_type === 'returned_from_field').length,
-      damaged: movements.filter((m) => m.movement_type === 'damaged').length
-    }
-  }, [requests, receivingLogs, inventory, movements])
-
   const itemsByRequestId = useMemo(() => {
     const map = {}
     requestItems.forEach((item) => {
@@ -589,11 +704,39 @@ export default function YardManager() {
     return map
   }, [requestItems])
 
-  const filteredRequests = useMemo(() => {
-    const q = requestSearch.trim().toLowerCase()
-    if (!q) return requests
-
+  const myRequests = useMemo(() => {
     return requests.filter((request) => {
+      if (request.created_by && user?.id && request.created_by === user.id) return true
+      if (profile?.full_name && request.requested_by === profile.full_name) return true
+      if (user?.email && request.field_contact === user.email) return true
+      return false
+    })
+  }, [requests, user?.id, user?.email, profile?.full_name])
+
+  const visibleDashboardRequests = permissions.queue ? requests : myRequests
+
+  const stats = useMemo(() => {
+    const today = todayDate()
+    const statRequests = permissions.queue ? requests : myRequests
+
+    return {
+      newRequests: statRequests.filter((r) => r.status === 'new').length,
+      picking: statRequests.filter((r) => r.status === 'picking' || r.status === 'partial').length,
+      ready: statRequests.filter((r) => r.status === 'ready').length,
+      deliveredToday: statRequests.filter((r) => r.status === 'delivered' && String(r.issued_date || '').slice(0, 10) === today).length,
+      receivingToday: permissions.receiving ? receivingLogs.filter((r) => String(r.received_date || '').slice(0, 10) === today).length : 0,
+      inventoryRows: permissions.inventory ? inventory.length : 0,
+      returns: permissions.returns ? movements.filter((m) => m.movement_type === 'returned_from_field').length : 0,
+      damaged: permissions.damaged ? movements.filter((m) => m.movement_type === 'damaged').length : 0
+    }
+  }, [requests, myRequests, receivingLogs, inventory, movements, permissions])
+
+  const filteredRequests = useMemo(() => {
+    const base = permissions.queue ? requests : myRequests
+    const q = requestSearch.trim().toLowerCase()
+    if (!q) return base
+
+    return base.filter((request) => {
       const items = itemsByRequestId[request.id] || []
       const haystack = [
         request.fmr_number,
@@ -612,7 +755,7 @@ export default function YardManager() {
 
       return haystack.includes(q)
     })
-  }, [requests, requestSearch, itemsByRequestId])
+  }, [requests, myRequests, requestSearch, itemsByRequestId, permissions.queue])
 
   const filteredInventory = useMemo(() => {
     const q = inventorySearch.trim().toLowerCase()
@@ -634,22 +777,25 @@ export default function YardManager() {
   return (
     <div className="grid" style={{ gap: 18 }}>
       <div className="card rounded-xl" style={{ padding: 24, background: 'linear-gradient(180deg, #fff7cf 0%, #ffffff 100%)' }}>
-        <div className="badge" style={{ marginBottom: 12 }}>Surplox Industrial</div>
+        <div className="badge" style={{ marginBottom: 12 }}>
+          {profile?.permission_group ? prettyStatus(profile.permission_group) : 'Surplox Industrial'}
+        </div>
         <div className="h1">Yard Manager</div>
         <p className="muted" style={{ marginTop: 10, maxWidth: 900, lineHeight: 1.7 }}>
-          Digital FMRs, picking queue, inventory, vendor receiving, field deliveries, returned material, damaged material, and plant locations.
+          Digital FMRs, request tracking, material movement, plant locations, and role-based access for field and warehouse teams.
         </p>
 
         <div className="row" style={{ marginTop: 18 }}>
-          <TabButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')}>Dashboard</TabButton>
-          <TabButton active={activeTab === 'new-fmr'} onClick={() => setActiveTab('new-fmr')}>New FMR</TabButton>
-          <TabButton active={activeTab === 'queue'} onClick={() => setActiveTab('queue')}>FMR Queue</TabButton>
-          <TabButton active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')}>Inventory</TabButton>
-          <TabButton active={activeTab === 'receiving'} onClick={() => setActiveTab('receiving')}>Receiving</TabButton>
-          <TabButton active={activeTab === 'field-delivery'} onClick={() => openMovementTab('issued_to_field', 'field-delivery')}>Field Delivery</TabButton>
-          <TabButton active={activeTab === 'returns'} onClick={() => openMovementTab('returned_from_field', 'returns')}>Returns</TabButton>
-          <TabButton active={activeTab === 'damaged'} onClick={() => openMovementTab('damaged', 'damaged')}>Damaged</TabButton>
-          <TabButton active={activeTab === 'plant-map'} onClick={() => setActiveTab('plant-map')}>Plant Map</TabButton>
+          {permissions.dashboard ? <TabButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')}>Dashboard</TabButton> : null}
+          {permissions.newFMR ? <TabButton active={activeTab === 'new-fmr'} onClick={() => setActiveTab('new-fmr')}>New FMR</TabButton> : null}
+          {permissions.myRequests ? <TabButton active={activeTab === 'my-requests'} onClick={() => setActiveTab('my-requests')}>My Requests</TabButton> : null}
+          {permissions.queue ? <TabButton active={activeTab === 'queue'} onClick={() => setActiveTab('queue')}>FMR Queue</TabButton> : null}
+          {permissions.inventory ? <TabButton active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')}>Inventory</TabButton> : null}
+          {permissions.receiving ? <TabButton active={activeTab === 'receiving'} onClick={() => setActiveTab('receiving')}>Receiving</TabButton> : null}
+          {permissions.fieldDelivery ? <TabButton active={activeTab === 'field-delivery'} onClick={() => openMovementTab('issued_to_field', 'field-delivery')}>Field Delivery</TabButton> : null}
+          {permissions.returns ? <TabButton active={activeTab === 'returns'} onClick={() => openMovementTab('returned_from_field', 'returns')}>Returns</TabButton> : null}
+          {permissions.damaged ? <TabButton active={activeTab === 'damaged'} onClick={() => openMovementTab('damaged', 'damaged')}>Damaged</TabButton> : null}
+          {permissions.plantMap ? <TabButton active={activeTab === 'plant-map'} onClick={() => setActiveTab('plant-map')}>Plant Map</TabButton> : null}
         </div>
       </div>
 
@@ -658,18 +804,19 @@ export default function YardManager() {
 
       {activeTab === 'dashboard' ? (
         <Dashboard
+          permissions={permissions}
           stats={stats}
-          requests={requests}
+          requests={visibleDashboardRequests}
           itemsByRequestId={itemsByRequestId}
           movements={movements}
           saving={saving}
-          onStatusChange={updateRequestStatus}
+          onAdvance={advanceRequest}
           setActiveTab={setActiveTab}
           openMovementTab={openMovementTab}
         />
       ) : null}
 
-      {activeTab === 'new-fmr' ? (
+      {activeTab === 'new-fmr' && permissions.newFMR ? (
         <NewFmrForm
           form={fmrForm}
           setField={updateFmrField}
@@ -681,34 +828,32 @@ export default function YardManager() {
         />
       ) : null}
 
-      {activeTab === 'queue' ? (
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">FMR Queue</div>
-          <input
-            className="input"
-            style={{ marginTop: 14 }}
-            value={requestSearch}
-            onChange={(e) => setRequestSearch(e.target.value)}
-            placeholder="Search FMR number, requester, ISO, equipment tag, item, or delivery area..."
-          />
-
-          <div className="list" style={{ marginTop: 16 }}>
-            {filteredRequests.map((request) => (
-              <RequestCard
-                key={request.id}
-                request={request}
-                items={itemsByRequestId[request.id] || []}
-                onStatusChange={updateRequestStatus}
-                saving={saving}
-              />
-            ))}
-          </div>
-        </div>
+      {activeTab === 'my-requests' && permissions.myRequests ? (
+        <RequestList
+          title="My Requests"
+          requests={filteredRequests}
+          itemsByRequestId={itemsByRequestId}
+          saving={saving}
+          onAdvance={permissions.queue ? advanceRequest : null}
+          requestSearch={requestSearch}
+          setRequestSearch={setRequestSearch}
+        />
       ) : null}
 
-      {activeTab === 'inventory' ? (
+      {activeTab === 'queue' && permissions.queue ? (
+        <RequestList
+          title="FMR Queue"
+          requests={filteredRequests}
+          itemsByRequestId={itemsByRequestId}
+          saving={saving}
+          onAdvance={advanceRequest}
+          requestSearch={requestSearch}
+          setRequestSearch={setRequestSearch}
+        />
+      ) : null}
+
+      {activeTab === 'inventory' && permissions.inventory ? (
         <InventoryTab
-          inventory={inventory}
           inventoryForm={inventoryForm}
           setInventoryForm={setInventoryForm}
           filteredInventory={filteredInventory}
@@ -719,7 +864,7 @@ export default function YardManager() {
         />
       ) : null}
 
-      {activeTab === 'receiving' ? (
+      {activeTab === 'receiving' && permissions.receiving ? (
         <ReceivingTab
           form={receivingForm}
           setForm={setReceivingForm}
@@ -732,7 +877,7 @@ export default function YardManager() {
         />
       ) : null}
 
-      {['field-delivery', 'returns', 'damaged'].includes(activeTab) ? (
+      {['field-delivery', 'returns', 'damaged'].includes(activeTab) && canUseTab(activeTab) ? (
         <MovementTab
           activeTab={activeTab}
           inventory={inventory}
@@ -743,7 +888,7 @@ export default function YardManager() {
         />
       ) : null}
 
-      {activeTab === 'plant-map' ? (
+      {activeTab === 'plant-map' && permissions.plantMap ? (
         <PlantMapTab plantLocations={plantLocations} />
       ) : null}
     </div>
@@ -758,7 +903,7 @@ function TabButton({ active, onClick, children }) {
   )
 }
 
-function Dashboard({ stats, requests, itemsByRequestId, movements, saving, onStatusChange, setActiveTab, openMovementTab }) {
+function Dashboard({ permissions, stats, requests, itemsByRequestId, movements, saving, onAdvance, setActiveTab, openMovementTab }) {
   return (
     <div className="grid">
       <div className="row">
@@ -766,52 +911,93 @@ function Dashboard({ stats, requests, itemsByRequestId, movements, saving, onSta
         <Metric title="Picking / Partial" value={stats.picking} />
         <Metric title="Ready" value={stats.ready} />
         <Metric title="Delivered Today" value={stats.deliveredToday} />
-        <Metric title="Receiving Today" value={stats.receivingToday} />
-        <Metric title="Inventory Rows" value={stats.inventoryRows} />
-        <Metric title="Returns" value={stats.returns} />
-        <Metric title="Damaged" value={stats.damaged} />
+        {permissions.receiving ? <Metric title="Receiving Today" value={stats.receivingToday} /> : null}
+        {permissions.inventory ? <Metric title="Inventory Rows" value={stats.inventoryRows} /> : null}
+        {permissions.returns ? <Metric title="Returns" value={stats.returns} /> : null}
+        {permissions.damaged ? <Metric title="Damaged" value={stats.damaged} /> : null}
       </div>
 
       <div className="card rounded-xl" style={{ padding: 22 }}>
         <div className="card-section-title">Quick Actions</div>
         <div className="row" style={{ marginTop: 14 }}>
-          <button className="btn primary" type="button" onClick={() => setActiveTab('new-fmr')}>Create FMR</button>
-          <button className="btn" type="button" onClick={() => setActiveTab('queue')}>Open FMR Queue</button>
-          <button className="btn" type="button" onClick={() => setActiveTab('receiving')}>Receive Vendor Delivery</button>
-          <button className="btn" type="button" onClick={() => openMovementTab('issued_to_field', 'field-delivery')}>Field Delivery</button>
-          <button className="btn" type="button" onClick={() => openMovementTab('returned_from_field', 'returns')}>Return Material</button>
-          <button className="btn" type="button" onClick={() => openMovementTab('damaged', 'damaged')}>Report Damaged</button>
+          {permissions.newFMR ? <button className="btn primary" type="button" onClick={() => setActiveTab('new-fmr')}>Create FMR</button> : null}
+          {permissions.myRequests ? <button className="btn" type="button" onClick={() => setActiveTab('my-requests')}>My Requests</button> : null}
+          {permissions.queue ? <button className="btn" type="button" onClick={() => setActiveTab('queue')}>Open FMR Queue</button> : null}
+          {permissions.receiving ? <button className="btn" type="button" onClick={() => setActiveTab('receiving')}>Receive Vendor Delivery</button> : null}
+          {permissions.fieldDelivery ? <button className="btn" type="button" onClick={() => openMovementTab('issued_to_field', 'field-delivery')}>Field Delivery</button> : null}
+          {permissions.returns ? <button className="btn" type="button" onClick={() => openMovementTab('returned_from_field', 'returns')}>Return Material</button> : null}
+          {permissions.damaged ? <button className="btn" type="button" onClick={() => openMovementTab('damaged', 'damaged')}>Report Damaged</button> : null}
         </div>
       </div>
 
       <div className="grid two">
         <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">Newest FMRs</div>
+          <div className="card-section-title">{permissions.queue ? 'Newest FMRs' : 'My Recent Requests'}</div>
           <div className="list">
             {requests.slice(0, 6).map((request) => (
               <RequestCard
                 key={request.id}
                 request={request}
                 items={itemsByRequestId[request.id] || []}
-                onStatusChange={onStatusChange}
                 saving={saving}
+                onAdvance={permissions.queue ? onAdvance : null}
               />
             ))}
           </div>
         </div>
 
-        <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">Recent Inventory Movements</div>
-          <div className="list">
-            {movements.slice(0, 8).map((move) => (
-              <div key={move.id} className="card-soft">
-                <div style={{ fontWeight: 900 }}>{movementLabel(move.movement_type)}</div>
-                <div className="muted">{move.quantity} {move.unit} · {move.reference_number || 'No reference'}</div>
-                <div className="muted">{move.notes || 'No notes'}</div>
-              </div>
-            ))}
+        {permissions.inventory ? (
+          <div className="card rounded-xl" style={{ padding: 22 }}>
+            <div className="card-section-title">Recent Inventory Movements</div>
+            <div className="list">
+              {movements.slice(0, 8).map((move) => (
+                <div key={move.id} className="card-soft">
+                  <div style={{ fontWeight: 900 }}>{movementLabel(move.movement_type)}</div>
+                  <div className="muted">{move.quantity} {move.unit} · {move.reference_number || 'No reference'}</div>
+                  <div className="muted">{move.notes || 'No notes'}</div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="card rounded-xl" style={{ padding: 22 }}>
+            <div className="card-section-title">Request Status Guide</div>
+            <div className="list">
+              {REQUEST_STATUSES.map((status) => (
+                <div key={status} className="card-soft">
+                  <span className="badge" style={statusStyle(status)}>{prettyStatus(status)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function RequestList({ title, requests, itemsByRequestId, saving, onAdvance, requestSearch, setRequestSearch }) {
+  return (
+    <div className="card rounded-xl" style={{ padding: 22 }}>
+      <div className="card-section-title">{title}</div>
+      <input
+        className="input"
+        style={{ marginTop: 14 }}
+        value={requestSearch}
+        onChange={(e) => setRequestSearch(e.target.value)}
+        placeholder="Search FMR number, requester, ISO, equipment tag, item, or delivery area..."
+      />
+
+      <div className="list" style={{ marginTop: 16 }}>
+        {requests.map((request) => (
+          <RequestCard
+            key={request.id}
+            request={request}
+            items={itemsByRequestId[request.id] || []}
+            saving={saving}
+            onAdvance={onAdvance}
+          />
+        ))}
       </div>
     </div>
   )
@@ -1129,7 +1315,9 @@ function Metric({ title, value }) {
   )
 }
 
-function RequestCard({ request, items, onStatusChange, saving }) {
+function RequestCard({ request, items, saving, onAdvance }) {
+  const action = nextWorkflowAction(request.status)
+
   return (
     <div className="card-soft">
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -1143,10 +1331,14 @@ function RequestCard({ request, items, onStatusChange, saving }) {
           <div className="muted">
             Equipment: {request.equipment_tag || '—'} · ISO: {request.iso_number || '—'}
           </div>
+          <div className="muted">
+            Assigned To: {request.assigned_to || 'Unassigned'}
+          </div>
         </div>
 
-        <div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'start' }}>
           <span className="badge" style={statusStyle(request.status)}>{prettyStatus(request.status)}</span>
+          <span className="badge">{prettyStatus(request.priority || 'normal')}</span>
         </div>
       </div>
 
@@ -1164,17 +1356,16 @@ function RequestCard({ request, items, onStatusChange, saving }) {
       </div>
 
       <div className="row" style={{ marginTop: 14 }}>
-        {REQUEST_STATUSES.map((status) => (
+        {onAdvance && action ? (
           <button
-            key={status}
-            className={`btn small ${request.status === status ? 'primary' : ''}`}
+            className="btn primary small"
             type="button"
             disabled={saving}
-            onClick={() => onStatusChange(request, status)}
+            onClick={() => onAdvance(request)}
           >
-            {prettyStatus(status)}
+            {action.label}
           </button>
-        ))}
+        ) : null}
       </div>
     </div>
   )
