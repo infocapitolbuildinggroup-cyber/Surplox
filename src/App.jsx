@@ -6,10 +6,9 @@ import { UserProvider, useUser } from './context/UserContext'
 import Home from './pages/Home'
 import Auth from './pages/Auth'
 import MyAccount from './pages/MyAccount'
-import Notifications from './pages/Notifications'
+import Notifications from './industrial/pages/Notifications'
 import Onboarding from './pages/Onboarding'
-import PublicInvoice from './pages/PublicInvoice'
-import YardManager from './pages/YardManager'
+import YardManager from './industrial/pages/YardManager'
 
 import './styles.css'
 
@@ -800,7 +799,6 @@ function AppShell({ lang, setLang }) {
               element={session ? <Onboarding lang={lang} setLang={setLang} /> : <Navigate to="/auth?mode=signin" replace />}
             />
 
-            <Route path="/invoice/:id" element={<PublicInvoice />} />
 
             <Route path="*" element={<Navigate to={session ? '/yard' : '/'} replace />} />
           </Routes>

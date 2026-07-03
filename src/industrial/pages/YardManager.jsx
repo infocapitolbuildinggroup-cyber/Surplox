@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { supabase } from '../supabaseClient'
-import { useUser } from '../context/UserContext'
+import { supabase } from '../../supabaseClient'
+import { useUser } from '../../context/UserContext'
 
 const STORAGE_AREAS = ['Mexico', 'Oklahoma Yard', 'Warehouse / Main Yard', 'Stainless Tent']
 const REQUEST_STATUSES = ['new', 'accepted', 'picking', 'partial', 'ready', 'loaded', 'in_transit', 'delivered', 'closed']
