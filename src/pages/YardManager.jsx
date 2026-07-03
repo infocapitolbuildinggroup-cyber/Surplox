@@ -27,6 +27,15 @@ function prettyStatus(value) {
     .replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
+function fieldStatusLabel(status) {
+  if (status === 'new') return 'Submitted'
+  if (status === 'accepted') return 'Received by Warehouse'
+  if (status === 'picking' || status === 'partial' || status === 'ready') return 'Being Gathered'
+  if (status === 'loaded' || status === 'in_transit') return 'On The Way'
+  if (status === 'delivered' || status === 'closed') return 'Delivered'
+  return 'Submitted'
+}
+
 function emptyFmrForm() {
   return {
     requested_by: '',
@@ -104,6 +113,16 @@ function statusStyle(status) {
   return {}
 }
 
+function fieldStatusStyle(status) {
+  if (status === 'new') return { background: '#fff0b4', color: '#111111' }
+  if (status === 'accepted' || status === 'picking' || status === 'partial' || status === 'ready') {
+    return { background: '#d8ecff', color: '#0d3f73' }
+  }
+  if (status === 'loaded' || status === 'in_transit') return { background: '#111111', color: '#ffffff' }
+  if (status === 'delivered' || status === 'closed') return { background: '#dcf4e5', color: '#177245' }
+  return {}
+}
+
 function movementLabel(type) {
   if (type === 'issued_to_field') return 'Issued To Field'
   if (type === 'returned_from_field') return 'Returned From Field'
@@ -147,6 +166,9 @@ export default function YardManager() {
   const [inventorySearch, setInventorySearch] = useState('')
   const [requestSearch, setRequestSearch] = useState('')
 
+  const isWarehouseView = Boolean(permissions.queue || permissions.inventory || permissions.receiving)
+  const isFieldView = !isWarehouseView
+
   const workerName = profile?.full_name || profile?.role_title || user?.email || 'Warehouse User'
 
   useEffect(() => {
@@ -156,6 +178,16 @@ export default function YardManager() {
   useEffect(() => {
     if (!canUseTab(activeTab)) setActiveTab('dashboard')
   }, [activeTab, permissions])
+
+  useEffect(() => {
+    setFmrForm((prev) => ({
+      ...prev,
+      requested_by: prev.requested_by || profile?.full_name || '',
+      company: prev.company || profile?.company || 'Summit Industrial',
+      field_contact: prev.field_contact || profile?.phone || profile?.email || user?.email || '',
+      crew_or_foreman: prev.crew_or_foreman || profile?.supervisor || ''
+    }))
+  }, [profile?.full_name, profile?.company, profile?.phone, profile?.email, profile?.supervisor, user?.email])
 
   function canUseTab(tab) {
     if (tab === 'dashboard') return Boolean(permissions.dashboard)
@@ -262,8 +294,8 @@ export default function YardManager() {
     setError('')
 
     try {
-      if (!fmrForm.requested_by.trim()) throw new Error('Requested By is required.')
-      if (!fmrForm.dropoff_location.trim()) throw new Error('Delivery Area / Drop-off Location is required.')
+      if (!fmrForm.requested_by.trim()) throw new Error('Your name is required.')
+      if (!fmrForm.dropoff_location.trim()) throw new Error('Deliver To is required.')
 
       const validItems = fmrForm.items
         .map((item) => ({
@@ -317,13 +349,20 @@ export default function YardManager() {
 
       if (itemError) throw itemError
 
-      setFmrForm(emptyFmrForm())
-      showMessage(`Created ${request.fmr_number || 'new FMR'}.`)
+      setFmrForm({
+        ...emptyFmrForm(),
+        requested_by: profile?.full_name || '',
+        company: profile?.company || 'Summit Industrial',
+        field_contact: profile?.phone || profile?.email || user?.email || '',
+        crew_or_foreman: profile?.supervisor || ''
+      })
+
+      showMessage(`Request submitted. ${request.fmr_number || 'New request'} was sent to the warehouse.`)
       await loadAll()
       setActiveTab(permissions.queue ? 'queue' : 'my-requests')
     } catch (err) {
       console.error(err)
-      setError(err?.message || 'Unable to create FMR.')
+      setError(err?.message || 'Unable to create material request.')
     } finally {
       setSaving(false)
     }
@@ -720,29 +759,97 @@ export default function YardManager() {
   if (loading) return <div className="card">Loading Yard Manager…</div>
 
   return (
-    <div className="grid" style={{ gap: 18 }}>
+    <div className={`grid ${isFieldView ? 'field-ux' : ''}`} style={{ gap: 18 }}>
+      <style>
+        {`
+          .field-ux input::placeholder,
+          .field-ux textarea::placeholder {
+            color: rgba(17, 17, 17, 0.28) !important;
+          }
+
+          .field-ux input,
+          .field-ux textarea,
+          .field-ux select {
+            min-height: 52px;
+            font-size: 16px;
+          }
+
+          .field-ux textarea {
+            min-height: 96px;
+          }
+
+          .field-ux .btn {
+            min-height: 48px;
+          }
+
+          .field-action-card {
+            width: 100%;
+            text-align: left;
+            padding: 22px;
+            border-radius: 22px;
+            border: 1px solid rgba(17,17,17,0.08);
+            background: #ffffff;
+            cursor: pointer;
+          }
+
+          .field-action-card:hover {
+            border-color: rgba(17,17,17,0.22);
+          }
+
+          .field-section-label {
+            font-size: 13px;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: rgba(17,17,17,0.56);
+          }
+
+          .field-priority-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+          }
+
+          .field-priority-btn {
+            min-height: 58px;
+            border-radius: 18px;
+            border: 1px solid rgba(17,17,17,0.1);
+            background: #ffffff;
+            font-weight: 900;
+            cursor: pointer;
+          }
+
+          .field-priority-btn.is-active {
+            background: #111111;
+            color: #ffffff;
+          }
+        `}
+      </style>
+
       <div className="card rounded-xl" style={{ padding: 24, background: 'linear-gradient(180deg, #fff7cf 0%, #ffffff 100%)' }}>
         <div className="badge" style={{ marginBottom: 12 }}>
-          {profile?.permission_group ? prettyStatus(profile.permission_group) : 'Surplox Industrial'}
+          {isFieldView ? 'Field View' : profile?.permission_group ? prettyStatus(profile.permission_group) : 'Surplox Industrial'}
         </div>
 
         <div className="h1">Yard Manager</div>
 
         <p className="muted" style={{ marginTop: 10, maxWidth: 900, lineHeight: 1.7 }}>
-          Digital FMRs, request tracking, material movement, plant locations, and role-based access for field and warehouse teams.
+          {isFieldView
+            ? 'Request material, track your requests, and find delivery locations without calling or texting the warehouse.'
+            : 'Digital FMRs, request tracking, material movement, plant locations, and role-based access for field and warehouse teams.'}
         </p>
 
         <div className="row" style={{ marginTop: 18 }}>
           {permissions.dashboard ? <TabButton active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')}>Dashboard</TabButton> : null}
-          {permissions.newFMR ? <TabButton active={activeTab === 'new-fmr'} onClick={() => setActiveTab('new-fmr')}>New FMR</TabButton> : null}
-          {permissions.myRequests ? <TabButton active={activeTab === 'my-requests'} onClick={() => setActiveTab('my-requests')}>My Requests</TabButton> : null}
+          {permissions.newFMR ? <TabButton active={activeTab === 'new-fmr'} onClick={() => setActiveTab('new-fmr')}>{isFieldView ? 'Request Materials' : 'New FMR'}</TabButton> : null}
+          {permissions.myRequests ? <TabButton active={activeTab === 'my-requests'} onClick={() => setActiveTab('my-requests')}>{isFieldView ? 'My Material Requests' : 'My Requests'}</TabButton> : null}
           {permissions.queue ? <TabButton active={activeTab === 'queue'} onClick={() => setActiveTab('queue')}>FMR Queue</TabButton> : null}
           {permissions.inventory ? <TabButton active={activeTab === 'inventory'} onClick={() => setActiveTab('inventory')}>Inventory</TabButton> : null}
           {permissions.receiving ? <TabButton active={activeTab === 'receiving'} onClick={() => setActiveTab('receiving')}>Receiving</TabButton> : null}
           {permissions.fieldDelivery ? <TabButton active={activeTab === 'field-delivery'} onClick={() => openMovementTab('issued_to_field', 'field-delivery')}>Field Delivery</TabButton> : null}
           {permissions.returns ? <TabButton active={activeTab === 'returns'} onClick={() => openMovementTab('returned_from_field', 'returns')}>Returns</TabButton> : null}
           {permissions.damaged ? <TabButton active={activeTab === 'damaged'} onClick={() => openMovementTab('damaged', 'damaged')}>Damaged</TabButton> : null}
-          {permissions.plantMap ? <TabButton active={activeTab === 'plant-map'} onClick={() => setActiveTab('plant-map')}>Plant Map</TabButton> : null}
+          {permissions.plantMap ? <TabButton active={activeTab === 'plant-map'} onClick={() => setActiveTab('plant-map')}>{isFieldView ? 'Project Map' : 'Plant Map'}</TabButton> : null}
         </div>
       </div>
 
@@ -750,17 +857,26 @@ export default function YardManager() {
       {msg ? <div className="card-soft" style={{ background: '#dcf4e5', color: '#177245' }}>{msg}</div> : null}
 
       {activeTab === 'dashboard' ? (
-        <Dashboard
-          permissions={permissions}
-          stats={stats}
-          requests={visibleDashboardRequests}
-          itemsByRequestId={itemsByRequestId}
-          movements={movements}
-          saving={saving}
-          onAdvance={advanceRequest}
-          setActiveTab={setActiveTab}
-          openMovementTab={openMovementTab}
-        />
+        isFieldView ? (
+          <FieldDashboard
+            profile={profile}
+            requests={myRequests}
+            itemsByRequestId={itemsByRequestId}
+            setActiveTab={setActiveTab}
+          />
+        ) : (
+          <WarehouseDashboard
+            permissions={permissions}
+            stats={stats}
+            requests={visibleDashboardRequests}
+            itemsByRequestId={itemsByRequestId}
+            movements={movements}
+            saving={saving}
+            onAdvance={advanceRequest}
+            setActiveTab={setActiveTab}
+            openMovementTab={openMovementTab}
+          />
+        )
       ) : null}
 
       {activeTab === 'new-fmr' && permissions.newFMR ? (
@@ -772,12 +888,13 @@ export default function YardManager() {
           removeItem={removeFmrItem}
           onSubmit={createFmr}
           saving={saving}
+          fieldMode={isFieldView}
         />
       ) : null}
 
       {activeTab === 'my-requests' && permissions.myRequests ? (
         <RequestList
-          title="My Requests"
+          title={isFieldView ? 'My Material Requests' : 'My Requests'}
           requests={filteredRequests}
           itemsByRequestId={itemsByRequestId}
           saving={saving}
@@ -785,6 +902,7 @@ export default function YardManager() {
           requestSearch={requestSearch}
           setRequestSearch={setRequestSearch}
           queueMode={false}
+          fieldMode={isFieldView}
         />
       ) : null}
 
@@ -838,7 +956,7 @@ export default function YardManager() {
       ) : null}
 
       {activeTab === 'plant-map' && permissions.plantMap ? (
-        <PlantMapTab plantLocations={plantLocations} />
+        <PlantMapTab plantLocations={plantLocations} fieldMode={isFieldView} />
       ) : null}
     </div>
   )
@@ -848,7 +966,77 @@ function TabButton({ active, onClick, children }) {
   return <button className={`btn ${active ? 'primary' : ''}`} type="button" onClick={onClick}>{children}</button>
 }
 
-function Dashboard({ permissions, stats, requests, itemsByRequestId, movements, saving, onAdvance, setActiveTab, openMovementTab }) {
+function FieldDashboard({ profile, requests, itemsByRequestId, setActiveTab }) {
+  const activeRequests = requests.filter((r) => !['delivered', 'closed'].includes(r.status))
+  const deliveredRequests = requests.filter((r) => ['delivered', 'closed'].includes(r.status))
+  const name = profile?.full_name || 'there'
+
+  return (
+    <div className="grid" style={{ gap: 18 }}>
+      <div className="card rounded-xl" style={{ padding: 26, background: 'linear-gradient(180deg, #111111 0%, #2b2b2b 100%)', color: '#ffffff' }}>
+        <div className="badge" style={{ background: 'rgba(255,255,255,0.12)', color: '#ffffff' }}>
+          Field Material Requests
+        </div>
+        <div className="h1" style={{ color: '#ffffff', marginTop: 14 }}>
+          What do you need today, {name}?
+        </div>
+        <p style={{ marginTop: 10, color: 'rgba(255,255,255,0.78)', lineHeight: 1.7, maxWidth: 820 }}>
+          Send material requests directly to the warehouse and track status without calling or texting.
+        </p>
+      </div>
+
+      <div className="grid three">
+        <button className="field-action-card" type="button" onClick={() => setActiveTab('new-fmr')}>
+          <div className="badge" style={{ marginBottom: 12 }}>Start Here</div>
+          <div style={{ fontSize: 24, fontWeight: 950 }}>Request Materials</div>
+          <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
+            Tell the warehouse what you need and where to deliver it.
+          </p>
+        </button>
+
+        <button className="field-action-card" type="button" onClick={() => setActiveTab('my-requests')}>
+          <div className="badge" style={{ marginBottom: 12 }}>{activeRequests.length} Active</div>
+          <div style={{ fontSize: 24, fontWeight: 950 }}>My Material Requests</div>
+          <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
+            Check whether your material is submitted, being gathered, on the way, or delivered.
+          </p>
+        </button>
+
+        <button className="field-action-card" type="button" onClick={() => setActiveTab('plant-map')}>
+          <div className="badge" style={{ marginBottom: 12 }}>Locations</div>
+          <div style={{ fontSize: 24, fontWeight: 950 }}>Project Map</div>
+          <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>
+            Find buildings, yards, racks, and delivery areas.
+          </p>
+        </button>
+      </div>
+
+      <div className="grid two" style={{ alignItems: 'start' }}>
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">My Active Requests</div>
+          <div className="list" style={{ marginTop: 14 }}>
+            {activeRequests.slice(0, 5).map((request) => (
+              <FieldRequestCard key={request.id} request={request} items={itemsByRequestId[request.id] || []} />
+            ))}
+            {activeRequests.length === 0 ? <div className="card-soft">No active material requests.</div> : null}
+          </div>
+        </div>
+
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">Recently Delivered</div>
+          <div className="list" style={{ marginTop: 14 }}>
+            {deliveredRequests.slice(0, 5).map((request) => (
+              <FieldRequestCard key={request.id} request={request} items={itemsByRequestId[request.id] || []} compact />
+            ))}
+            {deliveredRequests.length === 0 ? <div className="card-soft">No delivered requests yet.</div> : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function WarehouseDashboard({ permissions, stats, requests, itemsByRequestId, movements, saving, onAdvance, setActiveTab, openMovementTab }) {
   const openRequests = requests.filter((r) => !['delivered', 'closed'].includes(r.status))
   const urgentRequests = requests.filter((r) => r.priority === 'urgent' || r.priority === 'shutdown-critical')
   const readyRequests = requests.filter((r) => r.status === 'ready' || r.status === 'loaded')
@@ -893,7 +1081,7 @@ function Dashboard({ permissions, stats, requests, itemsByRequestId, movements, 
 
       <div className="grid two" style={{ alignItems: 'start' }}>
         <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{permissions.queue ? 'Priority Work Queue' : 'My Active Requests'}</div>
+          <div className="card-section-title">Priority Work Queue</div>
           <p className="card-section-subtitle" style={{ marginTop: 8 }}>Requests that need attention first.</p>
           <div className="list" style={{ marginTop: 14 }}>
             {(urgentRequests.length ? urgentRequests : newestRequests).slice(0, 6).map((request) => (
@@ -904,32 +1092,22 @@ function Dashboard({ permissions, stats, requests, itemsByRequestId, movements, 
         </div>
 
         <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{permissions.inventory ? 'Recent Material Movements' : 'Request Status Guide'}</div>
-          {permissions.inventory ? (
-            <div className="list" style={{ marginTop: 14 }}>
-              {movements.slice(0, 8).map((move) => (
-                <div key={move.id} className="card-soft">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                    <div>
-                      <div style={{ fontWeight: 900 }}>{movementLabel(move.movement_type)}</div>
-                      <div className="muted">{move.quantity} {move.unit} · {move.reference_number || 'No reference'}</div>
-                    </div>
-                    <span className="badge">{move.from_location || move.to_location || 'Yard'}</span>
+          <div className="card-section-title">Recent Material Movements</div>
+          <div className="list" style={{ marginTop: 14 }}>
+            {movements.slice(0, 8).map((move) => (
+              <div key={move.id} className="card-soft">
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontWeight: 900 }}>{movementLabel(move.movement_type)}</div>
+                    <div className="muted">{move.quantity} {move.unit} · {move.reference_number || 'No reference'}</div>
                   </div>
-                  <div className="muted" style={{ marginTop: 8 }}>{move.notes || 'No notes'}</div>
+                  <span className="badge">{move.from_location || move.to_location || 'Yard'}</span>
                 </div>
-              ))}
-              {movements.length === 0 ? <div className="card-soft">No inventory movements yet.</div> : null}
-            </div>
-          ) : (
-            <div className="list" style={{ marginTop: 14 }}>
-              {REQUEST_STATUSES.map((status) => (
-                <div key={status} className="card-soft">
-                  <span className="badge" style={statusStyle(status)}>{prettyStatus(status)}</span>
-                </div>
-              ))}
-            </div>
-          )}
+                <div className="muted" style={{ marginTop: 8 }}>{move.notes || 'No notes'}</div>
+              </div>
+            ))}
+            {movements.length === 0 ? <div className="card-soft">No inventory movements yet.</div> : null}
+          </div>
         </div>
       </div>
 
@@ -960,7 +1138,7 @@ function Dashboard({ permissions, stats, requests, itemsByRequestId, movements, 
   )
 }
 
-function RequestList({ title, requests, itemsByRequestId, saving, onAdvance, requestSearch, setRequestSearch, queueMode = false }) {
+function RequestList({ title, requests, itemsByRequestId, saving, onAdvance, requestSearch, setRequestSearch, queueMode = false, fieldMode = false }) {
   const lanes = [
     { key: 'new', title: 'New' },
     { key: 'accepted', title: 'Accepted' },
@@ -970,6 +1148,33 @@ function RequestList({ title, requests, itemsByRequestId, saving, onAdvance, req
     { key: 'in_transit', title: 'In Transit' },
     { key: 'delivered', title: 'Delivered / Closed', match: ['delivered', 'closed'] }
   ]
+
+  if (fieldMode) {
+    return (
+      <div className="grid" style={{ gap: 18 }}>
+        <div className="card rounded-xl" style={{ padding: 22 }}>
+          <div className="card-section-title">{title}</div>
+          <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+            Track your material requests without calling or texting the warehouse.
+          </p>
+          <input
+            className="input"
+            style={{ marginTop: 14 }}
+            value={requestSearch}
+            onChange={(e) => setRequestSearch(e.target.value)}
+            placeholder="Example: Building 4, valves, FMR number, or foreman name"
+          />
+        </div>
+
+        <div className="list">
+          {requests.map((request) => (
+            <FieldRequestCard key={request.id} request={request} items={itemsByRequestId[request.id] || []} />
+          ))}
+          {requests.length === 0 ? <div className="card-soft">No material requests found.</div> : null}
+        </div>
+      </div>
+    )
+  }
 
   if (!queueMode) {
     return (
@@ -1035,7 +1240,118 @@ function RequestList({ title, requests, itemsByRequestId, saving, onAdvance, req
   )
 }
 
-function NewFmrForm({ form, setField, setItem, addItem, removeItem, onSubmit, saving }) {
+function NewFmrForm({ form, setField, setItem, addItem, removeItem, onSubmit, saving, fieldMode = false }) {
+  if (fieldMode) {
+    return (
+      <form onSubmit={onSubmit} className="grid" style={{ gap: 18 }}>
+        <div className="card rounded-xl" style={{ padding: 26, background: 'linear-gradient(180deg, #fff7cf 0%, #ffffff 100%)' }}>
+          <div className="badge" style={{ marginBottom: 12 }}>Request Materials</div>
+          <div className="h1">What material do you need?</div>
+          <p className="muted" style={{ marginTop: 10, lineHeight: 1.7, maxWidth: 840 }}>
+            Fill this out like a text to the warehouse. Keep it simple: where it goes, what you need, and how urgent it is.
+          </p>
+        </div>
+
+        <div className="card rounded-xl grid" style={{ padding: 22, gap: 16 }}>
+          <div className="field-section-label">Who are you?</div>
+
+          <div className="grid two">
+            <Input label="Your Name" value={form.requested_by} onChange={(v) => setField('requested_by', v)} placeholder="Example: John Smith" />
+            <Input label="Foreman" value={form.crew_or_foreman} onChange={(v) => setField('crew_or_foreman', v)} placeholder="Example: Mike Rodriguez" />
+          </div>
+
+          <div className="grid two">
+            <Input label="Company" value={form.company} onChange={(v) => setField('company', v)} placeholder="Example: Summit Industrial" />
+            <Input label="Phone / Contact" value={form.field_contact} onChange={(v) => setField('field_contact', v)} placeholder="Example: 555-555-5555" />
+          </div>
+        </div>
+
+        <div className="card rounded-xl grid" style={{ padding: 22, gap: 16 }}>
+          <div className="field-section-label">Where do you need it?</div>
+
+          <div className="grid two">
+            <Input label="Building / Area" value={form.building_area} onChange={(v) => setField('building_area', v)} placeholder="Example: Building 4 Pipe Rack" />
+            <Input label="Deliver To" value={form.dropoff_location} onChange={(v) => setField('dropoff_location', v)} placeholder="Example: North side of cooling tower" />
+          </div>
+
+          <div className="grid two">
+            <Input label="Equipment Tag (Optional)" value={form.equipment_tag} onChange={(v) => setField('equipment_tag', v)} placeholder="Example: CHW-P-104" />
+            <Input label="ISO Number (Optional)" value={form.iso_number} onChange={(v) => setField('iso_number', v)} placeholder="Example: ISO-22-1045" />
+          </div>
+
+          <Input label="Needed By (Optional)" type="datetime-local" value={form.needed_by} onChange={(v) => setField('needed_by', v)} />
+        </div>
+
+        <div className="card rounded-xl grid" style={{ padding: 22, gap: 16 }}>
+          <div className="field-section-label">How urgent?</div>
+
+          <div className="field-priority-grid">
+            {PRIORITIES.map((priority) => (
+              <button
+                key={priority}
+                type="button"
+                className={`field-priority-btn ${form.priority === priority ? 'is-active' : ''}`}
+                onClick={() => setField('priority', priority)}
+              >
+                {prettyStatus(priority)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="card rounded-xl grid" style={{ padding: 22, gap: 16 }}>
+          <div className="field-section-label">What materials?</div>
+
+          <div className="list">
+            {form.items.map((item, index) => (
+              <div key={index} className="card-soft grid" style={{ gap: 12 }}>
+                <div className="grid two">
+                  <Input label="Quantity" type="number" value={item.quantity_requested} onChange={(v) => setItem(index, 'quantity_requested', v)} />
+                  <div>
+                    <label className="muted">Unit</label>
+                    <select value={item.unit} onChange={(e) => setItem(index, 'unit', e.target.value)}>
+                      {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <Input label="Material / Item" value={item.item_name} onChange={(v) => setItem(index, 'item_name', v)} placeholder='Example: 24" butterfly valve, gasket kit, carbon nipple' />
+                <Input label="Notes (Optional)" value={item.notes} onChange={(v) => setItem(index, 'notes', v)} placeholder="Example: Need bolts with it if available" />
+
+                {form.items.length > 1 ? (
+                  <button className="btn small danger" type="button" onClick={() => removeItem(index)}>
+                    Remove Material
+                  </button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+
+          <button className="btn" type="button" onClick={addItem}>
+            + Add Another Material
+          </button>
+        </div>
+
+        <div className="card rounded-xl grid" style={{ padding: 22, gap: 16 }}>
+          <div className="field-section-label">Anything else?</div>
+          <div>
+            <label className="muted">Notes</label>
+            <textarea
+              className="input"
+              value={form.notes}
+              onChange={(e) => setField('notes', e.target.value)}
+              placeholder="Example: Call when loaded, forklift access from west road, material needed before lunch..."
+            />
+          </div>
+
+          <button className="btn primary" type="submit" disabled={saving} style={{ width: '100%', minHeight: 58, fontSize: 17 }}>
+            {saving ? 'Submitting…' : 'Submit Material Request'}
+          </button>
+        </div>
+      </form>
+    )
+  }
+
   return (
     <form onSubmit={onSubmit} className="card rounded-xl grid" style={{ padding: 22 }}>
       <div>
@@ -1307,11 +1623,15 @@ function ReceivingTab({ form, setForm, updateItem, addItem, removeItem, onSubmit
   )
 }
 
-function PlantMapTab({ plantLocations }) {
+function PlantMapTab({ plantLocations, fieldMode = false }) {
   return (
     <div className="card rounded-xl" style={{ padding: 22 }}>
-      <div className="card-section-title">Plant Map / Jobsite Locations</div>
-      <p className="card-section-subtitle">MVP location directory. Later this can become an uploaded map with clickable pins.</p>
+      <div className="card-section-title">{fieldMode ? 'Project Map / Delivery Locations' : 'Plant Map / Jobsite Locations'}</div>
+      <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+        {fieldMode
+          ? 'Use this to confirm the best delivery location before submitting a material request.'
+          : 'MVP location directory. Later this can become an uploaded map with clickable pins.'}
+      </p>
 
       <div className="list">
         {plantLocations.map((location) => (
@@ -1347,6 +1667,50 @@ function Metric({ title, value }) {
     <div className="card-soft">
       <div className="muted">{title}</div>
       <div className="h2">{value}</div>
+    </div>
+  )
+}
+
+function FieldRequestCard({ request, items, compact = false }) {
+  const isUrgent = request.priority === 'urgent' || request.priority === 'shutdown-critical'
+
+  return (
+    <div className="card-soft" style={isUrgent ? { border: '1px solid #d97706', background: '#fffaf0' } : undefined}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontWeight: 950, fontSize: 18 }}>
+            {request.fmr_number || 'Request Pending'}
+          </div>
+          <div className="muted" style={{ marginTop: 4 }}>
+            {request.dropoff_location || request.building_area || 'No delivery location'}
+          </div>
+        </div>
+
+        <span className="badge" style={fieldStatusStyle(request.status)}>
+          {fieldStatusLabel(request.status)}
+        </span>
+      </div>
+
+      {!compact ? (
+        <>
+          <div className="muted" style={{ marginTop: 10 }}>
+            Requested: {request.request_date || 'No date'} · Priority: {prettyStatus(request.priority || 'normal')}
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            {items.length === 0 ? (
+              <div className="muted">No items attached.</div>
+            ) : (
+              items.slice(0, 4).map((item) => (
+                <div key={item.id} className="muted">
+                  {item.quantity_requested} {item.unit || 'ea'} · {item.item_name}
+                </div>
+              ))
+            )}
+            {items.length > 4 ? <div className="muted">+ {items.length - 4} more items</div> : null}
+          </div>
+        </>
+      ) : null}
     </div>
   )
 }
