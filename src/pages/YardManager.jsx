@@ -904,104 +904,223 @@ function TabButton({ active, onClick, children }) {
 }
 
 function Dashboard({ permissions, stats, requests, itemsByRequestId, movements, saving, onAdvance, setActiveTab, openMovementTab }) {
-  return (
-    <div className="grid">
-      <div className="row">
-        <Metric title="New FMRs" value={stats.newRequests} />
-        <Metric title="Picking / Partial" value={stats.picking} />
-        <Metric title="Ready" value={stats.ready} />
-        <Metric title="Delivered Today" value={stats.deliveredToday} />
-        {permissions.receiving ? <Metric title="Receiving Today" value={stats.receivingToday} /> : null}
-        {permissions.inventory ? <Metric title="Inventory Rows" value={stats.inventoryRows} /> : null}
-        {permissions.returns ? <Metric title="Returns" value={stats.returns} /> : null}
-        {permissions.damaged ? <Metric title="Damaged" value={stats.damaged} /> : null}
-      </div>
-
-      <div className="card rounded-xl" style={{ padding: 22 }}>
-        <div className="card-section-title">Quick Actions</div>
-        <div className="row" style={{ marginTop: 14 }}>
-          {permissions.newFMR ? <button className="btn primary" type="button" onClick={() => setActiveTab('new-fmr')}>Create FMR</button> : null}
-          {permissions.myRequests ? <button className="btn" type="button" onClick={() => setActiveTab('my-requests')}>My Requests</button> : null}
-          {permissions.queue ? <button className="btn" type="button" onClick={() => setActiveTab('queue')}>Open FMR Queue</button> : null}
-          {permissions.receiving ? <button className="btn" type="button" onClick={() => setActiveTab('receiving')}>Receive Vendor Delivery</button> : null}
-          {permissions.fieldDelivery ? <button className="btn" type="button" onClick={() => openMovementTab('issued_to_field', 'field-delivery')}>Field Delivery</button> : null}
-          {permissions.returns ? <button className="btn" type="button" onClick={() => openMovementTab('returned_from_field', 'returns')}>Return Material</button> : null}
-          {permissions.damaged ? <button className="btn" type="button" onClick={() => openMovementTab('damaged', 'damaged')}>Report Damaged</button> : null}
+    const openRequests = requests.filter((r) => !['delivered', 'closed'].includes(r.status))
+    const urgentRequests = requests.filter((r) => r.priority === 'urgent' || r.priority === 'shutdown-critical')
+    const readyRequests = requests.filter((r) => r.status === 'ready' || r.status === 'loaded')
+    const pickingRequests = requests.filter((r) => r.status === 'accepted' || r.status === 'picking' || r.status === 'partial')
+    const newestRequests = requests.slice(0, 6)
+  
+    return (
+      <div className="grid" style={{ gap: 18 }}>
+        <div
+          className="card rounded-xl"
+          style={{
+            padding: 24,
+            background: 'linear-gradient(180deg, #111111 0%, #2b2b2b 100%)',
+            color: '#ffffff'
+          }}
+        >
+          <div className="badge" style={{ background: 'rgba(255,255,255,0.12)', color: '#ffffff' }}>
+            Operations Board
+          </div>
+  
+          <div className="h1" style={{ color: '#ffffff', marginTop: 14 }}>
+            Today’s Yard Activity
+          </div>
+  
+          <p style={{ marginTop: 10, color: 'rgba(255,255,255,0.78)', lineHeight: 1.7, maxWidth: 900 }}>
+            Live summary of active FMRs, picking work, ready material, deliveries, returns, damaged material, and recent yard movement.
+          </p>
         </div>
-      </div>
-
-      <div className="grid two">
+  
+        <div className="row">
+          <Metric title="Open FMRs" value={openRequests.length} />
+          <Metric title="Urgent / Critical" value={urgentRequests.length} />
+          <Metric title="Picking / Partial" value={stats.picking} />
+          <Metric title="Ready / Loaded" value={readyRequests.length} />
+          <Metric title="Delivered Today" value={stats.deliveredToday} />
+          {permissions.receiving ? <Metric title="Receiving Today" value={stats.receivingToday} /> : null}
+          {permissions.returns ? <Metric title="Returns" value={stats.returns} /> : null}
+          {permissions.damaged ? <Metric title="Damaged" value={stats.damaged} /> : null}
+        </div>
+  
         <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{permissions.queue ? 'Newest FMRs' : 'My Recent Requests'}</div>
-          <div className="list">
-            {requests.slice(0, 6).map((request) => (
-              <RequestCard
-                key={request.id}
-                request={request}
-                items={itemsByRequestId[request.id] || []}
-                saving={saving}
-                onAdvance={permissions.queue ? onAdvance : null}
-              />
-            ))}
+          <div className="card-section-title">Quick Actions</div>
+  
+          <div className="row" style={{ marginTop: 14 }}>
+            {permissions.newFMR ? (
+              <button className="btn primary" type="button" onClick={() => setActiveTab('new-fmr')}>
+                Create FMR
+              </button>
+            ) : null}
+  
+            {permissions.queue ? (
+              <button className="btn" type="button" onClick={() => setActiveTab('queue')}>
+                Work FMR Queue
+              </button>
+            ) : null}
+  
+            {permissions.myRequests ? (
+              <button className="btn" type="button" onClick={() => setActiveTab('my-requests')}>
+                My Requests
+              </button>
+            ) : null}
+  
+            {permissions.receiving ? (
+              <button className="btn" type="button" onClick={() => setActiveTab('receiving')}>
+                Receive Vendor Delivery
+              </button>
+            ) : null}
+  
+            {permissions.inventory ? (
+              <button className="btn" type="button" onClick={() => setActiveTab('inventory')}>
+                Inventory
+              </button>
+            ) : null}
+  
+            {permissions.fieldDelivery ? (
+              <button className="btn" type="button" onClick={() => openMovementTab('issued_to_field', 'field-delivery')}>
+                Issue Material
+              </button>
+            ) : null}
+  
+            {permissions.returns ? (
+              <button className="btn" type="button" onClick={() => openMovementTab('returned_from_field', 'returns')}>
+                Return Material
+              </button>
+            ) : null}
+  
+            {permissions.damaged ? (
+              <button className="btn" type="button" onClick={() => openMovementTab('damaged', 'damaged')}>
+                Report Damaged
+              </button>
+            ) : null}
+  
+            {permissions.plantMap ? (
+              <button className="btn" type="button" onClick={() => setActiveTab('plant-map')}>
+                Plant Map
+              </button>
+            ) : null}
           </div>
         </div>
-
-        {permissions.inventory ? (
+  
+        <div className="grid two" style={{ alignItems: 'start' }}>
           <div className="card rounded-xl" style={{ padding: 22 }}>
-            <div className="card-section-title">Recent Inventory Movements</div>
-            <div className="list">
-              {movements.slice(0, 8).map((move) => (
-                <div key={move.id} className="card-soft">
-                  <div style={{ fontWeight: 900 }}>{movementLabel(move.movement_type)}</div>
-                  <div className="muted">{move.quantity} {move.unit} · {move.reference_number || 'No reference'}</div>
-                  <div className="muted">{move.notes || 'No notes'}</div>
-                </div>
+            <div className="card-section-title">
+              {permissions.queue ? 'Priority Work Queue' : 'My Active Requests'}
+            </div>
+  
+            <p className="card-section-subtitle" style={{ marginTop: 8 }}>
+              Requests that need attention first.
+            </p>
+  
+            <div className="list" style={{ marginTop: 14 }}>
+              {(urgentRequests.length ? urgentRequests : newestRequests).slice(0, 6).map((request) => (
+                <RequestCard
+                  key={request.id}
+                  request={request}
+                  items={itemsByRequestId[request.id] || []}
+                  saving={saving}
+                  onAdvance={permissions.queue ? onAdvance : null}
+                />
               ))}
+  
+              {requests.length === 0 ? (
+                <div className="card-soft">No FMRs yet.</div>
+              ) : null}
             </div>
           </div>
-        ) : (
+  
           <div className="card rounded-xl" style={{ padding: 22 }}>
-            <div className="card-section-title">Request Status Guide</div>
-            <div className="list">
-              {REQUEST_STATUSES.map((status) => (
-                <div key={status} className="card-soft">
-                  <span className="badge" style={statusStyle(status)}>{prettyStatus(status)}</span>
-                </div>
-              ))}
+            <div className="card-section-title">
+              {permissions.inventory ? 'Recent Material Movements' : 'Request Status Guide'}
+            </div>
+  
+            {permissions.inventory ? (
+              <div className="list" style={{ marginTop: 14 }}>
+                {movements.slice(0, 8).map((move) => (
+                  <div key={move.id} className="card-soft">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontWeight: 900 }}>{movementLabel(move.movement_type)}</div>
+                        <div className="muted">
+                          {move.quantity} {move.unit} · {move.reference_number || 'No reference'}
+                        </div>
+                      </div>
+  
+                      <span className="badge">{move.from_location || move.to_location || 'Yard'}</span>
+                    </div>
+  
+                    <div className="muted" style={{ marginTop: 8 }}>
+                      {move.notes || 'No notes'}
+                    </div>
+                  </div>
+                ))}
+  
+                {movements.length === 0 ? (
+                  <div className="card-soft">No inventory movements yet.</div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="list" style={{ marginTop: 14 }}>
+                {REQUEST_STATUSES.map((status) => (
+                  <div key={status} className="card-soft">
+                    <span className="badge" style={statusStyle(status)}>
+                      {prettyStatus(status)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+  
+        {permissions.queue ? (
+          <div className="grid two" style={{ alignItems: 'start' }}>
+            <div className="card rounded-xl" style={{ padding: 22 }}>
+              <div className="card-section-title">Currently Being Picked</div>
+  
+              <div className="list" style={{ marginTop: 14 }}>
+                {pickingRequests.slice(0, 5).map((request) => (
+                  <RequestCard
+                    key={request.id}
+                    request={request}
+                    items={itemsByRequestId[request.id] || []}
+                    saving={saving}
+                    onAdvance={onAdvance}
+                  />
+                ))}
+  
+                {pickingRequests.length === 0 ? (
+                  <div className="card-soft">No orders are currently being picked.</div>
+                ) : null}
+              </div>
+            </div>
+  
+            <div className="card rounded-xl" style={{ padding: 22 }}>
+              <div className="card-section-title">Ready / Loaded</div>
+  
+              <div className="list" style={{ marginTop: 14 }}>
+                {readyRequests.slice(0, 5).map((request) => (
+                  <RequestCard
+                    key={request.id}
+                    request={request}
+                    items={itemsByRequestId[request.id] || []}
+                    saving={saving}
+                    onAdvance={onAdvance}
+                  />
+                ))}
+  
+                {readyRequests.length === 0 ? (
+                  <div className="card-soft">No material is currently ready or loaded.</div>
+                ) : null}
+              </div>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
-    </div>
-  )
-}
-
-function RequestList({ title, requests, itemsByRequestId, saving, onAdvance, requestSearch, setRequestSearch }) {
-  return (
-    <div className="card rounded-xl" style={{ padding: 22 }}>
-      <div className="card-section-title">{title}</div>
-      <input
-        className="input"
-        style={{ marginTop: 14 }}
-        value={requestSearch}
-        onChange={(e) => setRequestSearch(e.target.value)}
-        placeholder="Search FMR number, requester, ISO, equipment tag, item, or delivery area..."
-      />
-
-      <div className="list" style={{ marginTop: 16 }}>
-        {requests.map((request) => (
-          <RequestCard
-            key={request.id}
-            request={request}
-            items={itemsByRequestId[request.id] || []}
-            saving={saving}
-            onAdvance={onAdvance}
-          />
-        ))}
-      </div>
-    </div>
-  )
-}
+    )
+  }
 
 function NewFmrForm({ form, setField, setItem, addItem, removeItem, onSubmit, saving }) {
   return (
