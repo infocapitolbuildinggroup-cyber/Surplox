@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../supabaseClient'
+import { useUser } from '../context/UserContext'
 
 const YARD_OPTIONS = [
   'Warehouse / Main Yard',
@@ -10,12 +11,81 @@ const YARD_OPTIONS = [
   'Field / Plant'
 ]
 
-const SHIFT_OPTIONS = [
-  'Day Shift',
-  'Night Shift',
-  'Swing Shift',
-  'Rotating',
-  'Other'
+const SHIFT_OPTIONS = ['Day Shift', 'Night Shift', 'Swing Shift', 'Rotating', 'Other']
+
+const ROLE_OPTIONS = [
+  {
+    value: 'warehouse_hand',
+    label: 'Warehouse Hand',
+    permission_group: 'warehouse_operations',
+    access_type: 'warehouse_worker'
+  },
+  {
+    value: 'warehouse_lead',
+    label: 'Warehouse Lead',
+    permission_group: 'warehouse_operations',
+    access_type: 'warehouse_worker'
+  },
+  {
+    value: 'warehouse_supervisor',
+    label: 'Warehouse Supervisor',
+    permission_group: 'supervisor',
+    access_type: 'supervisor'
+  },
+  {
+    value: 'pipefitter',
+    label: 'Pipefitter',
+    permission_group: 'field_operations',
+    access_type: 'field_worker'
+  },
+  {
+    value: 'welder',
+    label: 'Welder',
+    permission_group: 'field_operations',
+    access_type: 'field_worker'
+  },
+  {
+    value: 'ironworker',
+    label: 'Ironworker',
+    permission_group: 'field_operations',
+    access_type: 'field_worker'
+  },
+  {
+    value: 'rigger',
+    label: 'Rigger',
+    permission_group: 'field_operations',
+    access_type: 'field_worker'
+  },
+  {
+    value: 'foreman',
+    label: 'Foreman',
+    permission_group: 'field_leadership',
+    access_type: 'field_supervisor'
+  },
+  {
+    value: 'project_engineer',
+    label: 'Project Engineer',
+    permission_group: 'project_controls',
+    access_type: 'project_controls'
+  },
+  {
+    value: 'superintendent',
+    label: 'Superintendent',
+    permission_group: 'supervisor',
+    access_type: 'supervisor'
+  },
+  {
+    value: 'project_manager',
+    label: 'Project Manager',
+    permission_group: 'supervisor',
+    access_type: 'supervisor'
+  },
+  {
+    value: 'administrator',
+    label: 'Administrator',
+    permission_group: 'admin',
+    access_type: 'admin'
+  }
 ]
 
 function emptyForm() {
@@ -25,6 +95,9 @@ function emptyForm() {
     project_name: 'IREN Childress Data Center',
     department: 'Material Handling',
     role_title: '',
+    employee_role: 'pipefitter',
+    permission_group: 'field_operations',
+    access_type: 'field_worker',
     shift: '',
     assigned_yard: '',
     phone: '',
@@ -36,13 +109,26 @@ function emptyForm() {
     pipefitter: false,
     notifications_new_fmrs: true,
     notifications_status_changes: true,
-    notifications_receiving: true,
-    notifications_inventory: true,
+    notifications_receiving: false,
+    notifications_inventory: false,
     notes: ''
   }
 }
 
+function prettyLabel(value) {
+  return String(value || '')
+    .replace(/_/g, ' ')
+    .replace(/-/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function getRole(value) {
+  return ROLE_OPTIONS.find((role) => role.value === value) || ROLE_OPTIONS[3]
+}
+
 export default function MyAccount({ lang = 'en' }) {
+  const { reloadUser } = useUser()
+
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -50,14 +136,17 @@ export default function MyAccount({ lang = 'en' }) {
   const [userId, setUserId] = useState('')
   const [form, setForm] = useState(emptyForm())
 
+  const selectedRole = useMemo(() => getRole(form.employee_role), [form.employee_role])
+
   const copy =
     lang === 'es'
       ? {
           loading: 'Cargando cuenta…',
           title: 'Mi cuenta',
-          intro: 'Perfil interno para Surplox Industrial, material handling, FMRs, inventario y comunicación del proyecto.',
-          identity: 'Identidad',
-          jobInfo: 'Información del proyecto',
+          intro: 'Perfil interno para Surplox Industrial, permisos, FMRs, inventario y comunicación del proyecto.',
+          personal: 'Información personal',
+          employment: 'Empleo / proyecto',
+          access: 'Acceso del sistema',
           certifications: 'Certificaciones / capacidades',
           notifications: 'Preferencias de alertas',
           notes: 'Notas',
@@ -71,7 +160,7 @@ export default function MyAccount({ lang = 'en' }) {
           company: 'Compañía',
           project: 'Proyecto',
           department: 'Departamento',
-          role: 'Puesto / rol',
+          employeeRole: 'Rol del empleado',
           shift: 'Turno',
           assignedYard: 'Yarda asignada',
           phone: 'Teléfono',
@@ -84,14 +173,17 @@ export default function MyAccount({ lang = 'en' }) {
           newFmrs: 'Nuevos FMRs',
           statusChanges: 'Cambios de estatus',
           receiving: 'Receiving / entregas de proveedor',
-          inventory: 'Movimientos de inventario'
+          inventory: 'Movimientos de inventario',
+          permissionGroup: 'Grupo de permisos',
+          accessType: 'Tipo de acceso'
         }
       : {
           loading: 'Loading account…',
           title: 'My Account',
-          intro: 'Internal profile for Surplox Industrial, material handling, FMRs, inventory, and project communication.',
-          identity: 'Identity',
-          jobInfo: 'Project information',
+          intro: 'Internal profile for Surplox Industrial permissions, FMRs, inventory, and project communication.',
+          personal: 'Personal information',
+          employment: 'Employment / project',
+          access: 'System access',
           certifications: 'Certifications / capabilities',
           notifications: 'Alert preferences',
           notes: 'Notes',
@@ -105,7 +197,7 @@ export default function MyAccount({ lang = 'en' }) {
           company: 'Company',
           project: 'Project',
           department: 'Department',
-          role: 'Position / role',
+          employeeRole: 'Employee role',
           shift: 'Shift',
           assignedYard: 'Assigned yard',
           phone: 'Phone',
@@ -118,13 +210,36 @@ export default function MyAccount({ lang = 'en' }) {
           newFmrs: 'New FMRs',
           statusChanges: 'Status changes',
           receiving: 'Receiving / vendor deliveries',
-          inventory: 'Inventory movements'
+          inventory: 'Inventory movements',
+          permissionGroup: 'Permission group',
+          accessType: 'Access type'
         }
 
   function setField(key, value) {
     setForm((prev) => ({
       ...prev,
       [key]: value
+    }))
+  }
+
+  function setEmployeeRole(value) {
+    const role = getRole(value)
+
+    setForm((prev) => ({
+      ...prev,
+      employee_role: role.value,
+      role_title: role.label,
+      permission_group: role.permission_group,
+      access_type: role.access_type,
+      notifications_receiving:
+        role.permission_group === 'warehouse_operations' ||
+        role.permission_group === 'supervisor' ||
+        role.permission_group === 'admin',
+      notifications_inventory:
+        role.permission_group === 'warehouse_operations' ||
+        role.permission_group === 'supervisor' ||
+        role.permission_group === 'admin' ||
+        role.permission_group === 'project_controls'
     }))
   }
 
@@ -154,9 +269,15 @@ export default function MyAccount({ lang = 'en' }) {
       if (profileError) throw profileError
 
       if (data) {
+        const role = getRole(data.employee_role || 'pipefitter')
+
         setForm({
           ...emptyForm(),
           ...data,
+          employee_role: role.value,
+          role_title: data.role_title || role.label,
+          permission_group: data.permission_group || role.permission_group,
+          access_type: data.access_type || role.access_type,
           email: data.email || user.email || ''
         })
       } else {
@@ -186,13 +307,18 @@ export default function MyAccount({ lang = 'en' }) {
     try {
       if (!userId) throw new Error(copy.signedOut)
 
+      const role = getRole(form.employee_role)
+
       const payload = {
         user_id: userId,
         full_name: form.full_name.trim(),
         company: form.company.trim(),
         project_name: form.project_name.trim(),
         department: form.department.trim(),
-        role_title: form.role_title.trim(),
+        role_title: role.label,
+        employee_role: role.value,
+        permission_group: role.permission_group,
+        access_type: role.access_type,
         shift: form.shift.trim(),
         assigned_yard: form.assigned_yard.trim(),
         phone: form.phone.trim(),
@@ -216,6 +342,7 @@ export default function MyAccount({ lang = 'en' }) {
       if (saveError) throw saveError
 
       setMessage(copy.saved)
+      await reloadUser()
     } catch (err) {
       console.error(err)
       setError(copy.saveError)
@@ -260,95 +387,38 @@ export default function MyAccount({ lang = 'en' }) {
 
       <div className="grid two" style={{ alignItems: 'start' }}>
         <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.identity}</div>
+          <div className="card-section-title">{copy.personal}</div>
 
           <div className="grid" style={{ marginTop: 16, gap: 14 }}>
-            <div>
-              <label className="muted">{copy.fullName}</label>
-              <input
-                className="input"
-                value={form.full_name}
-                onChange={(e) => setField('full_name', e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="muted">{copy.phone}</label>
-              <input
-                className="input"
-                value={form.phone}
-                onChange={(e) => setField('phone', e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="muted">{copy.email}</label>
-              <input
-                className="input"
-                type="email"
-                value={form.email}
-                onChange={(e) => setField('email', e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="muted">{copy.supervisor}</label>
-              <input
-                className="input"
-                value={form.supervisor}
-                onChange={(e) => setField('supervisor', e.target.value)}
-              />
-            </div>
+            <Input label={copy.fullName} value={form.full_name} onChange={(value) => setField('full_name', value)} />
+            <Input label={copy.phone} value={form.phone} onChange={(value) => setField('phone', value)} />
+            <Input label={copy.email} type="email" value={form.email} onChange={(value) => setField('email', value)} />
+            <Input label={copy.supervisor} value={form.supervisor} onChange={(value) => setField('supervisor', value)} />
           </div>
         </div>
 
         <div className="card rounded-xl" style={{ padding: 22 }}>
-          <div className="card-section-title">{copy.jobInfo}</div>
+          <div className="card-section-title">{copy.employment}</div>
 
           <div className="grid" style={{ marginTop: 16, gap: 14 }}>
-            <div>
-              <label className="muted">{copy.company}</label>
-              <input
-                className="input"
-                value={form.company}
-                onChange={(e) => setField('company', e.target.value)}
-              />
-            </div>
+            <Input label={copy.company} value={form.company} onChange={(value) => setField('company', value)} />
+            <Input label={copy.project} value={form.project_name} onChange={(value) => setField('project_name', value)} />
+            <Input label={copy.department} value={form.department} onChange={(value) => setField('department', value)} />
 
             <div>
-              <label className="muted">{copy.project}</label>
-              <input
-                className="input"
-                value={form.project_name}
-                onChange={(e) => setField('project_name', e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="muted">{copy.department}</label>
-              <input
-                className="input"
-                value={form.department}
-                onChange={(e) => setField('department', e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="muted">{copy.role}</label>
-              <input
-                className="input"
-                value={form.role_title}
-                onChange={(e) => setField('role_title', e.target.value)}
-                placeholder="Warehouse Hand, Material Handler, Foreman..."
-              />
+              <label className="muted">{copy.employeeRole}</label>
+              <select value={form.employee_role} onChange={(e) => setEmployeeRole(e.target.value)}>
+                {ROLE_OPTIONS.map((role) => (
+                  <option key={role.value} value={role.value}>
+                    {role.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
               <label className="muted">{copy.shift}</label>
-              <select
-                value={form.shift}
-                onChange={(e) => setField('shift', e.target.value)}
-              >
+              <select value={form.shift} onChange={(e) => setField('shift', e.target.value)}>
                 <option value=""></option>
                 {SHIFT_OPTIONS.map((shift) => (
                   <option key={shift} value={shift}>
@@ -360,10 +430,7 @@ export default function MyAccount({ lang = 'en' }) {
 
             <div>
               <label className="muted">{copy.assignedYard}</label>
-              <select
-                value={form.assigned_yard}
-                onChange={(e) => setField('assigned_yard', e.target.value)}
-              >
+              <select value={form.assigned_yard} onChange={(e) => setField('assigned_yard', e.target.value)}>
                 <option value=""></option>
                 {YARD_OPTIONS.map((yard) => (
                   <option key={yard} value={yard}>
@@ -376,31 +443,31 @@ export default function MyAccount({ lang = 'en' }) {
         </div>
       </div>
 
+      <div className="card rounded-xl" style={{ padding: 22 }}>
+        <div className="card-section-title">{copy.access}</div>
+
+        <div className="grid two" style={{ marginTop: 16 }}>
+          <div className="card-soft">
+            <div className="muted">{copy.permissionGroup}</div>
+            <div className="h2">{prettyLabel(selectedRole.permission_group)}</div>
+          </div>
+
+          <div className="card-soft">
+            <div className="muted">{copy.accessType}</div>
+            <div className="h2">{prettyLabel(selectedRole.access_type)}</div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid two" style={{ alignItems: 'start' }}>
         <div className="card rounded-xl" style={{ padding: 22 }}>
           <div className="card-section-title">{copy.certifications}</div>
 
           <div className="grid" style={{ marginTop: 16, gap: 12 }}>
-            <CheckRow
-              label={copy.forklift}
-              checked={form.forklift_certified}
-              onChange={(value) => setField('forklift_certified', value)}
-            />
-            <CheckRow
-              label={copy.telehandler}
-              checked={form.telehandler_certified}
-              onChange={(value) => setField('telehandler_certified', value)}
-            />
-            <CheckRow
-              label={copy.rigger}
-              checked={form.rigger}
-              onChange={(value) => setField('rigger', value)}
-            />
-            <CheckRow
-              label={copy.pipefitter}
-              checked={form.pipefitter}
-              onChange={(value) => setField('pipefitter', value)}
-            />
+            <CheckRow label={copy.forklift} checked={form.forklift_certified} onChange={(value) => setField('forklift_certified', value)} />
+            <CheckRow label={copy.telehandler} checked={form.telehandler_certified} onChange={(value) => setField('telehandler_certified', value)} />
+            <CheckRow label={copy.rigger} checked={form.rigger} onChange={(value) => setField('rigger', value)} />
+            <CheckRow label={copy.pipefitter} checked={form.pipefitter} onChange={(value) => setField('pipefitter', value)} />
           </div>
         </div>
 
@@ -408,26 +475,10 @@ export default function MyAccount({ lang = 'en' }) {
           <div className="card-section-title">{copy.notifications}</div>
 
           <div className="grid" style={{ marginTop: 16, gap: 12 }}>
-            <CheckRow
-              label={copy.newFmrs}
-              checked={form.notifications_new_fmrs}
-              onChange={(value) => setField('notifications_new_fmrs', value)}
-            />
-            <CheckRow
-              label={copy.statusChanges}
-              checked={form.notifications_status_changes}
-              onChange={(value) => setField('notifications_status_changes', value)}
-            />
-            <CheckRow
-              label={copy.receiving}
-              checked={form.notifications_receiving}
-              onChange={(value) => setField('notifications_receiving', value)}
-            />
-            <CheckRow
-              label={copy.inventory}
-              checked={form.notifications_inventory}
-              onChange={(value) => setField('notifications_inventory', value)}
-            />
+            <CheckRow label={copy.newFmrs} checked={form.notifications_new_fmrs} onChange={(value) => setField('notifications_new_fmrs', value)} />
+            <CheckRow label={copy.statusChanges} checked={form.notifications_status_changes} onChange={(value) => setField('notifications_status_changes', value)} />
+            <CheckRow label={copy.receiving} checked={form.notifications_receiving} onChange={(value) => setField('notifications_receiving', value)} />
+            <CheckRow label={copy.inventory} checked={form.notifications_inventory} onChange={(value) => setField('notifications_inventory', value)} />
           </div>
         </div>
       </div>
@@ -452,15 +503,19 @@ export default function MyAccount({ lang = 'en' }) {
   )
 }
 
+function Input({ label, value, onChange, type = 'text', placeholder = '' }) {
+  return (
+    <div>
+      <label className="muted">{label}</label>
+      <input className="input" type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+    </div>
+  )
+}
+
 function CheckRow({ label, checked, onChange }) {
   return (
     <label className="form-check">
-      <input
-        className="form-check-input"
-        type="checkbox"
-        checked={Boolean(checked)}
-        onChange={(e) => onChange(e.target.checked)}
-      />
+      <input className="form-check-input" type="checkbox" checked={Boolean(checked)} onChange={(e) => onChange(e.target.checked)} />
       <span className="form-check-label">{label}</span>
     </label>
   )
