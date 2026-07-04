@@ -1,6 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../supabaseClient'
 import { useUser } from '../../context/UserContext'
+import {
+  Input,
+  Metric,
+  TabButton,
+  movementLabel,
+  nextWorkflowAction,
+  prettyStatus
+} from '../components/common/Shared'
+import RequestCard from '../components/requests/RequestCard'
+import FieldRequestCard from '../components/requests/FieldRequestCard'
 
 const STORAGE_AREAS = ['Mexico', 'Oklahoma Yard', 'Warehouse / Main Yard', 'Stainless Tent']
 const REQUEST_STATUSES = ['new', 'accepted', 'picking', 'partial', 'ready', 'loaded', 'in_transit', 'delivered', 'closed']
@@ -18,22 +28,6 @@ function nowIso() {
 function cleanNumber(value) {
   const n = Number(value)
   return Number.isFinite(n) ? n : 0
-}
-
-function prettyStatus(value) {
-  return String(value || '')
-    .replace(/-/g, ' ')
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
-function fieldStatusLabel(status) {
-  if (status === 'new') return 'Submitted'
-  if (status === 'accepted') return 'Received by Warehouse'
-  if (status === 'picking' || status === 'partial' || status === 'ready') return 'Being Gathered'
-  if (status === 'loaded' || status === 'in_transit') return 'On The Way'
-  if (status === 'delivered' || status === 'closed') return 'Delivered'
-  return 'Submitted'
 }
 
 function emptyFmrForm() {
@@ -98,48 +92,6 @@ function emptyReceivingForm() {
     notes: '',
     items: [{ item_name: '', quantity_received: '1', unit: 'ea', storage_area: 'Warehouse / Main Yard', notes: '' }]
   }
-}
-
-function statusStyle(status) {
-  if (status === 'new') return { background: '#fff0b4', color: '#111111' }
-  if (status === 'accepted') return { background: '#f1e7a8', color: '#111111' }
-  if (status === 'picking') return { background: '#d8ecff', color: '#0d3f73' }
-  if (status === 'partial') return { background: '#fff4da', color: '#8a5a00' }
-  if (status === 'ready') return { background: '#dcf4e5', color: '#177245' }
-  if (status === 'loaded') return { background: '#e8f6ee', color: '#177245' }
-  if (status === 'in_transit') return { background: '#111111', color: '#ffffff' }
-  if (status === 'delivered') return { background: '#111111', color: '#ffffff' }
-  if (status === 'closed') return { background: '#ecebe3', color: '#111111' }
-  return {}
-}
-
-function fieldStatusStyle(status) {
-  if (status === 'new') return { background: '#fff0b4', color: '#111111' }
-  if (status === 'accepted' || status === 'picking' || status === 'partial' || status === 'ready') {
-    return { background: '#d8ecff', color: '#0d3f73' }
-  }
-  if (status === 'loaded' || status === 'in_transit') return { background: '#111111', color: '#ffffff' }
-  if (status === 'delivered' || status === 'closed') return { background: '#dcf4e5', color: '#177245' }
-  return {}
-}
-
-function movementLabel(type) {
-  if (type === 'issued_to_field') return 'Issued To Field'
-  if (type === 'returned_from_field') return 'Returned From Field'
-  if (type === 'damaged') return 'Damaged Material'
-  if (type === 'received') return 'Received'
-  return prettyStatus(type)
-}
-
-function nextWorkflowAction(status) {
-  if (status === 'new') return { label: 'Accept Order', next: 'accepted' }
-  if (status === 'accepted') return { label: 'Start Picking', next: 'picking' }
-  if (status === 'picking' || status === 'partial') return { label: 'Mark Ready', next: 'ready' }
-  if (status === 'ready') return { label: 'Load Material', next: 'loaded' }
-  if (status === 'loaded') return { label: 'Start Delivery', next: 'in_transit' }
-  if (status === 'in_transit') return { label: 'Mark Delivered', next: 'delivered' }
-  if (status === 'delivered') return { label: 'Close FMR', next: 'closed' }
-  return null
 }
 
 export default function YardManager() {
@@ -962,9 +914,6 @@ export default function YardManager() {
   )
 }
 
-function TabButton({ active, onClick, children }) {
-  return <button className={`btn ${active ? 'primary' : ''}`} type="button" onClick={onClick}>{children}</button>
-}
 
 function FieldDashboard({ profile, requests, itemsByRequestId, setActiveTab }) {
   const activeRequests = requests.filter((r) => !['delivered', 'closed'].includes(r.status))
@@ -1653,121 +1602,3 @@ function PlantMapTab({ plantLocations, fieldMode = false }) {
   )
 }
 
-function Input({ label, value, onChange, type = 'text', placeholder = '' }) {
-  return (
-    <div>
-      <label className="muted">{label}</label>
-      <input className="input" type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
-    </div>
-  )
-}
-
-function Metric({ title, value }) {
-  return (
-    <div className="card-soft">
-      <div className="muted">{title}</div>
-      <div className="h2">{value}</div>
-    </div>
-  )
-}
-
-function FieldRequestCard({ request, items, compact = false }) {
-  const isUrgent = request.priority === 'urgent' || request.priority === 'shutdown-critical'
-
-  return (
-    <div className="card-soft" style={isUrgent ? { border: '1px solid #d97706', background: '#fffaf0' } : undefined}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <div>
-          <div style={{ fontWeight: 950, fontSize: 18 }}>
-            {request.fmr_number || 'Request Pending'}
-          </div>
-          <div className="muted" style={{ marginTop: 4 }}>
-            {request.dropoff_location || request.building_area || 'No delivery location'}
-          </div>
-        </div>
-
-        <span className="badge" style={fieldStatusStyle(request.status)}>
-          {fieldStatusLabel(request.status)}
-        </span>
-      </div>
-
-      {!compact ? (
-        <>
-          <div className="muted" style={{ marginTop: 10 }}>
-            Requested: {request.request_date || 'No date'} · Priority: {prettyStatus(request.priority || 'normal')}
-          </div>
-
-          <div style={{ marginTop: 12 }}>
-            {items.length === 0 ? (
-              <div className="muted">No items attached.</div>
-            ) : (
-              items.slice(0, 4).map((item) => (
-                <div key={item.id} className="muted">
-                  {item.quantity_requested} {item.unit || 'ea'} · {item.item_name}
-                </div>
-              ))
-            )}
-            {items.length > 4 ? <div className="muted">+ {items.length - 4} more items</div> : null}
-          </div>
-        </>
-      ) : null}
-    </div>
-  )
-}
-
-function RequestCard({ request, items, saving, onAdvance }) {
-  const action = nextWorkflowAction(request.status)
-  const isUrgent = request.priority === 'urgent' || request.priority === 'shutdown-critical'
-
-  return (
-    <div className="card-soft" style={isUrgent ? { border: '1px solid #d97706', background: '#fffaf0' } : undefined}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <div>
-          <div style={{ fontWeight: 900 }}>
-            {request.fmr_number || 'FMR Pending'} · {request.requested_by || 'Unknown Requester'}
-          </div>
-
-          <div className="muted">
-            {request.request_date || 'No date'} · {request.dropoff_location || 'No delivery area'}
-          </div>
-
-          <div className="muted">
-            Equipment: {request.equipment_tag || '—'} · ISO: {request.iso_number || '—'}
-          </div>
-
-          <div className="muted">
-            Assigned To: {request.assigned_to || 'Unassigned'}
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'start' }}>
-          <span className="badge" style={statusStyle(request.status)}>{prettyStatus(request.status)}</span>
-          <span className="badge" style={isUrgent ? { background: '#fff0b4', color: '#111111' } : undefined}>
-            {prettyStatus(request.priority || 'normal')}
-          </span>
-        </div>
-      </div>
-
-      <div style={{ marginTop: 12 }}>
-        {items.length === 0 ? (
-          <div className="muted">No items attached.</div>
-        ) : (
-          items.map((item) => (
-            <div key={item.id} className="muted">
-              {item.quantity_requested} {item.unit || 'ea'} · {item.item_name}
-              {item.notes ? ` · ${item.notes}` : ''}
-            </div>
-          ))
-        )}
-      </div>
-
-      <div className="row" style={{ marginTop: 14 }}>
-        {onAdvance && action ? (
-          <button className="btn primary small" type="button" disabled={saving} onClick={() => onAdvance(request)}>
-            {action.label}
-          </button>
-        ) : null}
-      </div>
-    </div>
-  )
-}
